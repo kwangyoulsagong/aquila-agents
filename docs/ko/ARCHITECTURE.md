@@ -9,10 +9,11 @@
 │ widgets/  sidebar, session-tabs,          │preload │ sessions.ts   세션마다 node-pty 하나              │
 │           split-view, changes-panel       │        │ accounts.ts   계정 상태, ~/.claude-* 폴더,        │
 │ features/ switch-account, switch-language,│  .ts   │               zsh 함수 (명시적 클릭만)            │
-│           open-session, setup-account     │        │ hooks.ts      127.0.0.1:<port> hook 수신기       │
-│                                           │        │               + ~/.aquila/claude-hooks.json     │
+│           open-session, setup-account,    │        │ hooks.ts      127.0.0.1:<port> hook 수신기       │
+│           manage-projects                 │        │               + ~/.aquila/claude-hooks.json     │
 │ entities/ session (xterm, 상태), project    │        │ git.ts        git status + diff (읽기만)        │
 │           diff                            │        │ state.ts      ~/.aquila/state.json (열린 탭)     │
+│                                           │        │ menu.ts       네이티브 우클릭 메뉴               │
 │                                           │        │ smoke.ts      npm run smoke 자동 점검            │
 │ shared/   api (타입·IPC·bridge), i18n       │        │                                                 │
 └───────────────────────────────────────────┘        └─────────────────────────────────────────────────┘
@@ -98,6 +99,20 @@ Agentrix에서 이름이 바뀌었습니다: 처음 실행할 때 `~/.aquila/con
 ```
 
 탭바 오른쪽 계정 전환은 `project.account`를 바꿉니다. 그 프로젝트에서 **새로 여는** Claude 세션부터 적용돼요.
+
+### 앱에서 프로젝트 관리
+
+`features/manage-projects`(사이드바에서 사용)로 JSON을 직접 고치지 않고 프로젝트 목록을 바꿉니다:
+
+- 사이드바 하단 **+** → 네이티브 폴더 선택(`dialog:pick-folder`) → 다이얼로그: 이름(= 폴더 이름), 그룹, 계정
+  (현재 프로젝트 값으로 미리 선택). 추가된 프로젝트가 선택돼요.
+- 프로젝트 우클릭 → 네이티브 메뉴(`ui:context-menu`, `electron/menu.ts`): 이름 바꾸기… · 그룹 ▸ (새 그룹… 포함) ·
+  Claude 계정 ▸ · 사이드바에서 제거… (확인 필요, 열린 세션은 닫힘, 파일은 절대 건드리지 않음).
+- 그룹 라벨 우클릭 → 이름 바꾸기…(비우면 기본 이름) · 위로/아래로 이동 · 새 그룹… · 그룹 삭제(빈 그룹만).
+- 행을 다른 행 위(앞/뒤)나 그룹 라벨·빈 그룹(= 맨 뒤)에 끌어다 놓기. 빈 그룹도 계속 보여요.
+- 모든 변경은 `config:edit-projects`로 보내는 `ProjectEdit` 하나; main이 순수 함수 `applyProjectEdit`
+  (`config.ts`, 테스트 있음)를 적용해 저장합니다. id는 이름의 slug(중복 시 번호), 홈 아래 경로는 `~/…`로 저장.
+  `config.json`을 못 읽은 상태면 기본값으로 덮어쓰지 않고 실패해요.
 
 계정 설정 (`accounts.ts`): `accounts:status`가 계정마다 `{ configDirExists, loggedIn }`을 읽습니다 (`loggedIn` =
 `.claude.json`에 `oauthAccount`가 있음, 공용은 `~/.claude.json`). 로그인 안 된 계정은 계정 전환 옆에 "설정" 버튼이 뜨고

@@ -105,6 +105,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `.c-label` | Section label |
 | `.c-sidebar` `__drag` `__body` `__group` `__foot` `__lang` | Sidebar |
 | `.c-row[aria-current]` `__name` `__meta` | Project row |
+| `.c-row[data-drop=before\|after]` `[data-dragging]`, `.c-sidebar__group[data-drop]`, `.c-sidebar__empty` | Drag to reorder: landing line, dimmed dragged row, empty group as a drop target |
 | `.c-tabbar` `__add` `__trailing`, `.c-tab[aria-selected]` `__title` `__close` | Tabs |
 | `.c-split`, `.c-pane[data-focused]` `__head` `__term` | Split view |
 | `.c-split--free`, `.c-split__drop`, `.c-pane__title` `__close` | Split view in the app: absolutely placed panes, drop indicator (glides between zones), pane head title + close |
@@ -113,7 +114,8 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `.c-change`, `__status[data-status]` `__path` `__dir` | Changed file row: colored git status letter, name, dimmed dir |
 | `.c-btn--ghost[aria-pressed]` | Toggle button that's on |
 | `.c-empty` `__title` `__path` `__actions` | Empty state |
-| `.c-dialog` `__title` `__body` `__actions` `__check` `__code` | Modal dialog (native `<dialog>`, rises in) |
+| `.c-dialog` `__title` `__body` `__actions` `__check` `__code` `__form` | Modal dialog (native `<dialog>`, rises in) |
+| `.c-field` `__label` `__hint`, `.c-input`, `.c-select` `__control` | Form field: label, text input / select (focus = blue border), monospace hint |
 
 ## React components (`design-system/react/`)
 
@@ -129,7 +131,8 @@ from `src/` (ESLint enforces it). New primitive → add the class to `components
 | `Kbd`, `Label` | `.c-kbd`, `.c-label` |
 | `Segment` `options` `value` `onChange` | `.c-segment` |
 | `EmptyState` `title` `path` `actions` | `.c-empty` |
-| `Dialog` `open` `title` `onClose` `actions`, `DialogCheck`, `DialogCode` | `.c-dialog` |
+| `Dialog` `open` `title` `onClose` `actions`, `DialogCheck`, `DialogCode`, `DialogForm` `id` `onSubmit` | `.c-dialog` |
+| `Field` `label` `hint`, `Input`, `Select` `options` `onChange(value)` | `.c-field`, `.c-input`, `.c-select` |
 | `ChangeRow` `status` `path` | `.c-change` |
 
 ## Copy

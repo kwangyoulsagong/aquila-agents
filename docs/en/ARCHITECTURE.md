@@ -9,10 +9,11 @@
 │ widgets/  sidebar, session-tabs,          │preload │ sessions.ts   one node-pty per session           │
 │           split-view, changes-panel       │        │ accounts.ts   account status, ~/.claude-* dir,   │
 │ features/ switch-account, switch-language,│  .ts   │               zsh function (explicit click)      │
-│           open-session, setup-account     │        │ hooks.ts      127.0.0.1:<port> hook receiver     │
-│                                           │        │               + ~/.aquila/claude-hooks.json       │
+│           open-session, setup-account,    │        │ hooks.ts      127.0.0.1:<port> hook receiver     │
+│           manage-projects                 │        │               + ~/.aquila/claude-hooks.json       │
 │ entities/ session (xterm, status), project│        │ git.ts        git status + diff (read-only)      │
 │           diff                            │        │ state.ts      ~/.aquila/state.json (open tabs)   │
+│                                           │        │ menu.ts       native context menus               │
 │                                           │        │ smoke.ts      npm run smoke self-check           │
 │ shared/   api (types · IPC · bridge), i18n│        │                                                 │
 └───────────────────────────────────────────┘        └─────────────────────────────────────────────────┘
@@ -100,6 +101,20 @@ Renamed from Agentrix: on first start, if `~/.aquila/config.json` doesn't exist,
 ```
 
 The account switch in the tab bar changes `project.account`; it applies to **new** Claude sessions in that project.
+
+### Managing projects in the app
+
+`features/manage-projects` (used by the sidebar) edits the project list without touching JSON by hand:
+
+- **+** in the sidebar footer → native folder picker (`dialog:pick-folder`) → dialog: name (= folder name), group,
+  account (preselected from the current project). The new project is selected.
+- Right-click a project → native menu (`ui:context-menu`, `electron/menu.ts`): Rename… · Group ▸ (incl. New group…) ·
+  Claude account ▸ · Remove from sidebar… (confirm; its open sessions close; files are never touched).
+- Right-click a group label → Rename… (blank = default name) · Move up/down · New group… · Remove group (empty only).
+- Drag a row onto another row (before/after) or onto a group label / empty group (= last). Empty groups stay visible.
+- Every change is one `ProjectEdit` sent on `config:edit-projects`; main applies the pure `applyProjectEdit`
+  (`config.ts`, tested) and saves. Ids are slugs of the name, made unique; paths under home are stored as `~/…`.
+  If `config.json` couldn't be read, edits fail instead of overwriting it with the defaults.
 
 Account setup (`accounts.ts`): `accounts:status` reads `{ configDirExists, loggedIn }` per account (`loggedIn` =
 `.claude.json` has `oauthAccount`; shared reads `~/.claude.json`). An account that isn't logged in gets a "Set up"
