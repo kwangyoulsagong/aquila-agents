@@ -28,7 +28,9 @@ Projects live in `~/.agentrix/config.json` (created on first run; "Open settings
 | Keys | Action |
 |---|---|
 | ⌘T / ⌘⇧T / ⌘⌥T | Open Claude / Codex / shell in the current project |
-| ⌘W | Close session |
+| ⌘W | Close session (empty pane: close the pane) |
+| ⌘D / ⌘⇧D | Split right / down (up to 4 panes) |
+| ⌘⌥←→↑↓ | Move focus between panes |
 | ⌘1–9 | Jump to project |
 
 ## Docs

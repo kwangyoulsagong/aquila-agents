@@ -14,10 +14,11 @@ only with small additive edits. Merge order follows the numbering when two tasks
 ---
 
 ### T1 · Split view
-- [ ] **Goal:** see and chat with 2–4 sessions at once (any projects).
+- [x] **Goal:** see and chat with 2–4 sessions at once (any projects).
+  _Left over: pane sizes are fixed halves (no drag-to-resize divider); single pane shows no `.c-pane__head` (the tab bar already says it)._
 - **UX:** ⌘D split right, ⌘⇧D split down, ⌘⌥←/→/↑/↓ move focus, drag a tab onto a pane edge to split there.
   Each pane has `.c-pane__head` (status dot · kind · project · account). Focused pane gets `data-focused`.
-- **Owns:** `src/widgets/split-view/`, `src/widgets/split-view/model/layout.ts` (+ test), `src/widgets/session-stage/`.
+- **Owns:** `src/widgets/split-view/`, `src/widgets/split-view/model/layout.ts` (+ test), `src/widgets/session-stage/` (merged into split-view).
 - **Done:** layout persists while switching projects; closing a session collapses its pane; xterm refits on resize.
 
 ### T2 · Account setup (Shared `claude` / Personal `claude-personal`)

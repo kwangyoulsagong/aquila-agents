@@ -103,6 +103,7 @@
 | `.c-row[aria-current]` `__name` `__meta` | 프로젝트 행 |
 | `.c-tabbar` `__add` `__trailing`, `.c-tab[aria-selected]` `__title` `__close` | 탭 |
 | `.c-split`, `.c-pane[data-focused]` `__head` `__term` | 화면 분할 |
+| `.c-split--free`, `.c-split__drop`, `.c-pane__title` `__close` | 앱의 화면 분할: 절대 배치 패널, 드롭 표시(영역 사이를 미끄러지듯 이동), 패널 헤더 제목 + 닫기 |
 | `.c-panel` `__head` `__body` | 오른쪽 패널 |
 | `.c-diff` `__line--add/del/hunk/file` | diff |
 | `.c-empty` `__title` `__path` `__actions` | 빈 화면 |

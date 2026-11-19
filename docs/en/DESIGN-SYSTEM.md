@@ -104,6 +104,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `.c-row[aria-current]` `__name` `__meta` | Project row |
 | `.c-tabbar` `__add` `__trailing`, `.c-tab[aria-selected]` `__title` `__close` | Tabs |
 | `.c-split`, `.c-pane[data-focused]` `__head` `__term` | Split view |
+| `.c-split--free`, `.c-split__drop`, `.c-pane__title` `__close` | Split view in the app: absolutely placed panes, drop indicator (glides between zones), pane head title + close |
 | `.c-panel` `__head` `__body` | Right panel |
 | `.c-diff` `__line--add/del/hunk/file` | Diff |
 | `.c-empty` `__title` `__path` `__actions` | Empty state |
