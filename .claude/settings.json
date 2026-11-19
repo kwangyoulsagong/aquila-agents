@@ -23,7 +23,16 @@
       "Bash(git push --force*)",
       "Bash(git reset --hard*)",
       "Edit(~/.claude/**)",
-      "Edit(~/.claude-personal/**)",
+      "Edit(~/.claude-personal/*)",
+      "Edit(~/.claude-personal/plugins/**)",
+      "Edit(~/.claude-personal/skills/**)",
+      "Edit(~/.claude-personal/backups/**)",
+      "Edit(~/.claude-personal/sessions/**)",
+      "Edit(~/.claude-personal/session-env/**)",
+      "Edit(~/.claude-personal/file-history/**)",
+      "Edit(~/.claude-personal/shell-snapshots/**)",
+      "Edit(~/.claude-personal/cache/**)",
+      "Edit(~/.claude-personal/projects/*/*.jsonl)",
       "Edit(~/.codex/**)"
     ]
   },
