@@ -39,6 +39,7 @@ body {
 .c-btn--ghost { background: transparent; border-color: transparent; color: var(--color-text-secondary); }
 .c-btn--ghost:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
 .c-btn--icon { width: var(--size-control); padding: 0; justify-content: center; }
+.c-btn--ghost[aria-pressed='true'] { background: var(--color-bg-pressed); color: var(--color-text-primary); }
 
 /* ── Segmented control ────────────────────────────────────── */
 .c-segment {
@@ -177,14 +178,40 @@ body {
   padding: 0 var(--space-inset-md); border-bottom: 1px solid var(--color-border-subtle); font-weight: 600;
 }
 .c-panel__body { flex: 1; overflow: auto; user-select: text; }
+/* The head sits in the title-bar band: draggable like the tab bar, controls stay clickable. */
+.c-panel__head { -webkit-app-region: drag; }
+.c-panel__head > * { -webkit-app-region: no-drag; }
+.c-panel__actions { margin-left: auto; display: flex; align-items: center; gap: var(--space-inline-xs); }
+.c-panel__section { padding: var(--space-inset-sm) 0; border-bottom: 1px solid var(--color-border-subtle); }
+.c-panel__note { padding: var(--space-inset-sm) var(--space-inset-md); font-size: var(--font-size-caption); color: var(--color-text-tertiary); }
+
+/* ── Changed file row ─────────────────────────────────────── */
+.c-change {
+  display: flex; align-items: center; gap: var(--space-inline-sm); width: 100%;
+  height: var(--size-control); padding: 0 var(--space-inset-md); border: 0; background: none;
+  font: var(--font-size-label) var(--font-family-mono); color: var(--color-text-secondary);
+  text-align: left; cursor: pointer;
+}
+.c-change:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
+.c-change__status { width: 1ch; flex: none; font-weight: 600; color: var(--color-text-tertiary); }
+.c-change__status[data-status='M'] { color: var(--color-status-waiting); }
+.c-change__status[data-status='A'], .c-change__status[data-status='?'] { color: var(--color-diff-add-text); }
+.c-change__status[data-status='D'] { color: var(--color-diff-del-text); }
+.c-change__status[data-status='R'], .c-change__status[data-status='C'] { color: var(--color-diff-hunk-text); }
+.c-change__status[data-status='U'] { color: var(--color-status-error); }
+.c-change__path { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.c-change__dir { color: var(--color-text-tertiary); }
 
 /* ── Diff ─────────────────────────────────────────────────── */
 .c-diff { font: var(--font-size-label) / 1.55 var(--font-family-mono); white-space: pre; padding: var(--space-inset-sm) 0; }
+/* Grow to the longest line so add/del backgrounds span the whole row when scrolled sideways. */
+.c-diff { width: max-content; min-width: 100%; }
 .c-diff__line { padding: 0 var(--space-inset-md); }
 .c-diff__line--add { background: var(--color-diff-add-bg); color: var(--color-diff-add-text); }
 .c-diff__line--del { background: var(--color-diff-del-bg); color: var(--color-diff-del-text); }
 .c-diff__line--hunk { color: var(--color-diff-hunk-text); }
 .c-diff__line--file { color: var(--color-text-primary); font-weight: 600; padding-top: var(--space-inset-md); }
+.c-diff__line--meta { color: var(--color-text-tertiary); }
 
 /* ── Dialog ───────────────────────────────────────────────── */
 .c-dialog {
@@ -257,6 +284,11 @@ body {
 /* Dialog rises in. */
 .c-dialog[open] { animation: c-fade-up var(--motion-medium) var(--motion-ease) both; }
 .c-dialog[open]::backdrop { animation: c-fade-in var(--motion-medium) var(--motion-ease) both; }
+
+/* Right panel slides in from the edge. */
+.c-panel { animation: c-slide-in var(--motion-slow) var(--motion-ease) both; }
+@keyframes c-slide-in { from { opacity: 0; transform: translateX(var(--space-stack-md)); } }
+.c-change { transition: background var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease); }
 
 /* Close button reveals smoothly. */
 .c-tab__close { transition-property: opacity, background, color, transform; }

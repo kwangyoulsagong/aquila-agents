@@ -9,3 +9,4 @@ export { Label } from './Label';
 export { Segment, type SegmentOption } from './Segment';
 export { EmptyState } from './EmptyState';
 export { Dialog, DialogCheck, DialogCode } from './Dialog';
+export { ChangeRow } from './ChangeRow';
