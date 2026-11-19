@@ -1,0 +1,75 @@
+// Main process: window, config, pty sessions, Claude hook receiver.
+import path from 'node:path';
+import { app, BrowserWindow, ipcMain, shell } from 'electron';
+import { CONFIG_PATH, loadConfig, setLanguage, setProjectAccount } from './config';
+import { startHookServer, writeClaudeHookSettings } from './hooks';
+import { SessionManager } from './sessions';
+import { isSmoke, runSmoke, watchOutput } from './smoke';
+import { IPC, type Language, type SessionKind } from '../src/shared/api/types';
+
+const isDev = process.env.AGENTRIX_DEV === '1';
+let win: BrowserWindow | null = null;
+let sessions: SessionManager | null = null;
+
+function createWindow(): void {
+  win = new BrowserWindow({
+    width: 1440,
+    height: 900,
+    minWidth: 900,
+    minHeight: 560,
+    backgroundColor: '#0e1014', // = --p-slate-950; avoids a white flash before CSS loads
+    titleBarStyle: 'hiddenInset',
+    trafficLightPosition: { x: 16, y: 14 },
+    webPreferences: {
+      // compiled layout: dist-electron/electron/main.js → dist-electron/electron/preload.js
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      sandbox: false,
+    },
+  });
+  if (isDev) win.loadURL('http://localhost:5199');
+  else win.loadFile(path.join(__dirname, '..', '..', 'dist', 'index.html'));
+  win.on('closed', () => (win = null));
+}
+
+app.whenReady().then(async () => {
+  const hookPort = await startHookServer((tabId, status) => sessions?.onHook(tabId, status));
+  const smokeOutput = { buffer: '' };
+  const send = (channel: string, payload: unknown) => win?.webContents.send(channel, payload);
+  sessions = new SessionManager({
+    send: isSmoke ? watchOutput(send, (d) => (smokeOutput.buffer += d)) : send,
+    getWindow: () => win,
+    hookPort,
+    hookSettingsPath: writeClaudeHookSettings(),
+  });
+  const s = sessions;
+
+  ipcMain.handle(IPC.configGet, () => loadConfig());
+  ipcMain.handle(IPC.configOpen, () => shell.openPath(CONFIG_PATH));
+  ipcMain.handle(IPC.configSetLanguage, (_e, language: Language) => setLanguage(language));
+  ipcMain.handle(
+    IPC.configSetProjectAccount,
+    (_e, { projectId, account }: { projectId: string; account: string }) =>
+      setProjectAccount(projectId, account),
+  );
+  ipcMain.handle(IPC.sessionCreate, (_e, { projectId, kind }: { projectId: string; kind: SessionKind }) =>
+    s.create(loadConfig(), projectId, kind),
+  );
+  ipcMain.on(IPC.sessionWrite, (_e, { id, data }: { id: string; data: string }) => s.write(id, data));
+  ipcMain.on(IPC.sessionResize, (_e, { id, cols, rows }: { id: string; cols: number; rows: number }) =>
+    s.resize(id, cols, rows),
+  );
+  ipcMain.on(IPC.sessionKill, (_e, { id }: { id: string }) => s.kill(id));
+  ipcMain.on(IPC.sessionSeen, (_e, { id }: { id: string }) => s.markSeen(id));
+  ipcMain.on(IPC.uiActive, (_e, { id }: { id: string | null }) => s.setActive(id));
+
+  createWindow();
+  if (isSmoke && win) {
+    const w = win;
+    w.webContents.once('did-finish-load', () => runSmoke(w, s, loadConfig(), smokeOutput));
+  }
+  app.on('activate', () => BrowserWindow.getAllWindows().length === 0 && createWindow());
+});
+
+app.on('window-all-closed', () => app.quit());
+app.on('before-quit', () => sessions?.killAll());
