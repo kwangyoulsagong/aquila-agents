@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type { Config, Session, SessionKind } from '@/shared/api';
 import { kindLabel, useT } from '@/shared/i18n';
+import { endSessionDrag, startSessionDrag } from '@/shared/lib/sessionDrag';
 import { AccountBadge } from '@/entities/project';
 import { StatusDot } from '@/entities/session';
 
@@ -34,6 +35,9 @@ export default function SessionTabs({
           role="tab"
           aria-selected={s.id === activeId}
           data-status={s.status}
+          draggable
+          onDragStart={(e) => startSessionDrag(e, s.id)}
+          onDragEnd={endSessionDrag}
           onClick={() => onSelect(s.id)}
           onAuxClick={(e) => e.button === 1 && onClose(s.id)}
         >
