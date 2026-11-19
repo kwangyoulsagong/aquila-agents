@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { Button } from '@design-system/react';
 import { api } from '@/shared/api';
 import { I18nContext, translator } from '@/shared/i18n';
+import { withShortcut } from '@/shared/lib/shortcuts';
 import { AccountSwitch } from '@/features/switch-account';
 import { SetupAccount } from '@/features/setup-account';
 import { OpenInWorktreeDialog } from '@/features/open-in-worktree';
@@ -109,7 +110,7 @@ export default function WorkspacePage() {
                     icon
                     aria-pressed={changesOpen}
                     onClick={toggleChanges}
-                    title={`${t('changes.toggle')} (⌘⇧G)`}
+                    title={withShortcut(t('changes.toggle'), 'toggleChanges')}
                     aria-label={t('changes.toggle')}
                   >
                     ±

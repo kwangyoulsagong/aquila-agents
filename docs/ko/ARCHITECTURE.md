@@ -100,6 +100,14 @@
   (codex가 cwd로 거름). 셸 → 새 셸. 없어진 프로젝트의 탭은 버리고, 없어진 계정은 프로젝트 계정으로 대체. 워크트리 탭은 그 워크트리에서 다시 열고,
   폴더가 없어졌으면 버려요.
 
+## 단축키
+
+- 맵 하나: `src/shared/lib/shortcuts.ts`의 `ShortcutId` → Electron accelerator(`CommandOrControl+Shift+T`).
+  `pages/workspace/model/useShortcuts.ts`가 `matchShortcut(e)`로 처리합니다(캡처 단계, 수정키 정확히 일치,
+  `KeyboardEvent.code`로 비교해서 한글 입력 상태에서도 동작). `shortcutLabel(id)` / `withShortcut(label, id)`는 macOS에서
+  `⇧⌘T`(Apple 순서 ⌃⌥⇧⌘), 그 외에서 `Ctrl+Shift+T`를 돌려줘 팔레트·버튼·툴팁이 씁니다. 네이티브 메뉴는
+  `ContextMenuItem.accelerator`로 받습니다(표시만). 새 단축키는 맵에 추가하고 문자열로 직접 쓰지 않습니다.
+
 ## 상태
 
 | 출처 | 대상 | 방식 |

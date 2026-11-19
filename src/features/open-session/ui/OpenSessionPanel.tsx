@@ -1,6 +1,7 @@
 import { Button, EmptyState, Kbd } from '@design-system/react';
 import type { Project, SessionKind } from '@/shared/api';
 import { useT } from '@/shared/i18n';
+import { shortcutLabel } from '@/shared/lib/shortcuts';
 import { OPEN_ACTIONS } from '../model/actions';
 
 interface Props {
@@ -19,7 +20,7 @@ export default function OpenSessionPanel({ project, onOpen }: Props) {
       actions={OPEN_ACTIONS.map((a) => (
         <Button key={a.kind} variant={a.primary ? 'primary' : 'default'} onClick={() => onOpen(a.kind)}>
           {t(a.key)}
-          <Kbd>{a.kbd}</Kbd>
+          <Kbd>{shortcutLabel(a.shortcut)}</Kbd>
         </Button>
       ))}
     />
