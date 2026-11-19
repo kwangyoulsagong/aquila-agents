@@ -57,7 +57,8 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
 - **담당:** `src/features/manage-projects/`, `electron/config.ts` (저장 헬퍼 추가).
 
 ### T6 · 커맨드 팔레트
-- [ ] **목표:** ⌘K로 어떤 프로젝트/세션이든 바로 이동하거나 동작 실행.
+- [x] **목표:** ⌘K로 어떤 프로젝트/세션이든 바로 이동하거나 동작 실행.
+  _남은 것: "프로젝트 추가" 동작 없음(폴더 선택 흐름은 사이드바에 있음), 최근 사용 순 정렬 없음._
 - **담당:** `src/widgets/command-palette/`, `src/shared/lib/fuzzy.ts` (+ 테스트).
 
 ### T7 · 워크트리 세션

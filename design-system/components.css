@@ -250,6 +250,42 @@ body {
 .c-dialog__form { display: flex; flex-direction: column; gap: var(--space-inset-md); }
 .c-dialog__check { display: flex; align-items: center; gap: var(--space-inline-sm); }
 
+/* ── Command palette ──────────────────────────────────────── */
+.c-palette {
+  width: var(--size-palette); max-width: calc(100vw - 2 * var(--space-stack-lg));
+  margin: calc(2 * var(--size-titlebar)) auto auto; padding: 0;
+  border: 1px solid var(--color-border-default); border-radius: var(--radius-container);
+  background: var(--color-bg-surface); color: var(--color-text-primary); overflow: hidden;
+}
+.c-palette::backdrop { background: var(--color-bg-scrim); }
+.c-palette__input {
+  display: block; width: 100%; height: var(--size-titlebar); padding: 0 var(--space-stack-md);
+  border: 0; border-bottom: 1px solid var(--color-border-subtle); background: transparent;
+  color: var(--color-text-primary); font: var(--font-size-body) var(--font-family-ui); user-select: text;
+}
+.c-palette__input:focus-visible { outline: none; }
+.c-palette__input::placeholder { color: var(--color-text-tertiary); }
+.c-palette__list { max-height: var(--size-palette-list); overflow-y: auto; padding: var(--space-inline-xs); }
+.c-palette__item {
+  display: flex; align-items: center; gap: var(--space-inline-sm);
+  height: var(--size-row); padding: 0 var(--space-inset-md); border-radius: var(--radius-control);
+  color: var(--color-text-secondary); cursor: pointer;
+}
+.c-palette__item[aria-selected='true'] { background: var(--color-bg-selected); color: var(--color-text-primary); }
+.c-palette__leading { display: inline-flex; align-items: center; gap: var(--space-inline-xs); flex: none; }
+.c-palette__label { flex: none; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.c-palette__mark { background: none; color: var(--color-text-primary); font-weight: 600; }
+.c-palette__hint {
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: var(--font-size-caption); color: var(--color-text-tertiary);
+}
+.c-palette__item .c-kbd { margin-left: auto; flex: none; }
+.c-palette__empty { padding: var(--space-inset-md) var(--space-stack-md); color: var(--color-text-tertiary); }
+.c-palette__foot {
+  display: flex; align-items: center; gap: var(--space-inset-md); padding: var(--space-inset-sm) var(--space-stack-md);
+  border-top: 1px solid var(--color-border-subtle); font-size: var(--font-size-caption); color: var(--color-text-tertiary);
+}
+
 /* ── Form field ───────────────────────────────────────────── */
 .c-field { display: flex; flex-direction: column; gap: var(--space-inline-xs); }
 .c-field__label { font: 500 var(--font-size-label) var(--font-family-ui); color: var(--color-text-secondary); }
@@ -319,6 +355,9 @@ body {
 /* Dialog rises in. */
 .c-dialog[open] { animation: c-fade-up var(--motion-medium) var(--motion-ease) both; }
 .c-dialog[open]::backdrop { animation: c-fade-in var(--motion-medium) var(--motion-ease) both; }
+.c-palette[open] { animation: c-fade-up var(--motion-medium) var(--motion-ease) both; }
+.c-palette[open]::backdrop { animation: c-fade-in var(--motion-medium) var(--motion-ease) both; }
+.c-palette__item { transition: background var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease); }
 
 /* Right panel slides in from the edge. */
 .c-panel { animation: c-slide-in var(--motion-slow) var(--motion-ease) both; }

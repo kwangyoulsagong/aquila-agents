@@ -7,13 +7,13 @@
 │ app/      entry, global styles            │  IPC   │ main.ts       window + IPC handlers              │
 │ pages/    workspace (state hook, shortcuts)│◀──────▶│ config.ts     ~/.aquila/config.json              │
 │ widgets/  sidebar, session-tabs,          │preload │ sessions.ts   one node-pty per session           │
-│           split-view, changes-panel       │        │ accounts.ts   account status, ~/.claude-* dir,   │
-│ features/ switch-account, switch-language,│  .ts   │               zsh function (explicit click)      │
-│           open-session, setup-account,    │        │ hooks.ts      127.0.0.1:<port> hook receiver     │
-│           manage-projects                 │        │               + ~/.aquila/claude-hooks.json       │
-│ entities/ session (xterm, status), project│        │ git.ts        git status + diff (read-only)      │
-│           diff                            │        │ state.ts      ~/.aquila/state.json (open tabs)   │
-│                                           │        │ menu.ts       native context menus               │
+│           split-view, changes-panel,      │        │ accounts.ts   account status, ~/.claude-* dir,   │
+│           command-palette                 │  .ts   │               zsh function (explicit click)      │
+│ features/ switch-account, switch-language,│        │ hooks.ts      127.0.0.1:<port> hook receiver     │
+│           open-session, setup-account,    │        │               + ~/.aquila/claude-hooks.json       │
+│           manage-projects                 │        │ git.ts        git status + diff (read-only)      │
+│ entities/ session (xterm, status), project│        │ state.ts      ~/.aquila/state.json (open tabs)   │
+│           diff                            │        │ menu.ts       native context menus               │
 │                                           │        │ smoke.ts      npm run smoke self-check           │
 │ shared/   api (types · IPC · bridge), i18n│        │                                                 │
 └───────────────────────────────────────────┘        └─────────────────────────────────────────────────┘
@@ -60,6 +60,19 @@
   `GIT_OPTIONAL_LOCKS=0` so it never fights the agent for `index.lock`.
 - Renderer: `entities/diff` parses the diff into files/lines (`parseDiff`, tested) and renders `.c-diff`.
   Clicking a file scrolls to it. Refreshes on window focus and every 5 s while open and visible; nothing polls when closed.
+
+## Command palette
+
+- ⌘K toggles `widgets/command-palette` (`.c-palette` on a native `<dialog>`, near the top). It lists open sessions
+  (most urgent first: waiting > error > done > working > idle), then projects (sidebar order), then actions.
+- Actions: open Claude / Codex / shell, split right / down, changes panel, close session, switch language. The
+  workspace passes a handler only for actions that apply right now (no project → no open actions, no session → no close).
+- `shared/lib/fuzzy.ts` (tested): the query's characters must appear in order, case-insensitive; word starts
+  (incl. camelCase) and consecutive runs score higher, gaps cost a little. A project also matches on group · path,
+  ranked below label matches. Matched letters are highlighted.
+- ↑↓ (or ⌃N/⌃P) pick, Enter runs, Esc / backdrop closes. Keys are ignored during IME composition (Korean input).
+  The command runs on the next frame, after the dialog has closed and returned focus, so the terminal it shows
+  takes the keyboard.
 
 ## Restore on relaunch
 

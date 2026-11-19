@@ -20,11 +20,12 @@ interface Deps {
   /** Close the focused pane (⌘W on an empty pane). */
   closePane: () => void;
   toggleChanges: () => void;
+  togglePalette: () => void;
 }
 
 /**
  * ⌘T Claude · ⌘⇧T Codex · ⌘⌥T shell · ⌘W close · ⌘1–9 project · ⌘D split right · ⌘⇧D split down ·
- * ⌘⌥←→↑↓ move focus between panes · ⌘⇧G changes panel. Capture phase so xterm doesn't eat them.
+ * ⌘⌥←→↑↓ move focus between panes · ⌘⇧G changes panel · ⌘K command palette. Capture phase so xterm doesn't eat them.
  */
 export function useShortcuts({
   config,
@@ -36,11 +37,15 @@ export function useShortcuts({
   moveFocus,
   closePane,
   toggleChanges,
+  togglePalette,
 }: Deps) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!e.metaKey) return;
-      if (e.code === 'KeyT') {
+      if (e.code === 'KeyK') {
+        e.preventDefault();
+        togglePalette();
+      } else if (e.code === 'KeyT') {
         e.preventDefault();
         openSession(e.shiftKey ? 'codex' : e.altKey ? 'shell' : 'claude');
       } else if (e.code === 'KeyW') {
@@ -76,5 +81,6 @@ export function useShortcuts({
     moveFocus,
     closePane,
     toggleChanges,
+    togglePalette,
   ]);
 }

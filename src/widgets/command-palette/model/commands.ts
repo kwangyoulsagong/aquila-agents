@@ -1,0 +1,136 @@
+import type { Config, Session, SessionKind, SessionStatus } from '@/shared/api';
+import { groupLabel, kindLabel, type Translate } from '@/shared/i18n';
+
+/** Actions the palette can run. The workspace passes a handler for each one that applies right now. */
+export type ActionId =
+  | 'openClaude'
+  | 'openCodex'
+  | 'openShell'
+  | 'splitRight'
+  | 'splitDown'
+  | 'toggleChanges'
+  | 'closeSession'
+  | 'switchLanguage';
+
+export type Command =
+  | {
+      type: 'session';
+      id: string;
+      sessionId: string;
+      label: string;
+      kind: SessionKind;
+      status: SessionStatus;
+      account?: string;
+      current: boolean;
+    }
+  | {
+      type: 'project';
+      id: string;
+      projectId: string;
+      label: string;
+      /** Group · path; also searched. */
+      hint: string;
+      status: SessionStatus;
+      current: boolean;
+    }
+  | { type: 'action'; id: string; action: ActionId; label: string; kbd?: string };
+
+/** Label and shortcut per action, in the order they're listed. */
+const ACTIONS: { action: ActionId; label: (t: Translate) => string; kbd?: string }[] = [
+  { action: 'openClaude', label: (t) => t('action.openClaude'), kbd: '⌘T' },
+  { action: 'openCodex', label: (t) => t('action.openCodex'), kbd: '⌘⇧T' },
+  { action: 'openShell', label: (t) => t('palette.openShell'), kbd: '⌘⌥T' },
+  { action: 'splitRight', label: (t) => t('palette.splitRight'), kbd: '⌘D' },
+  { action: 'splitDown', label: (t) => t('palette.splitDown'), kbd: '⌘⇧D' },
+  { action: 'toggleChanges', label: (t) => t('changes.toggle'), kbd: '⌘⇧G' },
+  { action: 'closeSession', label: (t) => t('action.closeSession'), kbd: '⌘W' },
+  { action: 'switchLanguage', label: (t) => t('palette.switchLanguage') },
+];
+
+/** Sessions that need you come first in the list. */
+const URGENCY: Record<SessionStatus, number> = { waiting: 0, error: 1, done: 2, working: 3, idle: 4 };
+
+function projectStatus(sessions: Session[]): SessionStatus {
+  return sessions.reduce<SessionStatus>(
+    (worst, s) => (URGENCY[s.status] < URGENCY[worst] ? s.status : worst),
+    'idle',
+  );
+}
+
+interface Input {
+  config: Config;
+  sessions: Session[];
+  activeProjectId: string | null;
+  activeSessionId: string | null;
+  /** Actions that apply right now (others aren't listed). */
+  available: ReadonlySet<ActionId>;
+  t: Translate;
+}
+
+/**
+ * Everything the palette lists, in its order for an empty query: open sessions (most urgent first),
+ * projects (sidebar order), then actions.
+ */
+export function buildCommands({
+  config,
+  sessions,
+  activeProjectId,
+  activeSessionId,
+  available,
+  t,
+}: Input): Command[] {
+  const projectName = new Map(config.projects.map((p) => [p.id, p.name]));
+
+  // "Claude · SALT", "Claude 2 · SALT" when a project has more than one of a kind.
+  const seen = new Map<string, number>();
+  const counts = new Map<string, number>();
+  for (const s of sessions)
+    counts.set(`${s.projectId}/${s.kind}`, (counts.get(`${s.projectId}/${s.kind}`) ?? 0) + 1);
+  const sessionCommands: Command[] = sessions
+    .filter((s) => projectName.has(s.projectId))
+    .map((s) => {
+      const key = `${s.projectId}/${s.kind}`;
+      const n = (seen.get(key) ?? 0) + 1;
+      seen.set(key, n);
+      const kind = (counts.get(key) ?? 0) > 1 ? `${kindLabel(t, s.kind)} ${n}` : kindLabel(t, s.kind);
+      return {
+        type: 'session' as const,
+        id: `session:${s.id}`,
+        sessionId: s.id,
+        label: `${kind} · ${projectName.get(s.projectId)}`,
+        kind: s.kind,
+        status: s.status,
+        account: s.account,
+        current: s.id === activeSessionId,
+      };
+    })
+    .map((c, order) => ({ c, order }))
+    .sort((a, b) => URGENCY[a.c.status] - URGENCY[b.c.status] || a.order - b.order)
+    .map(({ c }) => c);
+
+  const groupName = new Map(config.groups.map((g) => [g.id, groupLabel(t, g)]));
+  const projectCommands: Command[] = config.projects.map((p) => ({
+    type: 'project',
+    id: `project:${p.id}`,
+    projectId: p.id,
+    label: p.name,
+    hint: [groupName.get(p.group) ?? p.group, p.path].join(' · '),
+    status: projectStatus(sessions.filter((s) => s.projectId === p.id)),
+    current: p.id === activeProjectId,
+  }));
+
+  const actionCommands: Command[] = ACTIONS.filter((a) => available.has(a.action)).map((a) => ({
+    type: 'action',
+    id: `action:${a.action}`,
+    action: a.action,
+    label: a.label(t),
+    kbd: a.kbd,
+  }));
+
+  return [...sessionCommands, ...projectCommands, ...actionCommands];
+}
+
+/** Extra text a command is also found by (weaker than its label). */
+export function commandDetail(c: Command): string {
+  return c.type === 'project' ? c.hint : '';
+}

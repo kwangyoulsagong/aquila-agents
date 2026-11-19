@@ -7,13 +7,13 @@
 │ app/      진입점, 전역 스타일                │  IPC   │ main.ts       창 + IPC 핸들러                     │
 │ pages/    workspace (상태 훅, 단축키)        │◀──────▶│ config.ts     ~/.aquila/config.json             │
 │ widgets/  sidebar, session-tabs,          │preload │ sessions.ts   세션마다 node-pty 하나              │
-│           split-view, changes-panel       │        │ accounts.ts   계정 상태, ~/.claude-* 폴더,        │
-│ features/ switch-account, switch-language,│  .ts   │               zsh 함수 (명시적 클릭만)            │
-│           open-session, setup-account,    │        │ hooks.ts      127.0.0.1:<port> hook 수신기       │
-│           manage-projects                 │        │               + ~/.aquila/claude-hooks.json     │
-│ entities/ session (xterm, 상태), project    │        │ git.ts        git status + diff (읽기만)        │
-│           diff                            │        │ state.ts      ~/.aquila/state.json (열린 탭)     │
-│                                           │        │ menu.ts       네이티브 우클릭 메뉴               │
+│           split-view, changes-panel,      │        │ accounts.ts   계정 상태, ~/.claude-* 폴더,        │
+│           command-palette                 │  .ts   │               zsh 함수 (명시적 클릭만)            │
+│ features/ switch-account, switch-language,│        │ hooks.ts      127.0.0.1:<port> hook 수신기       │
+│           open-session, setup-account,    │        │               + ~/.aquila/claude-hooks.json     │
+│           manage-projects                 │        │ git.ts        git status + diff (읽기만)        │
+│ entities/ session (xterm, 상태), project    │        │ state.ts      ~/.aquila/state.json (열린 탭)     │
+│           diff                            │        │ menu.ts       네이티브 우클릭 메뉴               │
 │                                           │        │ smoke.ts      npm run smoke 자동 점검            │
 │ shared/   api (타입·IPC·bridge), i18n       │        │                                                 │
 └───────────────────────────────────────────┘        └─────────────────────────────────────────────────┘
@@ -60,6 +60,18 @@
   에이전트와 `index.lock`을 다투지 않습니다.
 - 렌더러: `entities/diff`가 diff를 파일/줄로 나누고(`parseDiff`, 테스트 있음) `.c-diff`로 그립니다.
   파일을 누르면 그 위치로 스크롤. 앱에 포커스가 오면, 그리고 열려 있고 보이는 동안 5초마다 새로고침. 닫혀 있으면 아무것도 안 돌아요.
+
+## 명령 팔레트
+
+- ⌘K로 `widgets/command-palette`를 열고 닫습니다(네이티브 `<dialog>` 위의 `.c-palette`, 화면 위쪽). 열린 세션
+  (급한 순: waiting > error > done > working > idle), 프로젝트(사이드바 순서), 동작 순으로 보여요.
+- 동작: Claude / Codex / 셸 열기, 오른쪽 / 아래로 분할, 변경사항 패널, 세션 닫기, 언어 바꾸기. 워크스페이스는 지금
+  할 수 있는 동작에만 핸들러를 넘겨요(프로젝트 없음 → 열기 없음, 세션 없음 → 닫기 없음).
+- `shared/lib/fuzzy.ts`(테스트 있음): 검색어 글자가 순서대로 있으면 매치, 대소문자 무시. 단어 시작(camelCase 포함)과
+  연속 글자는 점수가 높고, 건너뛴 글자는 조금 깎여요. 프로젝트는 그룹 · 경로로도 찾히지만 이름 매치보다 아래.
+  매치된 글자는 강조돼요.
+- ↑↓(또는 ⌃N/⌃P)로 고르고 Enter로 실행, Esc / 바깥 클릭으로 닫기. 한글 조합 중에는 키를 무시해요.
+  명령은 다이얼로그가 닫히고 포커스를 돌려준 다음 프레임에 실행돼서, 새로 보이는 터미널이 키보드를 받아요.
 
 ## 다시 열면 복원
 
