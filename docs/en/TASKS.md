@@ -57,7 +57,8 @@ only with small additive edits. Merge order follows the numbering when two tasks
 - **Owns:** `src/features/manage-projects/`, `electron/config.ts` (add save helpers).
 
 ### T6 · Command palette
-- [ ] **Goal:** ⌘K jumps to any project/session or runs an action.
+- [x] **Goal:** ⌘K jumps to any project/session or runs an action.
+  _Left over: no "Add project" action (the folder-picker flow lives in the sidebar); no recently-used ordering._
 - **Owns:** `src/widgets/command-palette/`, `src/shared/lib/fuzzy.ts` (+ test).
 
 ### T7 · Worktree sessions
