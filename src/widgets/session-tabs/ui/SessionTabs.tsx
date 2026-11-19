@@ -39,9 +39,15 @@ export default function SessionTabs({
     if (!bar || !tab) return;
     const trailing = bar.querySelector<HTMLElement>('.c-tabbar__trailing');
     const right = trailing ? trailing.getBoundingClientRect().left : bar.getBoundingClientRect().right;
+    // The last tab brings the + button (right after it) into view too.
+    const next = tab.nextElementSibling;
     const r = tab.getBoundingClientRect();
+    const end =
+      next instanceof HTMLElement && next.classList.contains('c-tabbar__add')
+        ? next.getBoundingClientRect().right
+        : r.right;
     const left = bar.getBoundingClientRect().left;
-    if (r.right > right) bar.scrollLeft += r.right - right;
+    if (end > right) bar.scrollLeft += end - right;
     else if (r.left < left) bar.scrollLeft -= left - r.left;
   }, [activeId, sessions.length]);
   const newMenu = async () => {
