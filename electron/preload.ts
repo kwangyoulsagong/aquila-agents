@@ -1,6 +1,6 @@
-// The only bridge between renderer and main. Shape is defined by AgentrixApi in src/shared/api/types.ts.
+// The only bridge between renderer and main. Shape is defined by AquilaApi in src/shared/api/types.ts.
 import { contextBridge, ipcRenderer } from 'electron';
-import { IPC, type AgentrixApi } from '../src/shared/api/types';
+import { IPC, type AquilaApi } from '../src/shared/api/types';
 
 const on =
   <T>(channel: string) =>
@@ -12,13 +12,14 @@ const on =
     };
   };
 
-const api: AgentrixApi = {
+const api: AquilaApi = {
   getConfig: () => ipcRenderer.invoke(IPC.configGet),
   openConfig: () => ipcRenderer.invoke(IPC.configOpen),
   setLanguage: (language) => ipcRenderer.invoke(IPC.configSetLanguage, language),
   setProjectAccount: (projectId, account) =>
     ipcRenderer.invoke(IPC.configSetProjectAccount, { projectId, account }),
-  createSession: (projectId, kind, account) => ipcRenderer.invoke(IPC.sessionCreate, { projectId, kind, account }),
+  createSession: (projectId, kind, account) =>
+    ipcRenderer.invoke(IPC.sessionCreate, { projectId, kind, account }),
   accountsStatus: () => ipcRenderer.invoke(IPC.accountsStatus),
   prepareAccount: (account) => ipcRenderer.invoke(IPC.accountsPrepare, account),
   shellFunctionPreview: (account) => ipcRenderer.invoke(IPC.accountsShellPreview, account),
@@ -34,4 +35,4 @@ const api: AgentrixApi = {
   onFocusSession: on(IPC.uiFocusSession),
 };
 
-contextBridge.exposeInMainWorld('agentrix', api);
+contextBridge.exposeInMainWorld('aquila', api);

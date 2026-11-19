@@ -1,4 +1,4 @@
-# Agentrix
+# Aquila Agents
 
 > English: [../../README.md](../../README.md)
 
@@ -21,7 +21,7 @@ npm run smoke   # 빌드 → 실행 → 터미널 세션 동작 확인 → 스�
 npm run check   # 타입 체크 + 린트(FSD 경계 포함) + 테스트
 ```
 
-프로젝트 목록은 `~/.agentrix/config.json`에 있습니다 (처음 실행 때 생성, 사이드바 "설정 파일 열기").
+프로젝트 목록은 `~/.aquila/config.json`에 있습니다 (처음 실행 때 생성, 사이드바 "설정 파일 열기").
 
 ## 단축키
 

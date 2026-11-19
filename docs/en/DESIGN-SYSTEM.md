@@ -1,4 +1,4 @@
-# Agentrix Design System
+# Aquila Agents Design System
 
 > 한국어: [../ko/DESIGN-SYSTEM.md](../ko/DESIGN-SYSTEM.md)
 

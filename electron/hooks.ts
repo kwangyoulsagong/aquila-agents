@@ -1,4 +1,4 @@
-// Claude Code reports status through hooks. We pass `--settings ~/.agentrix/claude-hooks.json`
+// Claude Code reports status through hooks. We pass `--settings ~/.aquila/claude-hooks.json`
 // only to sessions we spawn, so normal terminal Claude is untouched. Hooks are local shell commands: no tokens.
 import fs from 'node:fs';
 import http from 'node:http';
@@ -17,7 +17,7 @@ const EVENTS: Record<string, HookStatus> = {
 };
 
 const hookCommand = (status: HookStatus) =>
-  `[ -n "$AGENTRIX_PORT" ] && curl -s -m 1 -X POST "http://127.0.0.1:$AGENTRIX_PORT/hook/$AGENTRIX_TAB_ID/${status}" -o /dev/null; true`;
+  `[ -n "$AQUILA_PORT" ] && curl -s -m 1 -X POST "http://127.0.0.1:$AQUILA_PORT/hook/$AQUILA_TAB_ID/${status}" -o /dev/null; true`;
 
 export function writeClaudeHookSettings(): string {
   const hooks: Record<string, unknown[]> = {};

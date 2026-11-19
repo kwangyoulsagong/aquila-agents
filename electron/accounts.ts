@@ -106,7 +106,7 @@ export async function installShellFunction(config: Config, id: string): Promise<
   const sep = rc === '' || rc.endsWith('\n') ? '' : '\n';
   fs.appendFileSync(
     ZSHRC,
-    `${sep}\n# Added by Agentrix: Claude with the ${id} account\n${preview.snippet}\n`,
+    `${sep}\n# Added by Aquila Agents: Claude with the ${id} account\n${preview.snippet}\n`,
   );
   return { ...preview, defined: true };
 }

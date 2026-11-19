@@ -71,8 +71,8 @@ export interface Session extends SessionInfo {
 
 export type Unsubscribe = () => void;
 
-/** API exposed on window.agentrix by electron/preload.ts. */
-export interface AgentrixApi {
+/** API exposed on window.aquila by electron/preload.ts. */
+export interface AquilaApi {
   getConfig(): Promise<Config>;
   openConfig(): Promise<string>;
   setLanguage(language: Language): Promise<Config>;

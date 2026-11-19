@@ -1,4 +1,4 @@
-# Agentrix
+# Aquila Agents
 
 > 한국어: [docs/ko/README.md](docs/ko/README.md)
 
@@ -21,7 +21,7 @@ npm run smoke   # build, launch, verify a terminal session works, screenshot →
 npm run check   # typecheck + lint (incl. FSD boundaries) + tests
 ```
 
-Projects live in `~/.agentrix/config.json` (created on first run; "Open settings file" in the sidebar).
+Projects live in `~/.aquila/config.json` (created on first run; "Open settings file" in the sidebar).
 
 ## Shortcuts
 

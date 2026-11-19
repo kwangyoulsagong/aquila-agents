@@ -1,4 +1,4 @@
-// User config at ~/.agentrix/config.json. Created with defaults on first run.
+// User config at ~/.aquila/config.json. Created with defaults on first run.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -6,8 +6,10 @@ import type { Config, Language } from '../src/shared/api/types';
 import { translator } from '../src/shared/i18n/dictionary';
 
 const HOME = os.homedir();
-export const APP_DIR = path.join(HOME, '.agentrix');
+export const APP_DIR = path.join(HOME, '.aquila');
 export const CONFIG_PATH = path.join(APP_DIR, 'config.json');
+/** Where the app kept its files before it was renamed from Agentrix. */
+const LEGACY_DIR = path.join(HOME, '.agentrix');
 
 // Accounts: `shared` = plain `claude` (~/.claude), `personal` = `claude-personal` (~/.claude-personal).
 // claudeConfigDir null = Claude default. Setting "~/.claude" explicitly would make Claude
@@ -37,13 +39,35 @@ const DEFAULT_CONFIG: Config = {
       path: '~/Desktop/Road-To-PRO',
     },
     { id: 'devatlas', name: 'DevAtlas', group: 'personal', account: 'personal', path: '~/Desktop/DevAtlas' },
-    { id: 'agentrix', name: 'Agentrix', group: 'personal', account: 'shared', path: '~/Desktop/agentrix' },
+    {
+      id: 'aquila',
+      name: 'Aquila Agents',
+      group: 'personal',
+      account: 'shared',
+      path: '~/Desktop/aquila-agents',
+    },
   ],
 };
 
 export const expand = (p: string): string => (p.startsWith('~') ? path.join(HOME, p.slice(1)) : p);
 
+/**
+ * One-time move after the rename: copy ~/.agentrix (config, saved state) into ~/.aquila if there's no config yet.
+ * The old folder is left in place. claude-hooks.json is skipped: it's regenerated on start.
+ */
+export function migrateLegacyDir(from = LEGACY_DIR, to = APP_DIR): boolean {
+  const target = path.join(to, 'config.json');
+  if (fs.existsSync(target) || !fs.existsSync(path.join(from, 'config.json'))) return false;
+  fs.cpSync(from, to, {
+    recursive: true,
+    force: false,
+    filter: (src) => path.basename(src) !== 'claude-hooks.json',
+  });
+  return true;
+}
+
 export function loadConfig(): Config {
+  migrateLegacyDir();
   if (!fs.existsSync(CONFIG_PATH)) {
     fs.mkdirSync(APP_DIR, { recursive: true });
     fs.writeFileSync(CONFIG_PATH, JSON.stringify(DEFAULT_CONFIG, null, 2));

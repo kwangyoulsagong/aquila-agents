@@ -7,10 +7,10 @@ import { app, type BrowserWindow } from 'electron';
 import type { SessionManager } from './sessions';
 import type { Config } from '../src/shared/api/types';
 
-const MARKER = 'AGENTRIX_SMOKE_OK';
+const MARKER = 'AQUILA_SMOKE_OK';
 const TIMEOUT_MS = 20000;
 
-export const isSmoke = process.env.AGENTRIX_SMOKE === '1';
+export const isSmoke = process.env.AQUILA_SMOKE === '1';
 
 /** Wrap the session `send` so smoke can watch pty output. */
 export function watchOutput(send: (ch: string, p: unknown) => void, onData: (data: string) => void) {
