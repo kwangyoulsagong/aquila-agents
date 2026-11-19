@@ -38,7 +38,7 @@ export default function Sidebar({ config, sessions, activeProjectId, onSelect, f
                     leading={<StatusDot status={mostUrgent(mine.map((s) => s.status))} />}
                     trailing={
                       <>
-                        {!p.ssh && <AccountBadge config={config} account={p.account} />}
+                        <AccountBadge config={config} account={p.account} />
                         {mine.length > 0 && (
                           <span className="c-row__sessions" aria-label={`${mine.length}`}>
                             {mine.slice(0, MAX_DOTS).map((s) => (

@@ -14,7 +14,7 @@
 └───────────────────────────────────────────┘        └─────────────────────────────────────────────────┘
                                                               │ 실행 (로그인 + 인터랙티브 zsh)
                                                               ▼
-                              claude --settings ~/.agentrix/claude-hooks.json  |  codex  |  $SHELL  |  ssh …
+                              claude --settings ~/.agentrix/claude-hooks.json  |  codex  |  $SHELL
 ```
 
 ## FSD 규칙 (렌더러)
@@ -41,7 +41,7 @@
 | 출처 | 대상 | 방식 |
 |---|---|---|
 | Claude hooks | 로컬 `claude` | `UserPromptSubmit`/`PostToolUse` → working, `Notification` → waiting, `Stop` → done. hook = 로컬 수신기로 `curl` |
-| 출력 활동 | codex, 셸, ssh | 3초 넘게 출력 → working, 이후 3초 조용 → done |
+| 출력 활동 | codex, 셸 | 3초 넘게 출력 → working, 이후 3초 조용 → done |
 | 종료 코드 | 전부 | 0이 아니면 → error |
 
 `done`은 그 세션을 화면에 띄우면 `idle`로 바뀝니다. 창에 포커스가 없거나 다른 세션을 보고 있을 때
@@ -54,9 +54,8 @@ done/waiting이 되면 알림을 띄웁니다. 프로젝트 행 = 세션 중 가
   "language": "ko",                       // "ko" | "en" — 사이드바 하단에서 전환
   "accounts": { "shared":   { "claudeConfigDir": null },                  // `claude`
                 "personal": { "claudeConfigDir": "~/.claude-personal" } },// `claude-personal`
-  "groups":   [{ "id": "work" }, { "id": "personal" }, { "id": "remote" }], // 라벨은 자동 번역, "label"로 덮어쓰기 가능
-  "projects": [{ "id": "salt", "name": "SALT", "group": "personal", "account": "shared", "path": "~/Desktop/SALT" },
-               { "id": "remote", "name": "원격 서버", "group": "remote", "account": "shared", "path": "~", "ssh": "ssh -t user@host" }]
+  "groups":   [{ "id": "work" }, { "id": "personal" }], // 라벨은 자동 번역, "label"로 덮어쓰기 가능
+  "projects": [{ "id": "salt", "name": "SALT", "group": "personal", "account": "shared", "path": "~/Desktop/SALT" }]
 }
 ```
 

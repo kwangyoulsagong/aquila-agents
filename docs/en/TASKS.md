@@ -2,7 +2,7 @@
 
 > 한국어: [../ko/TASKS.md](../ko/TASKS.md)
 
-Built so far (v0.1 base): sidebar with groups/projects, tabs per project, real `claude` / `codex` / shell / ssh
+Built so far (v0.1 base): sidebar with groups/projects, tabs per project, real `claude` / `codex` / shell
 in xterm (WebGL), Claude status via hooks, activity status for others, notifications, shared/personal Claude
 account per project, ko/en UI, design system, shortcuts ⌘T ⌘⇧T ⌘⌥T ⌘W ⌘1–9.
 

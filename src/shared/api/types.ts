@@ -18,7 +18,7 @@ export interface Account {
 
 export interface Group {
   id: string;
-  /** Optional: translated name is used for known ids (work/personal/remote). */
+  /** Optional: translated name is used for known ids (work/personal). */
   label?: string;
 }
 
@@ -28,8 +28,6 @@ export interface Project {
   group: string;
   account: string;
   path: string;
-  /** If set, sessions open over SSH with this command (e.g. "ssh -t user@host"). */
-  ssh?: string;
 }
 
 export interface Config {

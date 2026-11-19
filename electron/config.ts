@@ -19,7 +19,7 @@ const DEFAULT_CONFIG: Config = {
     shared: { claudeConfigDir: null },
     personal: { claudeConfigDir: '~/.claude-personal' },
   },
-  groups: [{ id: 'work' }, { id: 'personal' }, { id: 'remote' }],
+  groups: [{ id: 'work' }, { id: 'personal' }],
   projects: [
     {
       id: 'data-bahn',
@@ -38,14 +38,6 @@ const DEFAULT_CONFIG: Config = {
     },
     { id: 'devatlas', name: 'DevAtlas', group: 'personal', account: 'personal', path: '~/Desktop/DevAtlas' },
     { id: 'agentrix', name: 'Agentrix', group: 'personal', account: 'shared', path: '~/Desktop/agentrix' },
-    {
-      id: 'remote',
-      name: '원격 서버',
-      group: 'remote',
-      account: 'shared',
-      path: '~',
-      ssh: 'ssh -t user@host',
-    },
   ],
 };
 

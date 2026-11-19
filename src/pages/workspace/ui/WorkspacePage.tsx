@@ -38,10 +38,7 @@ export default function WorkspacePage() {
             onSelect={ws.selectSession}
             onClose={ws.closeSession}
             onNew={ws.openSession}
-            trailing={
-              project &&
-              !project.ssh && <AccountSwitch config={config} project={project} onChanged={ws.setConfig} />
-            }
+            trailing={project && <AccountSwitch config={config} project={project} onChanged={ws.setConfig} />}
           />
           {ws.error && (
             <div className="app__error" role="alert" onClick={ws.clearError}>

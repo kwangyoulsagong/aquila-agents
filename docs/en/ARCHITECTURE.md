@@ -14,7 +14,7 @@
 └───────────────────────────────────────────┘        └─────────────────────────────────────────────────┘
                                                               │ spawns (login + interactive zsh)
                                                               ▼
-                              claude --settings ~/.agentrix/claude-hooks.json  |  codex  |  $SHELL  |  ssh …
+                              claude --settings ~/.agentrix/claude-hooks.json  |  codex  |  $SHELL
 ```
 
 ## FSD rules (renderer)
@@ -41,7 +41,7 @@
 | Source | Sessions | How |
 |---|---|---|
 | Claude hooks | local `claude` | `UserPromptSubmit`/`PostToolUse` → working, `Notification` → waiting, `Stop` → done. Hook = `curl` to the local receiver. |
-| Output activity | codex, shell, ssh | output for >3s → working; then 3s quiet → done |
+| Output activity | codex, shell | output for >3s → working; then 3s quiet → done |
 | Exit code | all | non-zero → error |
 
 `done` turns `idle` once the session is on screen. Notifications fire for done/waiting when the window
@@ -55,9 +55,8 @@ isn't focused or the session isn't the active one. Project row = most urgent of 
   "language": "ko",                       // "ko" | "en" — toggled from the sidebar footer
   "accounts": { "shared":   { "claudeConfigDir": null },                  // `claude`
                 "personal": { "claudeConfigDir": "~/.claude-personal" } },// `claude-personal`
-  "groups":   [{ "id": "work" }, { "id": "personal" }, { "id": "remote" }], // labels translated; add "label" to override
-  "projects": [{ "id": "salt", "name": "SALT", "group": "personal", "account": "shared", "path": "~/Desktop/SALT" },
-               { "id": "remote", "name": "Remote", "group": "remote", "account": "shared", "path": "~", "ssh": "ssh -t user@host" }]
+  "groups":   [{ "id": "work" }, { "id": "personal" }], // labels translated; add "label" to override
+  "projects": [{ "id": "salt", "name": "SALT", "group": "personal", "account": "shared", "path": "~/Desktop/SALT" }]
 }
 ```
 

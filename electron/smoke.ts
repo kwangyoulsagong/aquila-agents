@@ -32,8 +32,8 @@ export async function runSmoke(
   };
   const timer = setTimeout(() => fail('timeout'), TIMEOUT_MS);
 
-  const project = config.projects.find((p) => !p.ssh);
-  if (!project) return fail('no local project in config');
+  const project = config.projects[0];
+  if (!project) return fail('no project in config');
 
   await new Promise((r) => setTimeout(r, 1500)); // let the renderer paint
   const { id } = sessions.create(config, project.id, 'shell');

@@ -2,7 +2,7 @@
 
 > English: [../en/TASKS.md](../en/TASKS.md)
 
-지금까지 만든 것 (v0.1 기반): 그룹/프로젝트 사이드바, 프로젝트별 탭, xterm(WebGL) 안의 실제 `claude` / `codex` / 셸 / ssh,
+지금까지 만든 것 (v0.1 기반): 그룹/프로젝트 사이드바, 프로젝트별 탭, xterm(WebGL) 안의 실제 `claude` / `codex` / 셸,
 hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프로젝트별 공용/개인 Claude 계정, 한/영 UI, 디자인 시스템,
 단축키 ⌘T ⌘⇧T ⌘⌥T ⌘W ⌘1–9.
 

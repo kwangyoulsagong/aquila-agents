@@ -10,7 +10,6 @@ and see at a glance which agent is working, done, or waiting for you.
   hooks, MCP, slash commands, same token usage.
 - **Status you can see.** Working / waiting / done per session and per project, plus macOS notifications.
 - **Two Claude accounts.** Shared (`claude`) or Personal (`claude-personal`) per project, one click to switch.
-- **Remote too.** SSH projects next to local ones.
 - **Korean & English** UI.
 
 ## Run

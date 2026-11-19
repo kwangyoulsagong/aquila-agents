@@ -14,7 +14,7 @@ export default function OpenSessionPanel({ project, onOpen }: Props) {
   return (
     <div className="c-empty">
       <div className="c-empty__title">{project.name}</div>
-      <div className="c-empty__path">{project.ssh ?? project.path}</div>
+      <div className="c-empty__path">{project.path}</div>
       <div className="c-empty__actions">
         {OPEN_ACTIONS.map((a) => (
           <button

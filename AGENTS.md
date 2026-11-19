@@ -4,7 +4,7 @@ Shared rules for **every** coding agent working on this repo (Claude Code reads 
 
 ## What this is
 
-A macOS Electron app: one window that holds many real terminal sessions (`claude`, `codex`, shell, ssh)
+A macOS Electron app: one window that holds many real terminal sessions (`claude`, `codex`, shell)
 across many projects, with status dots and notifications. It **embeds the real CLIs** in a pty —
 we never reimplement chat, permissions or slash commands.
 

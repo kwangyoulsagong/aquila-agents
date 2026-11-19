@@ -1,6 +1,5 @@
 // One pty per session. Runs the user's real `claude` / `codex` / shell — same tokens, same config.
 import crypto from 'node:crypto';
-import os from 'node:os';
 import { Notification, type BrowserWindow } from 'electron';
 import * as pty from 'node-pty';
 import { expand, loadConfig } from './config';
@@ -8,7 +7,6 @@ import { kindLabel, translator } from '../src/shared/i18n/dictionary';
 import {
   IPC,
   type Config,
-  type Project,
   type SessionInfo,
   type SessionKind,
   type SessionStatus,
@@ -64,13 +62,13 @@ export class SessionManager {
     if (kind === 'claude' && account?.claudeConfigDir)
       env.CLAUDE_CONFIG_DIR = expand(account.claudeConfigDir);
 
-    const command = this.commandFor(project, kind);
+    const command = this.commandFor(kind);
     const args = command ? ['-l', '-i', '-c', `${command}; exec ${SHELL} -l -i`] : ['-l', '-i'];
     const proc = pty.spawn(SHELL, args, {
       name: 'xterm-256color',
       cols: 120,
       rows: 32,
-      cwd: project.ssh ? os.homedir() : expand(project.path),
+      cwd: expand(project.path),
       env,
     });
 
@@ -81,7 +79,7 @@ export class SessionManager {
       kind,
       proc,
       status: 'idle',
-      usesHooks: kind === 'claude' && !project.ssh,
+      usesHooks: kind === 'claude',
       lastOutput: 0,
       busySince: 0,
     };
@@ -104,8 +102,7 @@ export class SessionManager {
     return { id, projectId, kind, account: kind === 'claude' ? project.account : undefined };
   }
 
-  private commandFor(project: Project, kind: SessionKind): string | null {
-    if (project.ssh) return kind === 'shell' ? project.ssh : `${project.ssh} ${kind}`;
+  private commandFor(kind: SessionKind): string | null {
     if (kind === 'claude') return `claude --settings ${JSON.stringify(this.deps.hookSettingsPath)}`;
     if (kind === 'codex') return 'codex';
     return null;
@@ -116,7 +113,7 @@ export class SessionManager {
     if (s) this.setStatus(s, status);
   }
 
-  /** Output-activity heuristic for sessions without hooks (codex, shell, ssh). */
+  /** Output-activity heuristic for sessions without hooks (codex, shell). */
   private tickActivity(): void {
     const now = Date.now();
     for (const s of this.sessions.values()) {
