@@ -21,6 +21,7 @@ Korean docs live in `docs/ko/` — **keep both languages in sync** when you chan
 | `npm test` | Vitest |
 | `npm run smoke` | Build + launch + open a real pty session + screenshot `dist/smoke.png` (exit 0/1) |
 | `npm run build` | Production build |
+| `npm run dist` | Package `release/*.dmg` + `.zip` (arm64, unsigned) |
 | `open design-system/preview.html` | See every token and component |
 
 ## Layout

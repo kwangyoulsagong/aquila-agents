@@ -43,8 +43,13 @@ export async function runSmoke(
     if (!output.buffer.includes(MARKER)) return;
     clearInterval(poll);
     clearTimeout(timer);
-    const out = path.join(__dirname, '..', '..', 'dist', 'smoke.png');
+    // A packaged app can't write into its asar: put the screenshot in the temp dir instead.
+    const outDir = app.isPackaged ? app.getPath('temp') : path.join(__dirname, '..', '..', 'dist');
+    const out = path.join(outDir, 'smoke.png');
     fs.writeFileSync(out, (await win.webContents.capturePage()).toPNG());
+    const onPath = (bin: string) =>
+      (process.env.PATH ?? '').split(':').some((dir) => dir && fs.existsSync(path.join(dir, bin)));
+    console.log(`[smoke] PATH has claude: ${onPath('claude')}, codex: ${onPath('codex')}`);
     console.log(`[smoke] OK — pty round-trip works, screenshot: ${out}`);
     sessions.killAll();
     app.exit(0);

@@ -19,9 +19,20 @@ npm install     # Electron용 node-pty 빌드까지
 npm run dev     # 핫 리로드로 앱 실행
 npm run smoke   # 빌드 → 실행 → 터미널 세션 동작 확인 → 스크린샷 dist/smoke.png
 npm run check   # 타입 체크 + 린트(FSD 경계 포함) + 테스트
+npm run dist    # 패키징 → release/Aquila Agents-<버전>-arm64.dmg (+ .zip)
 ```
 
 프로젝트 목록은 `~/.aquila/config.json`에 있습니다 (처음 실행 때 생성, 사이드바 "설정 파일 열기").
+
+## 빌드 전달하기
+
+`npm run dist`가 `release/Aquila Agents-<버전>-arm64.dmg`와 `.zip`(Apple Silicon)을 만듭니다. 전달할 때마다
+`package.json`의 `version`을 올리세요. 아직 **서명·공증을 하지 않아서** 받는 맥에서는:
+
+1. `.dmg`를 열고 **Aquila Agents**를 응용 프로그램 폴더로 끌어 놓습니다.
+2. 처음 실행은 "확인되지 않은 개발자"로 막힙니다. 앱을 우클릭 → **열기** → **열기**, 또는 한 번만 실행:
+   `xattr -dr com.apple.quarantine "/Applications/Aquila Agents.app"`
+3. 그 맥에 `claude`나 `codex`가 이미 설치·로그인돼 있어야 합니다 (앱이 실제 CLI를 실행합니다).
 
 ## 단축키
 

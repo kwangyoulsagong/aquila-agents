@@ -104,3 +104,9 @@ Agentrix에서 이름이 바뀌었습니다: 처음 실행할 때 `~/.aquila/con
 - 렌더러: Vite → `dist/`. Main + preload: `tsc -p tsconfig.electron.json` → `dist-electron/` (CommonJS).
 - `node-pty`는 네이티브 모듈이라 `postinstall`에서 `electron-rebuild` 실행. Electron 버전을 바꾸면 `npm install` 다시.
 - `npm run smoke`: 빌드 후 앱을 띄워 셸 세션을 열고 pty 왕복을 확인, `dist/smoke.png` 스크린샷 저장 후 종료 (성공 0 / 실패 1).
+  `claude`/`codex`가 PATH에 있는지도 로그로 남깁니다. 패키징된 앱은 스크린샷을 임시 폴더에 저장합니다.
+- Finder에서 연 앱은 launchd의 최소 PATH를 받습니다. `env.ts`가 시작할 때 한 번 로그인 + 인터랙티브 셸의 PATH를 읽어
+  앞에 붙입니다 (세션은 원래 로그인 셸로 뜨므로, main이 직접 실행하는 `git` 등을 위한 것).
+- `npm run dist`: electron-builder(`electron-builder.yml`) → `release/*.dmg` + `.zip`, arm64, 서명 없음. 런타임 의존성은
+  `node-pty`뿐이고(렌더러 라이브러리는 Vite가 번들하므로 devDependencies) asar 밖으로 풀어 둡니다. 아이콘:
+  `build/icon.svg` → `npm run icon` → `build/icon.png` (Electron으로 렌더링, `electron/tools/render-icon.ts`).
