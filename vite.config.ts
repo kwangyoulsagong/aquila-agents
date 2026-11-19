@@ -1,5 +1,5 @@
 import { fileURLToPath, URL } from 'node:url';
-import { defineConfig } from 'vite';
+import { configDefaults, defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig({
@@ -13,4 +13,6 @@ export default defineConfig({
   },
   server: { port: 5199, strictPort: true },
   build: { outDir: 'dist', emptyOutDir: true },
+  // Electron tests compile into dist-electron/ too (CommonJS) — run only the sources.
+  test: { exclude: [...configDefaults.exclude, 'dist-electron/**'] },
 });
