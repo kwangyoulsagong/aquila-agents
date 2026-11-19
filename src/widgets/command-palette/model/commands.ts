@@ -15,7 +15,8 @@ export type ActionId =
   | 'nextWaiting'
   | 'closeSession'
   | 'switchLanguage'
-  | 'firstRun';
+  | 'firstRun'
+  | 'guide';
 
 export type Command =
   | {
@@ -54,6 +55,7 @@ const ACTIONS: { action: ActionId; label: (t: Translate) => string; shortcut?: S
   { action: 'closeSession', label: (t) => t('action.closeSession'), shortcut: 'closeSession' },
   { action: 'switchLanguage', label: (t) => t('palette.switchLanguage') },
   { action: 'firstRun', label: (t) => t('firstRun.checklist') },
+  { action: 'guide', label: (t) => t('guide.title'), shortcut: 'guide' },
 ];
 
 /** Sessions that need you come first in the list. */

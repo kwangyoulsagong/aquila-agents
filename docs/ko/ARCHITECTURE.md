@@ -12,7 +12,7 @@
 │ features/ switch-account, switch-language,│        │ hooks.ts      127.0.0.1:<port> hook 수신기       │
 │           open-session, setup-account,    │        │               + ~/.aquila/claude-hooks.json     │
 │           manage-projects, next-waiting,  │
-│           first-run                       │        │ git.ts        git status + diff (읽기만)        │
+│           first-run, guide                │        │ git.ts        git status + diff (읽기만)        │
 │ entities/ session (xterm, 상태), project    │        │ state.ts      ~/.aquila/state.json (탭, 레이아웃)│
 │                                           │        │               + scrollback/ (T21)                │
 │                                           │        │ codex.ts      탭별 codex 세션 id (T21)           │
@@ -23,6 +23,7 @@
 │                                           │        │ output.ts     출력 묶음 + 흐름 제어              │
 │                                           │        │ power.ts      절전 프로필: 배터리·발열 (T9)      │
 │                                           │        │ detect.ts     CLI 점검, 첫 실행 상태 (T17)       │
+│                                           │        │ guide.ts      둘러보기 제안 한 번만 (T23)        │
 │                                           │        │ smoke.ts      npm run smoke 자동 점검            │
 │ shared/   api (타입·IPC·bridge), i18n       │        │                                                 │
 └───────────────────────────────────────────┘        └─────────────────────────────────────────────────┘
@@ -246,6 +247,22 @@ Agentrix에서 이름이 바뀌었습니다: 처음 실행할 때 `~/.aquila/con
   대신 (따옴표로 감싸) 쓰이고 hook 버전 확인에도 쓰입니다. 지정한 `git`은 main의 PATH 맨 앞에 들어갑니다.
   smoke는 `first-run.json`을 읽거나 쓰지 않습니다.
 
+## 앱 내 가이드
+
+- `features/guide`: 사이드바 하단 `?`, ⌘/ (단축키 맵의 `guide`), ⌘K → "가이드"로 `Modal`(디자인 시스템, T27/T35와 공유)을
+  열어요. 왼쪽은 검색되는 기능 목록, 오른쪽은 고른 기능의 미디어, 1~2줄 설명, 단축키. ↑↓로 고르고(IME 조합 중엔 무시),
+  Esc / × / 바깥 클릭으로 닫아요.
+- 레지스트리 `model/registry.ts`: `{ id, titleKey, bodyKey, media?, shortcuts? }` — 단축키는 `shared/lib/shortcuts.ts`의
+  id(`project1` + `project9` = ⌘1–⌘9 범위)라 표기가 어긋나지 않아요. 설명 문구는 팔레트 키를 `{palette}`로 받아요.
+  새 기능 → 항목 하나와 문구 두 개를 추가.
+- 마지막 항목은 전체 단축키 시트(`model/sheet.ts`). 맵의 모든 단축키가 한 번씩 들어 있는지 테스트가 확인해요.
+- 검색(`model/search.ts`, 테스트 있음): 제목은 퍼지, 그다음 입력한 그대로를 포함하는 설명(긴 문장에 흩어진 글자는
+  매치 안 함). 시트 항목은 모든 단축키 이름으로도 찾혀요.
+- 미디어(`Media`): WebP/PNG 스크린샷이나 소리 없는 MP4 루프. `prefers-reduced-motion`이나 절전 모드에서는 영상 대신
+  포스터를 보여요. 미디어가 없는 항목은 T24가 캡처할 때까지 자리표시(제목 + 단축키)를 보여요.
+- 제안: 첫 실행 체크리스트를 닫으면 "둘러보기 / 건너뛰기"를 한 번만 띄워요(`~/.aquila/guide.json` `offered`,
+  `guide:get` / `guide:offered`). 가이드를 한 번 열어도 제안한 걸로 쳐요. smoke는 이 파일을 읽거나 쓰지 않아요.
+
 ## 다국어
 
 `src/shared/i18n/dictionary.ts`에 모든 문구가 `ko`/`en`으로 있습니다 (한쪽이라도 빠지면 타입 체크 실패).
@@ -256,7 +273,8 @@ Agentrix에서 이름이 바뀌었습니다: 처음 실행할 때 `~/.aquila/con
 - 렌더러: Vite → `dist/`. Main + preload: `tsc -p tsconfig.electron.json` → `dist-electron/` (CommonJS).
 - `node-pty`는 네이티브 모듈이라 `postinstall`에서 `electron-rebuild` 실행. Electron 버전을 바꾸면 `npm install` 다시.
 - `npm run smoke`: 빌드 후 앱을 띄워 셸 세션을 열고 pty 왕복을 확인, `dist/smoke.png` 스크린샷 저장 후 종료 (성공 0 / 실패 1).
-  `claude`/`codex`가 PATH에 있는지도 로그로 남기고, ⌘K로 첫 실행 체크리스트를 열어 봅니다(`dist/smoke-first-run.png`). 패키징된 앱은 스크린샷을 임시 폴더에 저장합니다.
+  `claude`/`codex`가 PATH에 있는지도 로그로 남기고, ⌘K로 첫 실행 체크리스트를, ⌘/로 가이드를 열어 봅니다(`dist/smoke-first-run.png`,
+  `dist/smoke-guide.png`, `dist/smoke-guide-shortcuts.png`). 패키징된 앱은 스크린샷을 임시 폴더에 저장합니다.
 - Finder에서 연 앱은 launchd의 최소 PATH를 받습니다. `env.ts`가 시작할 때 한 번 로그인 + 인터랙티브 셸의 PATH를 읽어
   앞에 붙입니다 (세션은 원래 로그인 셸로 뜨므로, main이 직접 실행하는 `git` 등을 위한 것).
 - `npm run dist`: electron-builder(`electron-builder.yml`) → `release/*.dmg` + `.zip`, arm64, 서명 없음. 런타임 의존성은

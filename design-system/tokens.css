@@ -162,6 +162,9 @@
   --size-dialog-wide: 560px;  /* dialogs with a checklist (first run) */
   --size-palette: 560px;      /* command palette width */
   --size-palette-list: 352px; /* list height before it scrolls (11 rows) */
+  --size-modal: 760px;        /* list + detail modal (guide, release notes) */
+  --size-modal-height: 520px;
+  --size-modal-aside: 240px;  /* its list column */
 
   /* Motion */
   --motion-ease: cubic-bezier(0.2, 0, 0, 1);        /* standard: settles quickly */
