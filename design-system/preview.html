@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Agentrix Design System</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="components.css">
+<style>
+  body { user-select: text; overflow: auto; }
+  .ds { max-width: 1100px; margin: 0 auto; padding: 32px 24px 64px; display: flex; flex-direction: column; gap: 40px; }
+  h1 { margin: 0; font-size: 22px; }
+  h2 { margin: 0 0 12px; font-size: var(--font-size-title); }
+  .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+  .sw { border: 1px solid var(--color-border-subtle); border-radius: var(--radius-control); overflow: hidden; background: var(--color-bg-surface); }
+  .sw i { display: block; height: 44px; }
+  .sw span { display: block; padding: 6px 8px; font: var(--font-size-caption) var(--font-family-mono); color: var(--color-text-secondary); }
+  .line { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .mock { height: 380px; display: flex; border: 1px solid var(--color-border-subtle); border-radius: var(--radius-container); overflow: hidden; }
+  .mock main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .term { font: var(--font-size-body)/1.45 var(--font-family-mono); color: var(--color-text-primary); white-space: pre; padding: 8px 12px; }
+  .term .m { color: var(--color-text-secondary); } .term .a { color: var(--color-action-primary); } .term .w { color: var(--color-status-waiting); }
+</style>
+</head>
+<body>
+<div class="ds">
+  <h1>Agentrix Design System</h1>
+
+  <section>
+    <h2>Color</h2>
+    <div class="swatches" id="swatches"></div>
+  </section>
+
+  <section>
+    <h2>Status</h2>
+    <div class="line">
+      <span class="line"><i class="c-dot" data-status="working"></i>working</span>
+      <span class="line"><i class="c-dot" data-status="waiting"></i>waiting</span>
+      <span class="line"><i class="c-dot" data-status="done"></i>done</span>
+      <span class="line"><i class="c-dot" data-status="error"></i>error</span>
+      <span class="line"><i class="c-dot" data-status="idle"></i>idle</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Controls</h2>
+    <div class="line">
+      <button class="c-btn c-btn--primary">Claude 열기</button>
+      <button class="c-btn">Codex 열기</button>
+      <button class="c-btn c-btn--ghost">셸 열기</button>
+      <button class="c-btn c-btn--icon" aria-label="분할">⫽</button>
+      <span class="c-kbd">⌘T</span>
+      <span class="c-badge c-badge--claude">claude</span>
+      <span class="c-badge c-badge--codex">codex</span>
+      <span class="c-badge">개인</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>App</h2>
+    <div class="mock">
+      <aside class="c-sidebar">
+        <div class="c-sidebar__drag"></div>
+        <div class="c-sidebar__body">
+          <div class="c-sidebar__group">
+            <div class="c-label">회사</div>
+            <div class="c-row" aria-current="true"><i class="c-dot" data-status="waiting"></i><span class="c-row__name">data-bahn-fe-web</span><span class="c-row__meta">2</span></div>
+          </div>
+          <div class="c-sidebar__group">
+            <div class="c-label">개인</div>
+            <div class="c-row"><i class="c-dot" data-status="working"></i><span class="c-row__name">SALT</span><span class="c-row__meta">1</span></div>
+            <div class="c-row"><i class="c-dot" data-status="done"></i><span class="c-row__name">Road-To-PRO</span><span class="c-row__meta">1</span></div>
+            <div class="c-row"><i class="c-dot"></i><span class="c-row__name">DevAtlas</span></div>
+          </div>
+          <div class="c-sidebar__group">
+            <div class="c-label">원격</div>
+            <div class="c-row"><i class="c-dot"></i><span class="c-row__name">원격 서버</span></div>
+          </div>
+        </div>
+        <div class="c-sidebar__foot"><button class="c-btn c-btn--ghost">설정</button></div>
+      </aside>
+      <main>
+        <div class="c-tabbar">
+          <div class="c-tab" aria-selected="true"><i class="c-dot" data-status="waiting"></i><span class="c-tab__title">Claude</span><span class="c-badge c-badge--claude">claude</span><button class="c-tab__close">×</button></div>
+          <div class="c-tab"><i class="c-dot" data-status="working"></i><span class="c-tab__title">Codex</span><span class="c-badge c-badge--codex">codex</span><button class="c-tab__close">×</button></div>
+          <button class="c-btn c-btn--ghost c-btn--icon" style="align-self:center">+</button>
+        </div>
+        <div class="c-split" style="grid-template-columns:1fr 1fr">
+          <div class="c-pane" data-focused="true">
+            <div class="c-pane__head"><i class="c-dot" data-status="waiting"></i>Claude · data-bahn-fe-web</div>
+            <div class="term"><span class="a">❯</span> 커버리지 리포트 서버 계약 맞춰줘
+<span class="m">⏺ Read(src/api/coverage.ts)</span>
+<span class="m">⏺ Edit(src/api/coverage.ts)</span>
+<span class="w">  Do you want to make this edit? 1. Yes  2. No</span></div>
+          </div>
+          <div class="c-pane">
+            <div class="c-pane__head"><i class="c-dot" data-status="working"></i>Codex · data-bahn-fe-web</div>
+            <div class="term"><span class="a">›</span> 테스트 깨진 거 고쳐줘
+<span class="m">• Running pnpm verify:web:types</span></div>
+          </div>
+        </div>
+      </main>
+      <aside class="c-panel">
+        <div class="c-panel__head">변경사항 <span class="c-row__meta">3 files</span></div>
+        <div class="c-panel__body c-diff"><div class="c-diff__line c-diff__line--file">src/api/coverage.ts</div><div class="c-diff__line c-diff__line--hunk">@@ -12,6 +12,8 @@</div><div class="c-diff__line">   const res = await client.get(url)</div><div class="c-diff__line c-diff__line--del">-  return res.data</div><div class="c-diff__line c-diff__line--add">+  const parsed = CoverageSchema.parse(res.data)</div><div class="c-diff__line c-diff__line--add">+  return parsed</div></div>
+      </aside>
+    </div>
+  </section>
+</div>
+<script>
+  const names = ['bg-canvas','bg-surface','bg-hover','bg-pressed','bg-selected','border-subtle','border-default','border-focus','text-primary','text-secondary','text-tertiary','action-primary','status-working','status-waiting','status-done','status-error','status-idle','agent-claude','agent-codex','diff-add-text','diff-del-text'];
+  const cs = getComputedStyle(document.documentElement);
+  document.getElementById('swatches').innerHTML = names.map(n =>
+    `<div class="sw"><i style="background:var(--color-${n})"></i><span>--color-${n}<br>${cs.getPropertyValue('--color-' + n).trim()}</span></div>`).join('');
+</script>
+</body>
+</html>

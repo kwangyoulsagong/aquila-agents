@@ -1,0 +1,160 @@
+/*
+ * Agentrix design tokens — two tiers.
+ *
+ *   1. Primitive  (--p-*)      raw palette & scales. NEVER used by components or app code.
+ *   2. Semantic   (--color-*, --font-*, --space-*, ...)   what things MEAN. The only tier code may use.
+ *
+ * Theming = remapping semantic → primitive. Dark only in v0.1; a light theme
+ * later only overrides the semantic block under [data-theme="light"].
+ * Need a new value? Add a primitive (if new), then a semantic token that names its purpose.
+ */
+
+/* ══════════════ 1. PRIMITIVE ══════════════ */
+:root {
+  /* Slate — neutrals with a slight blue bias */
+  --p-slate-950: #0e1014;
+  --p-slate-900: #14171d;
+  --p-slate-850: #1b1f27;
+  --p-slate-800: #232833;
+  --p-slate-750: #262b35;
+  --p-slate-700: #353b48;
+  --p-slate-500: #5b6170;
+  --p-slate-400: #8a91a0;
+  --p-slate-100: #e4e7ed;
+
+  /* Hues */
+  --p-blue-300: #93b4f9;
+  --p-blue-400: #7aa2f7;
+  --p-orange-400: #f0a04b;
+  --p-green-300: #7fd4a4;
+  --p-green-400: #5fc08a;
+  --p-red-300: #f4908b;
+  --p-red-400: #f2716b;
+  --p-peach-300: #e8a87c;
+  --p-teal-300: #9fd3c7;
+  --p-violet-300: #b8a4f4;
+
+  /* Alpha tints (hue @ low opacity) */
+  --p-blue-400-a14: rgba(122, 162, 247, 0.14);
+  --p-orange-400-a20: rgba(240, 160, 75, 0.2);
+  --p-green-400-a12: rgba(95, 192, 138, 0.12);
+  --p-red-400-a12: rgba(242, 113, 107, 0.12);
+
+  /* Scales */
+  --p-size-4: 4px;
+  --p-size-8: 8px;
+  --p-size-12: 12px;
+  --p-size-16: 16px;
+  --p-size-24: 24px;
+  --p-radius-4: 4px;
+  --p-radius-6: 6px;
+  --p-radius-10: 10px;
+  --p-font-11: 11px;
+  --p-font-12: 12px;
+  --p-font-13: 13px;
+  --p-font-15: 15px;
+}
+
+/* ══════════════ 2. SEMANTIC ══════════════ */
+:root {
+  color-scheme: dark;
+
+  /* Background — by elevation / interaction */
+  --color-bg-canvas: var(--p-slate-950);      /* window, terminal */
+  --color-bg-surface: var(--p-slate-900);     /* sidebar, tab bar, panels */
+  --color-bg-hover: var(--p-slate-850);       /* hovered row/tab, inputs */
+  --color-bg-pressed: var(--p-slate-800);     /* pressed, selected row */
+  --color-bg-selected: var(--p-blue-400-a14); /* current project */
+
+  /* Border */
+  --color-border-subtle: var(--p-slate-750);  /* region hairlines */
+  --color-border-default: var(--p-slate-700); /* control edges */
+  --color-border-focus: var(--p-blue-400);    /* focus ring, focused pane */
+
+  /* Text */
+  --color-text-primary: var(--p-slate-100);   /* 13.9:1 on canvas */
+  --color-text-secondary: var(--p-slate-400); /* 6.0:1 on canvas */
+  --color-text-tertiary: var(--p-slate-500);  /* hints only, never essential */
+  --color-text-on-accent: var(--p-slate-950);
+
+  /* Interactive */
+  --color-action-primary: var(--p-blue-400);
+  --color-action-primary-hover: var(--p-blue-300);
+
+  /* Session status — the app's core vocabulary */
+  --color-status-working: var(--p-blue-400);
+  --color-status-waiting: var(--p-orange-400);
+  --color-status-waiting-halo: var(--p-orange-400-a20);
+  --color-status-done: var(--p-green-400);
+  --color-status-error: var(--p-red-400);
+  --color-status-idle: var(--p-slate-500);
+
+  /* Agent identity (badges) */
+  --color-agent-claude: var(--p-peach-300);
+  --color-agent-codex: var(--p-teal-300);
+  --color-agent-shell: var(--p-slate-400);
+
+  /* Claude account (shared = `claude`, personal = `claude-personal`) */
+  --color-account-shared: var(--p-slate-400);
+  --color-account-personal: var(--p-violet-300);
+
+  /* Diff */
+  --color-diff-add-bg: var(--p-green-400-a12);
+  --color-diff-add-text: var(--p-green-300);
+  --color-diff-del-bg: var(--p-red-400-a12);
+  --color-diff-del-text: var(--p-red-300);
+  --color-diff-hunk-text: var(--p-blue-400);
+
+  /* Terminal (xterm reads these at runtime) */
+  --color-terminal-bg: var(--color-bg-canvas);
+  --color-terminal-fg: var(--color-text-primary);
+  --color-terminal-cursor: var(--p-blue-400);
+  --color-terminal-selection: var(--p-blue-400-a14);
+
+  /* Typography */
+  --font-family-ui: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Apple SD Gothic Neo', system-ui, sans-serif;
+  --font-family-mono: 'JetBrains Mono', 'D2Coding', 'SF Mono', Menlo, monospace;
+  --font-size-caption: var(--p-font-11); /* meta, badges, section labels */
+  --font-size-label: var(--p-font-12);   /* tabs, buttons */
+  --font-size-body: var(--p-font-13);    /* body, rows, terminal */
+  --font-size-title: var(--p-font-15);   /* panel titles */
+  --line-height-body: 1.5;
+
+  /* Spacing — by role */
+  --space-inline-xs: var(--p-size-4);  /* icon ↔ text */
+  --space-inline-sm: var(--p-size-8);  /* items in a row */
+  --space-inset-sm: var(--p-size-8);   /* tight padding */
+  --space-inset-md: var(--p-size-12);  /* row / control padding */
+  --space-stack-md: var(--p-size-16);  /* between groups */
+  --space-stack-lg: var(--p-size-24);  /* between sections */
+
+  /* Radius — by role */
+  --radius-badge: var(--p-radius-4);
+  --radius-control: var(--p-radius-6); /* buttons, rows, tabs */
+  --radius-container: var(--p-radius-10); /* panels, dialogs */
+
+  /* Layout — everything on the 4px grid.
+   * Alignment rules:
+   *  - Horizontal: sidebar top band == tab bar == panel head (one line across the window).
+   *  - Vertical: sidebar content edge = 20px (body inset 8 + row inset 12); labels, dots, footer all start there.
+   *  - Pane: header text and terminal text share the same left edge (inset-md). */
+  --size-titlebar: 40px;
+  --size-tabbar: var(--size-titlebar);
+  --size-pane-head: 28px;
+  --size-row: 32px;
+  --size-control: 28px;
+  --size-badge: 16px;
+  --size-dot: 8px;
+  --size-dot-sm: 6px; /* per-session dots in a project row */
+  --size-sidebar: 248px;
+  --size-panel: 416px;
+
+  /* Motion */
+  --motion-ease: cubic-bezier(0.2, 0, 0, 1);        /* standard: settles quickly */
+  --motion-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1); /* small overshoot for "pop" */
+  --motion-fast: 120ms;    /* hover, press */
+  --motion-medium: 200ms;  /* tab enter, segment slide */
+  --motion-slow: 320ms;    /* status pop, panel slide */
+  --motion-pulse: 1600ms;  /* working dot */
+  --motion-press-scale: 0.97;
+}

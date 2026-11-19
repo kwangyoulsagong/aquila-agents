@@ -1,0 +1,215 @@
+/*
+ * Components. Use SEMANTIC tokens only — never --p-* and never raw values
+ * (exceptions: 1px hairlines, 0, 50%, unitless ratios).
+ * Naming: .c-<component>, .c-<component>__<part>, .c-<component>--<variant>; state via aria-* / data-*.
+ */
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body {
+  background: var(--color-bg-canvas);
+  color: var(--color-text-primary);
+  font: var(--font-size-body) / var(--line-height-body) var(--font-family-ui);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 1px; }
+
+/* ── Status dot ───────────────────────────────────────────── */
+.c-dot { width: var(--size-dot); height: var(--size-dot); border-radius: 50%; flex: none; background: var(--color-status-idle); }
+.c-dot[data-status='working'] { background: var(--color-status-working); animation: c-pulse var(--motion-pulse) ease-in-out infinite; }
+.c-dot[data-status='waiting'] { background: var(--color-status-waiting); box-shadow: 0 0 0 3px var(--color-status-waiting-halo); }
+.c-dot[data-status='done'] { background: var(--color-status-done); }
+.c-dot[data-status='error'] { background: var(--color-status-error); }
+@keyframes c-pulse { 50% { opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) { .c-dot[data-status='working'] { animation: none; } }
+
+/* ── Button ───────────────────────────────────────────────── */
+.c-btn {
+  display: inline-flex; align-items: center; gap: var(--space-inline-sm);
+  height: var(--size-control); padding: 0 var(--space-inset-md);
+  border: 1px solid var(--color-border-default); border-radius: var(--radius-control);
+  background: var(--color-bg-hover); color: var(--color-text-primary);
+  font: 500 var(--font-size-label) var(--font-family-ui); cursor: pointer;
+  transition: background var(--motion-fast) var(--motion-ease);
+}
+.c-btn:hover { background: var(--color-bg-pressed); }
+.c-btn--primary { background: var(--color-action-primary); border-color: var(--color-action-primary); color: var(--color-text-on-accent); }
+.c-btn--primary:hover { background: var(--color-action-primary-hover); }
+.c-btn--ghost { background: transparent; border-color: transparent; color: var(--color-text-secondary); }
+.c-btn--ghost:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
+.c-btn--icon { width: var(--size-control); padding: 0; justify-content: center; }
+
+/* ── Segmented control ────────────────────────────────────── */
+.c-segment {
+  position: relative; display: inline-grid; grid-auto-flow: column; grid-auto-columns: 1fr;
+  height: var(--size-control); padding: 2px; gap: 0;
+  border: 1px solid var(--color-border-subtle); border-radius: var(--radius-control); background: var(--color-bg-canvas);
+}
+.c-segment__thumb {
+  position: absolute; top: 2px; bottom: 2px; left: 2px;
+  width: calc((100% - 4px) / var(--segment-count, 2));
+  transform: translateX(calc(100% * var(--segment-index, 0)));
+  border-radius: var(--radius-badge); background: var(--color-bg-pressed);
+  transition: transform var(--motion-medium) var(--motion-ease);
+}
+.c-segment__item {
+  position: relative; padding: 0 var(--space-inset-sm); border: 0; border-radius: var(--radius-badge);
+  background: transparent; color: var(--color-text-secondary);
+  font: 500 var(--font-size-label) var(--font-family-ui); cursor: pointer;
+  transition: color var(--motion-fast) var(--motion-ease);
+}
+.c-segment__item:hover { color: var(--color-text-primary); }
+.c-segment__item[aria-checked='true'] { color: var(--color-text-primary); }
+
+/* ── Kbd ──────────────────────────────────────────────────── */
+.c-kbd {
+  font: var(--font-size-caption) var(--font-family-mono); color: var(--color-text-tertiary);
+  padding: 1px var(--space-inline-xs); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-badge);
+}
+
+/* ── Badge ────────────────────────────────────────────────── */
+.c-badge {
+  display: inline-flex; align-items: center; height: var(--size-badge);
+  font: 600 10px var(--font-family-ui); letter-spacing: 0.04em; text-transform: uppercase;
+  padding: 0 var(--space-inline-xs); border-radius: var(--radius-badge);
+  background: var(--color-bg-pressed); color: var(--color-text-secondary);
+}
+.c-badge--claude { color: var(--color-agent-claude); }
+.c-badge--codex { color: var(--color-agent-codex); }
+.c-badge--shell { color: var(--color-agent-shell); }
+.c-badge--account-shared { color: var(--color-account-shared); }
+.c-badge--account-personal { color: var(--color-account-personal); }
+
+/* ── Section label ────────────────────────────────────────── */
+.c-label {
+  font: 600 var(--font-size-caption) var(--font-family-ui); letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--color-text-tertiary); padding: 0 var(--space-inset-md);
+}
+
+/* ── Sidebar ──────────────────────────────────────────────── */
+.c-sidebar {
+  width: var(--size-sidebar); flex: none; display: flex; flex-direction: column;
+  background: var(--color-bg-surface); border-right: 1px solid var(--color-border-subtle);
+}
+.c-sidebar__drag { height: var(--size-titlebar); flex: none; -webkit-app-region: drag; }
+.c-sidebar__body {
+  flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-stack-md);
+  padding: 0 var(--space-inset-sm) var(--space-inset-md);
+}
+.c-sidebar__group { display: flex; flex-direction: column; gap: 2px; }
+.c-sidebar__group > .c-label { height: var(--size-badge); display: flex; align-items: center; margin-bottom: var(--space-inline-xs); }
+.c-sidebar__lang { margin-left: auto; }
+.c-sidebar__foot {
+  display: flex; align-items: center; gap: var(--space-inline-sm);
+  padding: var(--space-inset-sm); border-top: 1px solid var(--color-border-subtle);
+}
+
+/* ── Project row ──────────────────────────────────────────── */
+.c-row {
+  display: flex; align-items: center; gap: var(--space-inline-sm);
+  height: var(--size-row); padding: 0 var(--space-inset-sm) 0 var(--space-inset-md);
+  border-radius: var(--radius-control); color: var(--color-text-secondary); cursor: pointer;
+}
+.c-row:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
+.c-row[aria-current='true'] { background: var(--color-bg-selected); color: var(--color-text-primary); }
+.c-row__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.c-row__sessions { display: inline-flex; align-items: center; gap: var(--space-inline-xs); }
+.c-row__sessions .c-dot { width: var(--size-dot-sm); height: var(--size-dot-sm); }
+.c-row__meta { font: var(--font-size-caption) var(--font-family-mono); color: var(--color-text-tertiary); }
+
+/* ── Tab bar ──────────────────────────────────────────────── */
+.c-tabbar {
+  height: var(--size-tabbar); flex: none; display: flex; align-items: stretch; gap: 2px;
+  padding: 0 var(--space-inset-sm); background: var(--color-bg-surface);
+  border-bottom: 1px solid var(--color-border-subtle); -webkit-app-region: drag;
+}
+.c-tabbar > * { -webkit-app-region: no-drag; }
+.c-tab {
+  display: flex; align-items: center; gap: var(--space-inline-sm); max-width: 224px; margin-top: var(--space-inline-sm);
+  padding: 0 var(--space-inset-sm) 0 var(--space-inset-md); border-radius: var(--radius-control) var(--radius-control) 0 0;
+  font-size: var(--font-size-label); color: var(--color-text-secondary); cursor: pointer;
+}
+.c-tab:hover { background: var(--color-bg-hover); }
+.c-tab[aria-selected='true'] { background: var(--color-bg-canvas); color: var(--color-text-primary); }
+.c-tab__title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.c-tab__close {
+  width: 18px; height: 18px; border: 0; border-radius: var(--radius-badge); opacity: 0;
+  background: none; color: var(--color-text-tertiary); cursor: pointer;
+}
+.c-tab:hover .c-tab__close, .c-tab[aria-selected='true'] .c-tab__close { opacity: 1; }
+.c-tabbar__trailing { margin-left: auto; align-self: center; display: flex; align-items: center; gap: var(--space-inline-sm); }
+.c-tabbar__add { align-self: center; margin-left: var(--space-inline-xs); }
+.c-tab__close:hover { background: var(--color-bg-pressed); color: var(--color-text-primary); }
+
+/* ── Split + pane ─────────────────────────────────────────── */
+.c-split { flex: 1; min-height: 0; display: grid; gap: 1px; background: var(--color-border-subtle); }
+.c-pane { position: relative; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--color-bg-canvas); }
+.c-pane[data-focused='true'] { box-shadow: inset 0 0 0 1px var(--color-border-focus); }
+.c-pane__head {
+  height: var(--size-pane-head); flex: none; display: flex; align-items: center; gap: var(--space-inline-sm);
+  padding: 0 var(--space-inset-md); font-size: var(--font-size-caption); color: var(--color-text-secondary);
+  background: var(--color-bg-surface); border-bottom: 1px solid var(--color-border-subtle);
+}
+.c-pane__term { flex: 1; min-height: 0; padding: var(--space-inset-sm) 0 0 var(--space-inset-md); }
+
+/* ── Panel ────────────────────────────────────────────────── */
+.c-panel {
+  width: var(--size-panel); flex: none; display: flex; flex-direction: column;
+  background: var(--color-bg-surface); border-left: 1px solid var(--color-border-subtle);
+}
+.c-panel__head {
+  height: var(--size-tabbar); display: flex; align-items: center; gap: var(--space-inline-sm);
+  padding: 0 var(--space-inset-md); border-bottom: 1px solid var(--color-border-subtle); font-weight: 600;
+}
+.c-panel__body { flex: 1; overflow: auto; user-select: text; }
+
+/* ── Diff ─────────────────────────────────────────────────── */
+.c-diff { font: var(--font-size-label) / 1.55 var(--font-family-mono); white-space: pre; padding: var(--space-inset-sm) 0; }
+.c-diff__line { padding: 0 var(--space-inset-md); }
+.c-diff__line--add { background: var(--color-diff-add-bg); color: var(--color-diff-add-text); }
+.c-diff__line--del { background: var(--color-diff-del-bg); color: var(--color-diff-del-text); }
+.c-diff__line--hunk { color: var(--color-diff-hunk-text); }
+.c-diff__line--file { color: var(--color-text-primary); font-weight: 600; padding-top: var(--space-inset-md); }
+
+/* ── Empty state ──────────────────────────────────────────── */
+.c-empty {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: var(--space-stack-md); color: var(--color-text-secondary);
+}
+.c-empty__title { font-size: var(--font-size-title); font-weight: 600; color: var(--color-text-primary); }
+.c-empty__path { font: var(--font-size-label) var(--font-family-mono); color: var(--color-text-tertiary); }
+.c-empty__actions { display: flex; gap: var(--space-inline-sm); }
+
+/* ══════════════ Micro-interactions ══════════════
+ * Small, fast, purposeful. Each one confirms an action or draws the eye to a state change.
+ * All disabled under prefers-reduced-motion.
+ */
+
+/* Press: controls sink slightly. */
+.c-btn, .c-segment__item, .c-tab__close { transition: background var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease), transform var(--motion-fast) var(--motion-ease); }
+.c-btn:active, .c-segment__item:active, .c-tab__close:active { transform: scale(var(--motion-press-scale)); }
+
+/* Hover: rows and tabs fade their background instead of snapping. */
+.c-row, .c-tab { transition: background var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease); }
+
+/* New tab slides up into place. */
+.c-tab { animation: c-tab-enter var(--motion-medium) var(--motion-ease) both; }
+@keyframes c-tab-enter { from { opacity: 0; transform: translateY(6px); } }
+
+/* Status change: done / waiting / error dots pop once so you notice. */
+.c-dot[data-status='done'], .c-dot[data-status='error'] { animation: c-pop var(--motion-slow) var(--motion-ease-spring); }
+.c-dot[data-status='waiting'] { animation: c-pop var(--motion-slow) var(--motion-ease-spring), c-halo var(--motion-pulse) ease-in-out var(--motion-slow) infinite; }
+@keyframes c-pop { 0% { transform: scale(0.4); } 60% { transform: scale(1.35); } 100% { transform: scale(1); } }
+@keyframes c-halo { 50% { box-shadow: 0 0 0 5px var(--color-status-waiting-halo); } }
+
+/* Empty state fades in when you switch to a project with no sessions. */
+.c-empty { animation: c-fade-up var(--motion-slow) var(--motion-ease) both; }
+@keyframes c-fade-up { from { opacity: 0; transform: translateY(8px); } }
+
+/* Close button reveals smoothly. */
+.c-tab__close { transition-property: opacity, background, color, transform; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
