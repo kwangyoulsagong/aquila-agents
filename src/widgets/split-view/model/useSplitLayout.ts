@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { Session } from '@/shared/api';
+import type { SavedLayout, Session } from '@/shared/api';
 import * as L from './layout';
 
 /**
@@ -64,6 +64,14 @@ export function useSplitLayout(
     [sessions],
   );
 
+  /** The layout saved at the last quit (T21); false when it doesn't fit the restored sessions. */
+  const restoreLayout = useCallback((saved: SavedLayout, sessionIds: string[]) => {
+    const next = L.fromSaved(saved, new Set(sessionIds));
+    if (!next || !L.leaves(next.root).some((l) => l.sessionId)) return false;
+    setLayout(next);
+    return true;
+  }, []);
+
   const focusPane = useCallback((paneId: string) => setLayout((l) => L.focus(l, paneId)), []);
   const splitFocused = useCallback(
     (dir: L.SplitDir) => setLayout((l) => L.split(l, l.focusedId, dir === 'row' ? 'right' : 'bottom', null)),
@@ -101,6 +109,7 @@ export function useSplitLayout(
     showSession,
     placeInFocused,
     forgetSession,
+    restoreLayout,
     focusPane,
     splitFocused,
     closePane,

@@ -149,7 +149,8 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
 - **담당:** `scripts/`, `electron/power.ts`, 위 두 문서.
 
 ### T21 · 복원 v2
-- [ ] **목표:** 다시 열면 내용까지, 빠르게. (#14 + T4 남은 것)
+- [x] **목표:** 다시 열면 내용까지, 빠르게. (#14 + T4 남은 것)
+  _남은 것: 저장된 출력은 일반 텍스트(색 없음); resume된 Claude/codex는 자기 대화만 보여주고, 저장된 출력은 resume이 실패할 때만 나와요; codex id는 cwd + Enter 시각으로 맞추는 휴리스틱이고, codex 안에서 `/new`를 해도 예전 id가 남아요; 실제 codex 캡처와 실제로 실패하는 `claude --resume`은 직접 돌려보지 못함(가짜 `claude`와 fixture rollout으로 확인); 셸에서 다른 폴더로 `cd`했어도 cwd는 기억하지 않아요._
 - **명세:** 탭마다 마지막 스크롤백을 `~/.aquila/`에 저장. resume이 실패하면 읽기 전용으로 보여주고 같은 폴더에 새 셸
   (cold restore). 보이는 탭부터 spawn, 백그라운드 탭은 처음 클릭할 때. codex 세션 id를 잡아 codex 탭 두 개가 각자
   세션으로 resume. 분할 레이아웃과 포커스된 탭 복원.

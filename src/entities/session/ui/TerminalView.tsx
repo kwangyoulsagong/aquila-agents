@@ -7,6 +7,7 @@ import { api, type SessionKind } from '@/shared/api';
 import { usePowerSaver } from '@/shared/lib/usePowerSaver';
 import { gpuPool } from '../lib/gpuPool';
 import { createImeGuard } from '../lib/imeGuard';
+import { SNAPSHOT_MS, SNAPSHOT_SAVER_MS, snapshotText } from '../lib/snapshot';
 import { attach } from '../lib/terminalBus';
 import { SCROLLBACK, sizeChanged } from '../model/terminal';
 
@@ -37,6 +38,8 @@ export default function TerminalView({ id, kind, visible, focused = visible }: P
   const saver = usePowerSaver();
   const saverRef = useRef(saver);
   saverRef.current = saver;
+  /** Restarts the snapshot timer (its interval depends on power-saver mode). */
+  const snapshotRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     const host = hostRef.current!;
@@ -118,6 +121,22 @@ export default function TerminalView({ id, kind, visible, focused = visible }: P
       term.buffer.onBufferChange(syncScrollable),
       term.onResize(syncScrollable),
     ];
+    // Snapshot the output now and then (only if it changed), for a read-only view after a relaunch (T21).
+    let dirty = false;
+    const written = term.onWriteParsed(() => (dirty = true));
+    const snapshot = () => {
+      if (!dirty) return;
+      dirty = false;
+      api.saveScrollback(id, snapshotText(term.buffer.normal));
+    };
+    let snapTimer = 0;
+    const scheduleSnapshots = () => {
+      clearInterval(snapTimer);
+      snapTimer = window.setInterval(snapshot, saverRef.current ? SNAPSHOT_SAVER_MS : SNAPSHOT_MS);
+    };
+    scheduleSnapshots();
+    snapshotRef.current = scheduleSnapshots;
+    window.addEventListener('beforeunload', snapshot);
     const ro = new ResizeObserver(scheduleFit);
     ro.observe(host);
     // The webfont can finish loading after the first fit; cell size changes but the host doesn't.
@@ -125,6 +144,10 @@ export default function TerminalView({ id, kind, visible, focused = visible }: P
 
     return () => {
       cancelAnimationFrame(frame);
+      clearInterval(snapTimer);
+      window.removeEventListener('beforeunload', snapshot);
+      written.dispose();
+      snapshotRef.current = null;
       ro.disconnect();
       document.fonts.removeEventListener('loadingdone', scheduleFit);
       input.dispose();
@@ -154,6 +177,7 @@ export default function TerminalView({ id, kind, visible, focused = visible }: P
   useEffect(() => {
     const h = handleRef.current;
     if (h) h.term.options.cursorBlink = !saver;
+    snapshotRef.current?.();
   }, [saver]);
 
   return <div ref={hostRef} className="c-pane__term" />;

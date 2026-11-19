@@ -13,7 +13,9 @@
 │           open-session, setup-account,    │        │               + ~/.aquila/claude-hooks.json     │
 │           manage-projects, next-waiting,  │
 │           first-run                       │        │ git.ts        git status + diff (읽기만)        │
-│ entities/ session (xterm, 상태), project    │        │ state.ts      ~/.aquila/state.json (열린 탭)     │
+│ entities/ session (xterm, 상태), project    │        │ state.ts      ~/.aquila/state.json (탭, 레이아웃)│
+│                                           │        │               + scrollback/ (T21)                │
+│                                           │        │ codex.ts      탭별 codex 세션 id (T21)           │
 │           diff                            │        │ worktrees.ts  git worktree 만들기 / 재사용 (T7)  │
 │           open-in-worktree                │        │ menu.ts       네이티브 우클릭 메뉴               │
 │                                           │        │ notify.ts     알림, 리마인더, Dock 배지          │
@@ -105,15 +107,34 @@
 
 ## 다시 열면 복원
 
-- Main이 `~/.aquila/state.json`에 열린 탭을 탭 순서대로 저장 (`{ projectId, kind, account?, worktree?, claudeSessionId? }`).
-  세션 생성·종료·Claude 세션 변경 때마다 다시 씀(임시 파일 + rename)이라 앱이 죽어도 남아요. 시작할 때 세션이 생기기 전에
-  한 번 읽고, 종료할 때 pty를 끄면서 덮어쓰지 않아요. smoke는 읽지도 쓰지도 않아요.
+- Main이 `~/.aquila/state.json`(version 2)에 열린 탭을 탭 순서대로 (`{ key, projectId, kind, account?, worktree?,
+  claudeSessionId?, codexSessionId? }`), 그리고 분할 레이아웃(leaf에 탭 **key**가 든 pane 트리 + 포커스 pane 번호)을 저장.
+  세션 생성·종료·Claude/codex 세션 변경·레이아웃 변경 때마다 다시 씀(임시 파일 + rename)이라 앱이 죽어도 남아요. `key`는
+  실행이 바뀌어도 탭에 붙어 있는 uuid. 시작할 때 세션이 생기기 전에 한 번 읽고, 종료할 때 pty를 끄면서 덮어쓰지 않아요.
+  렌더러는 복원을 마친 뒤에야 레이아웃을 보내서(`layout:save`) 저장된 레이아웃을 먼저 덮어쓰지 않아요. smoke는 읽지도 쓰지도 않아요.
 - Claude 탭은 우리가 만든 `--session-id <uuid>`로 시작. `SessionStart` hook이 Claude의 stdin JSON을 hook 수신기
   (`POST /hook`)로 보내서, `/clear`나 resume 뒤에도 저장된 id가 따라가요.
 - 설정을 읽은 뒤 렌더러가 `restoreSessions()`를 실행 1회당 한 번 호출: Claude → `<configDir>/projects/*/<id>.jsonl`이
-  있으면 `claude --resume <id>`(Claude는 첫 메시지 뒤에야 이 파일을 씀), 없으면 새 세션. codex → `codex resume --last`
-  (codex가 cwd로 거름). 셸 → 새 셸. 없어진 프로젝트의 탭은 버리고, 없어진 계정은 프로젝트 계정으로 대체. 워크트리 탭은 그 워크트리에서 다시 열고,
+  있으면 `claude --resume <id>`(Claude는 첫 메시지 뒤에야 이 파일을 씀), 없으면 새 세션. codex → 잡아 둔 id로
+  `codex resume <id>`, 없으면 새 codex(T4의 `version: 1` 파일이면 `codex resume --last`). 셸 → 저장된 출력 아래 새 셸
+  (cold restore). 없어진 프로젝트의 탭은 버리고, 없어진 계정은 프로젝트 계정으로 대체. 워크트리 탭은 그 워크트리에서 다시 열고,
   폴더가 없어졌으면 버려요.
+- **보이는 탭 먼저:** 저장된 레이아웃의 pane에 있는 탭만 spawn(레이아웃이 없으면 첫 프로젝트의 첫 탭). 나머지는
+  `dormant`(`SessionInfo.dormant`, pty도 xterm도 없음)로 돌아오고 state.json에서 자리를 지켜요. 렌더러가 그 탭이 처음
+  화면에 나올 때 `startSession(id)`를 부르면 main이 같은 id로 spawn. 렌더러는 `fromSaved`로 레이아웃을 다시 만들고
+  (모르는 세션의 pane은 비움), 남은 게 없으면 처음 spawn된 탭을 포커스 pane에 넣어요.
+- **스크롤백:** 터미널마다 normal 버퍼를 일반 텍스트로 스냅샷(`entities/session/lib/snapshot.ts`: 줄바꿈된 행은 합침,
+  마지막 2,000줄) — 바뀌었을 때 10초마다(절전 모드 30초), 그리고 unload 때 → `session:scrollback` →
+  `~/.aquila/scrollback/<key>.txt`(512 KB 상한, 뒤쪽 유지). 일부러 일반 텍스트: TUI 출력 중간부터 raw escape를 다시 그리면
+  깨져요. 탭을 닫으면 파일도 지우고, 더 이상 저장되지 않은 탭의 파일은 복원 때 정리해요.
+- **Cold restore:** main이 저장된 텍스트를 세션 자체 출력보다 먼저 스트림에 씀 — 흐리게, 제어 문자 제거, 마지막에
+  "이전 출력 · <시각> · 읽기 전용" 배너. 셸은 항상. resume된 Claude/codex는 안 씀(CLI가 자기 대화를 보여줌). 대신 명령이
+  `<resume> || printf '\e]7501;aquila-resume-failed\a'`이라, spawn 후 20초 안에 이 마커가 오면(OSC 스캐너가 봄) "세션을
+  이어서 열지 못했어요"와 함께 저장된 텍스트를 보여주고, 탭은 평소처럼 그 폴더의 셸로 떨어져요.
+- **Codex 세션 id**(`codex.ts`, 읽기 전용): codex는 첫 프롬프트 때 `~/.codex/sessions/YYYY/MM/DD/rollout-<시각>-<id>.jsonl`을
+  쓰고, 첫 줄이 `id`·`cwd`가 든 `session_meta`. id를 모르는 codex 탭에서 Enter를 치면 main이 (1.5초, 6초 뒤) 그 탭이
+  spawn된 뒤 시작한 rollout의 머리를 읽고, 새 rollout마다 cwd가 같고 Enter 시각이 시작 시각에 가장 가까운 탭에 줘요
+  (다른 탭이 가진 id는 건너뜀).
 
 ## 단축키
 

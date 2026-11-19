@@ -13,7 +13,9 @@
 │           open-session, setup-account,    │        │               + ~/.aquila/claude-hooks.json       │
 │           manage-projects, next-waiting,  │
 │           first-run                       │        │ git.ts        git status + diff (read-only)      │
-│ entities/ session (xterm, status), project│        │ state.ts      ~/.aquila/state.json (open tabs)   │
+│ entities/ session (xterm, status), project│        │ state.ts      ~/.aquila/state.json (tabs, layout)│
+│                                           │        │               + scrollback/ (T21)                │
+│                                           │        │ codex.ts      codex session id per tab (T21)     │
 │           diff                            │        │ worktrees.ts  git worktree add / reuse (T7)      │
 │           open-in-worktree                │        │ menu.ts       native context menus               │
 │                                           │        │ notify.ts     notifications, reminder, Dock badge│
@@ -106,16 +108,39 @@
 
 ## Restore on relaunch
 
-- Main keeps `~/.aquila/state.json` = the open tabs in tab order (`{ projectId, kind, account?, worktree?, claudeSessionId? }`),
-  rewritten on every create / exit / Claude session change (temp file + rename), so a crash keeps them too. It's read
-  once at startup, before any session exists; quitting kills the ptys without overwriting it. Smoke never reads or writes it.
+- Main keeps `~/.aquila/state.json` (version 2) = the open tabs in tab order (`{ key, projectId, kind, account?, worktree?,
+  claudeSessionId?, codexSessionId? }`) and the split layout (pane tree with tab **keys** in its leaves + the focused
+  pane's index), rewritten on every create / exit / Claude or codex session change / layout change (temp file + rename),
+  so a crash keeps them too. `key` is a uuid that stays with the tab across launches. It's read once at startup, before
+  any session exists; quitting kills the ptys without overwriting it. The renderer starts sending its layout
+  (`layout:save`) only after it restored, so the saved one isn't overwritten first. Smoke never reads or writes it.
 - Claude tabs start with `--session-id <uuid>` we generate. The `SessionStart` hook posts Claude's stdin JSON to
   the hook receiver (`POST /hook`), so the saved id follows `/clear` and resumes.
 - After the config loads, the renderer calls `restoreSessions()` (once per launch): Claude → `claude --resume <id>`
   if `<configDir>/projects/*/<id>.jsonl` exists (Claude writes it only after the first message), otherwise a new
-  session; codex → `codex resume --last` (codex filters by cwd); shell → fresh shell. Tabs of removed projects are
+  session; codex → `codex resume <id>` with the captured id, otherwise a new codex (a T4 `version: 1` file:
+  `codex resume --last`); shell → fresh shell under its saved output (cold restore). Tabs of removed projects are
   dropped; a removed account falls back to the project's account. Worktree tabs reopen in their worktree, or are
   dropped if its folder is gone.
+- **Visible first:** only the tabs in the saved layout's panes are spawned (no layout: the first tab of the first
+  project). The others come back `dormant` (`SessionInfo.dormant`, no pty, no xterm) and keep their place in
+  state.json; the renderer calls `startSession(id)` the first time one is on screen and main spawns it under the same
+  id. The renderer rebuilds the layout with `fromSaved` (unknown sessions leave their pane empty); if nothing in it is
+  left, the first spawned tab goes in the focused pane.
+- **Scrollback:** each terminal snapshots its normal buffer as plain text (`entities/session/lib/snapshot.ts`: wrapped
+  rows joined, last 2,000 lines) every 10 s when it changed (30 s in power-saver mode) and on unload →
+  `session:scrollback` → `~/.aquila/scrollback/<key>.txt` (512 KB cap, tail kept). Plain text on purpose: replaying raw
+  escape sequences from the middle of a TUI draws garbage. Closing a tab deletes its file; files of tabs no longer
+  saved are pruned at restore.
+- **Cold restore:** main writes the saved text into the stream before the session's own output — dimmed, control
+  characters stripped, ending with a banner "Previous output · <time> · read-only". Shells always get it. A resumed
+  Claude / codex doesn't (the CLI shows its own transcript), but its command is `<resume> || printf '\e]7501;aquila-resume-failed\a'`:
+  that marker within 20 s of the spawn (the OSC scanner sees it) shows the saved text with "Couldn't resume the session",
+  and the tab drops to its shell in that dir as usual.
+- **Codex session ids** (`codex.ts`, read-only): codex writes `~/.codex/sessions/YYYY/MM/DD/rollout-<time>-<id>.jsonl`
+  on the first prompt; its first line is `session_meta` with `id` and `cwd`. After Enter in a codex tab that doesn't
+  know its id, main reads the heads of rollouts started since that tab spawned (1.5 s and 6 s later) and gives each new
+  one to the tab with the same cwd where Enter was typed closest to its start, skipping ids other tabs own.
 
 ## Shortcuts
 

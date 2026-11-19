@@ -11,13 +11,26 @@ import { binaryFor, finishFirstRun, firstRunReport, loadOverrides, setBinaryPath
 import { detectClaudeVersion, startHookServer, supportsHttpHooks, writeClaudeHookSettings } from './hooks';
 import { PowerWatcher, type PowerSource } from './power';
 import { SessionManager } from './sessions';
-import { planRestore, readState, writeState, type SavedTab } from './state';
+import {
+  mapLayout,
+  planRestore,
+  pruneScrollback,
+  readScrollback,
+  readState,
+  removeScrollback,
+  visibleKeys,
+  writeScrollback,
+  writeState,
+  type SavedTab,
+} from './state';
 import { isSmoke, runSmoke, SMOKE_BUFFER_BYTES, watchOutput } from './smoke';
 import {
   IPC,
   type ContextMenuItem,
   type Language,
   type ProjectEdit,
+  type RestoreResult,
+  type SavedLayout,
   type SessionInfo,
   type SessionKind,
   type ToolId,
@@ -54,12 +67,21 @@ app.whenReady().then(async () => {
   let pathRestored = await restoreShellPath(); // Finder launches get a minimal PATH
   loadOverrides(); // binaries picked in the first-run checklist
   // Read before any session exists: the first create/exit rewrites state.json. Smoke never touches it.
-  const savedTabs = isSmoke ? [] : readState();
+  const saved = isSmoke ? { tabs: [], layout: null, legacy: false } : readState();
+  /** Current layout with tab keys; null until the renderer has restored (so the saved one isn't overwritten). */
+  let layoutByKey: SavedLayout | null = saved.layout;
   const saveTabs = (tabs: SavedTab[]) => {
     try {
-      writeState(tabs);
+      writeState(tabs, layoutByKey);
     } catch (err) {
       console.error('[state] save failed', err);
+    }
+  };
+  const safe = (what: string, fn: () => void) => {
+    try {
+      fn();
+    } catch (err) {
+      console.error(`[state] ${what} failed`, err);
     }
   };
   const hookPort = await startHookServer((tabId, hook) => sessions?.onHook(tabId, hook));
@@ -83,6 +105,13 @@ app.whenReady().then(async () => {
     hookPort,
     hookSettingsPath: () => (httpHooks ? hookFiles.http : hookFiles.legacy),
     onTabsChanged: isSmoke ? undefined : saveTabs,
+    scrollback: isSmoke
+      ? undefined
+      : {
+          read: readScrollback,
+          write: (key, text) => safe('scrollback save', () => writeScrollback(key, text)),
+          remove: (key) => safe('scrollback remove', () => removeScrollback(key)),
+        },
   });
   const s = sessions;
   // Power profile (T9). AQUILA_POWER_SAVER=1 forces saver mode (smoke, measuring).
@@ -96,20 +125,33 @@ app.whenReady().then(async () => {
   });
   ipcMain.handle(IPC.powerGet, () => powerState());
 
-  let restored: SessionInfo[] | null = null;
-  const restoreSessions = (): SessionInfo[] => {
+  // Tabs on screen in the saved layout are spawned now; the rest stay dormant until first shown (T21).
+  let restored: { sessions: SessionInfo[]; keys: Map<string, string> } | null = null;
+  const restoreSessions = (): RestoreResult => {
     if (!restored) {
       const config = loadConfig();
-      restored = planRestore(savedTabs, config).flatMap((plan) => {
+      const plans = planRestore(saved, config);
+      const visible = visibleKeys(plans, saved.layout, config);
+      const keys = new Map<string, string>(); // tab key → session id
+      const sessions = plans.flatMap((plan) => {
         try {
-          return [s.create(config, plan.projectId, plan.kind, plan.account, plan, plan.worktree)];
+          const info = visible.has(plan.key)
+            ? s.create(config, plan.projectId, plan.kind, plan.account, plan, plan.worktree)
+            : s.prepare(config, plan);
+          keys.set(plan.key, info.id);
+          return [info];
         } catch (err) {
           console.error('[state] restore failed', plan, err);
           return [];
         }
       });
+      restored = { sessions, keys };
+      if (!isSmoke) safe('scrollback prune', () => pruneScrollback(new Set(keys.keys())));
     }
-    return restored.filter((info) => s.has(info.id));
+    const { keys } = restored;
+    const live = restored.sessions.filter((info) => s.has(info.id));
+    const layout = saved.layout && mapLayout(saved.layout, (key) => keys.get(key) ?? null);
+    return { sessions: live, layout };
   };
 
   ipcMain.handle(IPC.configGet, () => loadConfig());
@@ -144,6 +186,15 @@ app.whenReady().then(async () => {
   );
   ipcMain.handle(IPC.worktreeInfo, (_e, projectId: string) => worktreeInfo(loadConfig(), projectId));
   ipcMain.handle(IPC.sessionRestore, () => restoreSessions());
+  ipcMain.handle(IPC.sessionStart, (_e, id: string) => s.wake(loadConfig(), id));
+  ipcMain.on(IPC.layoutSave, (_e, layout: SavedLayout) => {
+    if (isSmoke) return;
+    layoutByKey = mapLayout(layout, (id) => s.keyOf(id) ?? null);
+    s.saveTabs();
+  });
+  ipcMain.on(IPC.sessionScrollback, (_e, { id, text }: { id: string; text: string }) =>
+    s.saveScrollback(id, text),
+  );
   ipcMain.handle(IPC.accountsStatus, () => accountsStatus(loadConfig()));
   ipcMain.handle(IPC.accountsPrepare, (_e, account: string) => prepareAccount(loadConfig(), account));
   ipcMain.handle(IPC.accountsShellPreview, (_e, account: string) =>

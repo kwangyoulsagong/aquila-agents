@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, type Config, type Session, type SessionKind } from '@/shared/api';
-import { useSplitLayout } from '@/widgets/split-view';
+import { toSaved, useSplitLayout } from '@/widgets/split-view';
 
 /** Workspace state: config, sessions, which project is selected and the split layout (what's on screen). */
 export function useWorkspace() {
@@ -18,28 +18,34 @@ export function useWorkspace() {
   }, []);
 
   const split = useSplitLayout(sessions, activeProjectId, setActiveProjectId);
-  const { showSession, placeInFocused, forgetSession } = split;
+  const { showSession, placeInFocused, forgetSession, restoreLayout } = split;
 
-  // Bring back the tabs from the last launch (main spawns them; Claude resumes, codex resumes --last).
+  // Bring back the tabs and the split layout from the last launch. Main spawns the tabs on screen (Claude and codex
+  // resume, shells start under their last output); the others come back dormant and start when first shown.
   const restoring = useRef(false);
+  const [restored, setRestored] = useState(false);
   useEffect(() => {
     if (!config || restoring.current) return;
     restoring.current = true;
-    const firstProjectId = config.projects[0]?.id;
     api
       .restoreSessions()
-      .then((restored) => {
-        if (!restored.length) return;
+      .then(({ sessions: tabs, layout }) => {
+        if (!tabs.length) return;
         setSessions((list) => [
           ...list,
-          ...restored
-            .filter((r) => !list.some((s) => s.id === r.id))
-            .map((r): Session => ({ ...r, status: 'idle' })),
+          ...tabs.filter((r) => !list.some((s) => s.id === r.id)).map((r): Session => ({ ...r, status: 'idle' })),
         ]);
-        placeInFocused((restored.find((r) => r.projectId === firstProjectId) ?? restored[0]).id);
+        if (!layout || !restoreLayout(layout, tabs.map((r) => r.id)))
+          placeInFocused((tabs.find((r) => !r.dormant) ?? tabs[0]).id);
       })
-      .catch((e: unknown) => setError((e as Error).message));
-  }, [config, placeInFocused]);
+      .catch((e: unknown) => setError((e as Error).message))
+      .finally(() => setRestored(true));
+  }, [config, placeInFocused, restoreLayout]);
+
+  // Saved with the tabs in ~/.aquila/state.json — only once restored, so the saved layout isn't overwritten first.
+  useEffect(() => {
+    if (restored) api.saveLayout(toSaved(split.layout));
+  }, [restored, split.layout]);
 
   useEffect(() => {
     const offStatus = api.onStatus(({ id, status, estimated, reason, since }) =>
@@ -71,6 +77,26 @@ export function useWorkspace() {
   useEffect(() => {
     visibleSessionIds.forEach((id) => api.markSeen(id));
   }, [visibleSessionIds]);
+
+  // A dormant restored tab starts the first time it's on screen.
+  const waking = useRef(new Set<string>());
+  useEffect(() => {
+    for (const id of visibleSessionIds) {
+      if (waking.current.has(id) || !sessions.some((s) => s.id === id && s.dormant)) continue;
+      waking.current.add(id);
+      api
+        .startSession(id)
+        .then((info) =>
+          setSessions((list) => list.map((s) => (s.id === id ? { ...s, ...info, dormant: undefined } : s))),
+        )
+        .catch((e: unknown) => {
+          setError((e as Error).message);
+          forgetSession(id);
+          setSessions((list) => list.filter((s) => s.id !== id));
+        })
+        .finally(() => waking.current.delete(id));
+    }
+  }, [visibleSessionIds, sessions, forgetSession]);
 
   const openSession = useCallback(
     /** `account` overrides the project's Claude account for this session (account setup). */

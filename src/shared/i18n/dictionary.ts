@@ -132,6 +132,8 @@ const ko = {
   'firstRun.done': '시작하기',
   'firstRun.skip': '나중에 하기',
   'firstRun.reopenHint': '⌘K → "시작 점검"으로 다시 열 수 있어요.',
+  'restore.previous': '이전 출력 · {time} · 읽기 전용',
+  'restore.resumeFailed': '세션을 이어서 열지 못했어요 · 이전 출력 · {time} · 읽기 전용',
   'error.projectNotFound': '프로젝트를 찾을 수 없어요: {id}',
   'error.configRead': 'config.json을 읽지 못했어요: {message}',
 } as const;
@@ -268,6 +270,8 @@ const en = {
   'firstRun.done': 'Start',
   'firstRun.skip': 'Skip for now',
   'firstRun.reopenHint': 'Reopen it from ⌘K → "Setup checklist".',
+  'restore.previous': 'Previous output · {time} · read-only',
+  'restore.resumeFailed': "Couldn't resume the session · previous output · {time} · read-only",
   'error.projectNotFound': 'Project not found: {id}',
   'error.configRead': "Couldn't read config.json: {message}",
 } satisfies Record<Key, string>;

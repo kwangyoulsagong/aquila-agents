@@ -1,5 +1,6 @@
 // Split layout: a binary tree of panes. Pure functions only — every change returns a new Layout.
 // A pane shows one session (or none → empty state). The layout is global, so panes may mix projects.
+import type { SavedLayout, SavedPane } from '@/shared/api';
 
 export const MAX_PANES = 4;
 
@@ -209,4 +210,36 @@ export function zoneRect(r: PaneRect, zone: DropZone): Omit<PaneRect, 'leaf'> {
     case 'center':
       return { x: r.x, y: r.y, w: r.w, h: r.h };
   }
+}
+
+/** The layout as saved across launches (T21): pane ids dropped, focus as a leaf index. */
+export function toSaved(layout: Layout): SavedLayout {
+  const strip = (node: PaneNode): SavedPane =>
+    node.kind === 'leaf'
+      ? { kind: 'leaf', sessionId: node.sessionId }
+      : { kind: 'split', dir: node.dir, a: strip(node.a), b: strip(node.b) };
+  const focused = leaves(layout.root).findIndex((l) => l.id === layout.focusedId);
+  return { root: strip(layout.root), focused: Math.max(0, focused) };
+}
+
+/**
+ * A saved layout back as a Layout. Sessions not in `known` leave their pane empty; a session shown twice keeps only
+ * its first pane. More than MAX_PANES panes → null.
+ */
+export function fromSaved(saved: SavedLayout, known: Set<string>): Layout | null {
+  let n = 0;
+  const shown = new Set<string>();
+  const build = (node: SavedPane): PaneNode => {
+    if (node.kind === 'leaf') {
+      const id =
+        node.sessionId && known.has(node.sessionId) && !shown.has(node.sessionId) ? node.sessionId : null;
+      if (id) shown.add(id);
+      return { kind: 'leaf', id: `p${++n}`, sessionId: id };
+    }
+    return { kind: 'split', dir: node.dir, a: build(node.a), b: build(node.b) };
+  };
+  const root = build(saved.root);
+  const all = leaves(root);
+  if (all.length > MAX_PANES) return null;
+  return { root, focusedId: (all[saved.focused] ?? all[0]).id };
 }

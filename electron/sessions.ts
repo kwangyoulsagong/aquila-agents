@@ -1,14 +1,16 @@
 // One pty per session. Runs the user's real `claude` / `codex` / shell — same tokens, same config.
 import crypto from 'node:crypto';
+import fs from 'node:fs';
 import type { BrowserWindow } from 'electron';
 import * as pty from 'node-pty';
 import { expand, loadConfig } from './config';
+import { assignRollouts, findRollouts } from './codex';
 import { commandName } from './detect';
 import type { HookEvent } from './hooks';
 import { OutputBatcher } from './output';
 import { SAVER_TICK_MS, TICK_MS } from './power';
 import { Attention, firstLine, setDockBadge, type AttentionSession } from './notify';
-import type { RestorePlan, SavedTab } from './state';
+import { formatRestored, newTabKey, type RestorePlan, type SavedTab } from './state';
 import { logStatus } from './status/log';
 import { OSC_7501_REPLY, OscScanner, parse7501 } from './status/osc';
 import { StatusTracker } from './status/tracker';
@@ -24,9 +26,32 @@ import {
 } from '../src/shared/api/types';
 
 const SHELL = process.env.SHELL || '/bin/zsh';
+/** Printed by the session command when `claude --resume` / `codex resume` fails (OSC 7501 so the scanner sees it). */
+const RESUME_FAILED = 'aquila-resume-failed';
+/** A resume that fails does so right away; a non-zero exit later is the user's own session ending. */
+const RESUME_FAIL_WINDOW_MS = 20_000;
+/** After Enter in a codex tab without a session id: look for the rollout codex creates on the first prompt. */
+const CODEX_SCAN_DELAYS_MS = [1500, 6000];
+
+/** A restored tab that isn't spawned until it is first shown. */
+interface DormantTab {
+  id: string;
+  plan: RestorePlan;
+}
+
+/** Scrollback files (`~/.aquila/scrollback/`); absent in smoke, which never touches the user's state. */
+export interface ScrollbackStore {
+  read(key: string): { text: string; savedAt: Date } | null;
+  write(key: string, text: string): void;
+  remove(key: string): void;
+}
 
 interface LiveSession {
   id: string;
+  /** Stable across launches (state.json, scrollback file). */
+  key: string;
+  cwd: string;
+  spawnedAt: number;
   projectId: string;
   projectName: string;
   kind: SessionKind;
@@ -36,6 +61,12 @@ interface LiveSession {
   worktree?: Worktree;
   /** Current Claude session id: ours from `--session-id`, then whatever SessionStart reports (/clear changes it). */
   claudeSessionId?: string;
+  /** Codex session id: the one resumed, or captured from the rollout codex wrote (`codex.ts`). */
+  codexSessionId?: string;
+  /** Last Enter typed into a codex tab (matching it to its rollout). */
+  lastSubmit?: number;
+  /** Restored with `--resume` / `codex resume`: until then a failure shows the saved output. */
+  resumeUntil?: number;
   proc: pty.IPty;
   tracker: StatusTracker;
   osc: OscScanner;
@@ -57,13 +88,20 @@ interface Deps {
   hookSettingsPath: () => string;
   /** Open tabs changed (created, closed, Claude session id moved) — persisted by state.ts. */
   onTabsChanged?: (tabs: SavedTab[]) => void;
+  scrollback?: ScrollbackStore;
 }
 
 /** How to start a session that is being restored after a relaunch. */
-export type RestoreOptions = Pick<RestorePlan, 'resumeClaude' | 'resumeCodex'>;
+export type RestoreOptions = Partial<
+  Pick<RestorePlan, 'key' | 'resumeClaude' | 'resumeCodex' | 'resumeCodexId' | 'cold'>
+>;
 
 export class SessionManager {
   private sessions = new Map<string, LiveSession>();
+  private dormant = new Map<string, DormantTab>();
+  /** Tab ids in tab order (live and dormant). */
+  private order: string[] = [];
+  private codexScans: NodeJS.Timeout[] = [];
   private activeId: string | null = null;
   private timer: NodeJS.Timeout;
   /** Set on quit so the exits caused by killAll don't wipe the saved tabs. */
@@ -99,11 +137,65 @@ export class SessionManager {
     restore: RestoreOptions = {},
     worktree?: Worktree,
   ): SessionInfo {
+    return this.spawn(
+      config,
+      crypto.randomUUID().slice(0, 8),
+      projectId,
+      kind,
+      accountOverride,
+      restore,
+      worktree,
+    );
+  }
+
+  /** A restored tab that waits until it's shown (`wake`). Returns its info with `dormant: true`. */
+  prepare(config: Config, plan: RestorePlan): SessionInfo {
+    const project = config.projects.find((p) => p.id === plan.projectId);
+    if (!project)
+      throw new Error(translator(config.language)('error.projectNotFound', { id: plan.projectId }));
+    const id = crypto.randomUUID().slice(0, 8);
+    this.dormant.set(id, { id, plan });
+    this.order.push(id);
+    return {
+      id,
+      projectId: plan.projectId,
+      kind: plan.kind,
+      ...(plan.kind === 'claude' ? { account: plan.account ?? project.account } : {}),
+      ...(plan.worktree ? { worktree: plan.worktree } : {}),
+      dormant: true,
+    };
+  }
+
+  /** Spawns a dormant tab under the same id; a live one is returned as is. */
+  wake(config: Config, id: string): SessionInfo {
+    const live = this.sessions.get(id);
+    if (live) return this.info(live);
+    const d = this.dormant.get(id);
+    if (!d) throw new Error(`No restored tab ${id}`);
+    this.dormant.delete(id);
+    const { plan } = d;
+    try {
+      return this.spawn(config, id, plan.projectId, plan.kind, plan.account, plan, plan.worktree);
+    } catch (err) {
+      this.order = this.order.filter((o) => o !== id);
+      this.tabsChanged();
+      throw err;
+    }
+  }
+
+  private spawn(
+    config: Config,
+    id: string,
+    projectId: string,
+    kind: SessionKind,
+    accountOverride: string | undefined,
+    restore: RestoreOptions,
+    worktree: Worktree | undefined,
+  ): SessionInfo {
     const project = config.projects.find((p) => p.id === projectId);
     if (!project) throw new Error(translator(config.language)('error.projectNotFound', { id: projectId }));
     const accountId = accountOverride && config.accounts[accountOverride] ? accountOverride : project.account;
     const account = config.accounts[accountId];
-    const id = crypto.randomUUID().slice(0, 8);
 
     const env: Record<string, string> = {
       ...(process.env as Record<string, string>),
@@ -118,18 +210,28 @@ export class SessionManager {
       env.CLAUDE_CONFIG_DIR = expand(account.claudeConfigDir);
 
     const claudeSessionId = kind === 'claude' ? (restore.resumeClaude ?? crypto.randomUUID()) : undefined;
-    const command = this.commandFor(kind, claudeSessionId, restore);
+    const resuming = !!(restore.resumeClaude || restore.resumeCodexId);
+    let command = this.commandFor(kind, claudeSessionId, restore);
+    // A failed resume prints our marker, then the tab drops to the shell as usual (cold restore).
+    if (command && resuming) command = `${command} || printf '\\033]7501;${RESUME_FAILED}\\007'`;
     const args = command ? ['-l', '-i', '-c', `${command}; exec ${SHELL} -l -i`] : ['-l', '-i'];
+    const cwd = worktree?.path ?? expand(project.path);
     const proc = pty.spawn(SHELL, args, {
       name: 'xterm-256color',
       cols: 120,
       rows: 32,
-      cwd: worktree?.path ?? expand(project.path),
+      cwd,
       env,
     });
 
+    const now = Date.now();
     const s: LiveSession = {
       id,
+      key: restore.key ?? newTabKey(),
+      cwd: realpath(cwd),
+      spawnedAt: now,
+      ...(kind === 'codex' && restore.resumeCodexId ? { codexSessionId: restore.resumeCodexId } : {}),
+      ...(resuming ? { resumeUntil: now + RESUME_FAIL_WINDOW_MS } : {}),
       projectId,
       projectName: worktree ? `${project.name} · ${worktree.branch}` : project.name,
       kind,
@@ -150,7 +252,10 @@ export class SessionManager {
       details: {},
     };
     this.sessions.set(id, s);
+    if (!this.order.includes(id)) this.order.push(id);
     s.output.setSaver(this.saver);
+    // Cold restore: the last output, read-only, above the fresh shell.
+    if (restore.cold) this.showSaved(s, config, 'restore.previous');
 
     proc.onData((data) => {
       // OSC 7501 first: the query must be answered before the renderer's xterm answers DA1.
@@ -164,19 +269,53 @@ export class SessionManager {
       if (s.tracker.exit(exitCode, signal)) this.emitStatus(s);
       this.deps.send(IPC.sessionExit, { id, exitCode });
       this.sessions.delete(id);
+      this.order = this.order.filter((o) => o !== id);
+      // The tab is gone for good (not a quit): its saved output too.
+      if (!this.closing) this.deps.scrollback?.remove(s.key);
       this.attention.forget(id);
       this.updateBadge();
       this.tabsChanged();
     });
     this.tabsChanged();
+    return this.info(s);
+  }
 
+  private info(s: LiveSession): SessionInfo {
     return {
-      id,
-      projectId,
-      kind,
-      ...(kind === 'claude' ? { account: accountId } : {}),
-      ...(worktree ? { worktree } : {}),
+      id: s.id,
+      projectId: s.projectId,
+      kind: s.kind,
+      ...(s.account ? { account: s.account } : {}),
+      ...(s.worktree ? { worktree: s.worktree } : {}),
     };
+  }
+
+  /** Writes the tab's saved output (dimmed, with a banner) into its terminal, ahead of what comes next. */
+  private showSaved(
+    s: LiveSession,
+    config: Config,
+    banner: 'restore.previous' | 'restore.resumeFailed',
+  ): void {
+    const saved = this.deps.scrollback?.read(s.key);
+    if (!saved) return;
+    const time = saved.savedAt.toLocaleString(config.language === 'ko' ? 'ko-KR' : 'en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    s.output.push(formatRestored(saved.text, translator(config.language)(banner, { time })));
+  }
+
+  /** Plain-text snapshot from the renderer. Also accepted while quitting (the last one may arrive then). */
+  saveScrollback(id: string, text: string): void {
+    const s = this.sessions.get(id);
+    if (s && typeof text === 'string') this.deps.scrollback?.write(s.key, text);
+  }
+
+  /** Tab key of a live or dormant tab (the saved layout refers to tabs by key). */
+  keyOf(id: string): string | undefined {
+    return this.sessions.get(id)?.key ?? this.dormant.get(id)?.plan.key;
   }
 
   private commandFor(
@@ -191,11 +330,21 @@ export class SessionManager {
         : `--session-id ${claudeSessionId}`;
       return `${commandName('claude')} --settings ${JSON.stringify(this.deps.hookSettingsPath())} ${session}`;
     }
-    if (kind === 'codex') return restore.resumeCodex ? `${commandName('codex')} resume --last` : commandName('codex');
+    if (kind === 'codex') {
+      // Codex ids are validated uuids (state.ts), safe unquoted.
+      if (restore.resumeCodexId) return `${commandName('codex')} resume ${restore.resumeCodexId}`;
+      return restore.resumeCodex ? `${commandName('codex')} resume --last` : commandName('codex');
+    }
     return null;
   }
 
   private onOsc(s: LiveSession, payload: string): void {
+    if (payload === RESUME_FAILED) {
+      if (s.resumeUntil && Date.now() <= s.resumeUntil)
+        this.showSaved(s, loadConfig(), 'restore.resumeFailed');
+      s.resumeUntil = undefined;
+      return;
+    }
     const msg = parse7501(payload);
     if (!msg) return;
     if (msg.type === 'query') {
@@ -244,15 +393,64 @@ export class SessionManager {
       this.attention.changed(this.attentionView(s));
   }
 
-  /** Open tabs in creation order (= tab order). */
+  /** Open tabs (live and dormant) in creation order (= tab order). */
   tabs(): SavedTab[] {
-    return [...this.sessions.values()].map((s) => ({
-      projectId: s.projectId,
-      kind: s.kind,
-      ...(s.account ? { account: s.account } : {}),
-      ...(s.worktree ? { worktree: s.worktree } : {}),
-      ...(s.claudeSessionId ? { claudeSessionId: s.claudeSessionId } : {}),
-    }));
+    return this.order.flatMap((id): SavedTab[] => {
+      const s = this.sessions.get(id);
+      if (s)
+        return [
+          {
+            key: s.key,
+            projectId: s.projectId,
+            kind: s.kind,
+            ...(s.account ? { account: s.account } : {}),
+            ...(s.worktree ? { worktree: s.worktree } : {}),
+            ...(s.claudeSessionId ? { claudeSessionId: s.claudeSessionId } : {}),
+            ...(s.codexSessionId ? { codexSessionId: s.codexSessionId } : {}),
+          },
+        ];
+      const p = this.dormant.get(id)?.plan;
+      if (!p) return [];
+      return [
+        {
+          key: p.key,
+          projectId: p.projectId,
+          kind: p.kind,
+          ...(p.account ? { account: p.account } : {}),
+          ...(p.worktree ? { worktree: p.worktree } : {}),
+          ...(p.resumeClaude ? { claudeSessionId: p.resumeClaude } : {}),
+          ...(p.resumeCodexId ? { codexSessionId: p.resumeCodexId } : {}),
+        },
+      ];
+    });
+  }
+
+  /** Re-save tabs (the layout changed; main writes it with them). */
+  saveTabs(): void {
+    this.tabsChanged();
+  }
+
+  /** Enter in a codex tab that doesn't know its session: codex creates the rollout on the first prompt. */
+  private codexSubmitted(s: LiveSession): void {
+    s.lastSubmit = Date.now();
+    for (const t of this.codexScans) clearTimeout(t);
+    this.codexScans = CODEX_SCAN_DELAYS_MS.map((ms) => setTimeout(() => this.scanCodex(), ms));
+  }
+
+  private scanCodex(): void {
+    if (this.closing) return;
+    const open = [...this.sessions.values()].filter((s) => s.kind === 'codex' && !s.codexSessionId);
+    if (!open.length) return;
+    const claimed = new Set<string>();
+    for (const s of this.sessions.values()) if (s.codexSessionId) claimed.add(s.codexSessionId);
+    for (const d of this.dormant.values()) if (d.plan.resumeCodexId) claimed.add(d.plan.resumeCodexId);
+    const since = Math.min(...open.map((s) => s.spawnedAt));
+    const found = assignRollouts(open, findRollouts(since), claimed);
+    for (const [id, codexId] of found) {
+      const s = this.sessions.get(id);
+      if (s) s.codexSessionId = codexId;
+    }
+    if (found.size) this.tabsChanged();
   }
 
   private tabsChanged(): void {
@@ -348,7 +546,7 @@ export class SessionManager {
   }
 
   has(id: string): boolean {
-    return this.sessions.has(id);
+    return this.sessions.has(id) || this.dormant.has(id);
   }
 
   /** Keyboard path from the renderer (also xterm's own replies, which the tracker tells apart). */
@@ -356,6 +554,7 @@ export class SessionManager {
     const s = this.sessions.get(id);
     if (!s) return;
     s.proc.write(data);
+    if (s.kind === 'codex' && !s.codexSessionId && data.includes('\r')) this.codexSubmitted(s);
     if (s.tracker.input(data, Date.now())) this.emitStatus(s);
   }
 
@@ -364,13 +563,30 @@ export class SessionManager {
   }
 
   kill(id: string): void {
+    const d = this.dormant.get(id);
+    if (d) {
+      this.dormant.delete(id);
+      this.order = this.order.filter((o) => o !== id);
+      this.deps.scrollback?.remove(d.plan.key);
+      this.tabsChanged();
+      return;
+    }
     this.sessions.get(id)?.proc.kill();
   }
 
   killAll(): void {
     this.closing = true;
     clearInterval(this.timer);
+    for (const t of this.codexScans) clearTimeout(t);
     this.attention.dispose();
     for (const s of this.sessions.values()) s.proc.kill();
+  }
+}
+
+function realpath(dir: string): string {
+  try {
+    return fs.realpathSync(dir);
+  } catch {
+    return dir;
   }
 }
