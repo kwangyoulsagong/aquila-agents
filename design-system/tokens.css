@@ -43,6 +43,7 @@
   --p-slate-950-a60: rgba(14, 16, 20, 0.6);
 
   /* Scales */
+  --p-size-2: 2px;
   --p-size-4: 4px;
   --p-size-8: 8px;
   --p-size-12: 12px;
@@ -148,6 +149,7 @@
   --size-titlebar: 40px;
   --size-tabbar: var(--size-titlebar);
   --size-pane-head: 28px;
+  --size-focus-line: var(--p-size-2); /* accent under the focused pane's header */
   --size-row: 32px;
   --size-control: 28px;
   --size-badge: 16px;

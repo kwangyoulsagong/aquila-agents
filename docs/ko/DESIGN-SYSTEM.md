@@ -90,6 +90,7 @@
 | `--size-row` | 32 | 사이드바 행, 탭도 32 (40 − 위 여백 8) |
 | `--size-control` | 28 | 버튼, 세그먼트 컨트롤 |
 | `--size-pane-head` | 28 | 분할 패널 헤더 |
+| `--size-focus-line` | 2 | 포커스된 패널 헤더 아래 강조선 (패널의 유일한 포커스 표시) |
 | `--size-badge` / `--size-dot` | 16 / 8 | |
 | `--size-sidebar` / `--size-panel` | 248 / 416 | |
 | `--size-dialog` / `--size-dialog-wide` | 440 / 560 | 다이얼로그 너비 / 체크리스트가 있는 다이얼로그(첫 실행) |

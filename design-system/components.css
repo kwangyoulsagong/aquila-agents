@@ -179,11 +179,18 @@ body {
 /* ── Split + pane ─────────────────────────────────────────── */
 .c-split { flex: 1; min-height: 0; display: grid; gap: 1px; background: var(--color-border-subtle); }
 .c-pane { position: relative; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--color-bg-canvas); }
-.c-pane[data-focused='true'] { box-shadow: inset 0 0 0 1px var(--color-border-focus); }
 .c-pane__head {
   height: var(--size-pane-head); flex: none; display: flex; align-items: center; gap: var(--space-inline-sm);
   padding: 0 var(--space-inset-md); font-size: var(--font-size-caption); color: var(--color-text-secondary);
   background: var(--color-bg-surface); border-bottom: 1px solid var(--color-border-subtle);
+  transition: border-color var(--motion-fast) var(--motion-ease), box-shadow var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease);
+}
+/* Focused pane: an accent line under its header (the hairline + an inset shadow), no frame around the pane —
+ * a frame got cut by the window's rounded corners and left two stray vertical lines. */
+.c-pane[data-focused='true'] > .c-pane__head {
+  color: var(--color-text-primary); border-bottom-color: var(--color-border-focus);
+  box-shadow: inset 0 calc(1px - var(--size-focus-line)) 0 var(--color-border-focus);
 }
 .c-pane__term { flex: 1; min-height: 0; padding: var(--space-inset-sm) 0 0 var(--space-inset-md); }
 /* xterm's stylesheet paints the viewport #000, and it runs 2px past the last row. */
