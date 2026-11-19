@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, type InputHTMLAttributes, type ReactNode } from 'react';
+import { useEffect, useId, useRef, type FormEvent, type InputHTMLAttributes, type ReactNode } from 'react';
 import { Button } from './Button';
 
 interface Props {
@@ -11,6 +11,8 @@ interface Props {
   aside?: ReactNode;
   /** Hint line under the body (keys). */
   footer?: ReactNode;
+  /** `.c-modal--wide`: larger, with a wider list (session history). */
+  wide?: boolean;
   /** Right column: the detail of the selected item. */
   children: ReactNode;
 }
@@ -20,7 +22,7 @@ interface Props {
  * title and ×, a searchable list on the left, the detail on the right. Shell of the guide, release notes and trends.
  * Opening focuses the element marked `data-autofocus` (`ModalSearch`), else the dialog's first control.
  */
-export function Modal({ open, title, onClose, closeLabel, aside, footer, children }: Props) {
+export function Modal({ open, title, onClose, closeLabel, aside, footer, wide, children }: Props) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
 
@@ -37,7 +39,7 @@ export function Modal({ open, title, onClose, closeLabel, aside, footer, childre
   return (
     <dialog
       ref={ref}
-      className="c-modal"
+      className={wide ? 'c-modal c-modal--wide' : 'c-modal'}
       aria-labelledby={titleId}
       onClose={onClose}
       onClick={(e) => e.target === e.currentTarget && onClose()}
@@ -84,13 +86,15 @@ interface ItemProps {
   id: string;
   selected: boolean;
   label: string;
+  /** Caption before `trailing` (a time). */
+  meta?: ReactNode;
   /** Shown at the end (a `Kbd`). */
   trailing?: ReactNode;
   onSelect: () => void;
 }
 
 /** `.c-modal__item[aria-selected]` — one option. Scrolls itself into view when selected; keeps focus in the search. */
-export function ModalItem({ id, selected, label, trailing, onSelect }: ItemProps) {
+export function ModalItem({ id, selected, label, meta, trailing, onSelect }: ItemProps) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (selected) ref.current?.scrollIntoView({ block: 'nearest' });
@@ -106,7 +110,10 @@ export function ModalItem({ id, selected, label, trailing, onSelect }: ItemProps
       onMouseDown={(e) => e.preventDefault()}
       onClick={onSelect}
     >
-      <span className="c-modal__item-label">{label}</span>
+      <span className="c-modal__item-label" title={label}>
+        {label}
+      </span>
+      {meta !== undefined && <span className="c-modal__item-meta">{meta}</span>}
       {trailing}
     </div>
   );
@@ -129,4 +136,43 @@ export function ModalDetail({
       {keys && <div className="c-modal__keys">{keys}</div>}
     </>
   );
+}
+
+/** `.c-modal__group-label` — a labelled group of options in the list (a folder in session history). */
+export function ModalGroup({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
+  return (
+    <div role="group" aria-label={label}>
+      <div className="c-modal__group-label" aria-hidden title={hint ?? label}>
+        {label}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+/** `.c-modal__tools` — a row of controls under the search (filters). */
+export function ModalTools({ children }: { children: ReactNode }) {
+  return <div className="c-modal__tools">{children}</div>;
+}
+
+/** `.c-modal__actions` — buttons in the detail; with `onSubmit` it's a form (an inline rename: Enter saves). */
+export function ModalActions({
+  onSubmit,
+  children,
+}: {
+  onSubmit?: (e: FormEvent<HTMLFormElement>) => void;
+  children: ReactNode;
+}) {
+  return onSubmit ? (
+    <form className="c-modal__actions" onSubmit={onSubmit}>
+      {children}
+    </form>
+  ) : (
+    <div className="c-modal__actions">{children}</div>
+  );
+}
+
+/** `.c-modal__note` — a caption line in the detail; `warn` = something will be lost. */
+export function ModalNote({ warn, children }: { warn?: boolean; children: ReactNode }) {
+  return <p className={warn ? 'c-modal__note c-modal__note--warn' : 'c-modal__note'}>{children}</p>;
 }

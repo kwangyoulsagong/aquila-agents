@@ -1,0 +1,2 @@
+{"parentUuid":null,"isSidechain":false,"type":"user","message":{"role":"user","content":"Add dark mode toggle"},"uuid":"u1","timestamp":"2026-11-12T10:00:00.000Z","cwd":"/work/app-wt/feature","sessionId":"33333333-3333-4333-8333-333333333333","gitBranch":"feature"}
+{"parentUuid":"u1","isSidechain":false,"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"Added a toggle in settings."}]},"uuid":"a1","timestamp":"2026-11-12T10:03:00.000Z","cwd":"/work/app-wt/feature","sessionId":"33333333-3333-4333-8333-333333333333","gitBranch":"feature"}

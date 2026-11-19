@@ -14,6 +14,7 @@ import { Sidebar } from '@/widgets/sidebar';
 import { SessionTabs } from '@/widgets/session-tabs';
 import { SplitView } from '@/widgets/split-view';
 import { ChangesPanel } from '@/widgets/changes-panel';
+import { HistoryPanel } from '@/widgets/history-panel';
 import { CommandPalette, type ActionId } from '@/widgets/command-palette';
 import { useWorkspace } from '../model/useWorkspace';
 import { useShortcuts } from '../model/useShortcuts';
@@ -24,6 +25,8 @@ export default function WorkspacePage() {
   const toggleChanges = useCallback(() => setChangesOpen((o) => !o), []);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const togglePalette = useCallback(() => setPaletteOpen((o) => !o), []);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const toggleHistory = useCallback(() => setHistoryOpen((o) => !o), []);
   const [worktreeOpen, setWorktreeOpen] = useState(false);
   const openWorktreeDialog = useCallback(() => setWorktreeOpen(true), []);
   const firstRun = useFirstRun();
@@ -49,6 +52,7 @@ export default function WorkspacePage() {
     toggleChanges,
     togglePalette,
     toggleGuide,
+    toggleHistory,
     nextWaiting: goNextWaiting,
   });
 
@@ -67,6 +71,7 @@ export default function WorkspacePage() {
       a.openWorktree = openWorktreeDialog;
       a.toggleChanges = toggleChanges;
     }
+    a.history = toggleHistory;
     if (activeSessionId) a.closeSession = () => closeSession(activeSessionId);
     if (waitingNext) a.nextWaiting = goNextWaiting;
     a.firstRun = reopenFirstRun;
@@ -96,6 +101,7 @@ export default function WorkspacePage() {
     goNextWaiting,
     reopenFirstRun,
     showGuide,
+    toggleHistory,
   ]);
 
   if (!config) return null;
@@ -199,6 +205,13 @@ export default function WorkspacePage() {
             onError={ws.showError}
           />
         )}
+        <HistoryPanel
+          open={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          config={config}
+          onResumed={ws.adoptResumed}
+          onError={ws.showError}
+        />
         <GuideOffer open={guide.offer} onTake={showGuide} onSkip={guide.dismissOffer} />
         <GuideModal open={guide.open} onClose={guide.close} language={config.language} />
         <CommandPalette

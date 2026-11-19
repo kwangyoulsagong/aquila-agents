@@ -99,6 +99,7 @@
 | `--size-dialog` / `--size-dialog-wide` | 440 / 560 | 다이얼로그 너비 / 체크리스트가 있는 다이얼로그(첫 실행) |
 | `--size-palette` / `--size-palette-list` | 560 / 352 | 명령 팔레트 너비 / 스크롤 전 목록 높이(11줄) |
 | `--size-modal` / `--size-modal-height` / `--size-modal-aside` | 760 / 520 / 240 | 목록 + 상세 모달(가이드, 릴리즈 노트) / 목록 열 너비 |
+| `--size-modal-wide` / `--size-modal-wide-height` / `--size-modal-wide-aside` | 960 / 640 / 320 | `.c-modal--wide` (세션 기록: 긴 행, 대화 미리보기) / 목록 열 너비 |
 
 ## 컴포넌트 (`components.css`)
 
@@ -126,6 +127,9 @@
 | `.c-dialog` `__title` `__body` `__actions` `__check` `__code` `__form` | 모달 다이얼로그 (네이티브 `<dialog>`, 아래에서 떠오름) |
 | `.c-palette` `__input` `__list` `__item[aria-selected]` `__leading` `__label` `__mark` `__hint` `__empty` `__foot` | 명령 팔레트 (화면 위쪽 네이티브 `<dialog>`, 떠오름): 입력칸은 타이틀 바 높이, 줄 32px, 매치된 글자 굵게 |
 | `.c-dialog--wide` | 체크리스트용 넓은 다이얼로그 |
+| `.c-modal--wide`, `__tools` `__group-label` `__item-meta` `__actions` `__note` (`--warn`) | 넓은 모달(세션 기록): 검색 아래 필터 줄, 행 묶음 위 폴더 이름, 행 끝 캡션(시간), 상세의 버튼 줄, 캡션 한 줄(주황 = 사라질 수 있는 것) |
+| `.c-meta` `__label` `__value` (`--mono`) | 이름 · 값 행 (폴더, 브랜치, ID) |
+| `.c-transcript` `__message[data-role]` `__role` `__text` | 읽기 전용 대화: 누가, 그다음 쓴 그대로의 텍스트(줄바꿈); 사용자 메시지는 primary 색 |
 | `.c-modal` `__head` `__title` `__body` `__aside` `__search` `__list` `__item[aria-selected]` `__item-label` `__empty` `__main` `__heading` `__text` `__keys` `__foot` | 큰 목록 + 상세 모달 (네이티브 `<dialog>`, 떠오름): 머리와 검색칸은 타이틀 바 높이, 왼쪽 검색 목록, 오른쪽 상세 (가이드; 릴리즈 노트·트렌드와 공유) |
 | `.c-media` `__frame` `__placeholder` | 스크린샷이나 짧은 루프용 16:10 틀, 없으면 자리표시 |
 | `.c-shortcuts` `__group` `__row` `__label` `__keys` | 단축키 시트: 그룹별 줄, 왼쪽 이름, 오른쪽 키 |
@@ -154,7 +158,9 @@
 | `Field` `label` `hint`, `Input`, `Textarea`, `Select` `options` `onChange(value)` | `.c-field`, `.c-input`, `.c-input--multiline`, `.c-select` |
 | `ChangeRow` `status` `path` | `.c-change` |
 | `Palette` `open` `onClose` `label` `query` `onQueryChange` `listId` `activeId`, `PaletteList`, `PaletteItem` `selected` `label` `marks` `leading` `hint` `kbd`, `PaletteEmpty` | `.c-palette` (combobox + listbox) |
-| `Modal` `open` `title` `onClose` `closeLabel` `aside` `footer`, `ModalSearch` (열 때 포커스), `ModalList` `id` `label`, `ModalItem` `selected` `label` `trailing` `onSelect`, `ModalEmpty`, `ModalDetail` `heading` `text` `keys` | `.c-modal` |
+| `Modal` `open` `title` `onClose` `closeLabel` `aside` `footer` `wide`, `ModalSearch` (열 때 포커스), `ModalList` `id` `label`, `ModalItem` `selected` `label` `meta` `trailing` `onSelect`, `ModalEmpty`, `ModalDetail` `heading` `text` `keys`, `ModalGroup` `label` `hint`, `ModalTools`, `ModalActions` `onSubmit?`, `ModalNote` `warn` | `.c-modal` |
+| `MetaList`, `MetaRow` `label` `mono` | `.c-meta` |
+| `Transcript` `label`, `TranscriptMessage` `role` `label` | `.c-transcript` |
 | `Media` `src` `kind` `poster` `alt` `still` `placeholder` | `.c-media` (reduced motion이나 `still`이면 영상 대신 포스터) |
 | `ShortcutSheet` `groups` | `.c-shortcuts` |
 

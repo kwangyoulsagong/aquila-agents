@@ -134,7 +134,7 @@
   </section>
 
   <section>
-    <h2>Modal · media · shortcut sheet (guide, ⌘/)</h2>
+    <h2>Modal · media · shortcut sheet (guide, ⌘/) · wide modal, meta, transcript (history, ⌘Y)</h2>
     <div class="line" style="align-items:flex-start">
       <div class="c-modal" style="position:static;display:flex;flex-direction:column;margin:0">
         <div class="c-modal__head"><h2 class="c-modal__title">가이드</h2><button class="c-btn c-btn--ghost c-btn--icon">×</button></div>
@@ -156,6 +156,41 @@
           </div>
         </div>
         <div class="c-modal__foot"><span>↑↓ 이동</span><span>esc 닫기</span></div>
+      </div>
+      <div class="c-modal c-modal--wide" style="position:static;display:flex;flex-direction:column;margin:0">
+        <div class="c-modal__head"><h2 class="c-modal__title">세션 기록</h2><button class="c-btn c-btn--ghost c-btn--icon">×</button></div>
+        <div class="c-modal__body">
+          <div class="c-modal__aside">
+            <input class="c-modal__search" placeholder="이름, 첫 메시지, 대화 내용 검색">
+            <div class="c-modal__tools">
+              <div class="c-segment" role="radiogroup" style="--segment-count:4;--segment-index:0"><span class="c-segment__thumb"></span><button class="c-segment__item" aria-checked="true">전체</button><button class="c-segment__item" aria-checked="false">즐겨찾기</button><button class="c-segment__item" aria-checked="false">Claude</button><button class="c-segment__item" aria-checked="false">Codex</button></div>
+            </div>
+            <div class="c-modal__list" role="listbox">
+              <div role="group"><div class="c-modal__group-label">web-shop</div>
+                <div class="c-modal__item" role="option" aria-selected="true"><span class="c-modal__item-label">쿠폰 할인</span><span class="c-modal__item-meta">★ 22분 전</span></div>
+                <div class="c-modal__item" role="option" aria-selected="false"><span class="c-modal__item-label">결제 페이지 로딩이 느린 이유 찾아줘</span><span class="c-modal__item-meta">3시간 전</span></div>
+              </div>
+              <div role="group"><div class="c-modal__group-label">api-server</div>
+                <div class="c-modal__item" role="option" aria-selected="false"><span class="c-modal__item-label">주문 합계 반올림 버그 고쳐줘</span><span class="c-modal__item-meta">1일 전</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="c-modal__main">
+            <h3 class="c-modal__heading">쿠폰 할인</h3>
+            <div class="c-modal__actions"><button class="c-btn c-btn--primary">이어하기</button><button class="c-btn" aria-pressed="true">★ 즐겨찾기 해제</button><button class="c-btn">이름 바꾸기</button><button class="c-btn">Markdown으로 내보내기</button></div>
+            <p class="c-modal__note c-modal__note--warn">Claude가 약 3일 뒤 이 기록을 지워요 (cleanupPeriodDays). 남기려면 내보내세요.</p>
+            <dl class="c-meta">
+              <dt class="c-meta__label">에이전트</dt><dd class="c-meta__value"><span class="c-badge c-badge--claude">Claude</span><span class="c-badge c-badge--account-shared">공용</span></dd>
+              <dt class="c-meta__label">폴더</dt><dd class="c-meta__value c-meta__value--mono">~/projects/web-shop</dd>
+              <dt class="c-meta__label">세션 ID</dt><dd class="c-meta__value c-meta__value--mono">0b6f3a52-1d2e-4c6b-9a51-2f0e7c1d0a01<button class="c-btn c-btn--ghost">ID 복사</button></dd>
+            </dl>
+            <section class="c-transcript">
+              <article class="c-transcript__message" data-role="user"><div class="c-transcript__role">나</div><p class="c-transcript__text">장바구니 합계에 쿠폰 할인을 넣어줘</p></article>
+              <article class="c-transcript__message" data-role="assistant"><div class="c-transcript__role">Claude</div><p class="c-transcript__text">total()에 coupon 인자를 추가하고 0 미만이 되지 않게 했어요.</p></article>
+            </section>
+          </div>
+        </div>
+        <div class="c-modal__foot"><span>↑↓ 이동</span><span>↵ 이어하기</span><span>esc 닫기</span></div>
       </div>
       <div class="c-shortcuts" style="width:320px">
         <section class="c-shortcuts__group"><div class="c-label">분할</div>

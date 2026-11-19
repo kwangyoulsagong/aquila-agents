@@ -168,6 +168,9 @@
   --size-modal: 760px;        /* list + detail modal (guide, release notes) */
   --size-modal-height: 520px;
   --size-modal-aside: 240px;  /* its list column */
+  --size-modal-wide: 960px;         /* session history: longer rows, a transcript */
+  --size-modal-wide-height: 640px;
+  --size-modal-wide-aside: 320px;   /* its list column */
 
   /* Motion */
   --motion-ease: cubic-bezier(0.2, 0, 0, 1);        /* standard: settles quickly */
