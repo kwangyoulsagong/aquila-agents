@@ -89,7 +89,8 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
 - **담당:** `src/shared/lib/shortcuts.ts`(+ 테스트), `useShortcuts.ts`.
 
 ### T14 · 상태 엔진: OSC 7501 우선, http hook
-- [ ] **목표:** "누가 나를 기다리나"가 정확하고 즉시. 거짓 "done" 없음. (#25, #2, #3, #24)
+- [x] **목표:** "누가 나를 기다리나"가 정확하고 즉시. 거짓 "done" 없음. (#25, #2, #3, #24)
+  _남은 것: Codex 0.170이 우리 pty에서 7501을 보내므로(idle 확인, working/blocked는 아직 실측 못 함) OSC 9 `-c` 폴백은 넣지 않음 — 구버전 Codex는 출력 활동으로 폴백. SessionStart 외 http hook 이벤트는 실제로 돌려보지 못함(프롬프트 필요). hook 페이로드(도구 요약, `last_assistant_message`)는 아직 안 씀 — T15._
 - **명세:**
   - Main이 pty 스트림의 OSC 7501 질의에 응답(`OSC 7501 ; ?` → `states=idle,working,done,blocked,error :
     kinds=permission,question,auth`)하고 보고를 파싱(청크 경계에 걸친 시퀀스는 버퍼링). Claude Code 2.1.295+

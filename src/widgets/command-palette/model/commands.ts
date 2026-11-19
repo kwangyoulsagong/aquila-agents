@@ -51,7 +51,7 @@ const ACTIONS: { action: ActionId; label: (t: Translate) => string; shortcut?: S
 ];
 
 /** Sessions that need you come first in the list. */
-const URGENCY: Record<SessionStatus, number> = { waiting: 0, error: 1, done: 2, working: 3, idle: 4 };
+const URGENCY: Record<SessionStatus, number> = { waiting: 0, error: 1, done: 2, working: 3, stopped: 4, idle: 5 };
 
 function projectStatus(sessions: Session[]): SessionStatus {
   return sessions.reduce<SessionStatus>(

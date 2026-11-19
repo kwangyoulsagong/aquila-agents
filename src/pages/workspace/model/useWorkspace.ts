@@ -42,15 +42,12 @@ export function useWorkspace() {
   }, [config, placeInFocused]);
 
   useEffect(() => {
-    const offStatus = api.onStatus(({ id, status }) =>
-      setSessions((list) => list.map((s) => (s.id === id ? { ...s, status } : s))),
+    const offStatus = api.onStatus(({ id, status, estimated, reason }) =>
+      setSessions((list) => list.map((s) => (s.id === id ? { ...s, status, estimated, reason } : s))),
     );
-    const offExit = api.onExit(({ id, exitCode }) =>
-      setSessions((list) =>
-        list.map((s) =>
-          s.id === id ? { ...s, status: exitCode === 0 ? 'idle' : 'error', exited: true } : s,
-        ),
-      ),
+    // Main already sent the exit status (stopped / error) on session:status.
+    const offExit = api.onExit(({ id }) =>
+      setSessions((list) => list.map((s) => (s.id === id ? { ...s, exited: true } : s))),
     );
     const offFocus = api.onFocusSession(({ id }) => showSession(id));
     return () => {

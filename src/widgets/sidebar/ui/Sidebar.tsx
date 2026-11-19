@@ -72,7 +72,7 @@ export default function Sidebar({
                         {mine.length > 0 && (
                           <span className="c-row__sessions" aria-label={`${mine.length}`}>
                             {mine.slice(0, MAX_DOTS).map((s) => (
-                              <StatusDot key={s.id} status={s.status} />
+                              <StatusDot key={s.id} status={s.status} estimated={s.estimated} reason={s.reason} />
                             ))}
                             {mine.length > MAX_DOTS && (
                               <span className="c-row__meta">+{mine.length - MAX_DOTS}</span>

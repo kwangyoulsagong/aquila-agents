@@ -15,6 +15,7 @@
 │ entities/ session (xterm, 상태), project    │        │ state.ts      ~/.aquila/state.json (열린 탭)     │
 │           diff                            │        │ worktrees.ts  git worktree 만들기 / 재사용 (T7)  │
 │           open-in-worktree                │        │ menu.ts       네이티브 우클릭 메뉴               │
+│                                           │        │ status/       OSC 7501 파서 + 상태 판정          │
 │                                           │        │ smoke.ts      npm run smoke 자동 점검            │
 │ shared/   api (타입·IPC·bridge), i18n       │        │                                                 │
 └───────────────────────────────────────────┘        └─────────────────────────────────────────────────┘
@@ -93,8 +94,8 @@
 - Main이 `~/.aquila/state.json`에 열린 탭을 탭 순서대로 저장 (`{ projectId, kind, account?, worktree?, claudeSessionId? }`).
   세션 생성·종료·Claude 세션 변경 때마다 다시 씀(임시 파일 + rename)이라 앱이 죽어도 남아요. 시작할 때 세션이 생기기 전에
   한 번 읽고, 종료할 때 pty를 끄면서 덮어쓰지 않아요. smoke는 읽지도 쓰지도 않아요.
-- Claude 탭은 우리가 만든 `--session-id <uuid>`로 시작. `SessionStart` hook이 Claude의 stdin JSON을 hook 수신기의
-  `/session/<tab>`으로 보내서, `/clear`나 resume 뒤에도 저장된 id가 따라가요.
+- Claude 탭은 우리가 만든 `--session-id <uuid>`로 시작. `SessionStart` hook이 Claude의 stdin JSON을 hook 수신기
+  (`POST /hook`)로 보내서, `/clear`나 resume 뒤에도 저장된 id가 따라가요.
 - 설정을 읽은 뒤 렌더러가 `restoreSessions()`를 실행 1회당 한 번 호출: Claude → `<configDir>/projects/*/<id>.jsonl`이
   있으면 `claude --resume <id>`(Claude는 첫 메시지 뒤에야 이 파일을 씀), 없으면 새 세션. codex → `codex resume --last`
   (codex가 cwd로 거름). 셸 → 새 셸. 없어진 프로젝트의 탭은 버리고, 없어진 계정은 프로젝트 계정으로 대체. 워크트리 탭은 그 워크트리에서 다시 열고,
@@ -110,14 +111,27 @@
 
 ## 상태
 
+모든 세션의 상태는 main이 정합니다 (`electron/status/`: `osc.ts` 파서, `tracker.ts` 세션별 상태 기계).
+`session:status`로 `{ id, status, estimated?, reason? }`를 보냅니다. 출처는 믿을 만한 순서대로:
+
 | 출처 | 대상 | 방식 |
 |---|---|---|
-| Claude hooks | 로컬 `claude` | `UserPromptSubmit`/`PostToolUse` → working, `Notification` → waiting, `Stop` → done. hook = 로컬 수신기로 `curl` |
-| 출력 활동 | codex, 셸 | 3초 넘게 출력 → working, 이후 3초 조용 → done |
-| 종료 코드 | 전부 | 0이 아니면 → error |
+| OSC 7501 (Program Status Protocol) | Claude Code 2.1.295+, Codex 0.170+, 셸 탭에서 실행한 모든 프로그램 | main이 pty 출력을 훑습니다 (청크 경계에 걸친 시퀀스는 버퍼링, 4096바이트까지). `OSC 7501 ; ?`에 `OSC 7501 ; ?:states=idle,working,done,blocked,error:kinds=permission,question,auth ST`로 답하는데, 청크를 렌더러로 넘기기 **전에** 답해서 xterm의 DA1 응답보다 먼저 도착합니다 (그래야 Claude가 보고를 시작). 보고: working → working, blocked → waiting, done → done, error → error, idle → idle. `id`별 레코드(백그라운드 작업) 중 가장 급한 것이 이깁니다. 전체 `clear` = 프로그램 종료 → stopped, 폴백으로 돌아감. 모르는 키·상태는 무시. 한 번 보고한 세션은 hook·출력 활동으로 상태를 바꾸지 않습니다. |
+| Claude hooks | 로컬 `claude` (7501이 없을 때 폴백) | `UserPromptSubmit`/`PostToolUse`/`PermissionDenied` → working, `PermissionRequest`와 `Notification`(`permission_prompt`, `elicitation_dialog`만 — `idle_prompt`는 절대 안 씀) → waiting, `Stop` → done (`SubagentStart/Stop` 개수가 0보다 크면 working 유지). 7501이 있어도 항상: `StopFailure` → 이유 붙은 error (사용량 제한·로그인·결제·서버, 새 턴 전까지 뒤이은 done/idle 보고로 가려지지 않음), `SessionEnd`(`/clear` 제외) → stopped. |
+| 입력한 키 | 전부 | `session:write`로 들어온 것 (포커스·마우스·DA·CPR·OSC 응답은 걸러냄). 7501 없음: waiting 중 키 → working, 바쁠 때 Esc / Ctrl+C → stopped. 7501 있음: Esc / Ctrl+C 뒤 5초 안의 `idle` 보고를 stopped로. |
+| 출력 활동 | 보고하지 않는 codex / 셸 | 3초 넘게 출력 → working, 이후 3초 조용 → done, `estimated`(흐린 점)로 표시 |
+| 종료 코드 | 전부 | 0, 130, 시그널 → stopped, 그 밖 → error (`reason: exit`) |
+
+hook은 `~/.aquila/claude-hooks.json`의 `type: "http"`입니다 (`url` = 로컬 수신기, `allowedEnvVars`로
+`X-Aquila-Session: $AQUILA_TAB_ID`, `timeout: 5`, `onFailure: "continue"`). 수신기는 본문 없이 204로 답하므로
+`PermissionRequest`에 결정을 돌려주지 않습니다. Claude는 `SessionStart`에서 http hook을 건너뛰므로 그것만
+command + `curl`로 둡니다. 2.1.295보다 오래된 Claude(시작할 때 `claude --version`)는 `claude-hooks-legacy.json`을 받는데,
+전부 같은 JSON을 보내는 command + `curl`입니다. 7501 원본 보고와 hook 이벤트 이름은 `~/.aquila/status.log`에
+남깁니다 (512 KB에서 교체).
 
 `done`은 그 세션을 화면에 띄우면 `idle`로 바뀝니다. 창에 포커스가 없거나 다른 세션을 보고 있을 때
-done/waiting이 되면 알림을 띄웁니다. 프로젝트 행 = 세션 중 가장 급한 상태 (`waiting > error > working > done > idle`).
+done / waiting / error(종료 코드 오류 제외)가 되면 알림을 띄웁니다. 프로젝트 행 = 세션 중 가장 급한 상태
+(`waiting > error > working > done > stopped > idle`).
 
 ## 설정 (`~/.aquila/config.json`)
 

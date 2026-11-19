@@ -1,8 +1,19 @@
 // Types shared by the main process (electron/) and the renderer (src/). Keep this file dependency-free.
 
 export type SessionKind = 'claude' | 'codex' | 'shell';
-export type SessionStatus = 'working' | 'waiting' | 'done' | 'error' | 'idle';
-export type HookStatus = Extract<SessionStatus, 'working' | 'waiting' | 'done'>;
+/** `stopped` = the user interrupted (Esc / Ctrl+C) or the program exited normally; `error` = it failed. */
+export type SessionStatus = 'working' | 'waiting' | 'done' | 'error' | 'stopped' | 'idle';
+/** Why a session is `error`: an API failure Claude reported (StopFailure), a non-zero exit, or unknown. */
+export type ErrorReason = 'rateLimit' | 'auth' | 'billing' | 'server' | 'exit' | 'other';
+
+/** What main sends on `session:status`. */
+export interface StatusUpdate {
+  id: string;
+  status: SessionStatus;
+  /** Guessed from output activity, not reported by the program (shown dimmed). */
+  estimated?: boolean;
+  reason?: ErrorReason;
+}
 
 export type Language = 'ko' | 'en';
 
@@ -117,6 +128,8 @@ export interface SessionInfo {
 
 export interface Session extends SessionInfo {
   status: SessionStatus;
+  estimated?: boolean;
+  reason?: ErrorReason;
   exited?: boolean;
 }
 
@@ -186,7 +199,7 @@ export interface AquilaApi {
   markSeen(id: string): void;
   setActive(id: string | null): void;
   onData(cb: (p: { id: string; data: string }) => void): Unsubscribe;
-  onStatus(cb: (p: { id: string; status: SessionStatus }) => void): Unsubscribe;
+  onStatus(cb: (p: StatusUpdate) => void): Unsubscribe;
   onExit(cb: (p: { id: string; exitCode: number }) => void): Unsubscribe;
   onFocusSession(cb: (p: { id: string }) => void): Unsubscribe;
 }

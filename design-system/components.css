@@ -21,6 +21,8 @@ body {
 .c-dot[data-status='waiting'] { background: var(--color-status-waiting); box-shadow: 0 0 0 3px var(--color-status-waiting-halo); }
 .c-dot[data-status='done'] { background: var(--color-status-done); }
 .c-dot[data-status='error'] { background: var(--color-status-error); }
+.c-dot[data-status='stopped'] { background: transparent; box-shadow: inset 0 0 0 1px var(--color-status-stopped); }
+.c-dot[data-estimated] { background: var(--color-status-done-estimated); }
 @keyframes c-pulse { 50% { opacity: 0.35; } }
 @media (prefers-reduced-motion: reduce) { .c-dot[data-status='working'] { animation: none; } }
 

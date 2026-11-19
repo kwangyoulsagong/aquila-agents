@@ -4,19 +4,20 @@ import { Notification, type BrowserWindow } from 'electron';
 import * as pty from 'node-pty';
 import { expand, loadConfig } from './config';
 import type { RestorePlan, SavedTab } from './state';
+import { logStatus } from './status/log';
+import { OSC_7501_REPLY, OscScanner, parse7501 } from './status/osc';
+import { StatusTracker, type HookSignal } from './status/tracker';
 import { kindLabel, translator } from '../src/shared/i18n/dictionary';
 import {
   IPC,
   type Config,
   type SessionInfo,
   type SessionKind,
-  type SessionStatus,
+  type StatusUpdate,
   type Worktree,
 } from '../src/shared/api/types';
 
 const SHELL = process.env.SHELL || '/bin/zsh';
-const QUIET_MS = 3000; // output-activity heuristic for codex/shell
-const MIN_BUSY_MS = 3000;
 
 interface LiveSession {
   id: string;
@@ -30,17 +31,16 @@ interface LiveSession {
   /** Current Claude session id: ours from `--session-id`, then whatever SessionStart reports (/clear changes it). */
   claudeSessionId?: string;
   proc: pty.IPty;
-  status: SessionStatus;
-  usesHooks: boolean;
-  lastOutput: number;
-  busySince: number;
+  tracker: StatusTracker;
+  osc: OscScanner;
 }
 
 interface Deps {
   send: (channel: string, payload: unknown) => void;
   getWindow: () => BrowserWindow | null;
   hookPort: number;
-  hookSettingsPath: string;
+  /** `--settings` file for Claude: http hooks, or command hooks for old versions (read at spawn time). */
+  hookSettingsPath: () => string;
   /** Open tabs changed (created, closed, Claude session id moved) — persisted by state.ts. */
   onTabsChanged?: (tabs: SavedTab[]) => void;
 }
@@ -105,23 +105,20 @@ export class SessionManager {
       worktree,
       claudeSessionId,
       proc,
-      status: 'idle',
-      usesHooks: kind === 'claude',
-      lastOutput: 0,
-      busySince: 0,
+      // Claude has hooks as its fallback; codex and shells fall back to output activity.
+      tracker: new StatusTracker(kind !== 'claude'),
+      osc: new OscScanner(),
     };
     this.sessions.set(id, s);
 
     proc.onData((data) => {
+      // OSC 7501 first: the query must be answered before the renderer's xterm answers DA1.
+      for (const payload of s.osc.feed(data)) this.onOsc(s, payload);
       this.deps.send(IPC.sessionData, { id, data });
-      if (!s.usesHooks) {
-        const now = Date.now();
-        if (!s.busySince) s.busySince = now;
-        s.lastOutput = now;
-      }
+      s.tracker.output(Date.now());
     });
-    proc.onExit(({ exitCode }) => {
-      this.setStatus(s, exitCode === 0 ? 'idle' : 'error');
+    proc.onExit(({ exitCode, signal }) => {
+      if (s.tracker.exit(exitCode, signal)) this.emitStatus(s);
       this.deps.send(IPC.sessionExit, { id, exitCode });
       this.sessions.delete(id);
       this.tabsChanged();
@@ -141,23 +138,35 @@ export class SessionManager {
     if (kind === 'claude') {
       // Only uuids reach here (ours or validated from state/hook), so no shell quoting is needed for the id.
       const session = restore.resumeClaude ? `--resume ${claudeSessionId}` : `--session-id ${claudeSessionId}`;
-      return `claude --settings ${JSON.stringify(this.deps.hookSettingsPath)} ${session}`;
+      return `claude --settings ${JSON.stringify(this.deps.hookSettingsPath())} ${session}`;
     }
     if (kind === 'codex') return restore.resumeCodex ? 'codex resume --last' : 'codex';
     return null;
   }
 
-  onHook(id: string, status: SessionStatus): void {
-    const s = this.sessions.get(id);
-    if (s) this.setStatus(s, status);
+  private onOsc(s: LiveSession, payload: string): void {
+    const msg = parse7501(payload);
+    if (!msg) return;
+    if (msg.type === 'query') {
+      s.proc.write(OSC_7501_REPLY);
+      logStatus(s.id, 'osc7501', '? (answered)');
+      return;
+    }
+    logStatus(s.id, 'osc7501', payload);
+    if (s.tracker.osc(msg.fields, Date.now())) this.emitStatus(s);
   }
 
-  /** SessionStart hook: Claude started, resumed or /clear'ed into this session id. */
-  onClaudeSession(id: string, claudeSessionId: string): void {
+  /** A Claude hook from this tab (status fallback; SessionStart also carries the Claude session id). */
+  onHook(id: string, hook: HookSignal & { sessionId?: string }): void {
     const s = this.sessions.get(id);
-    if (!s || s.kind !== 'claude' || s.claudeSessionId === claudeSessionId) return;
-    s.claudeSessionId = claudeSessionId;
-    this.tabsChanged();
+    if (!s) return;
+    logStatus(id, 'hook', [hook.event, hook.notificationType, hook.reason, hook.error].filter(Boolean).join(' '));
+    // SessionStart: Claude started, resumed or /clear'ed into this session id.
+    if (hook.event === 'SessionStart' && hook.sessionId && s.kind === 'claude' && s.claudeSessionId !== hook.sessionId) {
+      s.claudeSessionId = hook.sessionId;
+      this.tabsChanged();
+    }
+    if (s.tracker.hook(hook)) this.emitStatus(s);
   }
 
   /** Open tabs in creation order (= tab order). */
@@ -175,33 +184,27 @@ export class SessionManager {
     if (!this.closing) this.deps.onTabsChanged?.(this.tabs());
   }
 
-  /** Output-activity heuristic for sessions without hooks (codex, shell). */
+  /** Output-activity heuristic for sessions that don't report (codex without 7501, shell). */
   private tickActivity(): void {
     const now = Date.now();
-    for (const s of this.sessions.values()) {
-      if (s.usesHooks || !s.busySince) continue;
-      const quiet = now - s.lastOutput > QUIET_MS;
-      if (!quiet && now - s.busySince > MIN_BUSY_MS && s.status !== 'working') this.setStatus(s, 'working');
-      if (quiet) {
-        if (s.status === 'working') this.setStatus(s, 'done');
-        s.busySince = 0;
-      }
-    }
+    for (const s of this.sessions.values()) if (s.tracker.tick(now)) this.emitStatus(s);
   }
 
-  private setStatus(s: LiveSession, status: SessionStatus): void {
-    if (s.status === status) return;
-    s.status = status;
-    this.deps.send(IPC.sessionStatus, { id: s.id, status });
+  private emitStatus(s: LiveSession): void {
+    const { status, estimated, reason } = s.tracker.current();
+    const update: StatusUpdate = { id: s.id, status, ...(estimated ? { estimated } : {}), ...(reason ? { reason } : {}) };
+    this.deps.send(IPC.sessionStatus, update);
 
     const win = this.deps.getWindow();
     const unseen = !win?.isFocused() || this.activeId !== s.id;
-    if ((status === 'done' || status === 'waiting') && unseen && Notification.isSupported()) {
+    const notify = status === 'done' || status === 'waiting' || (status === 'error' && reason !== 'exit');
+    if (notify && unseen && Notification.isSupported()) {
       const t = translator(loadConfig().language);
-      const n = new Notification({
-        title: s.projectName,
-        body: `${kindLabel(t, s.kind)} · ${t(status === 'done' ? 'notify.done' : 'notify.waiting')}`,
-      });
+      const what =
+        status === 'error'
+          ? `${t('notify.error')}: ${t(`status.reason.${reason ?? 'other'}`)}`
+          : t(status === 'done' ? 'notify.done' : 'notify.waiting');
+      const n = new Notification({ title: s.projectName, body: `${kindLabel(t, s.kind)} · ${what}` });
       n.on('click', () => {
         win?.show();
         win?.focus();
@@ -217,7 +220,7 @@ export class SessionManager {
 
   markSeen(id: string): void {
     const s = this.sessions.get(id);
-    if (s?.status === 'done') this.setStatus(s, 'idle');
+    if (s?.tracker.seen()) this.emitStatus(s);
   }
 
   /** Worktree path of a live session in that project; undefined for any other session (never a renderer path). */
@@ -230,8 +233,12 @@ export class SessionManager {
     return this.sessions.has(id);
   }
 
+  /** Keyboard path from the renderer (also xterm's own replies, which the tracker tells apart). */
   write(id: string, data: string): void {
-    this.sessions.get(id)?.proc.write(data);
+    const s = this.sessions.get(id);
+    if (!s) return;
+    s.proc.write(data);
+    if (s.tracker.input(data, Date.now())) this.emitStatus(s);
   }
 
   resize(id: string, cols: number, rows: number): void {

@@ -1,5 +1,5 @@
 // `npm run smoke`: launch the built app, open a shell session, check the pty round-trips,
-// save a screenshot to dist/smoke.png, then quit with exit code 0 (ok) or 1 (fail).
+// check OSC 7501 (main answers the query; a report becomes the session status), save a screenshot to dist/smoke.png, then quit with exit code 0 (ok) or 1 (fail).
 // Agents use this to verify their change actually runs.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -8,14 +8,25 @@ import type { SessionManager } from './sessions';
 import type { Config } from '../src/shared/api/types';
 
 const MARKER = 'AQUILA_SMOKE_OK';
+/** Printed by the shell only when it read our 7501 reply; computed so the echoed command never matches. */
+const OSC_MARKER = 'AQUILA_7501_42';
+const OSC_CHECK =
+  "printf '\\033]7501;?\\007'; IFS= read -rs -t 3 -d '\\' r; " +
+  'case "$r" in *states=*) echo AQUILA_7501_$((40+2));; esac; ' +
+  "printf '\\033]7501;state=working:app=smoke\\007'\r";
 const TIMEOUT_MS = 20000;
 
 export const isSmoke = process.env.AQUILA_SMOKE === '1';
 
-/** Wrap the session `send` so smoke can watch pty output. */
-export function watchOutput(send: (ch: string, p: unknown) => void, onData: (data: string) => void) {
+/** Wrap the session `send` so smoke can watch pty output and status. */
+export function watchOutput(
+  send: (ch: string, p: unknown) => void,
+  onData: (data: string) => void,
+  onStatus: (status: string) => void = () => {},
+) {
   return (channel: string, payload: unknown) => {
     if (channel === 'session:data') onData((payload as { data: string }).data);
+    if (channel === 'session:status') onStatus((payload as { status: string }).status);
     send(channel, payload);
   };
 }
@@ -24,7 +35,7 @@ export async function runSmoke(
   win: BrowserWindow,
   sessions: SessionManager,
   config: Config,
-  output: { buffer: string },
+  output: { buffer: string; statuses: string[] },
 ) {
   const fail = (why: string) => {
     console.error(`[smoke] FAIL: ${why}`);
@@ -39,8 +50,14 @@ export async function runSmoke(
   const { id } = sessions.create(config, project.id, 'shell');
   setTimeout(() => sessions.write(id, `echo ${MARKER}\r`), 1500);
 
+  let oscSent = false;
   const poll = setInterval(async () => {
     if (!output.buffer.includes(MARKER)) return;
+    if (!oscSent) {
+      oscSent = true;
+      sessions.write(id, OSC_CHECK);
+    }
+    if (!output.buffer.includes(OSC_MARKER) || !output.statuses.includes('working')) return;
     clearInterval(poll);
     clearTimeout(timer);
     // A packaged app can't write into its asar: put the screenshot in the temp dir instead.
@@ -50,7 +67,7 @@ export async function runSmoke(
     const onPath = (bin: string) =>
       (process.env.PATH ?? '').split(':').some((dir) => dir && fs.existsSync(path.join(dir, bin)));
     console.log(`[smoke] PATH has claude: ${onPath('claude')}, codex: ${onPath('codex')}`);
-    console.log(`[smoke] OK — pty round-trip works, screenshot: ${out}`);
+    console.log(`[smoke] OK — pty round-trip and OSC 7501 work, screenshot: ${out}`);
     sessions.killAll();
     app.exit(0);
   }, 200);

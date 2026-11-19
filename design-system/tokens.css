@@ -38,6 +38,7 @@
   --p-blue-400-a14: rgba(122, 162, 247, 0.14);
   --p-orange-400-a20: rgba(240, 160, 75, 0.2);
   --p-green-400-a12: rgba(95, 192, 138, 0.12);
+  --p-green-400-a50: rgba(95, 192, 138, 0.5);
   --p-red-400-a12: rgba(242, 113, 107, 0.12);
   --p-slate-950-a60: rgba(14, 16, 20, 0.6);
 
@@ -90,6 +91,8 @@
   --color-status-done: var(--p-green-400);
   --color-status-error: var(--p-red-400);
   --color-status-idle: var(--p-slate-500);
+  --color-status-stopped: var(--p-slate-400);           /* ring: interrupted or exited normally */
+  --color-status-done-estimated: var(--p-green-400-a50); /* done guessed from output activity */
 
   /* Agent identity (badges) */
   --color-agent-claude: var(--p-peach-300);

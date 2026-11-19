@@ -47,13 +47,15 @@ Check: `grep -rn -- '--p-' src design-system/components.css` returns only the ru
 
 | Status | Token | Meaning | Source |
 |---|---|---|---|
-| working | `--color-status-working` (pulses) | Agent is running | Claude hook `UserPromptSubmit`/`PostToolUse`; output activity for Codex/shell |
-| waiting | `--color-status-waiting` (halo) | Needs you: permission or question | Claude hook `Notification` |
-| done | `--color-status-done` | Finished, not yet viewed | Claude hook `Stop`; quiet after ≥3s of activity |
-| error | `--color-status-error` | Exited non-zero | pty exit code |
+| working | `--color-status-working` (pulses) | Agent is running | OSC 7501 `working`; Claude hooks; output activity for programs that don't report |
+| waiting | `--color-status-waiting` (halo) | Needs you: permission or question | OSC 7501 `blocked`; Claude hook `PermissionRequest` / `Notification` |
+| done | `--color-status-done` | Finished, not yet viewed | OSC 7501 `done`; Claude hook `Stop` |
+| done (estimated) | `--color-status-done-estimated` (`data-estimated`, dimmed) | Probably finished: guessed from output going quiet | output activity (codex/shell that don't report) |
+| error | `--color-status-error` | Failed: API error (rate limit, auth, billing, server) or non-zero exit; the reason is the dot's label | OSC 7501 `error`; Claude hook `StopFailure`; pty exit code |
+| stopped | `--color-status-stopped` (ring) | You interrupted it (Esc / Ctrl+C) or it exited normally | keys typed; `SessionEnd`; exit 0 / 130 |
 | idle | `--color-status-idle` | Nothing happening / seen | default |
 
-A project row shows its most urgent session: `waiting > error > working > done > idle`.
+A project row shows its most urgent session: `waiting > error > working > done > stopped > idle`.
 
 ## Type
 
@@ -128,7 +130,7 @@ from `src/` (ESLint enforces it). New primitive → add the class to `components
 | Component | Renders |
 |---|---|
 | `Button` `variant="primary\|ghost"` `icon` | `.c-btn` |
-| `Dot` `status` | `.c-dot` |
+| `Dot` `status` `estimated?` `label?` | `.c-dot` |
 | `Badge` `tone` | `.c-badge--<tone>` |
 | `Kbd`, `Label` | `.c-kbd`, `.c-label` |
 | `Segment` `options` `value` `onChange` | `.c-segment` |
