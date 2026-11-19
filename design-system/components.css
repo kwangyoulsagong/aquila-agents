@@ -481,9 +481,10 @@ body {
 }
 .c-term-overlay__banner-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .c-term-overlay__banner-meta { color: var(--color-text-secondary); }
-/* Prompt chips (T34): across the bottom after a Figma link is pasted; groups of buttons + close. Takes clicks. */
+/* Prompt chips (T34): across the top after a Figma link is pasted (the CLIs' input box is at the bottom — never cover
+ * it); groups of buttons + close. Takes clicks. */
 .c-term-overlay__chips {
-  position: absolute; left: var(--space-inset-md); right: var(--space-inset-md); bottom: var(--space-inset-sm);
+  position: absolute; left: var(--space-inset-md); right: var(--space-inset-md); top: var(--space-inset-sm);
   display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-inline-xs) var(--space-inline-sm); pointer-events: auto;
   padding: var(--space-inline-xs) var(--space-inline-xs) var(--space-inline-xs) var(--space-inset-md);
   border: 1px solid var(--color-border-default); border-radius: var(--radius-control);

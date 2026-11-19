@@ -116,7 +116,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `.c-badge` `--claude` `--codex` `--shell` `--account-shared` `--account-personal` | Tags |
 | `.c-badge--host`, `.c-badge__conn[data-conn=connecting\|connected\|reconnecting\|lost]` | Remote host alias (not uppercased) with a connection dot: idle grey / green / orange pulsing / red (T29) |
 | `.c-term-overlay__banner` `__banner-text` `__banner-meta` | Bar across the top of a terminal that takes clicks, red edge: connection lost + countdown + an action (T29) |
-| `.c-term-overlay__chips` `__chips-group` `__chips-label` `__chips-close` | Bar across the bottom of a terminal that takes clicks: labelled groups of prompt chips + close (Figma link pasted, T34) |
+| `.c-term-overlay__chips` `__chips-group` `__chips-label` `__chips-close` | Bar across the top of a terminal that takes clicks (the CLI input stays uncovered): labelled groups of prompt chips + close (Figma link pasted, T34) |
 | `.c-label` | Section label |
 | `.c-sidebar` `__drag` `__body` `__group` `__foot` `__lang` | Sidebar |
 | `.c-meter[data-tone=warn\|danger][data-unknown]` `__head` `__value` `__track` `__fill` `__caption` | A share of a limit: label · value, 4px bar (grey → orange ≥ 75% → red ≥ 90%), caption; unknown limit = outlined empty bar (T30) |

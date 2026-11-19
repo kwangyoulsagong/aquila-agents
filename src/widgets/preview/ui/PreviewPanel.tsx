@@ -131,7 +131,11 @@ export default function PreviewPanel({ project, session, onClose }: Props) {
     });
     // Designer layout with a Figma frame open (T34): the agent compares the pick with the design's own screenshot.
     const design = designer ? parseFigmaLink(figmaUrl) : null;
-    const text = design ? `${prompt}\n${t('figma.prompt.pickDesign', { url: design.url })}` : prompt;
+    // Before "screenshot follows", which must stay last (the image is pasted right after it).
+    const lines = prompt.split('\n');
+    if (design)
+      lines.splice(pick.imagePath ? -1 : lines.length, 0, t('figma.prompt.pickDesign', { url: design.url }));
+    const text = lines.join('\n');
     // Two pastes: a paste that is only an image path is what Claude / Codex attach as an image.
     const image = pick.imagePath ? pathsInput([pick.imagePath]) : '';
     if (target && pasteIntoSession(target.id, `${text}\n`)) {

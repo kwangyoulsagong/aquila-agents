@@ -115,7 +115,7 @@
 | `.c-badge` `--claude` `--codex` `--shell` `--account-shared` `--account-personal` | 태그 |
 | `.c-badge--host`, `.c-badge__conn[data-conn=connecting\|connected\|reconnecting\|lost]` | 원격 호스트 이름(대문자로 안 바꿈)과 연결 점: 회색 / 초록 / 주황 깜빡임 / 빨강 (T29) |
 | `.c-term-overlay__banner` `__banner-text` `__banner-meta` | 터미널 위쪽을 가로지르는 클릭 가능한 바, 빨간 테두리: 연결 끊김 + 카운트다운 + 동작 (T29) |
-| `.c-term-overlay__chips` `__chips-group` `__chips-label` `__chips-close` | 터미널 아래쪽을 가로지르는 클릭 가능한 바: 라벨 붙은 프롬프트 칩 그룹 + 닫기 (Figma 링크 붙여 넣기, T34) |
+| `.c-term-overlay__chips` `__chips-group` `__chips-label` `__chips-close` | 터미널 위쪽을 가로지르는 클릭 가능한 바(CLI 입력창은 안 가림): 라벨 붙은 프롬프트 칩 그룹 + 닫기 (Figma 링크 붙여 넣기, T34) |
 | `.c-label` | 섹션 라벨 |
 | `.c-sidebar` `__drag` `__body` `__group` `__foot` `__lang` | 사이드바 |
 | `.c-meter[data-tone=warn\|danger][data-unknown]` `__head` `__value` `__track` `__fill` `__caption` | 한도 대비 비율: 라벨 · 값, 4px 막대(회색 → 75% 이상 주황 → 90% 이상 빨강), 캡션. 한도를 모르면 테두리만 있는 빈 막대 (T30) |

@@ -46,7 +46,7 @@ export function TermBanner({
   );
 }
 
-/** `.c-term-overlay__chips` — a bar across the bottom with groups of prompt chips and a close button (T34). */
+/** `.c-term-overlay__chips` — a bar across the top with groups of prompt chips and a close button (T34). */
 export function TermChips({
   label,
   closeLabel,
