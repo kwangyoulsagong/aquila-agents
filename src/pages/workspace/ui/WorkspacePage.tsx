@@ -4,6 +4,7 @@ import { api } from '@/shared/api';
 import { I18nContext, translator } from '@/shared/i18n';
 import { AccountSwitch } from '@/features/switch-account';
 import { SetupAccount } from '@/features/setup-account';
+import { OpenInWorktreeDialog } from '@/features/open-in-worktree';
 import { LanguageToggle } from '@/features/switch-language';
 import { Sidebar } from '@/widgets/sidebar';
 import { SessionTabs } from '@/widgets/session-tabs';
@@ -19,6 +20,8 @@ export default function WorkspacePage() {
   const toggleChanges = useCallback(() => setChangesOpen((o) => !o), []);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const togglePalette = useCallback(() => setPaletteOpen((o) => !o), []);
+  const [worktreeOpen, setWorktreeOpen] = useState(false);
+  const openWorktreeDialog = useCallback(() => setWorktreeOpen(true), []);
   useShortcuts({
     config: ws.config,
     activeSessionId: ws.activeSessionId,
@@ -43,6 +46,7 @@ export default function WorkspacePage() {
       a.openClaude = () => openSession('claude');
       a.openCodex = () => openSession('codex');
       a.openShell = () => openSession('shell');
+      a.openWorktree = openWorktreeDialog;
       a.toggleChanges = toggleChanges;
     }
     if (activeSessionId) a.closeSession = () => closeSession(activeSessionId);
@@ -62,6 +66,7 @@ export default function WorkspacePage() {
     closeSession,
     splitFocused,
     toggleChanges,
+    openWorktreeDialog,
     setConfig,
     showError,
   ]);
@@ -90,6 +95,7 @@ export default function WorkspacePage() {
             onSelect={ws.selectSession}
             onClose={ws.closeSession}
             onNew={ws.openSession}
+            onNewInWorktree={project && openWorktreeDialog}
             trailing={
               project && (
                 <>
@@ -128,6 +134,14 @@ export default function WorkspacePage() {
             onDropSession={ws.split.dropSession}
           />
         </main>
+        {worktreeOpen && project && (
+          <OpenInWorktreeDialog
+            key={project.id}
+            project={project}
+            onClose={() => setWorktreeOpen(false)}
+            onOpen={ws.openWorktreeSession}
+          />
+        )}
         {changesOpen && <ChangesPanel project={project} onClose={() => setChangesOpen(false)} />}
         <CommandPalette
           open={paletteOpen}

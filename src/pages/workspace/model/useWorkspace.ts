@@ -90,6 +90,17 @@ export function useWorkspace() {
     [activeProjectId, placeInFocused],
   );
 
+  /** Claude in the worktree of `branch` (created or reused by main). Throws so the dialog can show git's error. */
+  const openWorktreeSession = useCallback(
+    async (branch: string) => {
+      if (!activeProjectId) return;
+      const s = await api.createWorktreeSession(activeProjectId, branch, 'claude');
+      setSessions((list) => [...list, { ...s, status: 'idle' }]);
+      placeInFocused(s.id);
+    },
+    [activeProjectId, placeInFocused],
+  );
+
   const closeSession = useCallback(
     (id: string) => {
       api.kill(id);
@@ -120,6 +131,7 @@ export function useWorkspace() {
     selectSession: showSession,
     split,
     openSession,
+    openWorktreeSession,
     closeSession,
     forgetProject,
     error,

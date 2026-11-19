@@ -128,6 +128,7 @@ export default function SplitView({
                     <StatusDot status={s.status} />
                     <span className="c-pane__title">
                       {kindLabel(t, s.kind)} · {p?.name ?? s.projectId}
+                      {s.worktree && ` · ${s.worktree.branch}`}
                     </span>
                     {s.account && <AccountBadge config={config} account={s.account} />}
                   </>

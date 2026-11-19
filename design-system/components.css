@@ -146,6 +146,12 @@ body {
 .c-tab:hover { background: var(--color-bg-hover); }
 .c-tab[aria-selected='true'] { background: var(--color-bg-canvas); color: var(--color-text-primary); }
 .c-tab__title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Worktree session: the branch follows the kind, takes the slack and truncates first. */
+.c-tab__branch {
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font: var(--font-size-caption) var(--font-family-mono); color: var(--color-text-tertiary);
+}
+.c-tab:has(.c-tab__branch) .c-tab__title { flex: 0 0 auto; }
 .c-tab__close {
   width: 18px; height: 18px; border: 0; border-radius: var(--radius-badge); opacity: 0;
   background: none; color: var(--color-text-tertiary); cursor: pointer;

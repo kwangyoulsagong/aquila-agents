@@ -23,6 +23,9 @@ const api: AquilaApi = {
   showContextMenu: (items) => ipcRenderer.invoke(IPC.uiContextMenu, items),
   createSession: (projectId, kind, account) =>
     ipcRenderer.invoke(IPC.sessionCreate, { projectId, kind, account }),
+  createWorktreeSession: (projectId, branch, kind) =>
+    ipcRenderer.invoke(IPC.sessionCreateWorktree, { projectId, branch, kind }),
+  worktreeInfo: (projectId) => ipcRenderer.invoke(IPC.worktreeInfo, projectId),
   restoreSessions: () => ipcRenderer.invoke(IPC.sessionRestore),
   accountsStatus: () => ipcRenderer.invoke(IPC.accountsStatus),
   prepareAccount: (account) => ipcRenderer.invoke(IPC.accountsPrepare, account),
