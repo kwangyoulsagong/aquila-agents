@@ -76,21 +76,16 @@ only with small additive edits. Merge order follows the numbering when two tasks
 
 ## Roadmap after v0.1
 
-Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-19, roadmap items `#n`). Everything is **Now** (macOS), then distribution (**Release**). Windows support is pushed to after that (**Windows (later)**).
-Within Now, the platform layer (T13) and the status engine (T14) come first because almost everything else builds on them;
-T13 keeps the macOS/Windows split in one place so Windows can land later without rewrites.
+Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-19, roadmap items `#n`). Everything in **Now** is macOS only, then distribution (**Release**). Everything Windows-related is pushed to the end
+(**Windows (later)**). Within Now, the shortcut map (T13) and the status engine (T14) come first because almost everything else builds on them.
 
 ## Now
 
-### T13 · Platform layer
-- [ ] **Goal:** one place for everything that differs between macOS and Windows, so later features are written once. (#1)
-- **Spec:** `electron/platform/{darwin,win32}.ts` behind one interface: shell detection + profiles (Windows:
-  pwsh 7 > Windows PowerShell 5.1 > Git Bash > CMD; WSL distros detected once at startup and on request, never polled),
-  spawn template per shell (`pwsh -NoLogo -NoExit -Command`, `cmd /K`, `bash -l -i -c "…; exec bash -l -i"`,
-  `wsl.exe -d <distro> --cd <path> -- bash -lic "…"`), path conversion (`wslpath -a`, `\\wsl.localhost\…`),
-  notifications. One platform-independent shortcut map in `src/shared/lib/shortcuts.ts` (`CommandOrControl`-style ids)
-  that the key handler, the palette, menus and the guide all read; labels show ⌘ on macOS, Ctrl+Shift on Windows.
-- **Owns:** `electron/platform/`, `src/shared/lib/shortcuts.ts` (+ tests), small changes in `sessions.ts`, `useShortcuts.ts`.
+### T13 · Shortcut map
+- [ ] **Goal:** one shortcut list that every part of the app reads, so shortcuts never drift apart. (#1)
+- **Spec:** one map in `src/shared/lib/shortcuts.ts` (`CommandOrControl`-style ids, so Windows can reuse it later) that
+  the key handler, the palette, menus and the guide all read; labels show ⌘ on macOS.
+- **Owns:** `src/shared/lib/shortcuts.ts` (+ tests), `useShortcuts.ts`.
 
 ### T14 · Status engine: OSC 7501 first, http hooks
 - [ ] **Goal:** "who is waiting for me" is right and immediate; no false "done". (#25, #2, #3, #24)
@@ -111,7 +106,7 @@ T13 keeps the macOS/Windows split in one place so Windows can land later without
 
 ### T15 · Attention: badge, next waiting, notifications with context
 - [ ] **Goal:** never hunt for the tab that needs you. (#5, #6)
-- **Spec:** waiting count on the Dock badge (macOS) / taskbar overlay icon + `flashFrame` (Windows). Shortcut
+- **Spec:** waiting count on the Dock badge (macOS) . Shortcut
   "next waiting session" across projects (cycles waiting > error > done), plus "waiting for 12 min" elapsed time on the
   tab/row and one reminder. Notification body: project · tab · first line of `last_assistant_message` (Stop), or the
   `PermissionRequest` tool summary ("Bash: npm install"). Debounce same-status repeats; click focuses that exact session
@@ -129,16 +124,15 @@ T13 keeps the macOS/Windows split in one place so Windows can land later without
 
 ### T17 · First-run checklist
 - [ ] **Goal:** the first launch never fails silently. (#7)
-- **Spec:** checklist screen: PATH restored (macOS, exists), `claude` / `codex` / `git` found (Windows: native and per
-  WSL distro) with versions; missing → copyable install command; manual binary path override; "Add folder" (drag & drop);
+- **Spec:** checklist screen: PATH restored (macOS, exists), `claude` / `codex` / `git` found  with versions; missing → copyable install command; manual binary path override; "Add folder" (drag & drop);
   "log in inside the CLI" hint. Optional things default to Skip. Shown once (state in `~/.aquila/`), reopenable.
 - **Owns:** `src/features/first-run/`, `electron/detect.ts` (+ tests).
 
 ### T18 · Korean IME
 - [ ] **Goal:** Hangul input never breaks in our host. (#8)
-- **Spec:** regression checklist run by smoke on macOS and Windows: jamo split, duplicate input, composition shown while
+- **Spec:** regression checklist run by smoke: jamo split, duplicate input, composition shown while
   typing, Enter/Space during composition, Ctrl/⌘ shortcuts right after 한/영 switch. Fix in our input layer (follow VS
-  Code's xterm integration). Font fallbacks `"Cascadia Mono", "D2Coding", Consolas` in `--font-*` tokens.
+  Code's xterm integration).  Font fallback `"D2Coding"` in `--font-*` tokens.
 - **Owns:** `electron/smoke.ts` (IME scenarios), IME handling in `TerminalView`, font tokens.
 
 ### T9 · Battery check + power profile
@@ -147,7 +141,7 @@ T13 keeps the macOS/Windows split in one place so Windows can land later without
   `yes` Ctrl-C test; Aquila Agents vs Terminal.app / Ghostty / iTerm2 with the same sessions (5 Claude, 1 streaming).
   Results in `docs/en/ENERGY.md` + `docs/ko/ENERGY.md`. Power profile from `powerMonitor` (`on-battery`,
   `speed-limit-change`, macOS `thermal-state-change`): longer poll intervals, no cursor blink / looping animations.
-  Windows measurement: tool to be decided.
+  
 - **Owns:** `scripts/`, `electron/power.ts`, those two docs.
 
 ### T21 · Restore v2
@@ -165,7 +159,7 @@ T13 keeps the macOS/Windows split in one place so Windows can land later without
 
 ### T23 · In-app guide (? button)
 - [ ] **Goal:** every feature is discoverable without docs. (#16, owner)
-- **Spec:** `?` in the sidebar footer, ⌘/ (Windows Ctrl+/, F1 as backup). Modal: searchable feature list on the left;
+- **Spec:** `?` in the sidebar footer, ⌘/. Modal: searchable feature list on the left;
   screenshot or short loop (bundled WebP/MP4, still frame under reduced motion), 1–2 lines and the shortcut on the right.
   Registry `{ id, titleKey, bodyKey, media, shortcutId }`; shortcuts read from T13's map; includes the full shortcut
   sheet. Offered once after the first-run checklist ("Take a tour / Skip"), state in `~/.aquila/`. Modal shell =
@@ -175,7 +169,7 @@ T13 keeps the macOS/Windows split in one place so Windows can land later without
 ### T24 · Smoke capture for guide media
 - [ ] **Goal:** guide and release-note media never go stale. (#17, owner)
 - **Spec:** smoke scenarios stage a demo state per guide item from fixed fixtures (no real user data), capture
-  `capturePage(rect)` in ko/en (and per OS runner), encode short animations (tool to pick); smoke fails when an item has
+  `capturePage(rect)`  in ko/en, encode short animations (tool to pick); smoke fails when an item has
   no media. Budget: resolution and 3–5 s length.
 - **Owns:** `electron/smoke.ts`, `scripts/capture/`, `src/features/guide/media/`.
 
@@ -185,7 +179,7 @@ T13 keeps the macOS/Windows split in one place so Windows can land later without
   net; show "git working tree · updated n s ago". Unified / side-by-side, j/k between files. Line comments → a prompt
   (`file:line` + quoted code + comment) pasted into the focused session's input; the user presses Enter. Then hunk/file
   stage and revert with confirm (and a stash backup), "diff since session start" (HEAD recorded at spawn), buttons that
-  paste "write a commit message / PR description" prompts. Windows: detect `git.exe`.
+  paste "write a commit message / PR description" prompts. 
 - **Owns:** `electron/git.ts`, `src/widgets/changes-panel/`, `src/entities/diff/`.
 
 ### T11 · Session history (read-only)
@@ -200,7 +194,7 @@ T13 keeps the macOS/Windows split in one place so Windows can land later without
 
 ### T26 · Project settings
 - [ ] **Goal:** per-project defaults instead of JSON. (#23 + T5 leftovers)
-- **Spec:** project settings dialog: path (changeable), run environment (native / WSL distro / SSH host, see T29),
+- **Spec:** project settings dialog: path (changeable), location (this Mac / SSH host, see T29),
   default agent, default branch, setup script, port base, "Open in" editor; duplicate-folder warning; "Add project"
   in the palette.
 - **Owns:** `src/features/manage-projects/`, `electron/config.ts`.
@@ -275,13 +269,11 @@ T13 keeps the macOS/Windows split in one place so Windows can land later without
 
 ### T36 · Remote panels
 - [ ] **Goal:** changes panel and history for remote projects. (#45)
-- **Spec:** run `git` / history reads over the same SSH connection (ControlMaster); measure latency; Windows OpenSSH needs
-  its own control channel.
+- **Spec:** run `git` / history reads over the same SSH connection (ControlMaster); measure latency; 
 - **Owns:** `electron/remote/`, remote adapters for `git.ts` / `history.ts`.
 
 ### T10 · Light theme
-- [ ] Add `[data-theme='light']` semantic remap in `tokens.css`, follow `nativeTheme`; terminal theme and Windows
-  `titleBarOverlay` colors follow. No component changes allowed. (#41)
+- [ ] Add `[data-theme='light']` semantic remap in `tokens.css`, follow `nativeTheme`; the terminal theme follows. No component changes allowed. (#41)
 
 ## Release (last)
 
@@ -292,7 +284,7 @@ T13 keeps the macOS/Windows split in one place so Windows can land later without
   guide item; "What's new" in the `?` menu lists past versions; skipped versions are combined. Notes bundled per version
   (`release-notes/<version>.{ko,en}.md` or JSON with `guideId` + media), offline. Draft from Conventional Commits since
   the last tag, edited by hand; packaging fails if the version's ko/en notes are missing.
-- **Also:** electron-updater for macOS (Windows updates come with T20).
+- **Also:** electron-updater for macOS (Windows updates come with T20, later).
 - **Owns:** `src/features/release-notes/`, `release-notes/`, `scripts/release-notes.ts`.
 
 ## Windows (later)
@@ -310,7 +302,15 @@ T13 keeps the macOS/Windows split in one place so Windows can land later without
   - WSL projects: run environment saved per project (native / distro), `wsl.exe -e git` for the changes panel, hook
     receiver address for NAT mode (host IP + token) if hooks are still needed there.
   - Notifications: `app.setAppUserModelId()`, Start Menu shortcut with AUMID.
-- **Owns:** `electron/platform/win32.ts`, Windows parts of `sessions.ts`, `main.ts` window options, CI workflow.
+  - Platform layer (#1): `electron/platform/{darwin,win32}.ts` behind one interface: shell detection + profiles
+    (pwsh 7 > Windows PowerShell 5.1 > Git Bash > CMD; WSL distros detected once at startup and on request, never polled),
+    spawn template per shell (`pwsh -NoLogo -NoExit -Command`, `cmd /K`, `bash -l -i -c "…; exec bash -l -i"`,
+    `wsl.exe -d <distro> --cd <path> -- bash -lic "…"`), path conversion (`wslpath -a`, `\\wsl.localhost\…`), notifications.
+  - Windows parts of Now tasks: taskbar overlay icon + `flashFrame` (T15); `claude`/`codex`/`git` per WSL distro in the
+    first-run checklist (T17); IME smoke on Windows + `"Cascadia Mono"`, `Consolas` fallbacks (T18); energy measurement
+    tool (T9); Ctrl+/ and F1 for the guide (T23); per-OS smoke capture (T24); `git.exe` detection (T25); WSL run
+    environment in project settings (T26); Windows OpenSSH control channel (T36); `titleBarOverlay` colors (T10).
+- **Owns:** `electron/platform/`, Windows parts of `sessions.ts`, `main.ts` window options, CI workflow.
 
 ### T20 · Windows packaging + signing
 - [ ] **Goal:** a Windows installer people can run. (#28)

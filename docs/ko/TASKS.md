@@ -76,21 +76,16 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
 
 ## v0.1 이후 로드맵
 
-근거: [`docs/research/`](../research/README.md) (사용 편의성 조사, 2026-11-19, 로드맵 항목 `#n`). 전부 **Now**(macOS)이고, 그다음 배포(**배포**)예요. Windows 지원은 그 뒤로 미뤘어요(**Windows (추후)**).
-Now 안에서는 플랫폼 계층(T13)과 상태 엔진(T14)이 먼저예요. 나머지 거의 전부가 그 위에 올라가기 때문이에요.
-T13이 macOS/Windows 차이를 한곳에 모아 두니까 Windows는 나중에 다시 짜지 않고 붙일 수 있어요.
+근거: [`docs/research/`](../research/README.md) (사용 편의성 조사, 2026-11-19, 로드맵 항목 `#n`). **Now**는 전부 macOS만 대상이고, 그다음 배포(**배포**)예요. Windows 관련은 전부 맨 뒤로 미뤘어요
+(**Windows (추후)**). Now 안에서는 단축키 맵(T13)과 상태 엔진(T14)이 먼저예요. 나머지 거의 전부가 그 위에 올라가기 때문이에요.
 
 ## Now
 
-### T13 · 플랫폼 계층
-- [ ] **목표:** macOS와 Windows에서 달라지는 것을 한곳에 모아, 이후 기능을 한 번만 쓰게. (#1)
-- **명세:** 인터페이스 하나 뒤의 `electron/platform/{darwin,win32}.ts`: 셸 탐지와 프로필(Windows: pwsh 7 > Windows
-  PowerShell 5.1 > Git Bash > CMD, WSL 배포판은 시작 시 1회와 요청 시에만 탐지, 폴링 금지), 셸별 spawn 템플릿
-  (`pwsh -NoLogo -NoExit -Command`, `cmd /K`, `bash -l -i -c "…; exec bash -l -i"`,
-  `wsl.exe -d <distro> --cd <path> -- bash -lic "…"`), 경로 변환(`wslpath -a`, `\\wsl.localhost\…`), 알림.
-  플랫폼 독립 단축키 맵 하나를 `src/shared/lib/shortcuts.ts`에(`CommandOrControl`식 id) 두고 키 처리·팔레트·메뉴·가이드가
-  모두 읽어요. 표기는 macOS ⌘, Windows Ctrl+Shift.
-- **담당:** `electron/platform/`, `src/shared/lib/shortcuts.ts`(+ 테스트), `sessions.ts`·`useShortcuts.ts` 소폭 수정.
+### T13 · 단축키 맵
+- [ ] **목표:** 앱 전체가 읽는 단축키 목록 하나. 단축키가 곳곳에서 어긋나지 않게. (#1)
+- **명세:** `src/shared/lib/shortcuts.ts`에 맵 하나(`CommandOrControl`식 id라 나중에 Windows도 그대로 씀). 키 처리·팔레트·
+  메뉴·가이드가 모두 읽어요. 표기는 macOS ⌘.
+- **담당:** `src/shared/lib/shortcuts.ts`(+ 테스트), `useShortcuts.ts`.
 
 ### T14 · 상태 엔진: OSC 7501 우선, http hook
 - [ ] **목표:** "누가 나를 기다리나"가 정확하고 즉시. 거짓 "done" 없음. (#25, #2, #3, #24)
@@ -110,7 +105,7 @@ T13이 macOS/Windows 차이를 한곳에 모아 두니까 Windows는 나중에 �
 
 ### T15 · 주의 관리: 배지, 다음 대기 세션, 맥락 있는 알림
 - [ ] **목표:** 나를 기다리는 탭을 찾아 헤매지 않게. (#5, #6)
-- **명세:** 대기 수를 Dock 배지(macOS) / 작업 표시줄 overlay 아이콘 + `flashFrame`(Windows)으로. 프로젝트를 가로지르는
+- **명세:** 대기 수를 Dock 배지(macOS) 으로. 프로젝트를 가로지르는
   "다음 대기 세션" 단축키(waiting > error > done 순환), 탭/행에 "12분째 대기" 경과 시간과 1회 리마인드. 알림 본문:
   프로젝트 · 탭 · `last_assistant_message` 첫 줄(Stop) 또는 `PermissionRequest` 도구 요약("Bash: npm install").
   같은 상태 반복은 디바운스. 클릭하면 정확한 세션으로(있음). 이미 보이는 세션은 알리지 않음(있음).
@@ -127,16 +122,15 @@ T13이 macOS/Windows 차이를 한곳에 모아 두니까 Windows는 나중에 �
 
 ### T17 · 첫 실행 체크리스트
 - [ ] **목표:** 첫 실행이 조용히 실패하지 않게. (#7)
-- **명세:** 체크리스트 화면: PATH 복원(macOS, 있음), `claude` / `codex` / `git` 감지와 버전(Windows: 네이티브와 WSL
-  배포판별). 없으면 설치 명령 복사, 바이너리 경로 직접 지정, "폴더 추가"(드래그앤드롭), "로그인은 CLI 안에서" 안내.
+- **명세:** 체크리스트 화면: PATH 복원(macOS, 있음), `claude` / `codex` / `git` 감지와 버전. 없으면 설치 명령 복사, 바이너리 경로 직접 지정, "폴더 추가"(드래그앤드롭), "로그인은 CLI 안에서" 안내.
   선택 항목은 기본 건너뛰기. 한 번만 표시(`~/.aquila/`에 저장), 다시 열 수 있음.
 - **담당:** `src/features/first-run/`, `electron/detect.ts`(+ 테스트).
 
 ### T18 · 한글 IME
 - [ ] **목표:** 우리 호스트에서 한글 입력이 깨지지 않게. (#8)
-- **명세:** smoke가 macOS·Windows에서 도는 회귀 체크리스트: 자모 분리, 중복 입력, 조합 중 표시, 조합 중 Enter/Space,
+- **명세:** smoke가 도는 회귀 체크리스트: 자모 분리, 중복 입력, 조합 중 표시, 조합 중 Enter/Space,
   한/영 전환 직후 Ctrl/⌘ 단축키. 우리 입력 계층에서 수정(VS Code의 xterm 통합 방식 기준). `--font-*` 토큰에
-  `"Cascadia Mono", "D2Coding", Consolas` 폴백.
+  `"D2Coding"` 폴백.
 - **담당:** `electron/smoke.ts`(IME 시나리오), `TerminalView`의 IME 처리, 폰트 토큰.
 
 ### T9 · 배터리 측정 + 절전 프로필
@@ -144,7 +138,7 @@ T13이 macOS/Windows 차이를 한곳에 모아 두니까 Windows는 나중에 �
 - **명세:** `scripts/measure-energy.sh`: `top -l 6 -s 5 -o power`, `powermetrics --samplers tasks` idle wakeups/s,
   `yes` Ctrl-C 테스트. 같은 세션(Claude 5개, 1개 스트리밍)으로 Aquila Agents vs Terminal.app / Ghostty / iTerm2.
   결과는 `docs/en/ENERGY.md` + `docs/ko/ENERGY.md`. `powerMonitor`(`on-battery`, `speed-limit-change`, macOS
-  `thermal-state-change`)로 절전 프로필: 폴링 간격 늘리기, 커서 깜빡임·반복 애니메이션 끄기. Windows 측정 도구는 미정.
+  `thermal-state-change`)로 절전 프로필: 폴링 간격 늘리기, 커서 깜빡임·반복 애니메이션 끄기. 
 - **담당:** `scripts/`, `electron/power.ts`, 위 두 문서.
 
 ### T21 · 복원 v2
@@ -161,7 +155,7 @@ T13이 macOS/Windows 차이를 한곳에 모아 두니까 Windows는 나중에 �
 
 ### T23 · 앱 내 가이드(? 버튼)
 - [ ] **목표:** 문서 없이도 모든 기능을 찾을 수 있게. (#16, 오너)
-- **명세:** 사이드바 하단 `?`, ⌘/(Windows Ctrl+/, 보조 F1). 모달: 왼쪽은 검색되는 기능 목록, 오른쪽은 스크린샷이나 짧은
+- **명세:** 사이드바 하단 `?`, ⌘/. 모달: 왼쪽은 검색되는 기능 목록, 오른쪽은 스크린샷이나 짧은
   루프(번들 WebP/MP4, reduced motion이면 첫 프레임), 1~2줄 설명, 단축키. 레지스트리
   `{ id, titleKey, bodyKey, media, shortcutId }`, 단축키는 T13 맵에서 읽음, 전체 단축키 시트 포함. 첫 실행 체크리스트
   다음에 한 번만 제안("둘러보기 / 건너뛰기"), `~/.aquila/`에 저장. 모달 껍데기는 디자인 시스템 컴포넌트(T27·T35와 공유).
@@ -170,7 +164,7 @@ T13이 macOS/Windows 차이를 한곳에 모아 두니까 Windows는 나중에 �
 ### T24 · 가이드 미디어 smoke 캡처
 - [ ] **목표:** 가이드와 릴리즈 노트 화면이 낡지 않게. (#17, 오너)
 - **명세:** smoke 시나리오가 고정 픽스처로(실제 사용자 데이터 없음) 가이드 항목별 데모 상태를 연출하고
-  `capturePage(rect)`로 ko/en(OS 러너별) 캡처, 짧은 애니메이션 인코딩(도구 선택 필요). 미디어 없는 항목이 있으면 smoke 실패.
+  `capturePage(rect)`로 ko/en 캡처, 짧은 애니메이션 인코딩(도구 선택 필요). 미디어 없는 항목이 있으면 smoke 실패.
   해상도와 길이(3~5초) 예산.
 - **담당:** `electron/smoke.ts`, `scripts/capture/`, `src/features/guide/media/`.
 
@@ -179,7 +173,7 @@ T13이 macOS/Windows 차이를 한곳에 모아 두니까 Windows는 나중에 �
 - **명세:** 5초 폴링 대신 `fs.watch`(재귀) + 300–500 ms 디바운스 + lazy diff, 30–60초 폴링은 안전망. "git working tree ·
   n초 전 갱신" 표시. unified / side-by-side, j/k 파일 이동. 줄 코멘트 → 프롬프트(`파일:줄` + 코드 인용 + 코멘트)를
   포커스된 세션 입력에 붙여넣기, 전송은 사용자가 Enter. 그다음 확인창(+ stash 백업)이 있는 hunk/파일 stage·revert,
-  "세션 시작 이후 diff"(spawn 때 HEAD 기록), "커밋 메시지 / PR 설명 써줘" 프롬프트 붙여넣기 버튼. Windows는 `git.exe` 탐지.
+  "세션 시작 이후 diff"(spawn 때 HEAD 기록), "커밋 메시지 / PR 설명 써줘" 프롬프트 붙여넣기 버튼. 
 - **담당:** `electron/git.ts`, `src/widgets/changes-panel/`, `src/entities/diff/`.
 
 ### T11 · 세션 기록 (읽기 전용)
@@ -193,7 +187,7 @@ T13이 macOS/Windows 차이를 한곳에 모아 두니까 Windows는 나중에 �
 
 ### T26 · 프로젝트 설정
 - [ ] **목표:** JSON 대신 프로젝트별 기본값. (#23 + T5 남은 것)
-- **명세:** 프로젝트 설정 다이얼로그: 경로(변경 가능), 실행 환경(네이티브 / WSL 배포판 / SSH 호스트, T29), 기본 에이전트,
+- **명세:** 프로젝트 설정 다이얼로그: 경로(변경 가능), 위치(이 Mac / SSH 호스트, T29), 기본 에이전트,
   기본 브랜치, setup 스크립트, 포트 베이스, "Open in" 에디터. 같은 폴더 중복 경고. 팔레트에 "프로젝트 추가".
 - **담당:** `src/features/manage-projects/`, `electron/config.ts`.
 
@@ -261,12 +255,11 @@ T13이 macOS/Windows 차이를 한곳에 모아 두니까 Windows는 나중에 �
 
 ### T36 · 원격 패널
 - [ ] **목표:** 원격 프로젝트에서도 변경사항 패널과 기록. (#45)
-- **명세:** 같은 SSH 연결(ControlMaster)로 `git` / 기록 읽기, 지연 실측. Windows OpenSSH는 별도 제어 채널 필요.
+- **명세:** 같은 SSH 연결(ControlMaster)로 `git` / 기록 읽기, 지연 실측. 
 - **담당:** `electron/remote/`, `git.ts` / `history.ts`의 원격 어댑터.
 
 ### T10 · 라이트 테마
-- [ ] `tokens.css`에 `[data-theme='light']` 시맨틱 재매핑, `nativeTheme` 추종. 터미널 테마와 Windows `titleBarOverlay` 색도
-  따라감. 컴포넌트 수정 금지. (#41)
+- [ ] `tokens.css`에 `[data-theme='light']` 시맨틱 재매핑, `nativeTheme` 추종. 터미널 테마도 따라감. 컴포넌트 수정 금지. (#41)
 
 ## 배포 (맨 마지막)
 
@@ -276,7 +269,7 @@ T13이 macOS/Windows 차이를 한곳에 모아 두니까 Windows는 나중에 �
   대신 가이드 제안). T23과 같은 모달: 미디어 있는 헤드라인 3~5개, "사용법 보기" → 가이드 항목. `?` 메뉴 "새로운 기능"에서
   지난 버전 목록, 건너뛴 버전은 묶어서. 버전별로 번들(`release-notes/<version>.{ko,en}.md` 또는 `guideId`·미디어가 있는
   JSON), 오프라인. 초안은 지난 태그 이후 Conventional Commits에서 만들고 사람이 다듬음. 해당 버전 ko/en 노트가 없으면 패키징 실패.
-- **추가:** macOS용 electron-updater(Windows 업데이트는 T20에서).
+- **추가:** macOS용 electron-updater(Windows 업데이트는 추후 T20에서).
 - **담당:** `src/features/release-notes/`, `release-notes/`, `scripts/release-notes.ts`.
 
 ## Windows (추후)
@@ -294,7 +287,15 @@ T13이 macOS/Windows 차이를 한곳에 모아 두니까 Windows는 나중에 �
   - WSL 프로젝트: 프로젝트별 실행 환경(네이티브 / 배포판) 저장, 변경사항 패널은 `wsl.exe -e git`, NAT 모드에서
     hook이 필요하면 수신기 주소(호스트 IP + 토큰).
   - 알림: `app.setAppUserModelId()`, AUMID가 있는 시작 메뉴 바로가기.
-- **담당:** `electron/platform/win32.ts`, `sessions.ts`의 Windows 부분, `main.ts` 창 옵션, CI 워크플로.
+  - 플랫폼 계층(#1): 인터페이스 하나 뒤의 `electron/platform/{darwin,win32}.ts`: 셸 탐지와 프로필(pwsh 7 > Windows
+    PowerShell 5.1 > Git Bash > CMD, WSL 배포판은 시작 시 1회와 요청 시에만 탐지, 폴링 금지), 셸별 spawn 템플릿
+    (`pwsh -NoLogo -NoExit -Command`, `cmd /K`, `bash -l -i -c "…; exec bash -l -i"`,
+    `wsl.exe -d <distro> --cd <path> -- bash -lic "…"`), 경로 변환(`wslpath -a`, `\\wsl.localhost\…`), 알림.
+  - Now 작업의 Windows 부분: 작업 표시줄 overlay 아이콘 + `flashFrame`(T15), 첫 실행 체크리스트의 WSL 배포판별
+    `claude`/`codex`/`git` 감지(T17), Windows IME smoke + `"Cascadia Mono"`, `Consolas` 폴백(T18), 에너지 측정 도구(T9),
+    가이드 Ctrl+/·F1(T23), OS별 smoke 캡처(T24), `git.exe` 탐지(T25), 프로젝트 설정의 WSL 실행 환경(T26),
+    Windows OpenSSH 제어 채널(T36), `titleBarOverlay` 색(T10).
+- **담당:** `electron/platform/`, `sessions.ts`의 Windows 부분, `main.ts` 창 옵션, CI 워크플로.
 
 ### T20 · Windows 패키징 + 서명
 - [ ] **목표:** 사람들이 실행할 수 있는 Windows 설치 파일. (#28)
