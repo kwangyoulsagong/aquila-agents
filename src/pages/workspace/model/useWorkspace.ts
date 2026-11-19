@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, type Config, type Session, type SessionKind } from '@/shared/api';
+import { useSplitLayout } from '@/widgets/split-view';
 
-/** Workspace state: config, sessions, which project/session is on screen. */
+/** Workspace state: config, sessions, which project is selected and the split layout (what's on screen). */
 export function useWorkspace() {
   const [config, setConfig] = useState<Config | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
-  const [activeByProject, setActiveByProject] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -16,6 +16,9 @@ export function useWorkspace() {
       if (c.error) setError(c.error);
     });
   }, []);
+
+  const split = useSplitLayout(sessions, activeProjectId, setActiveProjectId);
+  const { showSession, placeInFocused, forgetSession } = split;
 
   useEffect(() => {
     const offStatus = api.onStatus(({ id, status }) =>
@@ -28,36 +31,28 @@ export function useWorkspace() {
         ),
       ),
     );
-    const offFocus = api.onFocusSession(({ id }) =>
-      setSessions((list) => {
-        const s = list.find((x) => x.id === id);
-        if (s) {
-          setActiveProjectId(s.projectId);
-          setActiveByProject((m) => ({ ...m, [s.projectId]: id }));
-        }
-        return list;
-      }),
-    );
+    const offFocus = api.onFocusSession(({ id }) => showSession(id));
     return () => {
       offStatus();
       offExit();
       offFocus();
     };
-  }, []);
+  }, [showSession]);
 
   const projectSessions = useMemo(
     () => sessions.filter((s) => s.projectId === activeProjectId),
     [sessions, activeProjectId],
   );
-  const activeSessionId =
-    (activeProjectId && activeByProject[activeProjectId]) || projectSessions[0]?.id || null;
+  const { activeSessionId, visibleSessionIds } = split;
   const project = config?.projects.find((p) => p.id === activeProjectId);
 
-  // Tell main which session is on screen (for notifications) and clear "done" once seen.
+  // Tell main which session is focused (for notifications) and clear "done" once a session is on screen.
   useEffect(() => {
     api.setActive(activeSessionId);
-    if (activeSessionId) api.markSeen(activeSessionId);
   }, [activeSessionId]);
+  useEffect(() => {
+    visibleSessionIds.forEach((id) => api.markSeen(id));
+  }, [visibleSessionIds]);
 
   const openSession = useCallback(
     async (kind: SessionKind) => {
@@ -65,22 +60,21 @@ export function useWorkspace() {
       try {
         const s = await api.createSession(activeProjectId, kind);
         setSessions((list) => [...list, { ...s, status: 'idle' }]);
-        setActiveByProject((m) => ({ ...m, [activeProjectId]: s.id }));
+        placeInFocused(s.id);
       } catch (e) {
         setError((e as Error).message);
       }
     },
-    [activeProjectId],
+    [activeProjectId, placeInFocused],
   );
 
-  const closeSession = useCallback((id: string) => {
-    api.kill(id);
-    setSessions((list) => list.filter((s) => s.id !== id));
-  }, []);
-
-  const selectSession = useCallback(
-    (id: string) => activeProjectId && setActiveByProject((m) => ({ ...m, [activeProjectId]: id })),
-    [activeProjectId],
+  const closeSession = useCallback(
+    (id: string) => {
+      api.kill(id);
+      forgetSession(id);
+      setSessions((list) => list.filter((s) => s.id !== id));
+    },
+    [forgetSession],
   );
 
   return {
@@ -90,9 +84,10 @@ export function useWorkspace() {
     projectSessions,
     project,
     activeProjectId,
-    setActiveProjectId,
+    selectProject: split.selectProject,
     activeSessionId,
-    selectSession,
+    selectSession: showSession,
+    split,
     openSession,
     closeSession,
     error,

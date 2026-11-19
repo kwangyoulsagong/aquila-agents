@@ -14,6 +14,7 @@
   min-height: 0;
   position: relative;
   display: flex;
+  overflow: hidden;
 }
 .app__error {
   padding: var(--space-inset-md);
