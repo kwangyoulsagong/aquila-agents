@@ -94,6 +94,8 @@
 | `--size-split-handle` | 8 | 분할 구분선을 잡는 영역, 1px 선 가운데 |
 | `--size-badge` / `--size-dot` | 16 / 8 | |
 | `--size-sidebar` / `--size-panel` | 248 / 416 | |
+| `--size-panel-wide` | 720 | 나란히 보기 때 변경사항 패널(창의 절반까지) |
+| `--size-diff-gutter` / `--size-diff-comment` | 40 / 384 | diff의 줄 번호 칸 하나 / 줄 코멘트 상자 |
 | `--size-dialog` / `--size-dialog-wide` | 440 / 560 | 다이얼로그 너비 / 체크리스트가 있는 다이얼로그(첫 실행) |
 | `--size-palette` / `--size-palette-list` | 560 / 352 | 명령 팔레트 너비 / 스크롤 전 목록 높이(11줄) |
 | `--size-modal` / `--size-modal-height` / `--size-modal-aside` | 760 / 520 / 240 | 목록 + 상세 모달(가이드, 릴리즈 노트) / 목록 열 너비 |
@@ -116,8 +118,8 @@
 | `.c-split`, `.c-pane[data-focused]` `__head` `__term` | 화면 분할 |
 | `.c-split--free`, `.c-split__drop`, `.c-pane__title` `__close` | 앱의 화면 분할: 절대 배치 패널, 드롭 표시(영역 사이를 미끄러지듯 이동), 패널 헤더 제목 + 닫기 |
 | `.c-split__divider[data-dir][data-active]`, `.c-split[data-resizing]`, `.c-pane__zoom[aria-pressed]` | 드래그 구분선(호버/드래그 시 강조선), 드래그 중 화면 전체 리사이즈 커서, 패널 헤더의 확대 토글 |
-| `.c-panel` `__head` `__body` `__actions` `__section` `__note` | 오른쪽 패널 (밀려 들어옴, 헤더는 탭 바처럼 창 드래그 영역) |
-| `.c-diff` `__line--add/del/hunk/file/meta` | diff (가장 긴 줄만큼 넓어짐) |
+| `.c-panel` `__head` `__body` `__actions` `__section` `__note` `__bar` `__bar-end`, `.c-panel--wide` | 오른쪽 패널 (밀려 들어옴, 헤더는 탭 바처럼 창 드래그 영역); `__bar` = 헤더 아래 줄바꿈되는 컨트롤 띠; `--wide`는 나란히 보기용(창의 절반까지) |
+| `.c-diff` `__line--add/del/hunk/file/meta`, `__file[aria-current]`, `__num`, `__actions`, `__line[data-commentable][data-commented]`, `.c-diff--split` `__row` `__line--empty`, `__comment` `__comment-actions` | diff (한 줄: 가장 긴 줄만큼 넓어짐, 나란히: 줄바꿈되는 두 칸). 줄 번호 칸, 파일/hunk 줄의 작은 버튼, 코멘트 가능/있음 표시, 줄 아래 코멘트 상자 |
 | `.c-change`, `__status[data-status]` `__path` `__dir` | 변경 파일 행: 색이 있는 git 상태 글자, 이름, 흐린 폴더 |
 | `.c-btn--ghost[aria-pressed]` | 켜진 토글 버튼 |
 | `.c-empty` `__title` `__path` `__actions` | 빈 화면 |
@@ -129,7 +131,7 @@
 | `.c-shortcuts` `__group` `__row` `__label` `__keys` | 단축키 시트: 그룹별 줄, 왼쪽 이름, 오른쪽 키 |
 | `.c-checklist` `__item` `__lead` `__main` `__title` `__meta` `__actions` `__detail` `__command` | 테두리 있는 점검 목록: 제목 줄의 점 · 제목(+ 배지) / 모노 메타 · 버튼, 아래에 전체 폭 상세(복사 버튼 있는 설치 명령, 드롭 영역) |
 | `.c-dropzone[data-over]` | 점선 드롭 영역. 끌어 올리는 동안 강조 테두리 + 선택 배경 |
-| `.c-field` `__label` `__hint`, `.c-input`, `.c-select` `__control` | 폼 필드: 라벨, 텍스트 입력 / 선택 (포커스 = 파란 테두리), 모노스페이스 힌트 |
+| `.c-field` `__label` `__hint`, `.c-input` (`--multiline`), `.c-select` `__control` | 폼 필드: 라벨, 텍스트 입력 / 선택 (포커스 = 파란 테두리), 모노스페이스 힌트 |
 
 ## React 컴포넌트 (`design-system/react/`)
 
@@ -149,7 +151,7 @@
 | `Dialog` `open` `title` `onClose` `actions` `wide`, `DialogCheck`, `DialogCode`, `DialogForm` `id` `onSubmit` | `.c-dialog` |
 | `Checklist` `label`, `ChecklistItem` `leading` `title` `tag` `meta` `actions`, `ChecklistCommand` `command` `action` | `.c-checklist` |
 | `Dropzone` `over` (+ div 속성) | `.c-dropzone` |
-| `Field` `label` `hint`, `Input`, `Select` `options` `onChange(value)` | `.c-field`, `.c-input`, `.c-select` |
+| `Field` `label` `hint`, `Input`, `Textarea`, `Select` `options` `onChange(value)` | `.c-field`, `.c-input`, `.c-input--multiline`, `.c-select` |
 | `ChangeRow` `status` `path` | `.c-change` |
 | `Palette` `open` `onClose` `label` `query` `onQueryChange` `listId` `activeId`, `PaletteList`, `PaletteItem` `selected` `label` `marks` `leading` `hint` `kbd`, `PaletteEmpty` | `.c-palette` (combobox + listbox) |
 | `Modal` `open` `title` `onClose` `closeLabel` `aside` `footer`, `ModalSearch` (열 때 포커스), `ModalList` `id` `label`, `ModalItem` `selected` `label` `trailing` `onSelect`, `ModalEmpty`, `ModalDetail` `heading` `text` `keys` | `.c-modal` |

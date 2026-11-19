@@ -34,7 +34,11 @@ const api: AquilaApi = {
   prepareAccount: (account) => ipcRenderer.invoke(IPC.accountsPrepare, account),
   shellFunctionPreview: (account) => ipcRenderer.invoke(IPC.accountsShellPreview, account),
   installShellFunction: (account) => ipcRenderer.invoke(IPC.accountsShellInstall, account),
-  gitChanges: (projectId, sessionId) => ipcRenderer.invoke(IPC.gitChanges, { projectId, sessionId }),
+  gitChanges: (projectId, sessionId, scope) =>
+    ipcRenderer.invoke(IPC.gitChanges, { projectId, sessionId, scope }),
+  gitWatch: (target) => ipcRenderer.send(IPC.gitWatch, target),
+  onGitChanged: on(IPC.gitChanged),
+  gitAction: (action) => ipcRenderer.invoke(IPC.gitAction, action),
   firstRun: (recheck) => ipcRenderer.invoke(IPC.firstRunGet, recheck === true),
   finishFirstRun: () => ipcRenderer.invoke(IPC.firstRunFinish),
   pickBinary: (tool) => ipcRenderer.invoke(IPC.firstRunPickBinary, tool),

@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from 'react';
+import type { InputHTMLAttributes, ReactNode, Ref, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
 import { cx } from './cx';
 
 /** `.c-field` — label above a control, optional monospace hint (a path) below. */
@@ -23,6 +23,14 @@ export function Field({
 /** `.c-input` — single-line text input. */
 export function Input({ className, type = 'text', ...rest }: InputHTMLAttributes<HTMLInputElement>) {
   return <input type={type} className={cx('c-input', className)} spellCheck={false} {...rest} />;
+}
+
+/** `.c-input--multiline` — a textarea with the input look (comments, notes). */
+export function Textarea({
+  className,
+  ...rest
+}: TextareaHTMLAttributes<HTMLTextAreaElement> & { ref?: Ref<HTMLTextAreaElement> }) {
+  return <textarea className={cx('c-input c-input--multiline', className)} rows={3} {...rest} />;
 }
 
 export interface SelectOption {

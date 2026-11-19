@@ -1,2 +1,10 @@
-export { parseDiff, type DiffFile, type DiffLine, type DiffLineKind } from './model/parseDiff';
-export { default as DiffView } from './ui/DiffView';
+export {
+  hunkPatch,
+  parseDiff,
+  toSplitRows,
+  type DiffFile,
+  type DiffLine,
+  type DiffLineKind,
+  type SplitRow,
+} from './model/parseDiff';
+export { default as DiffView, type DiffMode } from './ui/DiffView';

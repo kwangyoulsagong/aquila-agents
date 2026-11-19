@@ -6,6 +6,7 @@ import * as pty from 'node-pty';
 import { expand, loadConfig } from './config';
 import { assignRollouts, findRollouts } from './codex';
 import { commandName } from './detect';
+import { headSha } from './git';
 import type { HookEvent } from './hooks';
 import { OutputBatcher } from './output';
 import { SAVER_TICK_MS, TICK_MS } from './power';
@@ -59,6 +60,8 @@ interface LiveSession {
   account?: string;
   /** Runs in this git worktree instead of the project dir. */
   worktree?: Worktree;
+  /** HEAD when the session spawned (changes panel "since session start", T25); '' outside a repo. */
+  startHead?: string;
   /** Current Claude session id: ours from `--session-id`, then whatever SessionStart reports (/clear changes it). */
   claudeSessionId?: string;
   /** Codex session id: the one resumed, or captured from the rollout codex wrote (`codex.ts`). */
@@ -253,6 +256,7 @@ export class SessionManager {
     };
     this.sessions.set(id, s);
     if (!this.order.includes(id)) this.order.push(id);
+    void headSha(cwd).then((h) => (s.startHead = h));
     s.output.setSaver(this.saver);
     // Cold restore: the last output, read-only, above the fresh shell.
     if (restore.cold) this.showSaved(s, config, 'restore.previous');
@@ -543,6 +547,12 @@ export class SessionManager {
   worktreeOf(id: string, projectId: string): string | undefined {
     const s = this.sessions.get(id);
     return s?.projectId === projectId ? s.worktree?.path : undefined;
+  }
+
+  /** HEAD at spawn of a live session in that project ('' unknown / no commits). */
+  startHeadOf(id: string, projectId: string): string {
+    const s = this.sessions.get(id);
+    return s?.projectId === projectId ? (s.startHead ?? '') : '';
   }
 
   has(id: string): boolean {
