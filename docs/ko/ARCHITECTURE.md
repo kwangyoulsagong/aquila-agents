@@ -26,6 +26,7 @@
 │                                           │        │ guide.ts      둘러보기 제안 한 번만 (T23)        │
 │                                           │        │ history.ts    지난 세션, 읽기 전용 (T11)         │
 │                                           │        │ terminalHelpers.ts 클립보드 경로, 마지막 응답    │
+│                                           │        │ remote/       ssh + tmux, 재연결, 호스트 확인    │
 │                                           │        │ smoke.ts      npm run smoke 자동 점검            │
 │ shared/   api (타입·IPC·bridge), i18n       │        │                                                 │
 └───────────────────────────────────────────┘        └─────────────────────────────────────────────────┘
@@ -199,6 +200,45 @@ xterm 인스턴스는 `useTerminal(id)`(`entities/session`, `TerminalView`가 �
   ⇧+라벨은 세션에 입력, Esc는 닫기. 키는 `code`로 읽어서 한글 입력 상태여도 돼요.
 - Electron 45는 preload에 `clipboard` 모듈이 없어서 `copyText`는 main의 `clipboard:write`를 거쳐요.
 
+## 원격 세션 (T29)
+
+프로젝트를 SSH 호스트에 둘 수 있어요: `project.remote = { alias, claudeConfigDir? }`, 이때 `project.path`는 **호스트의**
+폴더예요(`~/…` = 원격 홈). 사이드바 **+** → "SSH 호스트…"로 추가(`RemoteProjectDialog`: `~/.ssh/config`에서 추천하는
+호스트(`remote:hosts`, `electron/remote/hosts.ts`, 와일드카드 없는 `Host` 이름, 단순 `Include`), 폴더, 이름, 그룹,
+호스트의 `CLAUDE_CONFIG_DIR`(선택)). 프로젝트 설정에서 같은 항목을 고쳐요.
+
+- **실행** (`electron/remote/ssh.ts`, 순수 함수 + 테스트, 만든 스크립트를 가짜 tmux와 `sh`로 실제 실행해 보는 테스트 포함):
+  `ssh -t -o ServerAliveInterval=20 -o ServerAliveCountMax=3 -o ConnectTimeout=15 <alias> -- 'exec "$SHELL" -l -c <script>'`
+  — ssh는 명령을 로그인 없이 실행해서 `~/.profile`의 PATH(`~/.local/bin`의 tmux 등)가 빠지니까요. 스크립트는
+  tmux가 있는지 보고(없으면 메시지와 함께 exit 127), 우리 `~/.aquila/tmux.conf`를 쓰고(호스트에 쓰는 유일한 파일: 상태 바
+  없음, 대체 화면 없음 → 출력이 xterm 스크롤백으로, `allow-passthrough on`, OSC 52), 폴더로 `cd`한 뒤
+  `exec tmux -L aquila -f ~/.aquila/tmux.conf new-session -A -s aq-<탭 키> -c "$PWD" '<inner>'`. 우리 전용 tmux 서버
+  (`-L aquila`)라 사용자의 tmux는 건드리지 않아요. `<inner>` = `exec "$SHELL" -l -i -c '<에이전트>; exec "$SHELL" -l -i'`
+  (로컬과 같음: 로그인 셸에서 에이전트, 끝나면 셸), Claude는 설정돼 있으면 앞에 `export CLAUDE_CONFIG_DIR=…`.
+  Claude는 `--session-id` / `--resume`, codex는 `resume <id>` — 호스트 PATH의 이름 그대로.
+- **탭마다 tmux 세션 하나**, 이름은 바뀌지 않는 탭 키. `-A`는 있으면 붙으니까 재연결도 앱 재실행도 돌고 있는 에이전트에
+  다시 붙어요(이때 tmux는 명령과 폴더를 무시). 탭을 닫으면 `ssh -o BatchMode=yes <alias> tmux -L aquila kill-session -t aq-<키>`;
+  앱 종료는 안 죽여서 다시 열면 붙어요.
+- **재연결** (`electron/remote/reconnect.ts`, 수동 시계로 테스트): ssh exit 255(ssh 자체 실패: 연결 거부, keepalive
+  시간 초과)면 탭을 두고 3 → 6 → 12 → 60초 뒤, 그다음은 60초마다 다시 시도해요. ssh가 2.5초 살아 있으면 연결됨으로
+  봐요(ssh가 자기 오류를 출력하니 출력만으로는 연결이 아님). 그러면 백오프가 처음부터. 3번 실패하면 `lost`지만 계속
+  시도해요. 다른 종료 코드는 세션이 끝난 것(에이전트와 셸이 끝났거나 tmux 없음). 시도마다 pty만 바뀌고 xterm·탭·상태는 그대로.
+  상태는 `session:connection`으로 렌더러에(`connecting | connected | reconnecting | lost` + `retryAt`).
+- **UI:** 탭과 분할 헤드에 연결 점이 있는 호스트 배지(`HostBadge`, `entities/project`), 사이드바엔 계정 배지 대신 호스트
+  배지, `lost` 동안 터미널 위 배너(`features/remote-connection`: 카운트다운, "지금 다시 연결" → `remote:reconnect`,
+  "에이전트는 호스트의 tmux에서 계속 돌아요").
+- **상태:** 원격 Claude엔 훅이 없고(이 Mac의 127.0.0.1로 보내니까) tmux는 모르는 OSC를 버려서 OSC 7501이 안 와요
+  (passthrough는 프로그램이 직접 감싼 시퀀스만 넘겨요). 원격 탭은 출력 활동 추정을 쓰고 '추정'으로 보여요.
+- **호스트 확인** (`remote:check`, `electron/remote/check.ts`): `ssh -o BatchMode=yes`로 원격 로그인 셸에서 한 번 실행:
+  `uname -sm`, claude / codex / tmux / git의 `command -v`와 버전, Claude 로그인(`<dir>/.credentials.json` 또는
+  `.claude.json`의 `oauthAccount`), 패키지 관리자(설치 안내용), systemd-logind `KillUserProcesses`(+ linger). 설치 명령은
+  복사 버튼과 함께 보여주기만 해요. 비밀번호나 새 호스트 키가 필요한 호스트는 여기서 ssh 메시지로 실패하지만, 세션은 진짜
+  pty라 물어볼 수 있어요.
+- 사용자의 `~/.ssh/config`와 ssh-agent를 써요. 비밀은 저장하지 않아요. 아직 로컬 전용(메인이 메시지 하나로 거절, UI에선
+  숨김): 워크트리, 변경사항 패널, 세션 기록/이어하기, "열 앱", 마지막 응답 복사, 포트, 셋업 스크립트, 로컬 계정 전환.
+- **스모크** (`electron/remote/smoke.ts`): PATH의 가짜 `ssh` / `tmux`가 실제 스크립트를 로컬에서 실행: 첫 시도 거부 →
+  다시 연결 중 → 연결됨, 입력한 표식이 돌아옴, 링크 끊김(exit 255) → 재연결 → 다시 출력, 탭 닫으면 `kill-session`.
+
 ## 단축키
 
 - 맵 하나: `src/shared/lib/shortcuts.ts`의 `ShortcutId` → Electron accelerator(`CommandOrControl+Shift+T`).
@@ -277,7 +317,7 @@ Agentrix에서 이름이 바뀌었습니다: 처음 실행할 때 `~/.aquila/con
 
 `features/manage-projects`(사이드바에서 사용)로 JSON을 직접 고치지 않고 프로젝트 목록을 바꿉니다:
 
-- 사이드바 하단 **+** → 네이티브 폴더 선택(`dialog:pick-folder`) → 다이얼로그: 이름(= 폴더 이름), 그룹, 계정
+- 사이드바 하단 **+** → 메뉴: "로컬 폴더…" 또는 "SSH 호스트…"(원격 프로젝트, T29). 로컬 → 네이티브 폴더 선택(`dialog:pick-folder`) → 다이얼로그: 이름(= 폴더 이름), 그룹, 계정
   (현재 프로젝트 값으로 미리 선택). 추가된 프로젝트가 선택돼요.
 - 프로젝트 우클릭 → 네이티브 메뉴(`ui:context-menu`, `electron/menu.ts`): 이름 바꾸기… · 그룹 ▸ (새 그룹… 포함) ·
   Claude 계정 ▸ · 사이드바에서 제거… (확인 필요, 열린 세션은 닫힘, 파일은 절대 건드리지 않음).

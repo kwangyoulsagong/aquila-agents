@@ -6,6 +6,7 @@ import {
   type Project,
   type ProjectEdit,
   type ProjectSettings,
+  type RemoteHost,
   type Session,
 } from '@/shared/api';
 import { accountLabel, groupLabel, useT } from '@/shared/i18n';
@@ -13,6 +14,8 @@ import { draggedProject, dropPos, dropTarget, endProjectDrag, startProjectDrag, 
 
 export type ManageDialog =
   | { kind: 'add'; path: string }
+  /** A project on an SSH host (T29). */
+  | { kind: 'addRemote' }
   | { kind: 'renameProject'; project: Project }
   | { kind: 'settings'; project: Project }
   | { kind: 'removeProject'; project: Project; sessions: number }
@@ -63,13 +66,23 @@ export function useManageProjects({
   /** Menu and drag edits have no dialog to show an error in. */
   const tryEdit = (e: ProjectEdit) => edit(e).catch((err: unknown) => onError((err as Error).message));
 
-  const addProject = async () => {
+  const addLocal = async () => {
     try {
       const path = await api.pickFolder();
       if (path) setDialog({ kind: 'add', path });
     } catch (err) {
       onError((err as Error).message);
     }
+  };
+
+  /** "+": a local folder or a folder on an SSH host. */
+  const addProject = async () => {
+    const choice = await api.showContextMenu([
+      { id: 'local', label: t('projects.addLocal') },
+      { id: 'remote', label: t('projects.addRemote') },
+    ]);
+    if (choice === 'local') await addLocal();
+    else if (choice === 'remote') setDialog({ kind: 'addRemote' });
   };
 
   const openIn = (project: Project) =>
@@ -79,7 +92,9 @@ export function useManageProjects({
     e.preventDefault();
     const choice = await api.showContextMenu([
       { id: 'settings', label: t('settings.action') },
-      { id: 'open-in', label: t('settings.openInAction', { app: project.openIn || 'Finder' }) },
+      ...(project.remote
+        ? []
+        : [{ id: 'open-in', label: t('settings.openInAction', { app: project.openIn || 'Finder' }) }]),
       { separator: true },
       { id: 'rename', label: t('action.rename') },
       {
@@ -96,6 +111,8 @@ export function useManageProjects({
       },
       {
         label: t('account.title'),
+        // A remote project's Claude uses the host's config dir (project settings).
+        enabled: !project.remote,
         submenu: Object.entries(config.accounts).map(([id, a]) => ({
           id: `account:${id}`,
           label: accountLabel(t, id, a),
@@ -143,9 +160,18 @@ export function useManageProjects({
   };
 
   // ── Dialog submits (errors are shown in the dialog) ──
-  const submitAdd = async (values: { name: string; group: string; account: string }) => {
-    if (dialog?.kind !== 'add') return;
-    const next = await edit({ op: 'addProject', path: dialog.path, ...values });
+  const submitAdd = async (values: {
+    name: string;
+    group: string;
+    account?: string;
+    /** Remote only: the folder on the host and the host. */
+    path?: string;
+    remote?: RemoteHost;
+  }) => {
+    if (dialog?.kind !== 'add' && dialog?.kind !== 'addRemote') return;
+    const path = dialog.kind === 'add' ? dialog.path : (values.path ?? '');
+    const account = values.account ?? Object.keys(config.accounts)[0] ?? 'shared';
+    const next = await edit({ op: 'addProject', ...values, path, account });
     const added = next.projects.find((p) => !config.projects.some((old) => old.id === p.id));
     setDialog(null);
     if (added) onAdded(added.id);

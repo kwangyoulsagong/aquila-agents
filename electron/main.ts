@@ -22,6 +22,8 @@ import { binaryFor, finishFirstRun, firstRunReport, loadOverrides, setBinaryPath
 import { detectClaudeVersion, startHookServer, supportsHttpHooks, writeClaudeHookSettings } from './hooks';
 import { PowerWatcher, type PowerSource } from './power';
 import { SessionManager } from './sessions';
+import { checkRemote } from './remote/check';
+import { sshHosts } from './remote/hosts';
 import { CODEX_SESSIONS_DIR } from './codex';
 import { clipboardPaths, findClaudeTranscript, findRollout, lastReply, readTail } from './terminalHelpers';
 import {
@@ -41,6 +43,7 @@ import { isSmoke, runSmoke, SMOKE_BUFFER_BYTES, watchOutput } from './smoke';
 import { translator } from '../src/shared/i18n/dictionary';
 import {
   IPC,
+  type ConnectionUpdate,
   type ContextMenuItem,
   type GitAction,
   type GitScope,
@@ -48,6 +51,7 @@ import {
   type HistoryRef,
   type Language,
   type ProjectEdit,
+  type RemoteHost,
   type RestoreResult,
   type SavedLayout,
   type SessionInfo,
@@ -110,7 +114,7 @@ app.whenReady().then(async () => {
   const detectHooks = () =>
     detectClaudeVersion(process.env, binaryFor('claude')).then((v) => (httpHooks = supportsHttpHooks(v)));
   void detectHooks();
-  const smokeOutput = { buffer: '', statuses: [] as string[] };
+  const smokeOutput = { buffer: '', statuses: [] as string[], connections: [] as ConnectionUpdate[] };
   const send = (channel: string, payload: unknown) => win?.webContents.send(channel, payload);
   sessions = new SessionManager({
     send: isSmoke
@@ -118,6 +122,7 @@ app.whenReady().then(async () => {
           send,
           (d) => (smokeOutput.buffer = (smokeOutput.buffer + d).slice(-SMOKE_BUFFER_BYTES)),
           (st) => smokeOutput.statuses.push(st),
+          (c) => smokeOutput.connections.push(c),
         )
       : send,
     getWindow: () => win,
@@ -221,16 +226,34 @@ app.whenReady().then(async () => {
     (_e, { projectId, kind, account }: { projectId: string; kind: SessionKind; account?: string }) =>
       s.create(loadConfig(), projectId, kind, account),
   );
+  // Remote projects (T29): local-only features refuse them with one message instead of failing on a missing folder.
+  const localOnly = (projectId: string) => {
+    const config = loadConfig();
+    if (config.projects.find((p) => p.id === projectId)?.remote)
+      throw new Error(translator(config.language)('remote.unsupported'));
+  };
+  ipcMain.handle(IPC.remoteHosts, () => sshHosts());
+  ipcMain.handle(IPC.remoteCheck, (_e, host: RemoteHost) =>
+    checkRemote({
+      alias: String(host?.alias ?? '').trim(),
+      ...(host?.claudeConfigDir ? { claudeConfigDir: String(host.claudeConfigDir) } : {}),
+    }),
+  );
+  ipcMain.on(IPC.remoteReconnect, (_e, id: string) => s.reconnect(id));
   ipcMain.handle(
     IPC.sessionCreateWorktree,
     async (_e, { projectId, branch, kind }: { projectId: string; branch: string; kind: SessionKind }) => {
+      localOnly(projectId);
       const config = loadConfig();
       const { worktree, created } = await ensureWorktree(config, projectId, branch);
       const setup = created ? config.projects.find((p) => p.id === projectId)?.setupScript : undefined;
       return s.create(config, projectId, kind, undefined, {}, worktree, setup);
     },
   );
-  ipcMain.handle(IPC.worktreeInfo, (_e, projectId: string) => worktreeInfo(loadConfig(), projectId));
+  ipcMain.handle(IPC.worktreeInfo, (_e, projectId: string) => {
+    localOnly(projectId);
+    return worktreeInfo(loadConfig(), projectId);
+  });
   ipcMain.handle(IPC.sessionRestore, () => restoreSessions());
   ipcMain.handle(IPC.sessionStart, (_e, id: string) => s.wake(loadConfig(), id));
   ipcMain.on(IPC.layoutSave, (_e, layout: SavedLayout) => {
@@ -254,28 +277,32 @@ app.whenReady().then(async () => {
     sessionId ? s.worktreeOf(sessionId, projectId) : undefined;
   ipcMain.handle(
     IPC.gitChanges,
-    (_e, { projectId, sessionId, scope }: GitTarget & { scope?: GitScope }) =>
-      gitChanges(
+    (_e, { projectId, sessionId, scope }: GitTarget & { scope?: GitScope }) => {
+      localOnly(projectId);
+      return gitChanges(
         loadConfig(),
         projectId,
         worktreeFor(projectId, sessionId),
         scope === 'session' && sessionId ? s.startHeadOf(sessionId, projectId) || undefined : undefined,
-      ),
+      );
+    },
   );
   const treeWatcher = new TreeWatcher(() => win?.webContents.send(IPC.gitChanged));
   ipcMain.on(IPC.gitWatch, (_e, target: GitTarget | null) => {
     try {
+      if (target) localOnly(target.projectId);
       treeWatcher.watch(target ? treeOf(loadConfig(), target.projectId, worktreeFor(target.projectId, target.sessionId)) : null);
     } catch {
       treeWatcher.watch(null);
     }
   });
   app.on('before-quit', () => treeWatcher.close());
-  ipcMain.handle(IPC.gitAction, (_e, a: GitAction) =>
-    gitAction(treeOf(loadConfig(), a.projectId, worktreeFor(a.projectId, a.sessionId)), a, (p) =>
+  ipcMain.handle(IPC.gitAction, (_e, a: GitAction) => {
+    localOnly(a.projectId);
+    return gitAction(treeOf(loadConfig(), a.projectId, worktreeFor(a.projectId, a.sessionId)), a, (p) =>
       shell.trashItem(p),
-    ),
-  );
+    );
+  });
   // Session history (T11): read-only over ~/.claude*/projects and ~/.codex; names and favorites in ~/.aquila.
   const history = new HistoryIndex();
   const known = (ref: HistoryRef) => {

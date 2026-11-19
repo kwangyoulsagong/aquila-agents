@@ -25,6 +25,17 @@ describe('project settings form', () => {
     expect(toSettings(form, project)).toMatchObject({ path: '/Users/me/b', portBase: 3000 });
   });
 
+  it('a remote project sends its host and the typed path', () => {
+    const remote: Project = { ...project, path: '~/api', remote: { alias: 'devbox' } };
+    const form = { ...toForm(remote), path: '~/api2', remoteAlias: ' gpu ', remoteClaudeDir: '~/.claude-w ' };
+    expect(toForm(remote)).toMatchObject({ remoteAlias: 'devbox', remoteClaudeDir: '' });
+    expect(toSettings(form, remote)).toMatchObject({
+      path: '~/api2',
+      remote: { alias: 'gpu', claudeConfigDir: '~/.claude-w' },
+    });
+    expect(toSettings(toForm(project), project)).not.toHaveProperty('remote');
+  });
+
   it('parses ports: blank, valid, out of range, not a number', () => {
     expect(parsePort(' ')).toBeUndefined();
     expect(parsePort('3000')).toBe(3000);

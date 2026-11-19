@@ -91,6 +91,12 @@ body {
 .c-badge--shell { color: var(--color-agent-shell); }
 .c-badge--account-shared { color: var(--color-account-shared); }
 .c-badge--account-personal { color: var(--color-account-personal); }
+/* Remote host (T29): the alias as typed (not uppercased) with a connection dot. */
+.c-badge--host { gap: var(--space-inline-xs); text-transform: none; letter-spacing: 0; }
+.c-badge__conn { width: var(--size-dot-sm); height: var(--size-dot-sm); border-radius: 50%; flex: none; background: var(--color-status-idle); }
+.c-badge__conn[data-conn='connected'] { background: var(--color-status-done); }
+.c-badge__conn[data-conn='reconnecting'] { background: var(--color-status-waiting); animation: c-pulse var(--motion-pulse) ease-in-out infinite; }
+.c-badge__conn[data-conn='lost'] { background: var(--color-status-error); }
 
 /* ── Section label ────────────────────────────────────────── */
 .c-label {
@@ -405,6 +411,16 @@ body {
   font-size: var(--font-size-caption);
 }
 .c-term-overlay__note--bar { top: auto; bottom: var(--space-inset-sm); color: var(--color-text-secondary); }
+/* Connection banner (T29): across the top of a remote terminal while its connection is lost. Takes clicks. */
+.c-term-overlay__banner {
+  position: absolute; top: var(--space-inset-sm); left: var(--space-inset-md); right: var(--space-inset-md);
+  display: flex; align-items: center; gap: var(--space-inline-sm); pointer-events: auto;
+  padding: var(--space-inline-xs) var(--space-inline-xs) var(--space-inline-xs) var(--space-inset-md);
+  border: 1px solid var(--color-status-error); border-radius: var(--radius-control);
+  background: var(--color-bg-surface); color: var(--color-text-primary); font: var(--font-size-caption) var(--font-family-ui);
+}
+.c-term-overlay__banner-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.c-term-overlay__banner-meta { color: var(--color-text-secondary); }
 /* Quick select: the match is tinted, its label covers its first characters (positions come from the cell grid). */
 .c-term-hint { position: absolute; background: var(--color-terminal-selection); border-radius: var(--radius-badge); }
 .c-term-hint__label {
@@ -654,7 +670,7 @@ body {
 .c-modal__item { transition: background var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease); }
 
 /* Terminal helpers: the jump button and notes rise in; labels fade in. */
-.c-term-overlay__jump, .c-term-overlay__note { animation: c-fade-up var(--motion-medium) var(--motion-ease) both; }
+.c-term-overlay__jump, .c-term-overlay__note, .c-term-overlay__banner { animation: c-fade-up var(--motion-medium) var(--motion-ease) both; }
 .c-term-overlay > .c-dropzone, .c-term-hint { animation: c-fade-in var(--motion-fast) var(--motion-ease) both; }
 
 /* Right panel slides in from the edge. */
@@ -673,4 +689,5 @@ body {
 /* Power-saver mode (T9, set by the app on battery / throttled / hot): no looping animations.
  * One-shot micro-interactions stay; the waiting dot keeps its pop but drops the endless halo. */
 :root[data-power='saver'] .c-dot[data-status='working'] { animation: none; }
+:root[data-power='saver'] .c-badge__conn[data-conn='reconnecting'] { animation: none; }
 :root[data-power='saver'] .c-dot[data-status='waiting'] { animation: c-pop var(--motion-slow) var(--motion-ease-spring); }

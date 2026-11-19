@@ -2,9 +2,10 @@ import { useEffect, useState, type CSSProperties, type DragEvent, type PointerEv
 import type { Config, Project, Session, SessionKind } from '@/shared/api';
 import { kindLabel, useT } from '@/shared/i18n';
 import { draggedSession, endSessionDrag } from '@/shared/lib/sessionDrag';
-import { AccountBadge } from '@/entities/project';
+import { AccountBadge, HostBadge } from '@/entities/project';
 import { StatusDot, TerminalView } from '@/entities/session';
 import { TerminalHelpers } from '@/features/terminal-helpers';
+import { ConnectionBanner } from '@/features/remote-connection';
 import { OpenSessionPanel } from '@/features/open-session';
 import { withShortcut } from '@/shared/lib/shortcuts';
 import {
@@ -194,6 +195,7 @@ export default function SplitView({
                       {s.worktree && ` · ${s.worktree.branch}`}
                     </span>
                     {s.account && <AccountBadge config={config} account={s.account} />}
+                    {s.remote && <HostBadge host={s.remote} conn={s.connection ?? 'connecting'} />}
                   </>
                 ) : (
                   <span className="c-pane__title">{t('pane.empty')}</span>
@@ -244,6 +246,7 @@ export default function SplitView({
           >
             <TerminalView id={s.id} kind={s.kind} visible={!!r} focused={r?.leaf.id === layout.focusedId} />
             <TerminalHelpers sessionId={s.id} kind={s.kind} />
+            {s.remote && <ConnectionBanner session={s} />}
           </div>
         );
       })}

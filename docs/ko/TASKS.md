@@ -213,7 +213,8 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
 - **담당:** `src/features/terminal-helpers/`, `TerminalView` 소폭 수정.
 
 ### T29 · 원격 세션(SSH) MVP
-- [ ] **목표:** 프로젝트를 이 Mac 또는 SSH 서버에서 열기. (#43, #44, 오너)
+- [x] **목표:** 프로젝트를 이 Mac 또는 SSH 서버에서 열기. (#43, #44, 오너)
+  _남은 것: 실제 호스트(Ubuntu, `~/.local/bin`의 tmux 3.2a)에서 같은 argv로 손으로 확인: 호스트 확인, 연결, 링크를 끊으면 같은 셸에 다시 붙음, 닫으면 kill-session — 앱에서 직접 눌러보진 않았고, UI는 preview.html로만 확인(스모크가 네이티브 "+" 메뉴를 못 열어요). 실제 호스트에서 에이전트 세션은 아직(그 호스트엔 claude/codex 없음). OSC 7501은 tmux를 못 지나가서(모르는 OSC는 버리고, passthrough는 프로그램이 직접 감싸야 함) 원격 탭은 출력 추정을 써요. 원격 Claude 훅(예: 훅 포트로 `ssh -R`)은 안 했어요. 설정은 `location` 대신 `project.remote = { alias, claudeConfigDir }`, `project.path` = 호스트의 폴더. 앱 내 가이드 항목은 아직(캡처 미디어 필요). 재실행 때 `tmux -L aquila ls`를 읽지 않고 탭마다 `new-session -A`로 다시 붙어요._
 - **명세:** `project.location = local | ssh { alias, path, claudeConfigDir }`. 실행:
   `ssh -t <alias> -- tmux -L aquila new-session -A -s aq-<id> -c <path> -e CLAUDE_CONFIG_DIR=… '<cmd>'`(전용 tmux 서버,
   원격 `~/.aquila/tmux.conf`에 `allow-passthrough on`). 3→6→12→60초 백오프 재연결, `ServerAliveInterval=20`, 앱을

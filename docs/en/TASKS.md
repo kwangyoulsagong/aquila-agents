@@ -222,7 +222,8 @@ Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-1
 - **Owns:** `src/features/terminal-helpers/`, small changes in `TerminalView`.
 
 ### T29 · Remote sessions (SSH) MVP
-- [ ] **Goal:** open a project on this Mac or on an SSH host. (#43, #44, owner)
+- [x] **Goal:** open a project on this Mac or on an SSH host. (#43, #44, owner)
+  _Left over: tried by hand against a real host (Ubuntu, tmux 3.2a in `~/.local/bin`): host check, connect, a killed link reattaching to the same shell, kill-session on close — through the same argv, not yet clicked through in the app; the UI is checked through preview.html only (smoke can't open the native "+" menu). No agent session on a real host yet (that host has no claude/codex). OSC 7501 does not survive tmux (it drops unknown OSC; passthrough needs the program to wrap it), so remote tabs use the output heuristic; remote Claude hooks (e.g. `ssh -R` to our hook port) not done. Config is `project.remote = { alias, claudeConfigDir }` with `project.path` = the folder on the host, instead of `location`. No in-app guide entry yet (needs captured media). Relaunch reattaches through `new-session -A` per tab rather than reading `tmux -L aquila ls`._
 - **Spec:** `project.location = local | ssh { alias, path, claudeConfigDir }`. Run with
   `ssh -t <alias> -- tmux -L aquila new-session -A -s aq-<id> -c <path> -e CLAUDE_CONFIG_DIR=… '<cmd>'` (own tmux server,
   remote `~/.aquila/tmux.conf` with `allow-passthrough on`). Reconnect with 3→6→12→60 s backoff, `ServerAliveInterval=20`,

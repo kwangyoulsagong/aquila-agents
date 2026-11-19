@@ -4,7 +4,7 @@ import { api, type Config, type Session, type SessionKind } from '@/shared/api';
 import { kindLabel, useT } from '@/shared/i18n';
 import { endSessionDrag, startSessionDrag } from '@/shared/lib/sessionDrag';
 import { SHORTCUTS, withShortcut } from '@/shared/lib/shortcuts';
-import { AccountBadge } from '@/entities/project';
+import { AccountBadge, HostBadge } from '@/entities/project';
 import { StatusDot, WaitingTime } from '@/entities/session';
 
 interface Props {
@@ -95,6 +95,7 @@ export default function SessionTabs({
           )}
           {s.status === 'waiting' && <WaitingTime since={s.since} />}
           {s.account && <AccountBadge config={config} account={s.account} />}
+          {s.remote && <HostBadge host={s.remote} conn={s.connection ?? 'connecting'} />}
           <button
             className="c-tab__close"
             aria-label={t('action.closeSession')}

@@ -35,6 +35,9 @@ export interface SettingsForm {
   setupScript: string;
   portBase: string;
   openIn: string;
+  /** Remote projects only (T29). */
+  remoteAlias: string;
+  remoteClaudeDir: string;
 }
 
 export function toForm(p: Project): SettingsForm {
@@ -48,6 +51,8 @@ export function toForm(p: Project): SettingsForm {
     setupScript: p.setupScript ?? '',
     portBase: p.portBase === undefined ? '' : String(p.portBase),
     openIn: p.openIn ?? '',
+    remoteAlias: p.remote?.alias ?? '',
+    remoteClaudeDir: p.remote?.claudeConfigDir ?? '',
   };
 }
 
@@ -73,5 +78,8 @@ export function toSettings(form: SettingsForm, original: Project): ProjectSettin
     setupScript: form.setupScript,
     portBase: port ?? null,
     openIn: form.openIn,
+    ...(original.remote
+      ? { remote: { alias: form.remoteAlias.trim(), claudeConfigDir: form.remoteClaudeDir.trim() } }
+      : {}),
   };
 }
