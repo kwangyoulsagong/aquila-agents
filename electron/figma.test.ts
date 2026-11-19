@@ -85,6 +85,43 @@ describe('parsePlans', () => {
   });
 });
 
+// Shape of a real Figma `whoami` reply (2026-11), values made up.
+const REAL_SHAPE = {
+  whoami: {
+    user_id: '1',
+    handle: 'Ada Lovelace',
+    email: 'ada@example.com',
+    code_layers_enabled: true,
+    plans: [
+      {
+        name: "Ada's team",
+        seat: 'View',
+        tier: 'starter',
+        key: 'team::1',
+        role: 'admin',
+        specs_enabled: true,
+      },
+      { name: 'Acme Design', seat: 'Full', tier: 'pro', key: 'team::2', role: 'guest', specs_enabled: true },
+    ],
+  },
+  instructions: 'For more details on rate limits and access, refer to https://developers.figma.com/docs/…',
+};
+
+describe('real whoami shape', () => {
+  it('finds the nested plans with seat (not role) and tier', () => {
+    expect(parseProbe(probe(JSON.stringify(REAL_SHAPE)), 3)).toEqual({
+      state: 'connected',
+      checkedAt: 3,
+      email: 'ada@example.com',
+      handle: 'Ada Lovelace',
+      plans: [
+        { name: "Ada's team", tier: 'starter', seat: 'View' },
+        { name: 'Acme Design', tier: 'pro', seat: 'Full' },
+      ],
+    });
+  });
+});
+
 describe('parseProbe', () => {
   it('connected: email, handle and plans', () => {
     const p = parseProbe(

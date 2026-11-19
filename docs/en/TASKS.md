@@ -250,7 +250,7 @@ Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-1
 
 ### T32 · Figma MCP (opt-in)
 - [x] **Goal:** one click to give a project's Claude the official Figma MCP. (#35, #36)
-  _Left over: Codex works via `-c mcp_servers.figma.url` (no repo `.codex/config.toml` needed). Local projects only (remote would need the host's own `/mcp` login). The whoami shape isn't documented: parsed defensively, but not yet seen with a logged-in Figma account (only the not-logged-in path was run live); seat/plan hints are heuristics, linked to Figma's docs. No in-app guide entry (needs captured media)._
+  _Left over: Codex works via `-c mcp_servers.figma.url` (no repo `.codex/config.toml` needed). Local projects only (remote would need the host's own `/mcp` login). The whoami shape isn't documented: parser checked against a real reply (plans nested under `whoami.plans`, seat ≠ role), but the hidden `claude -p` check has only run live without a Figma login; seat/plan hints are heuristics, linked to Figma's docs. No in-app guide entry (needs captured media)._
 - **Spec:** off by default, per-project toggle; Figma UI hidden when off. `~/.aquila/mcp/figma.json`
   (`https://mcp.figma.com/mcp`) passed with `--mcp-config` (no `--strict-mcp-config`); auth stays in the CLI (`/mcp`).
   Codex: verify `-c mcp_servers.figma.*`, else confirm-then-write repo `.codex/config.toml`. "Connect" runs a short

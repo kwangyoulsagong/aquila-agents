@@ -40,6 +40,17 @@ describe('featureStates', () => {
   });
 });
 
+describe('real whoami plans', () => {
+  it('a Full seat on Pro: design to code fine, Code Connect may need Organization', () => {
+    const p = profile([
+      { name: "Ada's team", tier: 'starter', seat: 'View' },
+      { name: 'Acme Design', tier: 'pro', seat: 'Full' },
+    ]);
+    expect(featureStates(p).map((s) => s.reason)).toEqual([null, 'mayNeedOrg']);
+    expect(planLabel(p, '?')).toBe('Acme Design (pro, Full)');
+  });
+});
+
 describe('planLabel', () => {
   it('prefers the Dev/Full seat plan and skips unknown parts', () => {
     expect(

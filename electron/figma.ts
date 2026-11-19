@@ -12,7 +12,7 @@ import { APP_DIR } from './config';
 import { binaryFor } from './detect';
 
 export const FIGMA_MCP_URL = 'https://mcp.figma.com/mcp';
-export const FIGMA_DOCS_URL = 'https://developers.figma.com/docs/figma-mcp-server/';
+export const FIGMA_DOCS_URL = 'https://developers.figma.com/docs/figma-mcp-server/rate-limits-access/';
 export const FIGMA_MCP_PATH = path.join(APP_DIR, 'mcp', 'figma.json');
 export const FIGMA_PROFILE_PATH = path.join(APP_DIR, 'figma-profile.json');
 
@@ -102,7 +102,8 @@ function findString(v: Json | undefined, keys: string[], depth = 0): string | un
   return undefined;
 }
 
-const SEAT_KEYS = ['seat', 'seattype', 'seat_type', 'role', 'product_seat'];
+// Not `role`: whoami's role is admin/guest/member, not the seat.
+const SEAT_KEYS = ['seat', 'seattype', 'seat_type', 'product_seat'];
 const TIER_KEYS = ['tier', 'plan_tier', 'plantier', 'plan_type', 'type'];
 const NAME_KEYS = ['name', 'plan_name', 'team_name', 'org_name'];
 
@@ -114,13 +115,23 @@ function toPlan(v: Json): FigmaPlan {
   };
 }
 
-/** whoami result → plans (one per team/org). A single top-level seat/tier still counts as one plan. */
+/** First array under a plans/teams/orgs-like key, searched depth-first (whoami nests it: `{ whoami: { plans } }`). */
+function findPlanList(v: Json | undefined, depth = 0): Json[] | undefined {
+  if (depth > 4 || !isObj(v)) return undefined;
+  for (const [k, val] of Object.entries(v))
+    if (/^(plans?|teams?|orgs?|organizations?|memberships?)$/i.test(k) && Array.isArray(val)) return val;
+  for (const val of Object.values(v)) {
+    const hit = findPlanList(val, depth + 1);
+    if (hit) return hit;
+  }
+  return undefined;
+}
+
+/** whoami result → plans (one per team/org). A single seat/tier without a list still counts as one plan. */
 export function parsePlans(data: Json | undefined): FigmaPlan[] {
   if (!isObj(data)) return [];
-  const list = Object.entries(data).find(
-    ([k, v]) => /plans?|teams?|orgs?|organizations?|memberships?/i.test(k) && Array.isArray(v),
-  )?.[1];
-  if (Array.isArray(list)) return list.filter(isObj).map(toPlan);
+  const list = findPlanList(data);
+  if (list) return list.filter(isObj).map(toPlan);
   const plan = toPlan(data);
   return plan.seat !== 'unknown' || plan.tier !== 'unknown' ? [{ ...plan, name: 'unknown' }] : [];
 }
