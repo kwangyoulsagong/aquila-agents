@@ -19,9 +19,20 @@ npm install     # also rebuilds node-pty for Electron
 npm run dev     # app with hot reload
 npm run smoke   # build, launch, verify a terminal session works, screenshot → dist/smoke.png
 npm run check   # typecheck + lint (incl. FSD boundaries) + tests
+npm run dist    # package → release/Aquila Agents-<version>-arm64.dmg (+ .zip)
 ```
 
 Projects live in `~/.aquila/config.json` (created on first run; "Open settings file" in the sidebar).
+
+## Share a build
+
+`npm run dist` writes `release/Aquila Agents-<version>-arm64.dmg` and a `.zip` (Apple Silicon). Bump `version` in
+`package.json` before each build you hand out. Builds are **not signed or notarized** yet, so on the receiving Mac:
+
+1. Open the `.dmg` and drag **Aquila Agents** to Applications.
+2. The first launch is blocked ("unidentified developer"). Right-click the app → **Open** → **Open**, or run once:
+   `xattr -dr com.apple.quarantine "/Applications/Aquila Agents.app"`
+3. `claude` and/or `codex` must already be installed and logged in on that Mac (the app runs the real CLIs).
 
 ## Shortcuts
 

@@ -94,3 +94,9 @@ Renderer: `useT()`; main (notifications): `translator(config.language)`.
 - Renderer: Vite → `dist/`. Main + preload: `tsc -p tsconfig.electron.json` → `dist-electron/` (CommonJS).
 - `node-pty` is native: `postinstall` runs `electron-rebuild`. After changing Electron's version, rerun `npm install`.
 - `npm run smoke`: build, launch, open a shell session, verify the pty round-trip, save `dist/smoke.png`, quit (0 ok / 1 fail).
+  It also logs whether `claude`/`codex` are on PATH. A packaged app saves the screenshot to the temp dir.
+- Finder launches get launchd's minimal PATH. `env.ts` reads the login + interactive shell's PATH once at startup and
+  puts it in front (sessions already start a login shell; this is for what main runs directly, like `git`).
+- `npm run dist`: electron-builder (`electron-builder.yml`) → `release/*.dmg` + `.zip`, arm64, unsigned. Only `node-pty`
+  is a runtime dependency (renderer libraries are bundled by Vite, so they're devDependencies); it's unpacked from the
+  asar. Icon: `build/icon.svg` → `npm run icon` → `build/icon.png` (rendered by Electron, `electron/tools/render-icon.ts`).
