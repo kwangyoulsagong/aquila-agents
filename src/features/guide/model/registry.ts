@@ -3,7 +3,7 @@ import type { ShortcutId } from '@/shared/lib/shortcuts';
 
 type Key = Parameters<Translate>[0];
 
-/** Screenshot or short muted loop for a guide item (T24 captures them into `../media/`). */
+/** Screenshot or short muted loop for a guide item (`npm run capture` writes them to `../media/`, see media.ts). */
 export interface GuideMedia {
   src: string;
   kind: 'image' | 'video';
@@ -15,7 +15,6 @@ export interface GuideItem {
   id: string;
   titleKey: Key;
   bodyKey: Key;
-  media?: GuideMedia;
   /** Shortcuts shown with the item, from the one shortcut map (`project1` + `project9` = the ⌘1–⌘9 range). */
   shortcuts?: readonly ShortcutId[];
 }
@@ -23,7 +22,10 @@ export interface GuideItem {
 /** Id of the item whose detail is the full shortcut sheet. */
 export const SHORTCUTS_ITEM = 'shortcuts';
 
-/** Every feature, in the order the guide lists them. Add a feature here when you ship one. */
+/**
+ * Every feature, in the order the guide lists them. Add a feature here when you ship one, plus a capture scenario
+ * in electron/capture.ts (smoke and the tests fail while an item has no media).
+ */
 export const GUIDE_ITEMS: readonly GuideItem[] = [
   { id: 'palette', titleKey: 'guide.palette.title', bodyKey: 'guide.palette.body', shortcuts: ['palette'] },
   {

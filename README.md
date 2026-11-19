@@ -18,6 +18,7 @@ and see at a glance which agent is working, done, or waiting for you.
 npm install     # also rebuilds node-pty for Electron
 npm run dev     # app with hot reload
 npm run smoke   # build, launch, verify a terminal session works, screenshot → dist/smoke.png
+npm run capture # rebuild the in-app guide's screenshots and loops from demo fixtures (ko + en)
 npm run check   # typecheck + lint (incl. FSD boundaries) + tests
 npm run dist    # package → release/Aquila Agents-<version>-arm64.dmg (+ .zip)
 ```

@@ -1,0 +1,14 @@
+{
+  "language": "__LANG__",
+  "accounts": {
+    "shared": { "claudeConfigDir": null },
+    "personal": { "claudeConfigDir": "~/.claude-personal" }
+  },
+  "groups": [{ "id": "work" }, { "id": "personal" }],
+  "projects": [
+    { "id": "web-shop", "name": "web-shop", "group": "work", "account": "shared", "path": "~/projects/web-shop" },
+    { "id": "api-server", "name": "api-server", "group": "work", "account": "shared", "path": "~/projects/api-server" },
+    { "id": "docs-site", "name": "docs-site", "group": "personal", "account": "personal", "path": "~/projects/docs-site" },
+    { "id": "mobile-app", "name": "mobile-app", "group": "personal", "account": "shared", "path": "~/projects/mobile-app" }
+  ]
+}

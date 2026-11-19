@@ -1,0 +1,11 @@
+#!/bin/sh
+# Demo stand-in for `codex`, used only by `npm run capture` (fixed transcript, OSC 7501 status).
+[ "$1" = "--version" ] && { echo "codex-cli 0.50.0"; exit 0; }
+osc() { printf '\033]7501;%s\007' "$1"; }
+printf '%b\n' "\033[1m>_\033[0m Demo codex · $(basename "$PWD")" "\033[2m  (fixture for the guide — not the real CLI)\033[0m" ""
+printf '%b\n' "\033[1m›\033[0m Explain the checkout flow"
+osc "state=working:app=codex"
+sleep 2
+printf '%b\n' "  Checkout calls cart.total(), then payments.charge()." "  Coupons are applied before tax."
+osc "state=done:app=codex"
+while IFS= read -r line; do printf '  %s\n' "$line"; done

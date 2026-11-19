@@ -177,7 +177,8 @@ Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-1
 - **Owns:** `src/features/guide/`, `design-system/react/` modal, `components.css` (additive).
 
 ### T24 · Smoke capture for guide media
-- [ ] **Goal:** guide and release-note media never go stale. (#17, owner)
+- [x] **Goal:** guide and release-note media never go stale. (#17, owner)
+  _Left over: `npm run capture` is run by hand, not in CI; `notify` and `power` show a workspace still (macOS notifications, the Dock badge and saver mode can't be captured from the page); release-note media wait for T27. Spotted: with the changes panel open at 1440 px, the page scrolls sideways and the sidebar footer clips (not fixed here)._
 - **Spec:** smoke scenarios stage a demo state per guide item from fixed fixtures (no real user data), capture
   `capturePage(rect)`  in ko/en, encode short animations (tool to pick); smoke fails when an item has
   no media. Budget: resolution and 3–5 s length.
