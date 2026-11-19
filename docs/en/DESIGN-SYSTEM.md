@@ -34,6 +34,7 @@ Check: `grep -rn -- '--p-' src design-system/components.css` returns only the ru
 | `--color-bg-surface` | Sidebar, tab bar, panels |
 | `--color-bg-hover` / `--color-bg-pressed` | Hover / pressed & selected |
 | `--color-bg-selected` | Current project row |
+| `--color-bg-scrim` | Backdrop behind a dialog |
 | `--color-border-subtle` / `-default` / `-focus` | Hairlines / control edges / focus ring |
 | `--color-text-primary` / `-secondary` / `-tertiary` / `-on-accent` | Text levels (tertiary = hints only) |
 | `--color-action-primary(-hover)` | Primary button |
@@ -90,6 +91,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `--size-pane-head` | 28 | Split pane header |
 | `--size-badge` / `--size-dot` | 16 / 8 | |
 | `--size-sidebar` / `--size-panel` | 248 / 416 | |
+| `--size-dialog` | 440 | Dialog width |
 
 ## Components (`components.css`)
 
@@ -109,6 +111,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `.c-panel` `__head` `__body` | Right panel |
 | `.c-diff` `__line--add/del/hunk/file` | Diff |
 | `.c-empty` `__title` `__path` `__actions` | Empty state |
+| `.c-dialog` `__title` `__body` `__actions` `__check` `__code` | Modal dialog (native `<dialog>`, rises in) |
 
 ## React components (`design-system/react/`)
 
@@ -124,6 +127,7 @@ from `src/` (ESLint enforces it). New primitive → add the class to `components
 | `Kbd`, `Label` | `.c-kbd`, `.c-label` |
 | `Segment` `options` `value` `onChange` | `.c-segment` |
 | `EmptyState` `title` `path` `actions` | `.c-empty` |
+| `Dialog` `open` `title` `onClose` `actions`, `DialogCheck`, `DialogCode` | `.c-dialog` |
 
 ## Copy
 

@@ -186,6 +186,30 @@ body {
 .c-diff__line--hunk { color: var(--color-diff-hunk-text); }
 .c-diff__line--file { color: var(--color-text-primary); font-weight: 600; padding-top: var(--space-inset-md); }
 
+/* ── Dialog ───────────────────────────────────────────────── */
+.c-dialog {
+  width: var(--size-dialog); max-width: calc(100vw - 2 * var(--space-stack-lg)); padding: 0;
+  border: 1px solid var(--color-border-default); border-radius: var(--radius-container);
+  background: var(--color-bg-surface); color: var(--color-text-primary);
+}
+.c-dialog::backdrop { background: var(--color-bg-scrim); }
+.c-dialog__title { margin: 0; padding: var(--space-stack-md) var(--space-stack-md) 0; font-size: var(--font-size-title); font-weight: 600; }
+.c-dialog__body {
+  display: flex; flex-direction: column; gap: var(--space-inset-md);
+  padding: var(--space-inset-md) var(--space-stack-md) var(--space-stack-md); color: var(--color-text-secondary);
+}
+.c-dialog__body p { margin: 0; }
+.c-dialog__actions {
+  display: flex; justify-content: flex-end; gap: var(--space-inline-sm);
+  padding: var(--space-inset-md) var(--space-stack-md); border-top: 1px solid var(--color-border-subtle);
+}
+.c-dialog__code {
+  margin: 0; padding: var(--space-inset-sm) var(--space-inset-md); border-radius: var(--radius-control);
+  background: var(--color-bg-canvas); color: var(--color-text-primary);
+  font: var(--font-size-label) / var(--line-height-body) var(--font-family-mono); white-space: pre-wrap; user-select: text;
+}
+.c-dialog__check { display: flex; align-items: center; gap: var(--space-inline-sm); }
+
 /* ── Empty state ──────────────────────────────────────────── */
 .c-empty {
   flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -229,6 +253,10 @@ body {
 }
 @keyframes c-fade-in { from { opacity: 0; } }
 .c-pane__close:active { transform: scale(var(--motion-press-scale)); }
+
+/* Dialog rises in. */
+.c-dialog[open] { animation: c-fade-up var(--motion-medium) var(--motion-ease) both; }
+.c-dialog[open]::backdrop { animation: c-fade-in var(--motion-medium) var(--motion-ease) both; }
 
 /* Close button reveals smoothly. */
 .c-tab__close { transition-property: opacity, background, color, transform; }

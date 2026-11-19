@@ -33,6 +33,7 @@
 | `--color-bg-surface` | 사이드바, 탭바, 패널 |
 | `--color-bg-hover` / `--color-bg-pressed` | 호버 / 눌림·선택 |
 | `--color-bg-selected` | 현재 프로젝트 행 |
+| `--color-bg-scrim` | 다이얼로그 뒤 배경 |
 | `--color-border-subtle` / `-default` / `-focus` | 구분선 / 컨트롤 테두리 / 포커스 링 |
 | `--color-text-primary` / `-secondary` / `-tertiary` / `-on-accent` | 글자 단계 (tertiary는 힌트 전용) |
 | `--color-action-primary(-hover)` | 주요 버튼 |
@@ -89,6 +90,7 @@
 | `--size-pane-head` | 28 | 분할 패널 헤더 |
 | `--size-badge` / `--size-dot` | 16 / 8 | |
 | `--size-sidebar` / `--size-panel` | 248 / 416 | |
+| `--size-dialog` | 440 | 다이얼로그 너비 |
 
 ## 컴포넌트 (`components.css`)
 
@@ -108,6 +110,7 @@
 | `.c-panel` `__head` `__body` | 오른쪽 패널 |
 | `.c-diff` `__line--add/del/hunk/file` | diff |
 | `.c-empty` `__title` `__path` `__actions` | 빈 화면 |
+| `.c-dialog` `__title` `__body` `__actions` `__check` `__code` | 모달 다이얼로그 (네이티브 `<dialog>`, 아래에서 떠오름) |
 
 ## React 컴포넌트 (`design-system/react/`)
 
@@ -123,6 +126,7 @@
 | `Kbd`, `Label` | `.c-kbd`, `.c-label` |
 | `Segment` `options` `value` `onChange` | `.c-segment` |
 | `EmptyState` `title` `path` `actions` | `.c-empty` |
+| `Dialog` `open` `title` `onClose` `actions`, `DialogCheck`, `DialogCode` | `.c-dialog` |
 
 ## 문구
 
