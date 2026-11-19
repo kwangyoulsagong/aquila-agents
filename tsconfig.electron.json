@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "esModuleInterop": true,
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "skipLibCheck": true,
+    "rootDir": ".",
+    "outDir": "dist-electron",
+    "types": ["node"]
+  },
+  "include": ["electron/**/*.ts", "src/shared/api/types.ts", "src/shared/i18n/dictionary.ts"]
+}
