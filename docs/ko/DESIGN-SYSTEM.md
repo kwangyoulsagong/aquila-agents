@@ -107,8 +107,10 @@
 | `.c-tabbar` `__add` `__trailing`, `.c-tab[aria-selected]` `__title` `__close` | 탭 |
 | `.c-split`, `.c-pane[data-focused]` `__head` `__term` | 화면 분할 |
 | `.c-split--free`, `.c-split__drop`, `.c-pane__title` `__close` | 앱의 화면 분할: 절대 배치 패널, 드롭 표시(영역 사이를 미끄러지듯 이동), 패널 헤더 제목 + 닫기 |
-| `.c-panel` `__head` `__body` | 오른쪽 패널 |
-| `.c-diff` `__line--add/del/hunk/file` | diff |
+| `.c-panel` `__head` `__body` `__actions` `__section` `__note` | 오른쪽 패널 (밀려 들어옴, 헤더는 탭 바처럼 창 드래그 영역) |
+| `.c-diff` `__line--add/del/hunk/file/meta` | diff (가장 긴 줄만큼 넓어짐) |
+| `.c-change`, `__status[data-status]` `__path` `__dir` | 변경 파일 행: 색이 있는 git 상태 글자, 이름, 흐린 폴더 |
+| `.c-btn--ghost[aria-pressed]` | 켜진 토글 버튼 |
 | `.c-empty` `__title` `__path` `__actions` | 빈 화면 |
 | `.c-dialog` `__title` `__body` `__actions` `__check` `__code` | 모달 다이얼로그 (네이티브 `<dialog>`, 아래에서 떠오름) |
 
@@ -127,6 +129,7 @@
 | `Segment` `options` `value` `onChange` | `.c-segment` |
 | `EmptyState` `title` `path` `actions` | `.c-empty` |
 | `Dialog` `open` `title` `onClose` `actions`, `DialogCheck`, `DialogCode` | `.c-dialog` |
+| `ChangeRow` `status` `path` | `.c-change` |
 
 ## 문구
 

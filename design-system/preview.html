@@ -111,7 +111,7 @@
       </main>
       <aside class="c-panel">
         <div class="c-panel__head">변경사항 <span class="c-row__meta">3 files</span></div>
-        <div class="c-panel__body c-diff"><div class="c-diff__line c-diff__line--file">src/api/coverage.ts</div><div class="c-diff__line c-diff__line--hunk">@@ -12,6 +12,8 @@</div><div class="c-diff__line">   const res = await client.get(url)</div><div class="c-diff__line c-diff__line--del">-  return res.data</div><div class="c-diff__line c-diff__line--add">+  const parsed = CoverageSchema.parse(res.data)</div><div class="c-diff__line c-diff__line--add">+  return parsed</div></div>
+        <div class="c-panel__body"><div class="c-panel__section"><button class="c-change"><span class="c-change__status" data-status="M">M</span><span class="c-change__path">coverage.ts <span class="c-change__dir">src/api/</span></span></button><button class="c-change"><span class="c-change__status" data-status="?">?</span><span class="c-change__path">schema.ts <span class="c-change__dir">src/api/</span></span></button><button class="c-change"><span class="c-change__status" data-status="D">D</span><span class="c-change__path">legacy.ts <span class="c-change__dir">src/api/</span></span></button></div><div class="c-diff"><div class="c-diff__line c-diff__line--file">src/api/coverage.ts</div><div class="c-diff__line c-diff__line--hunk">@@ -12,6 +12,8 @@</div><div class="c-diff__line">   const res = await client.get(url)</div><div class="c-diff__line c-diff__line--del">-  return res.data</div><div class="c-diff__line c-diff__line--add">+  const parsed = CoverageSchema.parse(res.data)</div><div class="c-diff__line c-diff__line--add">+  return parsed</div></div></div>
       </aside>
     </div>
   </section>

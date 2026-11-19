@@ -24,6 +24,7 @@ const api: AquilaApi = {
   prepareAccount: (account) => ipcRenderer.invoke(IPC.accountsPrepare, account),
   shellFunctionPreview: (account) => ipcRenderer.invoke(IPC.accountsShellPreview, account),
   installShellFunction: (account) => ipcRenderer.invoke(IPC.accountsShellInstall, account),
+  gitChanges: (projectId) => ipcRenderer.invoke(IPC.gitChanges, projectId),
   write: (id, data) => ipcRenderer.send(IPC.sessionWrite, { id, data }),
   resize: (id, cols, rows) => ipcRenderer.send(IPC.sessionResize, { id, cols, rows }),
   kill: (id) => ipcRenderer.send(IPC.sessionKill, { id }),

@@ -1,3 +1,5 @@
+import { useCallback, useState } from 'react';
+import { Button } from '@design-system/react';
 import { I18nContext, translator } from '@/shared/i18n';
 import { AccountSwitch } from '@/features/switch-account';
 import { SetupAccount } from '@/features/setup-account';
@@ -5,11 +7,14 @@ import { LanguageToggle } from '@/features/switch-language';
 import { Sidebar } from '@/widgets/sidebar';
 import { SessionTabs } from '@/widgets/session-tabs';
 import { SplitView } from '@/widgets/split-view';
+import { ChangesPanel } from '@/widgets/changes-panel';
 import { useWorkspace } from '../model/useWorkspace';
 import { useShortcuts } from '../model/useShortcuts';
 
 export default function WorkspacePage() {
   const ws = useWorkspace();
+  const [changesOpen, setChangesOpen] = useState(false);
+  const toggleChanges = useCallback(() => setChangesOpen((o) => !o), []);
   useShortcuts({
     config: ws.config,
     activeSessionId: ws.activeSessionId,
@@ -19,13 +24,15 @@ export default function WorkspacePage() {
     splitFocused: ws.split.splitFocused,
     moveFocus: ws.split.moveFocus,
     closePane: ws.split.closePane,
+    toggleChanges,
   });
 
   const { config, project } = ws;
   if (!config) return null;
+  const t = translator(config.language);
 
   return (
-    <I18nContext.Provider value={translator(config.language)}>
+    <I18nContext.Provider value={t}>
       <div className="app">
         <Sidebar
           config={config}
@@ -50,6 +57,16 @@ export default function WorkspacePage() {
                     onOpenClaude={(account) => ws.openSession('claude', account)}
                   />
                   <AccountSwitch config={config} project={project} onChanged={ws.setConfig} />
+                  <Button
+                    variant="ghost"
+                    icon
+                    aria-pressed={changesOpen}
+                    onClick={toggleChanges}
+                    title={`${t('changes.toggle')} (⌘⇧G)`}
+                    aria-label={t('changes.toggle')}
+                  >
+                    ±
+                  </Button>
                 </>
               )
             }
@@ -70,6 +87,7 @@ export default function WorkspacePage() {
             onDropSession={ws.split.dropSession}
           />
         </main>
+        {changesOpen && <ChangesPanel project={project} onClose={() => setChangesOpen(false)} />}
       </div>
     </I18nContext.Provider>
   );

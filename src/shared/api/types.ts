@@ -69,6 +69,30 @@ export interface Session extends SessionInfo {
   exited?: boolean;
 }
 
+/** One changed file from `git status --porcelain=v1`. */
+export interface GitFileChange {
+  path: string;
+  /** Rename/copy source. */
+  origPath?: string;
+  /** Porcelain X (index) and Y (worktree) columns. */
+  index: string;
+  worktree: string;
+  /** One letter for the list: M A D R C U ?. */
+  status: string;
+}
+
+/** What `git:changes` reports for a project dir. */
+export interface GitChanges {
+  isRepo: boolean;
+  branch: string;
+  ahead: number;
+  behind: number;
+  files: GitFileChange[];
+  /** Unified diff vs HEAD (+ untracked files), capped at 400 KB. */
+  diff: string;
+  truncated: boolean;
+}
+
 export type Unsubscribe = () => void;
 
 /** API exposed on window.aquila by electron/preload.ts. */
@@ -85,6 +109,8 @@ export interface AquilaApi {
   shellFunctionPreview(account: string): Promise<ShellFunctionPreview>;
   /** Appends the previewed function to ~/.zshrc unless already defined. Explicit click only. */
   installShellFunction(account: string): Promise<ShellFunctionPreview>;
+  /** Branch, changed files and diff of the project's dir (read-only). */
+  gitChanges(projectId: string): Promise<GitChanges>;
   write(id: string, data: string): void;
   resize(id: string, cols: number, rows: number): void;
   kill(id: string): void;
@@ -107,6 +133,7 @@ export const IPC = {
   accountsPrepare: 'accounts:prepare',
   accountsShellPreview: 'accounts:shell-preview',
   accountsShellInstall: 'accounts:shell-install',
+  gitChanges: 'git:changes',
   sessionWrite: 'session:write',
   sessionResize: 'session:resize',
   sessionKill: 'session:kill',

@@ -19,11 +19,12 @@ interface Deps {
   moveFocus: (edge: Edge) => void;
   /** Close the focused pane (⌘W on an empty pane). */
   closePane: () => void;
+  toggleChanges: () => void;
 }
 
 /**
  * ⌘T Claude · ⌘⇧T Codex · ⌘⌥T shell · ⌘W close · ⌘1–9 project · ⌘D split right · ⌘⇧D split down ·
- * ⌘⌥←→↑↓ move focus between panes. Capture phase so xterm doesn't eat them.
+ * ⌘⌥←→↑↓ move focus between panes · ⌘⇧G changes panel. Capture phase so xterm doesn't eat them.
  */
 export function useShortcuts({
   config,
@@ -34,6 +35,7 @@ export function useShortcuts({
   splitFocused,
   moveFocus,
   closePane,
+  toggleChanges,
 }: Deps) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -45,6 +47,9 @@ export function useShortcuts({
         e.preventDefault();
         if (activeSessionId) closeSession(activeSessionId);
         else closePane();
+      } else if (e.code === 'KeyG' && e.shiftKey) {
+        e.preventDefault();
+        toggleChanges();
       } else if (e.code === 'KeyD') {
         e.preventDefault();
         splitFocused(e.shiftKey ? 'column' : 'row');
@@ -61,5 +66,15 @@ export function useShortcuts({
     };
     window.addEventListener('keydown', onKey, true);
     return () => window.removeEventListener('keydown', onKey, true);
-  }, [config, activeSessionId, openSession, closeSession, selectProject, splitFocused, moveFocus, closePane]);
+  }, [
+    config,
+    activeSessionId,
+    openSession,
+    closeSession,
+    selectProject,
+    splitFocused,
+    moveFocus,
+    closePane,
+    toggleChanges,
+  ]);
 }
