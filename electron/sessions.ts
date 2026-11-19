@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import { Notification, type BrowserWindow } from 'electron';
 import * as pty from 'node-pty';
 import { expand, loadConfig } from './config';
+import type { RestorePlan, SavedTab } from './state';
 import { kindLabel, translator } from '../src/shared/i18n/dictionary';
 import {
   IPC,
@@ -21,6 +22,10 @@ interface LiveSession {
   projectId: string;
   projectName: string;
   kind: SessionKind;
+  /** Claude sessions only. */
+  account?: string;
+  /** Current Claude session id: ours from `--session-id`, then whatever SessionStart reports (/clear changes it). */
+  claudeSessionId?: string;
   proc: pty.IPty;
   status: SessionStatus;
   usesHooks: boolean;
@@ -33,18 +38,31 @@ interface Deps {
   getWindow: () => BrowserWindow | null;
   hookPort: number;
   hookSettingsPath: string;
+  /** Open tabs changed (created, closed, Claude session id moved) — persisted by state.ts. */
+  onTabsChanged?: (tabs: SavedTab[]) => void;
 }
+
+/** How to start a session that is being restored after a relaunch. */
+export type RestoreOptions = Pick<RestorePlan, 'resumeClaude' | 'resumeCodex'>;
 
 export class SessionManager {
   private sessions = new Map<string, LiveSession>();
   private activeId: string | null = null;
   private timer: NodeJS.Timeout;
+  /** Set on quit so the exits caused by killAll don't wipe the saved tabs. */
+  private closing = false;
 
   constructor(private deps: Deps) {
     this.timer = setInterval(() => this.tickActivity(), 1000);
   }
 
-  create(config: Config, projectId: string, kind: SessionKind, accountOverride?: string): SessionInfo {
+  create(
+    config: Config,
+    projectId: string,
+    kind: SessionKind,
+    accountOverride?: string,
+    restore: RestoreOptions = {},
+  ): SessionInfo {
     const project = config.projects.find((p) => p.id === projectId);
     if (!project) throw new Error(translator(config.language)('error.projectNotFound', { id: projectId }));
     const accountId = accountOverride && config.accounts[accountOverride] ? accountOverride : project.account;
@@ -63,7 +81,8 @@ export class SessionManager {
     if (kind === 'claude' && account?.claudeConfigDir)
       env.CLAUDE_CONFIG_DIR = expand(account.claudeConfigDir);
 
-    const command = this.commandFor(kind);
+    const claudeSessionId = kind === 'claude' ? (restore.resumeClaude ?? crypto.randomUUID()) : undefined;
+    const command = this.commandFor(kind, claudeSessionId, restore);
     const args = command ? ['-l', '-i', '-c', `${command}; exec ${SHELL} -l -i`] : ['-l', '-i'];
     const proc = pty.spawn(SHELL, args, {
       name: 'xterm-256color',
@@ -78,6 +97,8 @@ export class SessionManager {
       projectId,
       projectName: project.name,
       kind,
+      account: kind === 'claude' ? accountId : undefined,
+      claudeSessionId,
       proc,
       status: 'idle',
       usesHooks: kind === 'claude',
@@ -98,20 +119,48 @@ export class SessionManager {
       this.setStatus(s, exitCode === 0 ? 'idle' : 'error');
       this.deps.send(IPC.sessionExit, { id, exitCode });
       this.sessions.delete(id);
+      this.tabsChanged();
     });
+    this.tabsChanged();
 
     return { id, projectId, kind, account: kind === 'claude' ? accountId : undefined };
   }
 
-  private commandFor(kind: SessionKind): string | null {
-    if (kind === 'claude') return `claude --settings ${JSON.stringify(this.deps.hookSettingsPath)}`;
-    if (kind === 'codex') return 'codex';
+  private commandFor(kind: SessionKind, claudeSessionId: string | undefined, restore: RestoreOptions): string | null {
+    if (kind === 'claude') {
+      // Only uuids reach here (ours or validated from state/hook), so no shell quoting is needed for the id.
+      const session = restore.resumeClaude ? `--resume ${claudeSessionId}` : `--session-id ${claudeSessionId}`;
+      return `claude --settings ${JSON.stringify(this.deps.hookSettingsPath)} ${session}`;
+    }
+    if (kind === 'codex') return restore.resumeCodex ? 'codex resume --last' : 'codex';
     return null;
   }
 
   onHook(id: string, status: SessionStatus): void {
     const s = this.sessions.get(id);
     if (s) this.setStatus(s, status);
+  }
+
+  /** SessionStart hook: Claude started, resumed or /clear'ed into this session id. */
+  onClaudeSession(id: string, claudeSessionId: string): void {
+    const s = this.sessions.get(id);
+    if (!s || s.kind !== 'claude' || s.claudeSessionId === claudeSessionId) return;
+    s.claudeSessionId = claudeSessionId;
+    this.tabsChanged();
+  }
+
+  /** Open tabs in creation order (= tab order). */
+  tabs(): SavedTab[] {
+    return [...this.sessions.values()].map((s) => ({
+      projectId: s.projectId,
+      kind: s.kind,
+      ...(s.account ? { account: s.account } : {}),
+      ...(s.claudeSessionId ? { claudeSessionId: s.claudeSessionId } : {}),
+    }));
+  }
+
+  private tabsChanged(): void {
+    if (!this.closing) this.deps.onTabsChanged?.(this.tabs());
   }
 
   /** Output-activity heuristic for sessions without hooks (codex, shell). */
@@ -159,6 +208,10 @@ export class SessionManager {
     if (s?.status === 'done') this.setStatus(s, 'idle');
   }
 
+  has(id: string): boolean {
+    return this.sessions.has(id);
+  }
+
   write(id: string, data: string): void {
     this.sessions.get(id)?.proc.write(data);
   }
@@ -172,6 +225,7 @@ export class SessionManager {
   }
 
   killAll(): void {
+    this.closing = true;
     clearInterval(this.timer);
     for (const s of this.sessions.values()) s.proc.kill();
   }

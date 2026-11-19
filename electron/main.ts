@@ -7,8 +7,9 @@ import { CONFIG_PATH, loadConfig, setLanguage, setProjectAccount } from './confi
 import { gitChanges } from './git';
 import { startHookServer, writeClaudeHookSettings } from './hooks';
 import { SessionManager } from './sessions';
+import { planRestore, readState, writeState, type SavedTab } from './state';
 import { isSmoke, runSmoke, watchOutput } from './smoke';
-import { IPC, type Language, type SessionKind } from '../src/shared/api/types';
+import { IPC, type Language, type SessionInfo, type SessionKind } from '../src/shared/api/types';
 
 const isDev = process.env.AQUILA_DEV === '1';
 let win: BrowserWindow | null = null;
@@ -37,7 +38,19 @@ function createWindow(): void {
 
 app.whenReady().then(async () => {
   await restoreShellPath(); // Finder launches get a minimal PATH
-  const hookPort = await startHookServer((tabId, status) => sessions?.onHook(tabId, status));
+  // Read before any session exists: the first create/exit rewrites state.json. Smoke never touches it.
+  const savedTabs = isSmoke ? [] : readState();
+  const saveTabs = (tabs: SavedTab[]) => {
+    try {
+      writeState(tabs);
+    } catch (err) {
+      console.error('[state] save failed', err);
+    }
+  };
+  const hookPort = await startHookServer(
+    (tabId, status) => sessions?.onHook(tabId, status),
+    (tabId, claudeSessionId) => sessions?.onClaudeSession(tabId, claudeSessionId),
+  );
   const smokeOutput = { buffer: '' };
   const send = (channel: string, payload: unknown) => win?.webContents.send(channel, payload);
   sessions = new SessionManager({
@@ -45,8 +58,25 @@ app.whenReady().then(async () => {
     getWindow: () => win,
     hookPort,
     hookSettingsPath: writeClaudeHookSettings(),
+    onTabsChanged: isSmoke ? undefined : saveTabs,
   });
   const s = sessions;
+
+  let restored: SessionInfo[] | null = null;
+  const restoreSessions = (): SessionInfo[] => {
+    if (!restored) {
+      const config = loadConfig();
+      restored = planRestore(savedTabs, config).flatMap((plan) => {
+        try {
+          return [s.create(config, plan.projectId, plan.kind, plan.account, plan)];
+        } catch (err) {
+          console.error('[state] restore failed', plan, err);
+          return [];
+        }
+      });
+    }
+    return restored.filter((info) => s.has(info.id));
+  };
 
   ipcMain.handle(IPC.configGet, () => loadConfig());
   ipcMain.handle(IPC.configOpen, () => shell.openPath(CONFIG_PATH));
@@ -61,6 +91,7 @@ app.whenReady().then(async () => {
     (_e, { projectId, kind, account }: { projectId: string; kind: SessionKind; account?: string }) =>
       s.create(loadConfig(), projectId, kind, account),
   );
+  ipcMain.handle(IPC.sessionRestore, () => restoreSessions());
   ipcMain.handle(IPC.accountsStatus, () => accountsStatus(loadConfig()));
   ipcMain.handle(IPC.accountsPrepare, (_e, account: string) => prepareAccount(loadConfig(), account));
   ipcMain.handle(IPC.accountsShellPreview, (_e, account: string) =>

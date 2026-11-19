@@ -103,6 +103,8 @@ export interface AquilaApi {
   setProjectAccount(projectId: string, account: string): Promise<Config>;
   /** `account` overrides the project's account for this one session (setup opens a Claude login with it). */
   createSession(projectId: string, kind: SessionKind, account?: string): Promise<SessionInfo>;
+  /** Reopens the tabs saved at the last quit (~/.aquila/state.json), once per launch; later calls return the live ones. */
+  restoreSessions(): Promise<SessionInfo[]>;
   accountsStatus(): Promise<Record<string, AccountStatus>>;
   /** Creates the account's config dir. */
   prepareAccount(account: string): Promise<AccountStatus>;
@@ -129,6 +131,7 @@ export const IPC = {
   configSetLanguage: 'config:set-language',
   configSetProjectAccount: 'config:set-project-account',
   sessionCreate: 'session:create',
+  sessionRestore: 'session:restore',
   accountsStatus: 'accounts:status',
   accountsPrepare: 'accounts:prepare',
   accountsShellPreview: 'accounts:shell-preview',
