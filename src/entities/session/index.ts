@@ -3,3 +3,4 @@ export { default as TerminalView } from './ui/TerminalView';
 export { default as StatusDot } from './ui/StatusDot';
 export { default as KindBadge } from './ui/KindBadge';
 export { default as WaitingTime } from './ui/WaitingTime';
+export { pasteIntoSession } from './lib/terminalBus';

@@ -12,7 +12,7 @@
 │ features/ switch-account, switch-language,│        │ hooks.ts      127.0.0.1:<port> hook 수신기       │
 │           open-session, setup-account,    │        │               + ~/.aquila/claude-hooks.json     │
 │           manage-projects, next-waiting,  │
-│           first-run, guide                │        │ git.ts        git status + diff (읽기만)        │
+│           first-run, guide                │        │ git.ts        git status/diff, 감시, stage/revert│
 │ entities/ session (xterm, 상태), project    │        │ state.ts      ~/.aquila/state.json (탭, 레이아웃)│
 │                                           │        │               + scrollback/ (T21)                │
 │                                           │        │ codex.ts      탭별 codex 세션 id (T21)           │
@@ -77,8 +77,20 @@
   M A D R C U ?); `git diff --no-color HEAD` (첫 커밋 전에는 `git diff`) + 추적 안 된 파일 최대 20개를 새 파일 diff로
   (`--no-index /dev/null`). 출력은 400KB에서 줄 끝 기준으로 자릅니다. 읽기만 하고, `GIT_OPTIONAL_LOCKS=0`이라
   에이전트와 `index.lock`을 다투지 않습니다.
-- 렌더러: `entities/diff`가 diff를 파일/줄로 나누고(`parseDiff`, 테스트 있음) `.c-diff`로 그립니다.
-  파일을 누르면 그 위치로 스크롤. 앱에 포커스가 오면, 그리고 열려 있고 보이는 동안 5초마다 새로고침. 닫혀 있으면 아무것도 안 돌아요.
+- 렌더러: `entities/diff`가 diff를 파일/줄로 나누고 옛/새 줄 번호와 hunk 번호를 붙여(`parseDiff`, 테스트 있음)
+  `.c-diff`로 한 줄 또는 나란히(`toSplitRows`) 그립니다. 파일을 누르면 그 위치로 스크롤, j/k로 파일 이동.
+- 새로고침(T25): 패널이 열려 있는 동안 main이 트리에 재귀 `fs.watch` 하나를 둡니다(`TreeWatcher`: 400ms 디바운스,
+  최대 2초 대기, `.git/` 내부와 `node_modules`는 무시) → `git:changed`. 렌더러는 앱 포커스 때, 그리고 안전망으로 45초마다
+  새로고침. 매번 `git status`만 돌리고, diff는 지문(status + HEAD + 바뀐 파일의 mtime/크기)이 바뀌었을 때만 다시 만듭니다.
+  바에는 "git 작업 트리 · n초 전 업데이트".
+- 세션 시작부터: `SessionManager`가 세션 spawn 때 HEAD를 기록하고(`startHeadOf`), "세션 시작부터"는 그 커밋과
+  비교(`git diff <base>` + 추적 안 된 파일)해서 커밋된 작업도 보여요.
+- 리뷰 루프: 줄을 누르면 코멘트 입력. "코멘트 붙여넣기"는 프롬프트 하나(`파일:줄`, 코드 인용, 코멘트)를 만들어 xterm의
+  `paste`로 포커스된 세션에 붙여넣어요(`entities/session` → `pasteIntoSession`, CLI가 원하면 bracketed paste). 전송은 안
+  해요 — Enter는 사용자가. "커밋 메시지" / "PR 설명"은 정해진 프롬프트를 붙여넣어요.
+- 스테이지 / 되돌리기(`git:action`): 파일 stage/unstage/revert, 그리고 스테이징된 게 없는 일반 수정 파일이면 hunk
+  stage/revert(hunk는 HEAD 기준 패치, `git apply [--cached|-R]`). 되돌리기는 확인창을 거치고 먼저 백업해요: 추적 중인
+  상태는 `git stash` 항목으로(`stash create` + `stash store`, 트리는 안 건드림), 추적 안 된 파일은 휴지통으로.
 
 ## 명령 팔레트
 

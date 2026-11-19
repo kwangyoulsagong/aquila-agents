@@ -95,6 +95,8 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `--size-split-handle` | 8 | Grab area of a split divider, centred on the 1px hairline |
 | `--size-badge` / `--size-dot` | 16 / 8 | |
 | `--size-sidebar` / `--size-panel` | 248 / 416 | |
+| `--size-panel-wide` | 720 | Changes panel in side-by-side mode (capped at half the window) |
+| `--size-diff-gutter` / `--size-diff-comment` | 40 / 384 | One line-number column in a diff / a line-comment box |
 | `--size-dialog` / `--size-dialog-wide` | 440 / 560 | Dialog width / with a checklist (first run) |
 | `--size-palette` / `--size-palette-list` | 560 / 352 | Command palette width / list height before it scrolls (11 rows) |
 | `--size-modal` / `--size-modal-height` / `--size-modal-aside` | 760 / 520 / 240 | List + detail modal (guide, release notes) / its list column |
@@ -117,8 +119,8 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `.c-split`, `.c-pane[data-focused]` `__head` `__term` | Split view |
 | `.c-split--free`, `.c-split__drop`, `.c-pane__title` `__close` | Split view in the app: absolutely placed panes, drop indicator (glides between zones), pane head title + close |
 | `.c-split__divider[data-dir][data-active]`, `.c-split[data-resizing]`, `.c-pane__zoom[aria-pressed]` | Draggable divider (accent line on hover/drag), resize cursor over the stage while dragging, zoom toggle in the pane head |
-| `.c-panel` `__head` `__body` `__actions` `__section` `__note` | Right panel (slides in; head is a drag region like the tab bar) |
-| `.c-diff` `__line--add/del/hunk/file/meta` | Diff (as wide as its longest line) |
+| `.c-panel` `__head` `__body` `__actions` `__section` `__note` `__bar` `__bar-end`, `.c-panel--wide` | Right panel (slides in; head is a drag region like the tab bar); `__bar` = a wrapping band of controls under the head; `--wide` for side-by-side diffs (≤ half the window) |
+| `.c-diff` `__line--add/del/hunk/file/meta`, `__file[aria-current]`, `__num`, `__actions`, `__line[data-commentable][data-commented]`, `.c-diff--split` `__row` `__line--empty`, `__comment` `__comment-actions` | Diff (unified: as wide as its longest line; split: two wrapping halves). Line-number gutters, small actions on file/hunk lines, a marker on commentable/commented lines, a comment box under a line |
 | `.c-change`, `__status[data-status]` `__path` `__dir` | Changed file row: colored git status letter, name, dimmed dir |
 | `.c-btn--ghost[aria-pressed]` | Toggle button that's on |
 | `.c-empty` `__title` `__path` `__actions` | Empty state |
@@ -130,7 +132,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `.c-shortcuts` `__group` `__row` `__label` `__keys` | Shortcut sheet: grouped rows, label left, keys right |
 | `.c-checklist` `__item` `__lead` `__main` `__title` `__meta` `__actions` `__detail` `__command` | Bordered list of checks: dot on the title line · title (+ badge) / mono meta · buttons, then a full-width detail (install command with Copy, drop zone) |
 | `.c-dropzone[data-over]` | Dashed drop area; accent border + selected background while dragging over |
-| `.c-field` `__label` `__hint`, `.c-input`, `.c-select` `__control` | Form field: label, text input / select (focus = blue border), monospace hint |
+| `.c-field` `__label` `__hint`, `.c-input` (`--multiline`), `.c-select` `__control` | Form field: label, text input / select (focus = blue border), monospace hint |
 
 ## React components (`design-system/react/`)
 
@@ -150,7 +152,7 @@ from `src/` (ESLint enforces it). New primitive → add the class to `components
 | `Dialog` `open` `title` `onClose` `actions` `wide`, `DialogCheck`, `DialogCode`, `DialogForm` `id` `onSubmit` | `.c-dialog` |
 | `Checklist` `label`, `ChecklistItem` `leading` `title` `tag` `meta` `actions`, `ChecklistCommand` `command` `action` | `.c-checklist` |
 | `Dropzone` `over` (+ div props) | `.c-dropzone` |
-| `Field` `label` `hint`, `Input`, `Select` `options` `onChange(value)` | `.c-field`, `.c-input`, `.c-select` |
+| `Field` `label` `hint`, `Input`, `Textarea`, `Select` `options` `onChange(value)` | `.c-field`, `.c-input`, `.c-input--multiline`, `.c-select` |
 | `ChangeRow` `status` `path` | `.c-change` |
 | `Palette` `open` `onClose` `label` `query` `onQueryChange` `listId` `activeId`, `PaletteList`, `PaletteItem` `selected` `label` `marks` `leading` `hint` `kbd`, `PaletteEmpty` | `.c-palette` (combobox + listbox) |
 | `Modal` `open` `title` `onClose` `closeLabel` `aside` `footer`, `ModalSearch` (focused on open), `ModalList` `id` `label`, `ModalItem` `selected` `label` `trailing` `onSelect`, `ModalEmpty`, `ModalDetail` `heading` `text` `keys` | `.c-modal` |

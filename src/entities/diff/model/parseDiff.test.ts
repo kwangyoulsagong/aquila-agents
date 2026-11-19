@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseDiff } from './parseDiff';
+import { hunkPatch, parseDiff, toSplitRows } from './parseDiff';
 
 const SAMPLE = `diff --git a/src/api.ts b/src/api.ts
 index 1111111..2222222 100644
@@ -55,10 +55,52 @@ describe('parseDiff', () => {
       'diff --git a/todo.md b/todo.md\nnew file mode 100644\n--- /dev/null\n+++ b/todo.md\n@@ -0,0 +1 @@\n+x\n',
     );
     expect(untracked[0].path).toBe('todo.md');
-    expect(untracked[0].lines.at(-1)).toEqual({ kind: 'add', text: '+x' });
+    expect(untracked[0].lines.at(-1)).toEqual({ kind: 'add', text: '+x', newNo: 1, hunk: 0 });
   });
 
   it('returns nothing for empty input', () => {
     expect(parseDiff('')).toEqual([]);
+  });
+});
+
+describe('line numbers and hunks', () => {
+  it('numbers old/new lines from the hunk header', () => {
+    const [api, deleted, added] = parseDiff(SAMPLE);
+    expect(api.lines.map((l) => [l.kind, l.oldNo, l.newNo])).toEqual([
+      ['hunk', undefined, undefined],
+      ['ctx', 1, 1],
+      ['del', 2, undefined],
+      ['add', undefined, 2],
+      ['add', undefined, 3],
+      ['ctx', 3, 4],
+    ]);
+    expect(api.hunks).toBe(1);
+    expect(deleted.isDeleted).toBe(true);
+    expect(added.isNew).toBe(true);
+  });
+
+  it('builds a patch for one hunk', () => {
+    const two = parseDiff(
+      'diff --git a/x.ts b/x.ts\n--- a/x.ts\n+++ b/x.ts\n@@ -1,2 +1,2 @@\n a\n-b\n+B\n@@ -10,2 +10,2 @@\n j\n-k\n+K\n',
+    )[0];
+    expect(two.hunks).toBe(2);
+    expect(hunkPatch(two, 1)).toBe(
+      'diff --git a/x.ts b/x.ts\n--- a/x.ts\n+++ b/x.ts\n@@ -10,2 +10,2 @@\n j\n-k\n+K\n',
+    );
+  });
+});
+
+describe('toSplitRows', () => {
+  it('pairs deletions with the additions after them', () => {
+    const [api] = parseDiff(SAMPLE);
+    const rows = toSplitRows(api.lines);
+    expect(rows.map((r) => [r.full?.kind, r.left?.text, r.right?.text])).toEqual([
+      ['hunk', undefined, undefined],
+      [undefined, ' const a = 1;', ' const a = 1;'],
+      [undefined, '-const b = 2;', '+const b = 3;'],
+      [undefined, undefined, '+const c = 4;'],
+      [undefined, ' export { a };', ' export { a };'],
+    ]);
+    expect(rows[3].index).toBe(4);
   });
 });

@@ -12,7 +12,7 @@
 │ features/ switch-account, switch-language,│        │ hooks.ts      127.0.0.1:<port> hook receiver     │
 │           open-session, setup-account,    │        │               + ~/.aquila/claude-hooks.json       │
 │           manage-projects, next-waiting,  │
-│           first-run, guide                │        │ git.ts        git status + diff (read-only)      │
+│           first-run, guide                │        │ git.ts        git status/diff, watch, stage/revert│
 │ entities/ session (xterm, status), project│        │ state.ts      ~/.aquila/state.json (tabs, layout)│
 │                                           │        │               + scrollback/ (T21)                │
 │                                           │        │ codex.ts      codex session id per tab (T21)     │
@@ -77,8 +77,20 @@
   M A D R C U ?); `git diff --no-color HEAD` (falls back to `git diff` before the first commit) plus up to 20
   untracked files as new-file diffs (`--no-index /dev/null`). Output capped at 400 KB, cut at a line end. Read-only,
   `GIT_OPTIONAL_LOCKS=0` so it never fights the agent for `index.lock`.
-- Renderer: `entities/diff` parses the diff into files/lines (`parseDiff`, tested) and renders `.c-diff`.
-  Clicking a file scrolls to it. Refreshes on window focus and every 5 s while open and visible; nothing polls when closed.
+- Renderer: `entities/diff` parses the diff into files/lines with old/new line numbers and hunk indexes (`parseDiff`,
+  tested) and renders `.c-diff` unified or side by side (`toSplitRows`). Clicking a file scrolls to it; j/k move between files.
+- Refresh (T25): while the panel is open main keeps one recursive `fs.watch` on the tree (`TreeWatcher`: 400 ms debounce,
+  2 s max wait, `.git/` internals and `node_modules` ignored) and sends `git:changed`; the renderer also refreshes on
+  window focus and every 45 s as a safety net. Each refresh runs `git status`; the diff is only recomputed when a
+  fingerprint (status + HEAD + mtime/size of changed files) changed. The bar shows "git working tree · updated n s ago".
+- Since session start: `SessionManager` records HEAD when a session spawns (`startHeadOf`); scope "Since session start"
+  diffs against it (`git diff <base>` + untracked), so committed work shows too.
+- Review loop: clicking a line opens a comment; "Paste comments" builds one prompt (`file:line`, quoted code, comment)
+  and pastes it into the focused session through xterm's `paste` (`entities/session` → `pasteIntoSession`, bracketed paste
+  when the CLI asked for it). Nothing is sent — the user presses Enter. "Commit message" / "PR description" paste fixed prompts.
+- Stage / revert (`git:action`): file stage/unstage/revert, and hunk stage/revert for a plain modified file with nothing
+  staged (the hunk is a patch against HEAD, `git apply [--cached|-R]`). Reverts are confirmed and backed up first: tracked
+  state to a `git stash` entry (`stash create` + `stash store`, the tree is not touched), untracked files to the Trash.
 
 ## Command palette
 

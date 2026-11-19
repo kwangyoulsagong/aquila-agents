@@ -179,6 +179,34 @@ export interface GitChanges {
   /** Unified diff vs HEAD (+ untracked files), capped at 400 KB. */
   diff: string;
   truncated: boolean;
+  /** Commit the diff is against: HEAD, or the session's start commit for scope 'session' (T25). '' without commits. */
+  base?: string;
+  /** When main last checked the tree (ms since epoch). */
+  checkedAt?: number;
+}
+
+/** What the changes panel diffs against: HEAD (working tree), or the commit HEAD was at when the session spawned. */
+export type GitScope = 'worktree' | 'session';
+
+/** Which tree the changes panel looks at: a project's dir, or the worktree/start commit of one of its sessions. */
+export interface GitTarget {
+  projectId: string;
+  sessionId?: string;
+}
+
+/** A stage/revert from the changes panel (T25). Hunk actions carry the hunk as a patch against HEAD. */
+export interface GitAction extends GitTarget {
+  action: 'stage-file' | 'unstage-file' | 'revert-file' | 'stage-hunk' | 'revert-hunk';
+  path: string;
+  /** Rename source: reverting a rename restores it too. */
+  origPath?: string;
+  patch?: string;
+}
+
+/** Where the state before a revert went: a `git stash` entry (sha) and/or untracked files moved to the Trash. */
+export interface GitActionResult {
+  stash?: string;
+  trashed?: string[];
 }
 
 /** A CLI the first-run checklist looks for (T17). */
@@ -270,7 +298,12 @@ export interface AquilaApi {
    * Branch, changed files and diff of the project's dir (read-only). With `sessionId` of a worktree session in
    * that project, of its worktree instead.
    */
-  gitChanges(projectId: string, sessionId?: string): Promise<GitChanges>;
+  gitChanges(projectId: string, sessionId?: string, scope?: GitScope): Promise<GitChanges>;
+  /** Watch that tree (fs.watch, debounced) and emit `onGitChanged`; null stops. One watch at a time. */
+  gitWatch(target: GitTarget | null): void;
+  onGitChanged(cb: () => void): Unsubscribe;
+  /** Stage / unstage / revert a file or a hunk. Reverts back up first (stash entry, untracked files to the Trash). */
+  gitAction(action: GitAction): Promise<GitActionResult>;
   /** First-run checklist: PATH and CLI checks. `recheck` reads the login shell's PATH again first (after an install). */
   firstRun(recheck?: boolean): Promise<FirstRunReport>;
   /** The checklist was closed (done or skipped): don't open it at launch again. */
@@ -325,6 +358,9 @@ export const IPC = {
   accountsShellPreview: 'accounts:shell-preview',
   accountsShellInstall: 'accounts:shell-install',
   gitChanges: 'git:changes',
+  gitWatch: 'git:watch',
+  gitChanged: 'git:changed',
+  gitAction: 'git:action',
   firstRunGet: 'first-run:get',
   firstRunFinish: 'first-run:finish',
   firstRunPickBinary: 'first-run:pick-binary',

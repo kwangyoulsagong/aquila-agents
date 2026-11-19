@@ -247,6 +247,15 @@ body {
 .c-panel__actions { margin-left: auto; display: flex; align-items: center; gap: var(--space-inline-xs); }
 .c-panel__section { padding: var(--space-inset-sm) 0; border-bottom: 1px solid var(--color-border-subtle); }
 .c-panel__note { padding: var(--space-inset-sm) var(--space-inset-md); font-size: var(--font-size-caption); color: var(--color-text-tertiary); }
+/* Wider panel for side-by-side diffs; never more than half the window. */
+.c-panel--wide { width: min(var(--size-panel-wide), 50%); }
+/* Second band under the head: scope, view mode and actions. Wraps on a narrow panel. */
+.c-panel__bar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-inline-sm);
+  padding: var(--space-inset-sm) var(--space-inset-md); border-bottom: 1px solid var(--color-border-subtle);
+  font-size: var(--font-size-caption); color: var(--color-text-tertiary);
+}
+.c-panel__bar-end { margin-left: auto; display: flex; align-items: center; gap: var(--space-inline-xs); }
 
 /* ── Changed file row ─────────────────────────────────────── */
 .c-change {
@@ -256,6 +265,7 @@ body {
   text-align: left; cursor: pointer;
 }
 .c-change:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
+.c-change[aria-current='true'] { background: var(--color-bg-selected); color: var(--color-text-primary); }
 .c-change__status { width: 1ch; flex: none; font-weight: 600; color: var(--color-text-tertiary); }
 .c-change__status[data-status='M'] { color: var(--color-status-waiting); }
 .c-change__status[data-status='A'], .c-change__status[data-status='?'] { color: var(--color-diff-add-text); }
@@ -275,6 +285,39 @@ body {
 .c-diff__line--hunk { color: var(--color-diff-hunk-text); }
 .c-diff__line--file { color: var(--color-text-primary); font-weight: 600; padding-top: var(--space-inset-md); }
 .c-diff__line--meta { color: var(--color-text-tertiary); }
+/* File header and hunk lines carry small actions (stage, revert) after their text. */
+.c-diff__line--file, .c-diff__line--hunk { display: flex; align-items: center; gap: var(--space-inline-sm); }
+.c-diff__file[aria-current='true'] > .c-diff__line--file { color: var(--color-action-primary); }
+.c-diff__actions { display: inline-flex; gap: var(--space-inline-xs); font: var(--font-size-caption) var(--font-family-ui); }
+.c-diff__actions > .c-btn { height: auto; padding: 0 var(--space-inline-xs); font-size: var(--font-size-caption); }
+.c-diff__num {
+  display: inline-block; width: var(--size-diff-gutter); padding-right: var(--space-inline-sm);
+  text-align: right; color: var(--color-text-tertiary); user-select: none;
+}
+.c-diff__line[data-commentable] { cursor: pointer; }
+.c-diff__line[data-commentable]:hover { box-shadow: inset var(--size-focus-line) 0 0 var(--color-border-focus); }
+.c-diff__line[data-commented] { box-shadow: inset var(--size-focus-line) 0 0 var(--color-action-primary); }
+/* Side by side: two halves that wrap instead of scrolling sideways. */
+.c-diff--split { width: 100%; }
+.c-diff__row { display: grid; grid-template-columns: 1fr 1fr; }
+/* Hanging indent: wrapped code lines up after the line number, not under it. */
+.c-diff__row > .c-diff__line {
+  min-width: 0; white-space: pre-wrap; overflow-wrap: anywhere;
+  padding-left: calc(var(--space-inset-md) + var(--size-diff-gutter)); text-indent: calc(-1 * var(--size-diff-gutter));
+}
+.c-diff__num { text-indent: 0; }
+.c-diff__row > .c-diff__line + .c-diff__line { border-left: 1px solid var(--color-border-subtle); }
+.c-diff__line--empty { background: var(--color-bg-canvas); }
+/* Line comment: editor or saved note under the line it is about. */
+.c-diff__comment {
+  position: sticky; left: 0; width: var(--size-diff-comment); max-width: 100%;
+  display: flex; flex-direction: column; gap: var(--space-inline-xs);
+  margin: var(--space-inline-xs) var(--space-inset-md); padding: var(--space-inset-sm);
+  border-left: var(--size-focus-line) solid var(--color-action-primary); border-radius: var(--radius-control);
+  background: var(--color-bg-canvas); white-space: pre-wrap; font: var(--font-size-label) var(--font-family-ui);
+  color: var(--color-text-primary);
+}
+.c-diff__comment-actions { display: flex; justify-content: flex-end; gap: var(--space-inline-xs); }
 
 /* ── Dialog ───────────────────────────────────────────────── */
 .c-dialog {
@@ -467,6 +510,10 @@ body {
   background: var(--color-bg-canvas); color: var(--color-text-primary);
   font: var(--font-size-body) var(--font-family-ui); user-select: text;
   transition: border-color var(--motion-fast) var(--motion-ease);
+}
+.c-input--multiline {
+  height: auto; min-height: calc(var(--size-control) * 2); padding: var(--space-inline-xs) var(--space-inset-sm);
+  resize: vertical; line-height: 1.5;
 }
 .c-input:focus-visible, .c-select__control:focus-visible { outline: none; border-color: var(--color-border-focus); }
 .c-select { position: relative; display: block; }

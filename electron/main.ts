@@ -5,7 +5,7 @@ import { restoreShellPath } from './env';
 import { accountsStatus, installShellFunction, prepareAccount, shellFunctionPreview } from './accounts';
 import { CONFIG_PATH, editProjects, loadConfig, setLanguage, setProjectAccount } from './config';
 import { showContextMenu } from './menu';
-import { gitChanges } from './git';
+import { gitAction, gitChanges, treeOf, TreeWatcher } from './git';
 import { ensureWorktree, worktreeInfo } from './worktrees';
 import { markGuideOffered, readGuideState } from './guide';
 import { binaryFor, finishFirstRun, firstRunReport, loadOverrides, setBinaryPath } from './detect';
@@ -28,6 +28,9 @@ import { isSmoke, runSmoke, SMOKE_BUFFER_BYTES, watchOutput } from './smoke';
 import {
   IPC,
   type ContextMenuItem,
+  type GitAction,
+  type GitScope,
+  type GitTarget,
   type Language,
   type ProjectEdit,
   type RestoreResult,
@@ -204,10 +207,32 @@ app.whenReady().then(async () => {
   ipcMain.handle(IPC.accountsShellInstall, (_e, account: string) =>
     installShellFunction(loadConfig(), account),
   );
+  // Changes panel (T25). The renderer names a project/session; paths and commits are resolved here, never taken from it.
+  const worktreeFor = (projectId: string, sessionId?: string) =>
+    sessionId ? s.worktreeOf(sessionId, projectId) : undefined;
   ipcMain.handle(
     IPC.gitChanges,
-    (_e, { projectId, sessionId }: { projectId: string; sessionId?: string }) =>
-      gitChanges(loadConfig(), projectId, sessionId ? s.worktreeOf(sessionId, projectId) : undefined),
+    (_e, { projectId, sessionId, scope }: GitTarget & { scope?: GitScope }) =>
+      gitChanges(
+        loadConfig(),
+        projectId,
+        worktreeFor(projectId, sessionId),
+        scope === 'session' && sessionId ? s.startHeadOf(sessionId, projectId) || undefined : undefined,
+      ),
+  );
+  const treeWatcher = new TreeWatcher(() => win?.webContents.send(IPC.gitChanged));
+  ipcMain.on(IPC.gitWatch, (_e, target: GitTarget | null) => {
+    try {
+      treeWatcher.watch(target ? treeOf(loadConfig(), target.projectId, worktreeFor(target.projectId, target.sessionId)) : null);
+    } catch {
+      treeWatcher.watch(null);
+    }
+  });
+  app.on('before-quit', () => treeWatcher.close());
+  ipcMain.handle(IPC.gitAction, (_e, a: GitAction) =>
+    gitAction(treeOf(loadConfig(), a.projectId, worktreeFor(a.projectId, a.sessionId)), a, (p) =>
+      shell.trashItem(p),
+    ),
   );
   // First-run checklist (T17). Smoke never reads or writes its state: it always reports "not pending".
   ipcMain.handle(IPC.firstRunGet, async (_e, recheck: boolean) => {

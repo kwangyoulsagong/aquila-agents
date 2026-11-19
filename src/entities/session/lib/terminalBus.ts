@@ -29,3 +29,21 @@ export function attach(id: string, write: Writer): () => void {
     writers.delete(id);
   };
 }
+
+/** Pastes into a mounted terminal like ⌘V (bracketed paste when the CLI asked for it) and focuses it. */
+const pasters = new Map<string, (text: string) => void>();
+
+export function registerPaste(id: string, paste: (text: string) => void): () => void {
+  pasters.set(id, paste);
+  return () => {
+    if (pasters.get(id) === paste) pasters.delete(id);
+  };
+}
+
+/** Puts `text` in the session's input without pressing Enter; false when its terminal isn't mounted. */
+export function pasteIntoSession(id: string, text: string): boolean {
+  const paste = pasters.get(id);
+  if (!paste) return false;
+  paste(text);
+  return true;
+}

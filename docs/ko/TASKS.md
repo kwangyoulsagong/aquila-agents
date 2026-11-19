@@ -180,7 +180,8 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
 - **담당:** `electron/smoke.ts`, `scripts/capture/`, `src/features/guide/media/`.
 
 ### T25 · 변경사항 패널 v2: 감시 + 리뷰 루프
-- [ ] **목표:** 앱을 떠나지 않고 에이전트가 한 일을 리뷰하고 피드백 보내기. (#20, #21)
+- [x] **목표:** 앱을 떠나지 않고 에이전트가 한 일을 리뷰하고 피드백 보내기. (#20, #21)
+  _남은 것: hunk stage/revert는 스테이징된 게 없는 일반 수정 파일에서만(그 밖엔 파일 단위만); hunk 단위 unstage 없음; 워크트리 세션의 index는 트리 밖에 있어서 터미널에서 stage하면 45초 폴링이나 포커스 때 반영; 코멘트는 패널에만 있고 재실행하면 사라짐._
 - **명세:** 5초 폴링 대신 `fs.watch`(재귀) + 300–500 ms 디바운스 + lazy diff, 30–60초 폴링은 안전망. "git working tree ·
   n초 전 갱신" 표시. unified / side-by-side, j/k 파일 이동. 줄 코멘트 → 프롬프트(`파일:줄` + 코드 인용 + 코멘트)를
   포커스된 세션 입력에 붙여넣기, 전송은 사용자가 Enter. 그다음 확인창(+ stash 백업)이 있는 hunk/파일 stage·revert,

@@ -185,7 +185,8 @@ Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-1
 - **Owns:** `electron/smoke.ts`, `scripts/capture/`, `src/features/guide/media/`.
 
 ### T25 · Changes panel v2: watch + review loop
-- [ ] **Goal:** review what the agent did and send feedback without leaving the app. (#20, #21)
+- [x] **Goal:** review what the agent did and send feedback without leaving the app. (#20, #21)
+  _Left over: hunk stage/revert only on a plain modified file with nothing staged (otherwise file-level only); no unstage per hunk; a worktree session's index lives outside its tree, so staging there from a terminal shows up on the 45 s poll or focus; comments are kept per panel, not across relaunches._
 - **Spec:** replace the 5 s poll with `fs.watch` (recursive) + 300–500 ms debounce + lazy diff, 30–60 s poll as a safety
   net; show "git working tree · updated n s ago". Unified / side-by-side, j/k between files. Line comments → a prompt
   (`file:line` + quoted code + comment) pasted into the focused session's input; the user presses Enter. Then hunk/file

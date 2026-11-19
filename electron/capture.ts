@@ -219,14 +219,27 @@ export async function runCapture(win: BrowserWindow, sessions: SessionManager, c
       },
     },
     {
+      // Review loop (T25): open, side by side, comment on a line. Stops before pasting: the demo agent would run it.
       id: 'changes',
       rect: FULL,
-      ms: 3800,
+      ms: 4800,
       act: async () => {
-        await wait(500);
-        await press('G', ['meta', 'shift'], 2500);
+        await wait(300);
+        await press('G', ['meta', 'shift'], 900);
+        await click('.c-segment__item', t('changes.mode.split'));
+        await wait(700);
+        await js(`[...document.querySelectorAll('.c-diff__line--add[data-commentable]')]
+          .find((e) => e.textContent.includes('coupon ?'))?.click()`);
+        await wait(250);
+        await type(lang === 'ko' ? '0 미만 방지 테스트 추가' : 'Add a test for the clamp', 35);
+        await wait(200);
+        await press('Enter', ['meta'], 1200);
       },
-      after: () => press('G', ['meta', 'shift'], 500),
+      after: async () => {
+        await click('.c-panel__bar .c-btn', t('changes.comments.clear'));
+        await click('.c-segment__item', t('changes.mode.unified'));
+        await press('G', ['meta', 'shift'], 500);
+      },
     },
     { id: 'accounts', rect: TOP_RIGHT },
     { id: 'projects', rect: SIDEBAR },

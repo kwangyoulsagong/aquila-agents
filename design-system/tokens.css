@@ -158,6 +158,9 @@
   --size-dot-sm: 6px; /* per-session dots in a project row */
   --size-sidebar: 248px;
   --size-panel: 416px;
+  --size-panel-wide: 720px;   /* changes panel in side-by-side mode (capped at half the window) */
+  --size-diff-gutter: 40px;   /* one line-number column in a diff (4 digits + gap) */
+  --size-diff-comment: 384px; /* line-comment box under a diff line */
   --size-dialog: 440px;
   --size-dialog-wide: 560px;  /* dialogs with a checklist (first run) */
   --size-palette: 560px;      /* command palette width */
