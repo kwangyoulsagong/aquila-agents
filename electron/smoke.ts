@@ -1,6 +1,6 @@
 // `npm run smoke`: launch the built app, open a shell session, check the pty round-trips,
 // check OSC 7501 (main answers the query; a report becomes the session status), check Ctrl+C stops a `yes` flood fast, open shells from the UI and check terminals on screen render with WebGL, save a screenshot to dist/smoke.png,
-// open the first-run checklist from ⌘K (dist/smoke-first-run.png), open the guide with ⌘/ (dist/smoke-guide.png,
+// open the first-run checklist from ⌘K (dist/smoke-first-run.png), project settings from ⌘K (dist/smoke-settings.png), open the guide with ⌘/ (dist/smoke-guide.png,
 // dist/smoke-guide-shortcuts.png; every feature must show captured media), run the Korean IME scenarios (real composition
 // events through Chromium's IME path via CDP; checks the exact bytes the terminal sends), then quit with exit code 0 (ok) or 1 (fail).
 // Agents use this to verify their change actually runs.
@@ -109,6 +109,8 @@ export async function runSmoke(
     console.log(`[smoke] PATH has claude: ${onPath('claude')}, codex: ${onPath('codex')}`);
     const firstRunError = await checkFirstRun(win, config, path.join(outDir, 'smoke-first-run.png'));
     if (firstRunError) return fail(firstRunError);
+    const settingsError = await checkProjectSettings(win, config, path.join(outDir, 'smoke-settings.png'));
+    if (settingsError) return fail(settingsError);
     const guideError = await checkGuide(win, outDir);
     if (guideError) return fail(guideError);
     const imeError = await checkIme(win);
@@ -279,6 +281,38 @@ async function checkFirstRun(win: BrowserWindow, config: Config, out: string): P
   return stillOpen ? 'Esc did not close the first-run checklist' : null;
 }
 
+/** ⌘K → "Project settings…" opens the settings dialog with its fields; screenshot, then Esc closes it (nothing saved). */
+async function checkProjectSettings(win: BrowserWindow, config: Config, out: string): Promise<string | null> {
+  const label = translator(config.language)('settings.action');
+  win.show();
+  win.focus();
+  press(win, 'K', ['meta']);
+  await wait(500);
+  const clicked: boolean = await win.webContents.executeJavaScript(`(() => {
+    const item = [...document.querySelectorAll('.c-palette__item')].find((el) => el.textContent === ${JSON.stringify(label)});
+    item?.click();
+    return !!item;
+  })()`);
+  if (!clicked) return `palette has no "${label}" action`;
+  let fields = 0;
+  for (let i = 0; i < 20 && fields < 9; i++) {
+    await wait(150);
+    fields = await win.webContents.executeJavaScript(
+      `document.querySelectorAll('.c-dialog[open] .c-field').length`,
+    );
+  }
+  if (fields < 9) return `project settings shows ${fields} fields, expected 9`;
+  await wait(400); // let the dialog finish rising in
+  fs.writeFileSync(out, (await win.webContents.capturePage()).toPNG());
+  console.log(`[smoke] project settings: ${fields} fields, screenshot: ${out}`);
+  press(win, 'Escape', []);
+  await wait(400);
+  const stillOpen: boolean = await win.webContents.executeJavaScript(
+    `!!document.querySelector('.c-dialog[open]')`,
+  );
+  return stillOpen ? 'Esc did not close project settings' : null;
+}
+
 /**
  * ⌘/ opens the guide: a list of features, the first one selected with its detail; the last item shows the full
  * shortcut sheet. Saves both screenshots, then Esc closes it. Returns an error or null.
@@ -310,8 +344,7 @@ async function checkGuide(win: BrowserWindow, outDir: string): Promise<string | 
     all[0]?.click();
     return missing;
   })()`);
-  if (noMedia.length)
-    return `guide items without media (run \`npm run capture\`): ${noMedia.join(', ')}`;
+  if (noMedia.length) return `guide items without media (run \`npm run capture\`): ${noMedia.join(', ')}`;
   const rows: number = await win.webContents.executeJavaScript(`(() => {
     const all = document.querySelectorAll('.c-modal[open] .c-modal__item');
     all[all.length - 1]?.click();

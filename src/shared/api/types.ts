@@ -59,6 +59,34 @@ export interface Project {
   group: string;
   account: string;
   path: string;
+  /** What the tab bar's + and the empty state open first (default Claude). */
+  defaultAgent?: SessionKind;
+  /** New worktree branches start from it (default: the branch checked out in the project dir). */
+  defaultBranch?: string;
+  /** Runs once in a new worktree before the agent starts (`zsh -c`). */
+  setupScript?: string;
+  /** Sessions get `PORT` / `AQUILA_PORT_BASE` = this; each worktree +10. */
+  portBase?: number;
+  /** macOS app name for "Open in" (`open -a <app>`), e.g. "Visual Studio Code". */
+  openIn?: string;
+}
+
+/** Allowed `portBase` range (each worktree adds 10). */
+export const PORT_BASE_MIN = 1024;
+export const PORT_BASE_MAX = 65000;
+
+/** Settings from the project settings dialog. Empty string / null clears an optional one. */
+export interface ProjectSettings {
+  name?: string;
+  group?: string;
+  account?: string;
+  /** Absolute (folder picker); stored as `~/…` when under home. */
+  path?: string;
+  defaultAgent?: SessionKind | null;
+  defaultBranch?: string;
+  setupScript?: string;
+  portBase?: number | null;
+  openIn?: string;
 }
 
 export interface Config {
@@ -73,7 +101,7 @@ export interface Config {
 export type ProjectEdit =
   /** `path` is absolute (folder picker); stored as `~/…` when under home. Empty name = folder name. */
   | { op: 'addProject'; path: string; name: string; group: string; account: string }
-  | { op: 'updateProject'; id: string; name?: string; group?: string; account?: string }
+  | ({ op: 'updateProject'; id: string } & ProjectSettings)
   | { op: 'removeProject'; id: string }
   /** `index` = position among the target group's other projects (past the end = last). */
   | { op: 'moveProject'; id: string; group: string; index: number }
@@ -110,8 +138,10 @@ export interface WorktreeInfo {
   repoRoot: string;
   /** Where new worktrees go: `<parent>/<repo>-wt` (a branch `a/b` lands in `<root>/a/b`). */
   root: string;
-  /** Branch checked out in the project dir ('' when detached); new branches start from it. */
+  /** Branch checked out in the project dir ('' when detached). */
   current: string;
+  /** New branches start from it: the project's default branch if it exists, else `current`. */
+  base: string;
   /** Local branches. */
   branches: string[];
   /** Worktrees that have a branch checked out (incl. the main one); opening that branch reuses it. */
@@ -331,6 +361,10 @@ export interface AquilaApi {
   editProjects(edit: ProjectEdit): Promise<Config>;
   /** Native folder picker; null when cancelled. */
   pickFolder(): Promise<string | null>;
+  /** Project whose folder is `path` (absolute or `~/…`), for the duplicate-folder warning; null when none. */
+  projectForPath(path: string): Promise<string | null>;
+  /** Opens the project folder in its "Open in" app (Finder when unset). */
+  openProjectIn(projectId: string): Promise<void>;
   /** Native context menu at the cursor; resolves with the clicked item's id, or null. */
   showContextMenu(items: ContextMenuItem[]): Promise<string | null>;
   /** `account` overrides the project's account for this one session (setup opens a Claude login with it). */
@@ -424,6 +458,8 @@ export const IPC = {
   configSetProjectAccount: 'config:set-project-account',
   configEditProjects: 'config:edit-projects',
   dialogPickFolder: 'dialog:pick-folder',
+  configProjectForPath: 'config:project-for-path',
+  projectOpenIn: 'project:open-in',
   uiContextMenu: 'ui:context-menu',
   sessionCreate: 'session:create',
   sessionRestore: 'session:restore',

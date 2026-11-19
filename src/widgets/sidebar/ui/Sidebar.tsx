@@ -4,44 +4,23 @@ import { api, type Config, type Session } from '@/shared/api';
 import { groupLabel, useT } from '@/shared/i18n';
 import { AccountBadge, ProjectRow } from '@/entities/project';
 import { StatusDot, WaitingTime, mostUrgent } from '@/entities/session';
-import { ManageProjectsDialog, useManageProjects } from '@/features/manage-projects';
+import type { ManageProjects } from '@/features/manage-projects';
 
 interface Props {
   config: Config;
   sessions: Session[];
   activeProjectId: string | null;
   onSelect: (projectId: string) => void;
-  onConfigChanged: (config: Config) => void;
-  /** A project was removed from the config (close its sessions, pick another one). */
-  onProjectRemoved: (projectId: string, config: Config) => void;
-  onError: (message: string) => void;
+  /** Project management (menus, drag, "+"); its dialogs are rendered by the page (the palette opens them too). */
+  manage: ManageProjects;
   /** Footer slot (language toggle, system meter…). */
   footer?: ReactNode;
 }
 
 const MAX_DOTS = 4;
 
-export default function Sidebar({
-  config,
-  sessions,
-  activeProjectId,
-  onSelect,
-  onConfigChanged,
-  onProjectRemoved,
-  onError,
-  footer,
-}: Props) {
+export default function Sidebar({ config, sessions, activeProjectId, onSelect, manage, footer }: Props) {
   const t = useT();
-  const manage = useManageProjects({
-    config,
-    sessions,
-    onChanged: onConfigChanged,
-    onAdded: onSelect,
-    onRemoved: onProjectRemoved,
-    onError,
-  });
-  const active = config.projects.find((p) => p.id === activeProjectId);
-  const { dialog } = manage;
 
   return (
     <aside className="c-sidebar">
@@ -116,18 +95,6 @@ export default function Sidebar({
           +
         </Button>
       </div>
-      {dialog && (
-        <ManageProjectsDialog
-          key={JSON.stringify(dialog)}
-          dialog={dialog}
-          config={config}
-          defaults={{ group: active?.group, account: active?.account }}
-          onClose={manage.closeDialog}
-          onAdd={manage.submitAdd}
-          onName={manage.submitName}
-          onRemove={manage.submitRemove}
-        />
-      )}
     </aside>
   );
 }

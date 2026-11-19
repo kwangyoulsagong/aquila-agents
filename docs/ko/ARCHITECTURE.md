@@ -49,6 +49,8 @@
 3. 세션별 환경변수: `AQUILA_TAB_ID`, `AQUILA_PORT`, 그리고 **개인** 계정의 Claude 세션에만
    `CLAUDE_CONFIG_DIR=~/.claude-personal` (`claude-personal` 셸 함수와 같음). **공용** 계정은 설정하지 않음(그냥 `claude`).
    Claude가 이 변수로 키체인 항목을 구분하기 때문에 `~/.claude`로 명시하면 안 됩니다.
+   프로젝트에 **포트 시작 번호**(T26)가 있으면 `PORT`와 `AQUILA_PORT_BASE` = 시작 번호 + 10 × `git worktree list`에서의
+   워크트리 순서(메인 = 0)도 넣어요. 워크트리마다 개발 서버 포트가 겹치지 않아요.
 4. pty 출력 → `electron/output.ts`가 묶어서(16 ms 프레임 또는 64 KB마다 한 메시지, `session:visible`로 화면 밖이면
    200 ms, 절전 모드에서 화면 밖이면 1초 — `electron/power.ts`, `ENERGY.md` 참고) → `session:data` → `terminalBus` → 해당 id의 xterm (아직 안 붙었으면 버퍼에 보관).
    **흐름 제어:** xterm이 묶음을 다 쓰면 렌더러가 `session:ack`을 보냄. 확인 안 된 묶음이 5개면 main이 pty를 멈추고
@@ -134,8 +136,10 @@
   브랜치 입력칸(로컬 브랜치 추천)과 무엇을 어디에 하는지 알려주는 한 줄.
 - Main (`worktrees.ts`, `session:create-worktree`): `git check-ref-format --branch`로 이름을 확인한 뒤, 그 브랜치가
   이미 체크아웃된 워크트리가 있으면 재사용(`git worktree list --porcelain`, 메인 포함), 없으면 메인 워크트리 옆
-  `<repo>-wt/<branch>`에 `git worktree add` — 브랜치가 있으면 체크아웃, 없으면 프로젝트의 현재 HEAD에서 `-b`로 만들어요.
-  실패하면 git 메시지를 다이얼로그에 보여줘요. 아무것도 지우지 않아요.
+  `<repo>-wt/<branch>`에 `git worktree add` — 브랜치가 있으면 체크아웃, 없으면 프로젝트의 **기본 브랜치**(T26, 커밋을
+  가리킬 때) 또는 현재 HEAD에서 `-b`로 만들어요. 실패하면 git 메시지를 다이얼로그에 보여줘요. 아무것도 지우지 않아요.
+  이번에 새로 만든 워크트리는 에이전트보다 먼저 세션의 로그인 셸에서 프로젝트 **셋업 스크립트**를 한 번 보이게 실행해요
+  (실패해도 에이전트는 시작).
 - 세션(`SessionInfo.worktree = { path, branch }`)은 그 폴더에서 시작. 탭에 브랜치가 보이고(`.c-tab__branch`, 툴팁에 경로),
   분할 화면 헤더·팔레트 이름·알림 제목에도 붙어요.
 - 변경사항 패널은 포커스된 세션을 따라가요: 워크트리 세션이면 그 워크트리를 보여줘요(경로는 main이 살아 있는 세션 id로

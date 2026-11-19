@@ -14,11 +14,20 @@ interface Props {
   onSelect: (id: string) => void;
   onClose: (id: string) => void;
   onNew: (kind: SessionKind) => void;
+  /** What a click on + opens (the project's default agent; Claude when unset). */
+  defaultKind?: SessionKind;
   /** "New Claude in worktree…" in the + button's right-click menu. */
   onNewInWorktree?: () => void;
   /** Right-aligned controls (account switch). */
   trailing?: ReactNode;
 }
+
+/** Tooltip of + per default agent. */
+const NEW_BUTTON = {
+  claude: { key: 'action.openClaude', shortcut: 'openClaude' },
+  codex: { key: 'action.openCodex', shortcut: 'openCodex' },
+  shell: { key: 'palette.openShell', shortcut: 'openShell' },
+} as const;
 
 export default function SessionTabs({
   config,
@@ -27,10 +36,12 @@ export default function SessionTabs({
   onSelect,
   onClose,
   onNew,
+  defaultKind = 'claude',
   onNewInWorktree,
   trailing,
 }: Props) {
   const t = useT();
+  const newKind = NEW_BUTTON[defaultKind];
   const barRef = useRef<HTMLDivElement>(null);
   // A full bar scrolls sideways: keep the selected tab in view, clear of the pinned trailing controls.
   useEffect(() => {
@@ -100,8 +111,8 @@ export default function SessionTabs({
         variant="ghost"
         icon
         className="c-tabbar__add"
-        title={withShortcut(t('action.openClaude'), 'openClaude')}
-        onClick={() => onNew('claude')}
+        title={withShortcut(t(newKind.key), newKind.shortcut)}
+        onClick={() => onNew(defaultKind)}
         onContextMenu={(e) => {
           e.preventDefault();
           void newMenu();

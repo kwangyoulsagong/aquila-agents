@@ -1,8 +1,19 @@
 // User config at ~/.aquila/config.json. Created with defaults on first run.
+import { execFile } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import type { Config, Group, Language, Project, ProjectEdit } from '../src/shared/api/types';
+import {
+  PORT_BASE_MAX,
+  PORT_BASE_MIN,
+  type Config,
+  type Group,
+  type Language,
+  type Project,
+  type ProjectEdit,
+  type ProjectSettings,
+  type SessionKind,
+} from '../src/shared/api/types';
 import { translator } from '../src/shared/i18n/dictionary';
 
 const HOME = os.homedir();
@@ -140,6 +151,71 @@ function placeProject(projects: Project[], project: Project, group: string, inde
   return [...rest.slice(0, anchor), moved, ...rest.slice(anchor)];
 }
 
+const KINDS: SessionKind[] = ['claude', 'codex', 'shell'];
+
+/** An optional text setting: trimmed; blank removes the key. */
+function setText<K extends 'defaultBranch' | 'setupScript' | 'openIn'>(p: Project, key: K, value: string): Project {
+  const v = key === 'setupScript' ? value.replace(/\s+$/, '') : value.trim();
+  return v.trim() ? { ...p, [key]: v } : dropKey(p, key);
+}
+
+function dropKey(p: Project, key: keyof Project): Project {
+  const { [key]: _old, ...rest } = p;
+  void _old;
+  return rest as Project;
+}
+
+/** Settings dialog → project. Invalid values (unknown group/account, bad port, blank name) are ignored. */
+export function applySettings(
+  p: Project,
+  s: ProjectSettings,
+  ctx: { hasGroup: (id: string) => boolean; hasAccount: (id: string) => boolean; home: string },
+): Project {
+  let next: Project = { ...p };
+  const name = s.name?.trim();
+  if (name) next.name = name;
+  if (s.group && ctx.hasGroup(s.group)) next.group = s.group;
+  if (s.account && ctx.hasAccount(s.account)) next.account = s.account;
+  if (s.path?.trim()) next.path = tildify(s.path.trim(), ctx.home);
+  if (s.defaultAgent === null || s.defaultAgent === 'claude') next = dropKey(next, 'defaultAgent');
+  else if (s.defaultAgent && KINDS.includes(s.defaultAgent)) next.defaultAgent = s.defaultAgent;
+  if (s.portBase === null) next = dropKey(next, 'portBase');
+  else if (
+    typeof s.portBase === 'number' &&
+    Number.isInteger(s.portBase) &&
+    s.portBase >= PORT_BASE_MIN &&
+    s.portBase <= PORT_BASE_MAX
+  )
+    next.portBase = s.portBase;
+  if (s.defaultBranch !== undefined) next = setText(next, 'defaultBranch', s.defaultBranch);
+  if (s.setupScript !== undefined) next = setText(next, 'setupScript', s.setupScript);
+  if (s.openIn !== undefined) next = setText(next, 'openIn', s.openIn);
+  return next;
+}
+
+/** Id of the project whose folder is `dir` (`~/…` or absolute, trailing slash ignored), else null. */
+export function projectForPath(c: Config, dir: string, home = HOME): string | null {
+  const norm = (p: string) => {
+    const abs = p.startsWith('~') ? path.join(home, p.slice(1)) : p;
+    return path.resolve(abs).replace(/\/+$/, '') || '/';
+  };
+  const target = norm(dir);
+  return c.projects.find((p) => norm(p.path) === target)?.id ?? null;
+}
+
+/** Opens the project folder with its "Open in" app (`open -a`), or in Finder when none is set. */
+export function openProjectIn(c: Config, projectId: string): Promise<void> {
+  const project = c.projects.find((p) => p.id === projectId);
+  if (!project) return Promise.reject(new Error(translator(c.language)('error.projectNotFound', { id: projectId })));
+  const dir = expand(project.path);
+  const args = project.openIn ? ['-a', project.openIn, dir] : [dir];
+  return new Promise((resolve, reject) =>
+    execFile('open', args, (err, _out, stderr) =>
+      err ? reject(new Error(String(stderr).trim() || err.message)) : resolve(),
+    ),
+  );
+}
+
 /** Applies one sidebar edit. Pure: unknown ids and invalid values leave the config unchanged. */
 export function applyProjectEdit(c: Config, e: ProjectEdit, home = HOME): Config {
   const hasGroup = (id: string) => c.groups.some((g) => g.id === id);
@@ -158,18 +234,12 @@ export function applyProjectEdit(c: Config, e: ProjectEdit, home = HOME): Config
       return { ...c, groups, projects: placeProject(c.projects, project, group, Infinity) };
     }
     case 'updateProject': {
-      const name = e.name?.trim();
+      const { op: _op, id, ...settings } = e;
+      void _op;
       return {
         ...c,
         projects: c.projects.map((p) =>
-          p.id !== e.id
-            ? p
-            : {
-                ...p,
-                ...(name ? { name } : {}),
-                ...(e.group && hasGroup(e.group) ? { group: e.group } : {}),
-                ...(e.account && hasAccount(e.account) ? { account: e.account } : {}),
-              },
+          p.id === id ? applySettings(p, settings, { hasGroup, hasAccount, home }) : p,
         ),
       };
     }

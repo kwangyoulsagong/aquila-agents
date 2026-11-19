@@ -136,7 +136,8 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `.c-shortcuts` `__group` `__row` `__label` `__keys` | Shortcut sheet: grouped rows, label left, keys right |
 | `.c-checklist` `__item` `__lead` `__main` `__title` `__meta` `__actions` `__detail` `__command` | Bordered list of checks: dot on the title line · title (+ badge) / mono meta · buttons, then a full-width detail (install command with Copy, drop zone) |
 | `.c-dropzone[data-over]` | Dashed drop area; accent border + selected background while dragging over |
-| `.c-field` `__label` `__hint`, `.c-input` (`--multiline`), `.c-select` `__control` | Form field: label, text input / select (focus = blue border), monospace hint |
+| `.c-field` `__label` `__hint`, `.c-input` (`--multiline`), `.c-select` `__control` | Form field: label, text input / select (focus = blue border), monospace hint (`data-tone="warning"` = waiting orange) |
+| `.c-field__row`, `.c-field-grid` | A control with a button beside it (path + "Change…"); two short fields side by side |
 
 ## React components (`design-system/react/`)
 
@@ -156,7 +157,7 @@ from `src/` (ESLint enforces it). New primitive → add the class to `components
 | `Dialog` `open` `title` `onClose` `actions` `wide`, `DialogCheck`, `DialogCode`, `DialogForm` `id` `onSubmit` | `.c-dialog` |
 | `Checklist` `label`, `ChecklistItem` `leading` `title` `tag` `meta` `actions`, `ChecklistCommand` `command` `action` | `.c-checklist` |
 | `Dropzone` `over` (+ div props) | `.c-dropzone` |
-| `Field` `label` `hint`, `Input`, `Textarea`, `Select` `options` `onChange(value)` | `.c-field`, `.c-input`, `.c-input--multiline`, `.c-select` |
+| `Field` `label` `hint` `warning`, `FieldRow`, `FieldGrid`, `Input`, `Textarea`, `Select` `options` `onChange(value)` | `.c-field`, `.c-field__row`, `.c-field-grid`, `.c-input`, `.c-input--multiline`, `.c-select` |
 | `ChangeRow` `status` `path` | `.c-change` |
 | `Palette` `open` `onClose` `label` `query` `onQueryChange` `listId` `activeId`, `PaletteList`, `PaletteItem` `selected` `label` `marks` `leading` `hint` `kbd`, `PaletteEmpty` | `.c-palette` (combobox + listbox) |
 | `Modal` `open` `title` `onClose` `closeLabel` `aside` `footer` `wide`, `ModalSearch` (focused on open), `ModalList` `id` `label`, `ModalItem` `selected` `label` `meta` `trailing` `onSelect`, `ModalEmpty`, `ModalDetail` `heading` `text` `keys`, `ModalGroup` `label` `hint`, `ModalTools`, `ModalActions` `onSubmit?`, `ModalNote` `warn` | `.c-modal` |

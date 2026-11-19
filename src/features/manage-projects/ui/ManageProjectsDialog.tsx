@@ -1,8 +1,10 @@
 import { useId, useState } from 'react';
 import { Button, Dialog, DialogForm, Field, Input, Select } from '@design-system/react';
-import type { Config } from '@/shared/api';
+import type { Config, ProjectSettings } from '@/shared/api';
 import { accountLabel, groupLabel, useT } from '@/shared/i18n';
 import type { ManageDialog } from '../model/useManageProjects';
+import { useDuplicateFolder } from '../model/useDuplicateFolder';
+import ProjectSettingsDialog from './ProjectSettingsDialog';
 
 interface Props {
   dialog: ManageDialog;
@@ -13,21 +15,29 @@ interface Props {
   onAdd: (values: { name: string; group: string; account: string }) => Promise<void>;
   onName: (name: string) => Promise<void>;
   onRemove: () => Promise<void>;
+  onSettings: (settings: ProjectSettings) => Promise<void>;
 }
 
 const folderName = (path: string) => path.split('/').filter(Boolean).at(-1) ?? path;
 
-/** The one open project/group dialog: add, rename, new group, remove. */
-export default function ManageProjectsDialog({
-  dialog,
-  config,
-  defaults,
-  onClose,
-  onAdd,
-  onName,
-  onRemove,
-}: Props) {
+/** The one open project/group dialog: add, settings, rename, new group, remove. */
+export default function ManageProjectsDialog(props: Props) {
+  const { dialog } = props;
+  if (dialog.kind === 'settings')
+    return (
+      <ProjectSettingsDialog
+        project={dialog.project}
+        config={props.config}
+        onClose={props.onClose}
+        onSave={props.onSettings}
+      />
+    );
+  return <SimpleDialog {...props} />;
+}
+
+function SimpleDialog({ dialog, config, defaults, onClose, onAdd, onName, onRemove }: Props) {
   const t = useT();
+  const duplicate = useDuplicateFolder(config, dialog.kind === 'add' ? dialog.path : '');
   const formId = useId();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -107,7 +117,11 @@ export default function ManageProjectsDialog({
         }
       >
         <DialogForm id={formId} onSubmit={() => run(() => onAdd({ name, group, account }))}>
-          <Field label={t('projects.name')} hint={dialog.path}>
+          <Field
+            label={t('projects.name')}
+            hint={dialog.path}
+            warning={duplicate && `${dialog.path} · ${t('settings.duplicate', { name: duplicate })}`}
+          >
             <Input value={name} onChange={(e) => setName(e.target.value)} autoFocus />
           </Field>
           <Field label={t('projects.group')}>

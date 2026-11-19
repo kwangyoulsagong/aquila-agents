@@ -344,6 +344,10 @@ body {
 .c-dialog__form { display: flex; flex-direction: column; gap: var(--space-inset-md); }
 .c-dialog__check { display: flex; align-items: center; gap: var(--space-inline-sm); }
 .c-dialog--wide { width: var(--size-dialog-wide); }
+/* Long forms scroll inside the body; title and actions stay put. */
+.c-dialog { max-height: calc(100vh - 2 * var(--space-stack-lg)); }
+.c-dialog[open] { display: flex; flex-direction: column; }
+.c-dialog__body { min-height: 0; overflow-y: auto; }
 
 /* ── Checklist (first run) ────────────────────────────────── */
 .c-checklist {
@@ -545,6 +549,12 @@ body {
   font: var(--font-size-caption) var(--font-family-mono); color: var(--color-text-tertiary);
   overflow-wrap: anywhere; user-select: text;
 }
+.c-field__hint[data-tone='warning'] { color: var(--color-status-waiting); }
+/* A control with a button beside it (path + "Change…"). */
+.c-field__row { display: flex; align-items: center; gap: var(--space-inline-sm); }
+.c-field__row > :first-child { flex: 1; min-width: 0; }
+/* Two short fields side by side. */
+.c-field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-inset-md); }
 .c-input, .c-select__control {
   width: 100%; height: var(--size-control); padding: 0 var(--space-inset-sm);
   border: 1px solid var(--color-border-default); border-radius: var(--radius-control);

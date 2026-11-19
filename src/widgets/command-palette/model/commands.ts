@@ -1,4 +1,4 @@
-import type { Config, Session, SessionKind, SessionStatus } from '@/shared/api';
+import type { Config, Project, Session, SessionKind, SessionStatus } from '@/shared/api';
 import { groupLabel, kindLabel, type Translate } from '@/shared/i18n';
 import { shortcutLabel, type ShortcutId } from '@/shared/lib/shortcuts';
 
@@ -8,6 +8,9 @@ export type ActionId =
   | 'openCodex'
   | 'openShell'
   | 'openWorktree'
+  | 'addProject'
+  | 'projectSettings'
+  | 'openProjectIn'
   | 'splitRight'
   | 'splitDown'
   | 'zoomPane'
@@ -43,11 +46,19 @@ export type Command =
   | { type: 'action'; id: string; action: ActionId; label: string; kbd?: string };
 
 /** Label and shortcut per action, in the order they're listed. */
-const ACTIONS: { action: ActionId; label: (t: Translate) => string; shortcut?: ShortcutId }[] = [
+const ACTIONS: {
+  action: ActionId;
+  /** `project`: the current one (actions on it are only listed when there is one). */
+  label: (t: Translate, project?: Project) => string;
+  shortcut?: ShortcutId;
+}[] = [
   { action: 'openClaude', label: (t) => t('action.openClaude'), shortcut: 'openClaude' },
   { action: 'openCodex', label: (t) => t('action.openCodex'), shortcut: 'openCodex' },
   { action: 'openShell', label: (t) => t('palette.openShell'), shortcut: 'openShell' },
   { action: 'openWorktree', label: (t) => t('worktree.title') },
+  { action: 'projectSettings', label: (t) => t('settings.action') },
+  { action: 'openProjectIn', label: (t, p) => t('settings.openInAction', { app: p?.openIn || 'Finder' }) },
+  { action: 'addProject', label: (t) => t('projects.add') },
   { action: 'splitRight', label: (t) => t('palette.splitRight'), shortcut: 'splitRight' },
   { action: 'splitDown', label: (t) => t('palette.splitDown'), shortcut: 'splitDown' },
   { action: 'zoomPane', label: (t) => t('action.zoomPane'), shortcut: 'zoomPane' },
@@ -100,6 +111,7 @@ export function buildCommands({
   t,
 }: Input): Command[] {
   const projectName = new Map(config.projects.map((p) => [p.id, p.name]));
+  const activeProject = config.projects.find((p) => p.id === activeProjectId);
 
   // "Claude · SALT", "Claude 2 · SALT" when a project has more than one of a kind.
   const seen = new Map<string, number>();
@@ -143,7 +155,7 @@ export function buildCommands({
     type: 'action',
     id: `action:${a.action}`,
     action: a.action,
-    label: a.label(t),
+    label: a.label(t, activeProject),
     kbd: a.shortcut && shortcutLabel(a.shortcut),
   }));
 

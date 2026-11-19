@@ -206,7 +206,8 @@ Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-1
 - **Owns:** `electron/history.ts` (+ tests with fixture files), `src/widgets/history-panel/`, `src/features/resume-session/`.
 
 ### T26 · Project settings
-- [ ] **Goal:** per-project defaults instead of JSON. (#23 + T5 leftovers)
+- [x] **Goal:** per-project defaults instead of JSON. (#23 + T5 leftovers)
+  _Left over: "location" (this Mac / SSH) waits for T29; the default agent drives the tab bar's + and the empty state, not ⌘T/⌘⇧T; "Open in" offers a fixed app list (not filtered by what's installed); open sessions keep their old folder after a path change._
 - **Spec:** project settings dialog: path (changeable), location (this Mac / SSH host, see T29),
   default agent, default branch, setup script, port base, "Open in" editor; duplicate-folder warning; "Add project"
   in the palette.
