@@ -153,7 +153,7 @@ Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-1
 
 ### T21 · Restore v2
 - [x] **Goal:** relaunch brings back content too, fast. (#14 + T4 leftovers)
-  _Left over: saved output is plain text (no colors); a resumed Claude/codex shows only its own transcript, saved output appears only if the resume fails; codex ids are matched by cwd + Enter time (a heuristic), and `/new` inside codex keeps the old id; real codex capture and a real failing `claude --resume` weren't run live (verified with a fake `claude` and fixture rollouts); shells still don't keep cwd if you `cd`'d elsewhere._
+  _Left over: saved output is plain text (no colors); a resumed Claude/codex shows only its own transcript, saved output appears only if the resume fails; codex ids are matched by cwd + Enter time (a heuristic), and `/new` inside codex keeps the old id; shells still don't keep cwd if you `cd`'d elsewhere._
 - **Spec:** save the last scrollback per tab to `~/.aquila/`; if resume fails, show it read-only and open a fresh shell
   in that dir (cold restore). Spawn the visible tabs first, background tabs on first click. Capture codex session ids so
   two codex tabs resume their own sessions. Restore the split layout and the focused tab.
