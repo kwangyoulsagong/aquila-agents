@@ -5,7 +5,6 @@ import type { Account, Group, Language, SessionKind } from '../api/types';
 const ko = {
   'action.openClaude': 'Claude 열기',
   'action.openCodex': 'Codex 열기',
-  'action.openShell': '셸 열기',
   'action.closeSession': '세션 닫기',
   'action.openConfig': '설정 파일 열기',
   'action.switchLanguage': 'English',
@@ -48,7 +47,6 @@ type Key = keyof typeof ko;
 const en = {
   'action.openClaude': 'Open Claude',
   'action.openCodex': 'Open Codex',
-  'action.openShell': 'Open shell',
   'action.closeSession': 'Close session',
   'action.openConfig': 'Open settings file',
   'action.switchLanguage': '한국어',
