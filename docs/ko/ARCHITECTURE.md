@@ -19,6 +19,7 @@
 │                                           │        │ notify.ts     알림, 리마인더, Dock 배지          │
 │                                           │        │ status/       OSC 7501 파서 + 상태 판정          │
 │                                           │        │ output.ts     출력 묶음 + 흐름 제어              │
+│                                           │        │ power.ts      절전 프로필: 배터리·발열 (T9)      │
 │                                           │        │ detect.ts     CLI 점검, 첫 실행 상태 (T17)       │
 │                                           │        │ smoke.ts      npm run smoke 자동 점검            │
 │ shared/   api (타입·IPC·bridge), i18n       │        │                                                 │
@@ -45,7 +46,7 @@
    `CLAUDE_CONFIG_DIR=~/.claude-personal` (`claude-personal` 셸 함수와 같음). **공용** 계정은 설정하지 않음(그냥 `claude`).
    Claude가 이 변수로 키체인 항목을 구분하기 때문에 `~/.claude`로 명시하면 안 됩니다.
 4. pty 출력 → `electron/output.ts`가 묶어서(16 ms 프레임 또는 64 KB마다 한 메시지, `session:visible`로 화면 밖이면
-   200 ms) → `session:data` → `terminalBus` → 해당 id의 xterm (아직 안 붙었으면 버퍼에 보관).
+   200 ms, 절전 모드에서 화면 밖이면 1초 — `electron/power.ts`, `ENERGY.md` 참고) → `session:data` → `terminalBus` → 해당 id의 xterm (아직 안 붙었으면 버퍼에 보관).
    **흐름 제어:** xterm이 묶음을 다 쓰면 렌더러가 `session:ack`을 보냄. 확인 안 된 묶음이 5개면 main이 pty를 멈추고
    2개가 되면 다시 읽음 → `yes` 같은 폭주에도 수 MB가 쌓이지 않고 Ctrl+C가 즉시 먹힘(smoke가 확인). 렌더러가
    새로고침되면 카운트 초기화. 터미널이 붙기 전에 버퍼에 들어간 출력은 받는 즉시 ack.

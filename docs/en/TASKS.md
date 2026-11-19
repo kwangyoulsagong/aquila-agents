@@ -142,7 +142,8 @@ Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-1
 - **Owns:** `electron/smoke.ts` (IME scenarios), IME handling in `TerminalView`, font tokens.
 
 ### T9 · Battery check + power profile
-- [ ] **Goal:** numbers, not guesses — and use less power on battery. (#26)
+- [x] **Goal:** numbers, not guesses — and use less power on battery. (#26)
+  _Left over: the comparison with Terminal.app / Ghostty / iTerm2 using 5 real Claude sessions wasn't run (Ghostty and iTerm2 aren't installed here; real sessions need a person) — the script is ready, see [ENERGY.md](ENERGY.md). Measured with `npm run perf` instead: in saver mode streaming CPU went 2.8 → 0.9 %. `top` shows 0 idle wakeups for Electron processes here, so wakeups come from `getAppMetrics` or `POWERMETRICS=1`._
 - **Spec:** `scripts/measure-energy.sh`: `top -l 6 -s 5 -o power`, `powermetrics --samplers tasks` idle wakeups/s,
   `yes` Ctrl-C test; Aquila Agents vs Terminal.app / Ghostty / iTerm2 with the same sessions (5 Claude, 1 streaming).
   Results in `docs/en/ENERGY.md` + `docs/ko/ENERGY.md`. Power profile from `powerMonitor` (`on-battery`,

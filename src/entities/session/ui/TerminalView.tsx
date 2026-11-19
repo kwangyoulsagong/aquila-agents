@@ -4,6 +4,7 @@ import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import { WebglAddon } from '@xterm/addon-webgl';
 import { api, type SessionKind } from '@/shared/api';
+import { usePowerSaver } from '@/shared/lib/usePowerSaver';
 import { gpuPool } from '../lib/gpuPool';
 import { createImeGuard } from '../lib/imeGuard';
 import { attach } from '../lib/terminalBus';
@@ -33,6 +34,9 @@ interface Handle {
 export default function TerminalView({ id, kind, visible, focused = visible }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<Handle | null>(null);
+  const saver = usePowerSaver();
+  const saverRef = useRef(saver);
+  saverRef.current = saver;
 
   useEffect(() => {
     const host = hostRef.current!;
@@ -40,7 +44,7 @@ export default function TerminalView({ id, kind, visible, focused = visible }: P
       fontFamily: token('--font-family-mono'),
       fontSize: 13,
       lineHeight: 1.2,
-      cursorBlink: true,
+      cursorBlink: !saverRef.current, // no blink in power-saver mode (T9)
       allowProposedApi: true,
       macOptionIsMeta: true,
       scrollback: SCROLLBACK[kind],
@@ -146,6 +150,11 @@ export default function TerminalView({ id, kind, visible, focused = visible }: P
     h.scheduleFit();
     if (focused) requestAnimationFrame(() => h.term.focus());
   }, [id, visible, focused]);
+
+  useEffect(() => {
+    const h = handleRef.current;
+    if (h) h.term.options.cursorBlink = !saver;
+  }, [saver]);
 
   return <div ref={hostRef} className="c-pane__term" />;
 }
