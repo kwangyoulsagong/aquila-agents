@@ -18,7 +18,11 @@ const api: AgentrixApi = {
   setLanguage: (language) => ipcRenderer.invoke(IPC.configSetLanguage, language),
   setProjectAccount: (projectId, account) =>
     ipcRenderer.invoke(IPC.configSetProjectAccount, { projectId, account }),
-  createSession: (projectId, kind) => ipcRenderer.invoke(IPC.sessionCreate, { projectId, kind }),
+  createSession: (projectId, kind, account) => ipcRenderer.invoke(IPC.sessionCreate, { projectId, kind, account }),
+  accountsStatus: () => ipcRenderer.invoke(IPC.accountsStatus),
+  prepareAccount: (account) => ipcRenderer.invoke(IPC.accountsPrepare, account),
+  shellFunctionPreview: (account) => ipcRenderer.invoke(IPC.accountsShellPreview, account),
+  installShellFunction: (account) => ipcRenderer.invoke(IPC.accountsShellInstall, account),
   write: (id, data) => ipcRenderer.send(IPC.sessionWrite, { id, data }),
   resize: (id, cols, rows) => ipcRenderer.send(IPC.sessionResize, { id, cols, rows }),
   kill: (id) => ipcRenderer.send(IPC.sessionKill, { id }),

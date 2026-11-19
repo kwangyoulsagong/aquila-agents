@@ -44,10 +44,11 @@ export class SessionManager {
     this.timer = setInterval(() => this.tickActivity(), 1000);
   }
 
-  create(config: Config, projectId: string, kind: SessionKind): SessionInfo {
+  create(config: Config, projectId: string, kind: SessionKind, accountOverride?: string): SessionInfo {
     const project = config.projects.find((p) => p.id === projectId);
     if (!project) throw new Error(translator(config.language)('error.projectNotFound', { id: projectId }));
-    const account = config.accounts[project.account];
+    const accountId = accountOverride && config.accounts[accountOverride] ? accountOverride : project.account;
+    const account = config.accounts[accountId];
     const id = crypto.randomUUID().slice(0, 8);
 
     const env: Record<string, string> = {
@@ -99,7 +100,7 @@ export class SessionManager {
       this.sessions.delete(id);
     });
 
-    return { id, projectId, kind, account: kind === 'claude' ? project.account : undefined };
+    return { id, projectId, kind, account: kind === 'claude' ? accountId : undefined };
   }
 
   private commandFor(kind: SessionKind): string | null {

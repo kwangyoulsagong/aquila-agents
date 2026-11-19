@@ -1,6 +1,7 @@
 // Main process: window, config, pty sessions, Claude hook receiver.
 import path from 'node:path';
 import { app, BrowserWindow, ipcMain, shell } from 'electron';
+import { accountsStatus, installShellFunction, prepareAccount, shellFunctionPreview } from './accounts';
 import { CONFIG_PATH, loadConfig, setLanguage, setProjectAccount } from './config';
 import { startHookServer, writeClaudeHookSettings } from './hooks';
 import { SessionManager } from './sessions';
@@ -52,9 +53,15 @@ app.whenReady().then(async () => {
     (_e, { projectId, account }: { projectId: string; account: string }) =>
       setProjectAccount(projectId, account),
   );
-  ipcMain.handle(IPC.sessionCreate, (_e, { projectId, kind }: { projectId: string; kind: SessionKind }) =>
-    s.create(loadConfig(), projectId, kind),
+  ipcMain.handle(
+    IPC.sessionCreate,
+    (_e, { projectId, kind, account }: { projectId: string; kind: SessionKind; account?: string }) =>
+      s.create(loadConfig(), projectId, kind, account),
   );
+  ipcMain.handle(IPC.accountsStatus, () => accountsStatus(loadConfig()));
+  ipcMain.handle(IPC.accountsPrepare, (_e, account: string) => prepareAccount(loadConfig(), account));
+  ipcMain.handle(IPC.accountsShellPreview, (_e, account: string) => shellFunctionPreview(loadConfig(), account));
+  ipcMain.handle(IPC.accountsShellInstall, (_e, account: string) => installShellFunction(loadConfig(), account));
   ipcMain.on(IPC.sessionWrite, (_e, { id, data }: { id: string; data: string }) => s.write(id, data));
   ipcMain.on(IPC.sessionResize, (_e, { id, cols, rows }: { id: string; cols: number; rows: number }) =>
     s.resize(id, cols, rows),
