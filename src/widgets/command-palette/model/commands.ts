@@ -12,6 +12,7 @@ export type ActionId =
   | 'splitDown'
   | 'zoomPane'
   | 'toggleChanges'
+  | 'history'
   | 'nextWaiting'
   | 'closeSession'
   | 'switchLanguage'
@@ -51,6 +52,7 @@ const ACTIONS: { action: ActionId; label: (t: Translate) => string; shortcut?: S
   { action: 'splitDown', label: (t) => t('palette.splitDown'), shortcut: 'splitDown' },
   { action: 'zoomPane', label: (t) => t('action.zoomPane'), shortcut: 'zoomPane' },
   { action: 'toggleChanges', label: (t) => t('changes.toggle'), shortcut: 'toggleChanges' },
+  { action: 'history', label: (t) => t('history.title'), shortcut: 'history' },
   { action: 'nextWaiting', label: (t) => t('attention.next'), shortcut: 'nextWaiting' },
   { action: 'closeSession', label: (t) => t('action.closeSession'), shortcut: 'closeSession' },
   { action: 'switchLanguage', label: (t) => t('palette.switchLanguage') },

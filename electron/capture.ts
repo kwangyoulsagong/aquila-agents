@@ -270,6 +270,19 @@ export async function runCapture(win: BrowserWindow, sessions: SessionManager, c
         await wait(1500);
       },
     },
+    {
+      // Session history (T11): demo transcripts in the throwaway HOME (capture.sh), search narrows the list.
+      id: 'history',
+      rect: FULL,
+      ms: 4500,
+      act: async () => {
+        await wait(400);
+        await press('Y', ['meta'], 1400);
+        await type(lang === 'ko' ? '쿠폰' : 'coupon', lang === 'ko' ? 160 : 90);
+        await wait(1200);
+      },
+      after: () => press('Escape', [], 400),
+    },
     { id: 'restore', rect: FULL },
     { id: 'power', rect: TOP_LEFT },
     {
@@ -332,7 +345,15 @@ export async function runCapture(win: BrowserWindow, sessions: SessionManager, c
     win.show();
     win.focus();
     await wait(1000);
+    // CAPTURE_ONLY=history,changes: every scenario still runs (later ones build on earlier state), only those are written.
+    const only = process.env.CAPTURE_ONLY?.split(',').filter(Boolean);
     for (const s of scenarios) {
+      if (only && !only.includes(s.id)) {
+        await s.stage?.();
+        await s.act?.();
+        await s.after?.();
+        continue;
+      }
       await s.stage?.();
       const base = `${s.id}.${lang}`;
       if (!s.act) {

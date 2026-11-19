@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { api, type Config, type Session, type SessionKind } from '@/shared/api';
+import { api, type Config, type HistoryResumeResult, type Session, type SessionKind } from '@/shared/api';
 import { toSaved, useSplitLayout } from '@/widgets/split-view';
 
 /** Workspace state: config, sessions, which project is selected and the split layout (what's on screen). */
@@ -124,6 +124,16 @@ export function useWorkspace() {
     [activeProjectId, placeInFocused],
   );
 
+  /** A past session resumed from the history panel (main may have added its folder as a project). */
+  const adoptResumed = useCallback(
+    ({ session, config: next }: HistoryResumeResult) => {
+      if (next) setConfig(next);
+      setSessions((list) => [...list, { ...session, status: 'idle' }]);
+      placeInFocused(session.id);
+    },
+    [placeInFocused],
+  );
+
   const closeSession = useCallback(
     (id: string) => {
       api.kill(id);
@@ -155,6 +165,7 @@ export function useWorkspace() {
     split,
     openSession,
     openWorktreeSession,
+    adoptResumed,
     closeSession,
     forgetProject,
     error,

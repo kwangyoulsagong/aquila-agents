@@ -24,6 +24,7 @@
 │                                           │        │ power.ts      power profile: battery/heat (T9)   │
 │                                           │        │ detect.ts     CLI checks, first-run state (T17)  │
 │                                           │        │ guide.ts      tour offered once (T23)            │
+│                                           │        │ history.ts    past sessions, read-only (T11)     │
 │                                           │        │ smoke.ts      npm run smoke self-check           │
 │ shared/   api (types · IPC · bridge), i18n│        │                                                 │
 └───────────────────────────────────────────┘        └─────────────────────────────────────────────────┘
@@ -104,6 +105,32 @@
 - ↑↓ (or ⌃N/⌃P) pick, Enter runs, Esc / backdrop closes. Keys are ignored during IME composition (Korean input).
   The command runs on the next frame, after the dialog has closed and returned focus, so the terminal it shows
   takes the keyboard.
+
+## Session history
+
+- ⌘Y (or ⌘K → "Session history") opens `widgets/history-panel`: a wide `Modal` — search, filter (All / Favorites /
+  Claude / Codex), past sessions grouped by the folder they ran in (most recent group first), and the selected one's
+  detail: actions, meta (agent + account, times, project, folder, branch, messages, id with Copy) and the start of the
+  conversation.
+- Main (`history.ts`, `HistoryIndex`, read-only): Claude `<configDir>/projects/*/<id>.jsonl` for every account (a dir
+  shared by two accounts is read once; `subagents/` folders skipped); codex `threads` of the newest
+  `~/.codex/state_<n>.sqlite` via `node:sqlite` with `readOnly: true`, rollout files under `sessions/YYYY/MM/DD/` for
+  the text and for sessions the database doesn't have, names from `session_index.jsonl`; archived threads are left out.
+  Grouping uses the `cwd` inside the transcript. Parsed files are cached by mtime + size (first scan of ~160 sessions /
+  630 MB ≈ 1.7 s, reopening ≈ 10 ms). Kept per session: user + assistant text (no tool calls/results, thinking,
+  slash-command wrappers, injected context, sidechains), capped at ~200k characters for search and the preview.
+- Title: our name › the CLI's name (Claude `/rename`, codex thread name) › Claude's ai-title › the first message.
+  Search: the renderer matches title / first message / folder / branch / id as typed; main's `history:search` adds
+  full-text hits (substring, case-insensitive) with a snippet, shown when the hit is only in the conversation.
+- Resume (↵ or the button, `features/resume-session` → `history:resume`): main looks the id up in its own index, picks
+  the project whose folder (deepest) or `<repo>-wt/…` worktree holds the cwd, and opens a new tab with
+  `claude --resume <id>` (the account whose config dir holds it) or `codex resume <id>`; a cwd other than the project
+  dir becomes the tab's worktree (so a relaunch restores it there). A folder that isn't a project is added first
+  ("Add project and resume"). A missing folder is an error.
+- Names and favorites: `~/.aquila/history.json` (`history:set-meta`). Export: save dialog → Markdown of the whole
+  conversation, re-read from disk. Claude's `cleanupPeriodDays` (`<configDir>/settings.json`, default 30) is shown in
+  the footer, and a session within 7 days of deletion (mtime + period) gets an orange note.
+- **Nothing under `~/.claude*` or `~/.codex` is written, renamed or deleted** (a test snapshots the fixture dirs).
 
 ## Worktree sessions
 

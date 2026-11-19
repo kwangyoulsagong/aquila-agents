@@ -19,6 +19,7 @@ interface Deps {
   toggleChanges: () => void;
   togglePalette: () => void;
   toggleGuide: () => void;
+  toggleHistory: () => void;
   /** Jump to the next session that needs the user (any project). */
   nextWaiting: () => void;
 }
@@ -38,6 +39,7 @@ export function useShortcuts({
   toggleChanges,
   togglePalette,
   toggleGuide,
+  toggleHistory,
   nextWaiting,
 }: Deps) {
   useEffect(() => {
@@ -68,6 +70,8 @@ export function useShortcuts({
           return activeSessionId ? closeSession(activeSessionId) : closePane();
         case 'toggleChanges':
           return toggleChanges();
+        case 'history':
+          return toggleHistory();
         case 'nextWaiting':
           return nextWaiting();
         case 'splitRight':
@@ -110,6 +114,7 @@ export function useShortcuts({
     toggleChanges,
     togglePalette,
     toggleGuide,
+    toggleHistory,
     nextWaiting,
   ]);
 }

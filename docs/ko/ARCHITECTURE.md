@@ -24,6 +24,7 @@
 │                                           │        │ power.ts      절전 프로필: 배터리·발열 (T9)      │
 │                                           │        │ detect.ts     CLI 점검, 첫 실행 상태 (T17)       │
 │                                           │        │ guide.ts      둘러보기 제안 한 번만 (T23)        │
+│                                           │        │ history.ts    지난 세션, 읽기 전용 (T11)         │
 │                                           │        │ smoke.ts      npm run smoke 자동 점검            │
 │ shared/   api (타입·IPC·bridge), i18n       │        │                                                 │
 └───────────────────────────────────────────┘        └─────────────────────────────────────────────────┘
@@ -103,6 +104,29 @@
   매치된 글자는 강조돼요.
 - ↑↓(또는 ⌃N/⌃P)로 고르고 Enter로 실행, Esc / 바깥 클릭으로 닫기. 한글 조합 중에는 키를 무시해요.
   명령은 다이얼로그가 닫히고 포커스를 돌려준 다음 프레임에 실행돼서, 새로 보이는 터미널이 키보드를 받아요.
+
+## 세션 기록
+
+- ⌘Y (또는 ⌘K → "세션 기록")로 `widgets/history-panel`을 열어요: 넓은 `Modal` — 검색, 필터(전체 / 즐겨찾기 /
+  Claude / Codex), 실행된 폴더별로 묶인 지난 세션(최근 묶음이 위), 고른 세션의 상세: 버튼, 메타(에이전트 + 계정,
+  시간, 프로젝트, 폴더, 브랜치, 메시지 수, ID 복사)와 대화 앞부분.
+- Main (`history.ts`, `HistoryIndex`, 읽기 전용): 계정마다 Claude `<configDir>/projects/*/<id>.jsonl` (두 계정이 같은
+  폴더면 한 번만; `subagents/` 폴더는 건너뜀); codex는 가장 최신 `~/.codex/state_<n>.sqlite`의 `threads`를
+  `node:sqlite` `readOnly: true`로, 텍스트와 DB에 없는 세션은 `sessions/YYYY/MM/DD/` rollout 파일로, 이름은
+  `session_index.jsonl`에서; 보관(archived)된 스레드는 뺌. 묶음은 transcript 안의 `cwd` 기준. 파싱한 파일은
+  mtime + 크기로 캐시(약 160개 / 630 MB 첫 스캔 ≈ 1.7초, 다시 열기 ≈ 10ms). 세션마다 사용자 + 어시스턴트 텍스트만
+  보관(도구 호출/결과, thinking, 슬래시 명령 래퍼, 주입된 컨텍스트, 사이드체인 제외), 검색·미리보기용으로 약 20만 자까지.
+- 제목: 우리 이름 › CLI 이름(Claude `/rename`, codex 스레드 이름) › Claude ai-title › 첫 메시지. 검색: 렌더러가
+  제목 / 첫 메시지 / 폴더 / 브랜치 / ID를 입력 그대로 찾고, main의 `history:search`가 전문 검색 결과(대소문자 무시
+  부분 문자열)와 스니펫을 더해요. 스니펫은 대화에만 있을 때 보여요.
+- 이어하기 (↵ 또는 버튼, `features/resume-session` → `history:resume`): main이 자기 인덱스에서 ID를 찾고, cwd를
+  담은 프로젝트(가장 깊은 폴더) 또는 `<저장소>-wt/…` 워크트리를 골라 새 탭에서 `claude --resume <id>`(그 transcript가
+  있는 계정으로) 또는 `codex resume <id>`를 열어요. 프로젝트 폴더가 아닌 cwd는 탭의 워크트리가 돼요(재실행 때 그
+  자리로 복원). 프로젝트가 아닌 폴더는 먼저 추가("프로젝트로 추가하고 이어하기"). 폴더가 없으면 오류.
+- 이름과 즐겨찾기: `~/.aquila/history.json` (`history:set-meta`). 내보내기: 저장 대화상자 → 디스크에서 다시 읽은 전체
+  대화 Markdown. Claude의 `cleanupPeriodDays`(`<configDir>/settings.json`, 기본 30)를 아래에 보여 주고, 삭제까지
+  7일 안 남은 세션(mtime + 기간)에는 주황 안내.
+- **`~/.claude*`, `~/.codex` 아래는 쓰지도, 이름을 바꾸지도, 지우지도 않아요** (테스트가 fixture 폴더를 스냅샷으로 확인).
 
 ## 워크트리 세션
 

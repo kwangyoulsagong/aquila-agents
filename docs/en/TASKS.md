@@ -195,7 +195,8 @@ Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-1
 - **Owns:** `electron/git.ts`, `src/widgets/changes-panel/`, `src/entities/diff/`.
 
 ### T11 · Session history (read-only)
-- [ ] **Goal:** find and resume any past session — the gap the CLI pickers leave. (#22)
+- [x] **Goal:** find and resume any past session — the gap the CLI pickers leave. (#22)
+  _Left over: full-text search covers the first ~200k characters per session (export has everything); the panel rescans on open (cached, no live watch); Claude's ai-title is used as a title fallback; codex archived threads are hidden._
 - **Spec:** ⌘Y panel: Claude `<configDir>/projects/*/*.jsonl` for each account, Codex jsonl rollouts **and** its SQLite
   stores (read-only adapter). Group by the `cwd` field inside the transcript, not the encoded dir name. Row: custom name
   (else first user message), last activity, branch/cwd, account, copy session id. Search name, first message and full

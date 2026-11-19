@@ -474,6 +474,47 @@ body {
   border-top: 1px solid var(--color-border-subtle); font-size: var(--font-size-caption); color: var(--color-text-tertiary);
 }
 
+.c-modal--wide { width: var(--size-modal-wide); height: var(--size-modal-wide-height); }
+.c-modal--wide .c-modal__aside { width: var(--size-modal-wide-aside); }
+.c-modal__tools {
+  flex: none; display: flex; align-items: center; gap: var(--space-inline-sm);
+  padding: var(--space-inset-sm) var(--space-inset-md); border-bottom: 1px solid var(--color-border-subtle);
+}
+.c-modal__group-label {
+  padding: var(--space-inset-sm) var(--space-inset-md) var(--space-inline-xs);
+  font-size: var(--font-size-caption); color: var(--color-text-tertiary);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.c-modal__item-meta { flex: none; font-size: var(--font-size-caption); color: var(--color-text-tertiary); font-variant-numeric: tabular-nums; }
+.c-modal__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-inline-xs); }
+.c-modal__note { margin: 0; font-size: var(--font-size-caption); line-height: var(--line-height-body); color: var(--color-text-tertiary); }
+.c-modal__note--warn { color: var(--color-status-waiting); }
+
+/* ── Meta list (label · value rows) ───────────────────────── */
+.c-meta {
+  display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--space-inline-xs) var(--space-inset-md);
+  margin: 0; font-size: var(--font-size-label);
+}
+.c-meta__label { color: var(--color-text-tertiary); line-height: var(--size-badge); }
+.c-meta__value {
+  display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-inline-xs); min-width: 0; margin: 0;
+  color: var(--color-text-secondary); overflow-wrap: anywhere; user-select: text;
+}
+.c-meta__value--mono { font-family: var(--font-family-mono); }
+
+/* ── Transcript (read-only conversation) ──────────────────── */
+.c-transcript {
+  display: flex; flex-direction: column; gap: var(--space-inset-md);
+  padding-top: var(--space-inset-md); border-top: 1px solid var(--color-border-subtle);
+}
+.c-transcript__message { display: flex; flex-direction: column; gap: var(--space-inline-xs); }
+.c-transcript__role { font-size: var(--font-size-caption); color: var(--color-text-tertiary); }
+.c-transcript__text {
+  margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; line-height: var(--line-height-body);
+  font-size: var(--font-size-body); color: var(--color-text-secondary); user-select: text;
+}
+.c-transcript__message[data-role='user'] .c-transcript__text { color: var(--color-text-primary); }
+
 /* ── Media (guide screenshot / short loop) ────────────────── */
 .c-media {
   flex: none; width: 100%; aspect-ratio: 16 / 10; display: flex; align-items: center; justify-content: center;

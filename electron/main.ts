@@ -4,10 +4,12 @@ import { app, BrowserWindow, dialog, ipcMain, powerMonitor, shell } from 'electr
 import { restoreShellPath } from './env';
 import { accountsStatus, installShellFunction, prepareAccount, shellFunctionPreview } from './accounts';
 import { CONFIG_PATH, editProjects, loadConfig, setLanguage, setProjectAccount } from './config';
+import fs from 'node:fs';
 import { showContextMenu } from './menu';
 import { gitAction, gitChanges, treeOf, TreeWatcher } from './git';
 import { ensureWorktree, worktreeInfo } from './worktrees';
 import { markGuideOffered, readGuideState } from './guide';
+import { displayTitle, HistoryIndex, matchProject, resumeWorktree, toMarkdown } from './history';
 import { binaryFor, finishFirstRun, firstRunReport, loadOverrides, setBinaryPath } from './detect';
 import { detectClaudeVersion, startHookServer, supportsHttpHooks, writeClaudeHookSettings } from './hooks';
 import { PowerWatcher, type PowerSource } from './power';
@@ -25,12 +27,14 @@ import {
   type SavedTab,
 } from './state';
 import { isSmoke, runSmoke, SMOKE_BUFFER_BYTES, watchOutput } from './smoke';
+import { translator } from '../src/shared/i18n/dictionary';
 import {
   IPC,
   type ContextMenuItem,
   type GitAction,
   type GitScope,
   type GitTarget,
+  type HistoryRef,
   type Language,
   type ProjectEdit,
   type RestoreResult,
@@ -234,6 +238,65 @@ app.whenReady().then(async () => {
       shell.trashItem(p),
     ),
   );
+  // Session history (T11): read-only over ~/.claude*/projects and ~/.codex; names and favorites in ~/.aquila.
+  const history = new HistoryIndex();
+  const known = (ref: HistoryRef) => {
+    const entry = ref && typeof ref.id === 'string' ? history.get(ref) : undefined;
+    if (!entry) throw new Error(translator(loadConfig().language)('history.error.notFound'));
+    return entry;
+  };
+  ipcMain.handle(IPC.historyList, () => history.list(loadConfig()));
+  ipcMain.handle(IPC.historySearch, (_e, query: string) => history.search(String(query ?? '')));
+  ipcMain.handle(IPC.historyTranscript, (_e, ref: HistoryRef) => history.transcript(known(ref)));
+  ipcMain.handle(
+    IPC.historySetMeta,
+    (_e, { ref, change }: { ref: HistoryRef; change: { name?: string | null; favorite?: boolean } }) =>
+      history.setMeta(known(ref), {
+        ...(change.name !== undefined ? { name: typeof change.name === 'string' ? change.name.slice(0, 200) : null } : {}),
+        ...(typeof change.favorite === 'boolean' ? { favorite: change.favorite } : {}),
+      }) ?? null,
+  );
+  ipcMain.handle(IPC.historyExport, async (_e, ref: HistoryRef) => {
+    const entry = known(ref);
+    const title = displayTitle(entry);
+    const file = `${title.replace(/[/\\:*?"<>|\n]+/g, ' ').trim().slice(0, 60) || entry.id}.md`;
+    const options: Electron.SaveDialogOptions = {
+      defaultPath: path.join(app.getPath('downloads'), file),
+      filters: [{ name: 'Markdown', extensions: ['md'] }],
+    };
+    const r = win ? await dialog.showSaveDialog(win, options) : await dialog.showSaveDialog(options);
+    if (r.canceled || !r.filePath) return null;
+    fs.writeFileSync(r.filePath, toMarkdown({ ...entry, title }, await history.fullTranscript(entry)));
+    return r.filePath;
+  });
+  ipcMain.handle(IPC.historyResume, async (_e, { ref, addProject }: { ref: HistoryRef; addProject: boolean }) => {
+    const entry = known(ref);
+    const t = translator(loadConfig().language);
+    if (!fs.existsSync(entry.cwd)) throw new Error(t('history.error.folderGone', { path: entry.cwd }));
+    let config = loadConfig();
+    let added = false;
+    let projectId = matchProject(config, entry.cwd);
+    if (!projectId && addProject) {
+      const account = entry.account && config.accounts[entry.account] ? entry.account : Object.keys(config.accounts)[0];
+      config = editProjects({
+        op: 'addProject',
+        path: entry.cwd,
+        name: '',
+        group: config.groups[0]?.id ?? 'work',
+        account: account ?? 'shared',
+      });
+      added = true;
+      projectId = matchProject(config, entry.cwd);
+    }
+    const project = projectId && config.projects.find((p) => p.id === projectId);
+    if (!project) throw new Error(t('history.error.noProject'));
+    const worktree = resumeWorktree(project.path, entry.cwd, entry.branch);
+    const session =
+      entry.agent === 'claude'
+        ? s.create(config, project.id, 'claude', entry.account, { resumeClaude: entry.id }, worktree)
+        : s.create(config, project.id, 'codex', undefined, { resumeCodexId: entry.id }, worktree);
+    return added ? { session, config } : { session };
+  });
   // First-run checklist (T17). Smoke never reads or writes its state: it always reports "not pending".
   ipcMain.handle(IPC.firstRunGet, async (_e, recheck: boolean) => {
     if (recheck) pathRestored = (await restoreShellPath()) || pathRestored;

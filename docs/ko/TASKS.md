@@ -189,7 +189,8 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
 - **담당:** `electron/git.ts`, `src/widgets/changes-panel/`, `src/entities/diff/`.
 
 ### T11 · 세션 기록 (읽기 전용)
-- [ ] **목표:** 지난 세션을 찾아서 resume — CLI picker가 비워 둔 자리. (#22)
+- [x] **목표:** 지난 세션을 찾아서 resume — CLI picker가 비워 둔 자리. (#22)
+  _남은 것: 전문 검색은 세션마다 앞쪽 약 20만 자까지(내보내기는 전체); 패널은 열 때 다시 스캔(캐시, 실시간 감시 없음); 제목 대체로 Claude ai-title 사용; codex 보관 스레드는 숨김._
 - **명세:** ⌘Y 패널: 계정마다 Claude `<configDir>/projects/*/*.jsonl`, Codex jsonl rollout **과** SQLite 저장소(읽기 전용
   어댑터). 묶음은 인코딩된 폴더명이 아니라 transcript 안의 `cwd` 기준. 행: 지정 이름(없으면 첫 사용자 메시지), 마지막 활동,
   브랜치/cwd, 계정, 세션 id 복사. 이름·첫 메시지·본문 전체 검색. resume은 항상 id로 새 탭에서(`claude --resume <id>` +

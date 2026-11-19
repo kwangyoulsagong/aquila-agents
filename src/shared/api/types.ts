@@ -254,6 +254,71 @@ export interface PowerState {
   saver: boolean;
 }
 
+/** Session history (T11): which CLI a past session belongs to. */
+export type HistoryAgent = 'claude' | 'codex';
+
+/** Names a past session; main looks it up in its own index, never trusting a path from the renderer. */
+export interface HistoryRef {
+  agent: HistoryAgent;
+  id: string;
+}
+
+/** One past session in the ⌘Y panel. */
+export interface HistoryEntry extends HistoryRef {
+  /** Folder recorded inside the transcript (sessions are grouped by it). */
+  cwd: string;
+  branch?: string;
+  /** Claude account whose config dir holds the transcript. */
+  account?: string;
+  /** Name given in the panel (~/.aquila/history.json). */
+  name?: string;
+  /** The CLI's own name: Claude `/rename`, codex thread name. */
+  title?: string;
+  /** Claude's auto-generated title. */
+  autoTitle?: string;
+  firstMessage: string;
+  startedAt: number;
+  /** Last activity (ms since epoch). */
+  updatedAt: number;
+  /** User + assistant messages. */
+  messages: number;
+  favorite: boolean;
+  /** Project whose folder (or worktree next to it) holds `cwd`. */
+  projectId?: string;
+  /** Claude deletes the transcript around then (`cleanupPeriodDays` after its last write). */
+  expiresAt?: number;
+}
+
+export interface HistoryList {
+  /** Most recent first. */
+  entries: HistoryEntry[];
+  /** Claude's `cleanupPeriodDays` per account (30 when unset; 0 = never). */
+  cleanupDays: Record<string, number>;
+}
+
+/** A full-text hit: the session and a line around the first match. */
+export interface HistoryMatch extends HistoryRef {
+  snippet: string;
+}
+
+export interface TranscriptMessage {
+  role: 'user' | 'assistant';
+  text: string;
+  at?: number;
+}
+
+/** The start of a past session's conversation (the panel's preview; ~200k characters). */
+export interface HistoryTranscript {
+  messages: TranscriptMessage[];
+  truncated: boolean;
+}
+
+/** A resumed past session; `config` when its folder was added as a project first. */
+export interface HistoryResumeResult {
+  session: SessionInfo;
+  config?: Config;
+}
+
 export type Unsubscribe = () => void;
 
 /** API exposed on window.aquila by electron/preload.ts. */
@@ -304,6 +369,20 @@ export interface AquilaApi {
   onGitChanged(cb: () => void): Unsubscribe;
   /** Stage / unstage / revert a file or a hunk. Reverts back up first (stash entry, untracked files to the Trash). */
   gitAction(action: GitAction): Promise<GitActionResult>;
+  /** Past Claude / Codex sessions (read-only scan; files already read are cached). */
+  historyList(): Promise<HistoryList>;
+  /** Full-text search over the indexed transcripts. */
+  historySearch(query: string): Promise<HistoryMatch[]>;
+  historyTranscript(ref: HistoryRef): Promise<HistoryTranscript>;
+  /** Name (empty = back to the CLI's name) or favorite, saved in ~/.aquila/history.json. */
+  historySetMeta(ref: HistoryRef, change: { name?: string | null; favorite?: boolean }): Promise<HistoryEntry | null>;
+  /** Save dialog → the whole conversation as Markdown. Resolves with the path, or null when cancelled. */
+  historyExport(ref: HistoryRef): Promise<string | null>;
+  /**
+   * New tab resuming the session by id (`claude --resume <id>` with its account / `codex resume <id>`) in its folder.
+   * `addProject`: its folder isn't a project yet — add it first.
+   */
+  historyResume(ref: HistoryRef, addProject?: boolean): Promise<HistoryResumeResult>;
   /** First-run checklist: PATH and CLI checks. `recheck` reads the login shell's PATH again first (after an install). */
   firstRun(recheck?: boolean): Promise<FirstRunReport>;
   /** The checklist was closed (done or skipped): don't open it at launch again. */
@@ -361,6 +440,12 @@ export const IPC = {
   gitWatch: 'git:watch',
   gitChanged: 'git:changed',
   gitAction: 'git:action',
+  historyList: 'history:list',
+  historySearch: 'history:search',
+  historyTranscript: 'history:transcript',
+  historySetMeta: 'history:set-meta',
+  historyExport: 'history:export',
+  historyResume: 'history:resume',
   firstRunGet: 'first-run:get',
   firstRunFinish: 'first-run:finish',
   firstRunPickBinary: 'first-run:pick-binary',
