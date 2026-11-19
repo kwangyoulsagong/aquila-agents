@@ -8,7 +8,7 @@ import { SessionManager } from './sessions';
 import { isSmoke, runSmoke, watchOutput } from './smoke';
 import { IPC, type Language, type SessionKind } from '../src/shared/api/types';
 
-const isDev = process.env.AGENTRIX_DEV === '1';
+const isDev = process.env.AQUILA_DEV === '1';
 let win: BrowserWindow | null = null;
 let sessions: SessionManager | null = null;
 
@@ -60,8 +60,12 @@ app.whenReady().then(async () => {
   );
   ipcMain.handle(IPC.accountsStatus, () => accountsStatus(loadConfig()));
   ipcMain.handle(IPC.accountsPrepare, (_e, account: string) => prepareAccount(loadConfig(), account));
-  ipcMain.handle(IPC.accountsShellPreview, (_e, account: string) => shellFunctionPreview(loadConfig(), account));
-  ipcMain.handle(IPC.accountsShellInstall, (_e, account: string) => installShellFunction(loadConfig(), account));
+  ipcMain.handle(IPC.accountsShellPreview, (_e, account: string) =>
+    shellFunctionPreview(loadConfig(), account),
+  );
+  ipcMain.handle(IPC.accountsShellInstall, (_e, account: string) =>
+    installShellFunction(loadConfig(), account),
+  );
   ipcMain.on(IPC.sessionWrite, (_e, { id, data }: { id: string; data: string }) => s.write(id, data));
   ipcMain.on(IPC.sessionResize, (_e, { id, cols, rows }: { id: string; cols: number; rows: number }) =>
     s.resize(id, cols, rows),

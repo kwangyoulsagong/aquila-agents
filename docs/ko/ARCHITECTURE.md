@@ -5,18 +5,18 @@
 ```
 ┌──────── 렌더러 (src/, React, FSD) ────────┐        ┌──────────── Main (electron/, Node) ─────────────┐
 │ app/      진입점, 전역 스타일                │  IPC   │ main.ts       창 + IPC 핸들러                     │
-│ pages/    workspace (상태 훅, 단축키)        │◀──────▶│ config.ts     ~/.agentrix/config.json           │
+│ pages/    workspace (상태 훅, 단축키)        │◀──────▶│ config.ts     ~/.aquila/config.json           │
 │ widgets/  sidebar, session-tabs,          │preload │ sessions.ts   세션마다 node-pty 하나              │
 │           split-view                      │        │ accounts.ts   계정 상태, ~/.claude-* 폴더,        │
 │ features/ switch-account, switch-language,│  .ts   │               zsh 함수 (명시적 클릭만)            │
 │           open-session, setup-account     │        │ hooks.ts      127.0.0.1:<port> hook 수신기       │
-│                                           │        │               + ~/.agentrix/claude-hooks.json   │
+│                                           │        │               + ~/.aquila/claude-hooks.json   │
 │ entities/ session (xterm, 상태), project    │        │ smoke.ts      npm run smoke 자동 점검            │
 │ shared/   api (타입·IPC·bridge), i18n       │        │                                                 │
 └───────────────────────────────────────────┘        └─────────────────────────────────────────────────┘
                                                               │ 실행 (로그인 + 인터랙티브 zsh)
                                                               ▼
-                              claude --settings ~/.agentrix/claude-hooks.json  |  codex  |  $SHELL
+                              claude --settings ~/.aquila/claude-hooks.json  |  codex  |  $SHELL
 ```
 
 ## FSD 규칙 (렌더러)
@@ -32,7 +32,7 @@
 1. 렌더러가 `createSession(projectId, kind)` 호출.
 2. Main이 프로젝트 폴더에서 `$SHELL -l -i -c "<명령>; exec $SHELL -l -i"` 실행. 그래서 PATH/fnm/alias가 그대로 동작하고,
    에이전트가 끝나면 탭이 셸로 남습니다.
-3. 세션별 환경변수: `AGENTRIX_TAB_ID`, `AGENTRIX_PORT`, 그리고 **개인** 계정의 Claude 세션에만
+3. 세션별 환경변수: `AQUILA_TAB_ID`, `AQUILA_PORT`, 그리고 **개인** 계정의 Claude 세션에만
    `CLAUDE_CONFIG_DIR=~/.claude-personal` (`claude-personal` 셸 함수와 같음). **공용** 계정은 설정하지 않음(그냥 `claude`).
    Claude가 이 변수로 키체인 항목을 구분하기 때문에 `~/.claude`로 명시하면 안 됩니다.
 4. pty 출력 → `session:data` → `terminalBus` → 해당 id의 xterm (아직 안 붙었으면 버퍼에 보관).
@@ -59,7 +59,10 @@
 `done`은 그 세션을 화면에 띄우면 `idle`로 바뀝니다. 창에 포커스가 없거나 다른 세션을 보고 있을 때
 done/waiting이 되면 알림을 띄웁니다. 프로젝트 행 = 세션 중 가장 급한 상태 (`waiting > error > working > done > idle`).
 
-## 설정 (`~/.agentrix/config.json`)
+## 설정 (`~/.aquila/config.json`)
+
+Agentrix에서 이름이 바뀌었습니다: 처음 실행할 때 `~/.aquila/config.json`이 없으면 `~/.agentrix`를 복사해 옵니다
+(`claude-hooks.json`은 새로 만들기 때문에 제외). 예전 폴더는 그대로 둡니다.
 
 ```jsonc
 {

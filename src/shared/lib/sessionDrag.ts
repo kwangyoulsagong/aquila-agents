@@ -1,7 +1,7 @@
 // Drag a session (tab) onto a split pane. The id is also kept here because `dataTransfer` can't be read
 // during dragover — the drop target needs it to decide which zones are allowed.
 
-export const SESSION_DRAG_TYPE = 'application/x-agentrix-session';
+export const SESSION_DRAG_TYPE = 'application/x-aquila-session';
 
 /** Native or React drag event — only `dataTransfer` is used. */
 type DragLike = { dataTransfer: DataTransfer | null };

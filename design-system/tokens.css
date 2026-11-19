@@ -1,5 +1,5 @@
 /*
- * Agentrix design tokens — two tiers.
+ * Aquila Agents design tokens — two tiers.
  *
  *   1. Primitive  (--p-*)      raw palette & scales. NEVER used by components or app code.
  *   2. Semantic   (--color-*, --font-*, --space-*, ...)   what things MEAN. The only tier code may use.

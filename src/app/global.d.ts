@@ -1,8 +1,8 @@
-import type { AgentrixApi } from '@/shared/api';
+import type { AquilaApi } from '@/shared/api';
 
 declare global {
   interface Window {
-    agentrix: AgentrixApi;
+    aquila: AquilaApi;
   }
 }
 

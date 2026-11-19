@@ -7,7 +7,7 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
 단축키 ⌘T ⌘⇧T ⌘⌥T ⌘W ⌘1–9.
 
 **병렬로 진행하는 법:** 세션 하나에 태스크 하나, 각자 브랜치/워크트리에서
-(`git worktree add ../agentrix-T1 -b task/T1-split-view`). **담당 파일** 안에서만 작업하세요. 공유 파일
+(`git worktree add ../aquila-T1 -b task/T1-split-view`). **담당 파일** 안에서만 작업하세요. 공유 파일
 (`pages/workspace/*`, `src/shared/api/types.ts`, `src/shared/i18n/dictionary.ts`, `electron/main.ts`, `electron/preload.ts`, `components.css`)은
 작게, 추가 위주로만 수정합니다. 같은 공유 파일을 건드리는 태스크끼리는 번호 순서대로 머지합니다.
 
@@ -43,7 +43,7 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
 
 ### T4 · 다시 열면 세션 복원
 - [ ] **목표:** 앱을 다시 켜면 탭이 돌아옴.
-- **스펙:** 열린 탭을 `~/.agentrix/state.json`에 저장. Claude: 우리가 만든 `--session-id <uuid>`로 시작하고
+- **스펙:** 열린 탭을 `~/.aquila/state.json`에 저장. Claude: 우리가 만든 `--session-id <uuid>`로 시작하고
   `claude --resume <uuid>`로 복원. Codex: 해당 폴더에서 `codex resume --last`. 셸: 새 셸.
 - **담당:** `electron/state.ts`, `sessions.ts`에 작은 추가.
 
@@ -62,13 +62,13 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
 - **담당:** `electron/worktrees.ts`, `src/features/open-in-worktree/`.
 
 ### T8 · 패키징
-- [ ] **목표:** `npm run dist` → /Applications로 옮길 수 있는 `Agentrix.app` (arm64).
+- [ ] **목표:** `npm run dist` → /Applications로 옮길 수 있는 `Aquila Agents.app` (arm64).
 - **스펙:** electron-builder, 디자인 시스템 기반 아이콘(어두운 타일 + 강조색 마크), `node-pty`는 asar 밖으로.
 - **담당:** `electron-builder.yml`, `build/`, `package.json` 스크립트.
 
 ### T9 · 배터리 측정
 - [ ] **목표:** 추측 말고 숫자로.
-- **스펙:** `scripts/measure-energy.sh`가 같은 세션 3개 조건에서 Agentrix와 Terminal.app을 `top -l 6 -s 5 -o power`로 측정,
+- **스펙:** `scripts/measure-energy.sh`가 같은 세션 3개 조건에서 Aquila Agents와 Terminal.app을 `top -l 6 -s 5 -o power`로 측정,
   결과를 `docs/en/ENERGY.md` + `docs/ko/ENERGY.md`에 기록.
 - **담당:** `scripts/`, 위 두 문서.
 

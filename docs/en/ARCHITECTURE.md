@@ -5,18 +5,18 @@
 ```
 ┌──────── Renderer (src/, React, FSD) ──────┐        ┌──────────── Main (electron/, Node) ─────────────┐
 │ app/      entry, global styles            │  IPC   │ main.ts       window + IPC handlers              │
-│ pages/    workspace (state hook, shortcuts)│◀──────▶│ config.ts     ~/.agentrix/config.json            │
+│ pages/    workspace (state hook, shortcuts)│◀──────▶│ config.ts     ~/.aquila/config.json            │
 │ widgets/  sidebar, session-tabs,          │preload │ sessions.ts   one node-pty per session           │
 │           split-view                      │        │ accounts.ts   account status, ~/.claude-* dir,   │
 │ features/ switch-account, switch-language,│  .ts   │               zsh function (explicit click)      │
 │           open-session, setup-account     │        │ hooks.ts      127.0.0.1:<port> hook receiver     │
-│                                           │        │               + ~/.agentrix/claude-hooks.json     │
+│                                           │        │               + ~/.aquila/claude-hooks.json     │
 │ entities/ session (xterm, status), project│        │ smoke.ts      npm run smoke self-check           │
 │ shared/   api (types · IPC · bridge), i18n│        │                                                 │
 └───────────────────────────────────────────┘        └─────────────────────────────────────────────────┘
                                                               │ spawns (login + interactive zsh)
                                                               ▼
-                              claude --settings ~/.agentrix/claude-hooks.json  |  codex  |  $SHELL
+                              claude --settings ~/.aquila/claude-hooks.json  |  codex  |  $SHELL
 ```
 
 ## FSD rules (renderer)
@@ -32,7 +32,7 @@
 1. Renderer calls `createSession(projectId, kind)`.
 2. Main spawns `$SHELL -l -i -c "<cmd>; exec $SHELL -l -i"` in the project dir, so the user's PATH/fnm/aliases work
    and the tab drops to a shell when the agent exits.
-3. Env per session: `AGENTRIX_TAB_ID`, `AGENTRIX_PORT`, and — for Claude sessions on the **personal** account —
+3. Env per session: `AQUILA_TAB_ID`, `AQUILA_PORT`, and — for Claude sessions on the **personal** account —
    `CLAUDE_CONFIG_DIR=~/.claude-personal` (same as the `claude-personal` shell function). The **shared** account leaves
    it unset (plain `claude`): Claude keys its keychain entry off this variable, so it must not be set to `~/.claude`.
 4. pty output → `session:data` → `terminalBus` → the xterm for that id (buffered until mounted).
@@ -60,7 +60,10 @@
 isn't focused or the session isn't the active one. Project row = most urgent of its sessions
 (`waiting > error > working > done > idle`).
 
-## Config (`~/.agentrix/config.json`)
+## Config (`~/.aquila/config.json`)
+
+Renamed from Agentrix: on first start, if `~/.aquila/config.json` doesn't exist, `~/.agentrix` is copied over
+(everything except `claude-hooks.json`, which is regenerated). The old folder is left in place.
 
 ```jsonc
 {

@@ -1,4 +1,4 @@
-# Agentrix 디자인 시스템
+# Aquila Agents 디자인 시스템
 
 > English: [../en/DESIGN-SYSTEM.md](../en/DESIGN-SYSTEM.md)
 

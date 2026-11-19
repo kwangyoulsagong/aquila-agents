@@ -1,4 +1,4 @@
-# Agentrix — agent guide
+# Aquila Agents — agent guide
 
 Shared rules for **every** coding agent working on this repo (Claude Code reads this via CLAUDE.md, Codex reads it directly).
 
@@ -41,9 +41,9 @@ docs/en, docs/ko   README, ARCHITECTURE, DESIGN-SYSTEM, TASKS (English / Korean,
 ## Rules
 
 1. **TypeScript strict everywhere.** No `any` unless commented why. No `.js`/`.jsx` source files.
-2. **IPC goes through `src/shared/api/types.ts`.** New channel → add to `IPC`, add the method to `AgentrixApi`,
+2. **IPC goes through `src/shared/api/types.ts`.** New channel → add to `IPC`, add the method to `AquilaApi`,
    implement in `electron/preload.ts` + `electron/main.ts`. The renderer uses `api` from `@/shared/api` — never
-   `window.agentrix` or `ipcRenderer` directly.
+   `window.aquila` or `ipcRenderer` directly.
 2b. **Feature-Sliced Design in `src/`.** `app → pages → widgets → features → entities → shared`; import only downward,
    other slices only via their `index.ts`, `@/` alias between slices. ESLint enforces it. Put new code in the lowest
    layer that makes sense (a reusable view of a thing → `entities`; a user action → `features`; a composed block → `widgets`).
@@ -58,7 +58,7 @@ docs/en, docs/ko   README, ARCHITECTURE, DESIGN-SYSTEM, TASKS (English / Korean,
    (`@design-system/react`) instead of writing `.c-*` class names. New primitive → class in `components.css`
    (BEM: `.c-x`, `.c-x__part`, `.c-x--variant`, state via `aria-*`/`data-*`) + component in `design-system/react/`.
    `design-system/` never imports from `src/`. `src/app/styles/app.css` is layout only.
-6. **Don't touch the user's CLI setup.** Claude hooks are injected only via `--settings ~/.agentrix/claude-hooks.json`
+6. **Don't touch the user's CLI setup.** Claude hooks are injected only via `--settings ~/.aquila/claude-hooks.json`
    for sessions we spawn. Never write to `~/.claude*`, `~/.codex`, or shell rc files — except the explicit,
    user-confirmed actions specified in T2 (zshrc alias) and T11 (move sessions/memory to Trash).
 7. **UI copy in Korean and English.** Every string goes through `src/shared/i18n/dictionary.ts` (both `ko` and `en`; the typecheck

@@ -7,7 +7,7 @@ in xterm (WebGL), Claude status via hooks, activity status for others, notificat
 account per project, ko/en UI, design system, shortcuts ⌘T ⌘⇧T ⌘⌥T ⌘W ⌘1–9.
 
 **How to run tasks in parallel:** one task per session, each on its own branch/worktree
-(`git worktree add ../agentrix-T1 -b task/T1-split-view`). Stay inside **Owns**. Touch shared files
+(`git worktree add ../aquila-T1 -b task/T1-split-view`). Stay inside **Owns**. Touch shared files
 (`pages/workspace/*`, `src/shared/api/types.ts`, `src/shared/i18n/dictionary.ts`, `electron/main.ts`, `electron/preload.ts`, `components.css`)
 only with small additive edits. Merge order follows the numbering when two tasks touch the same shared file.
 
@@ -43,7 +43,7 @@ only with small additive edits. Merge order follows the numbering when two tasks
 
 ### T4 · Restore sessions on relaunch
 - [ ] **Goal:** reopening the app brings tabs back.
-- **Spec:** save open tabs to `~/.agentrix/state.json`. Claude: start with `--session-id <uuid>` we generate, restore with
+- **Spec:** save open tabs to `~/.aquila/state.json`. Claude: start with `--session-id <uuid>` we generate, restore with
   `claude --resume <uuid>`. Codex: `codex resume --last` in that dir. Shell: fresh shell.
 - **Owns:** `electron/state.ts`, small additions in `sessions.ts`.
 
@@ -62,13 +62,13 @@ only with small additive edits. Merge order follows the numbering when two tasks
 - **Owns:** `electron/worktrees.ts`, `src/features/open-in-worktree/`.
 
 ### T8 · Packaging
-- [ ] **Goal:** `npm run dist` → `Agentrix.app` (arm64) the user drags to /Applications.
+- [ ] **Goal:** `npm run dist` → `Aquila Agents.app` (arm64) the user drags to /Applications.
 - **Spec:** electron-builder, icon from the design system (dark tile, accent mark), asar with `node-pty` unpacked.
 - **Owns:** `electron-builder.yml`, `build/`, `package.json` scripts.
 
 ### T9 · Battery check
 - [ ] **Goal:** numbers, not guesses.
-- **Spec:** `scripts/measure-energy.sh` samples `top -l 6 -s 5 -o power` for Agentrix vs Terminal.app with
+- **Spec:** `scripts/measure-energy.sh` samples `top -l 6 -s 5 -o power` for Aquila Agents vs Terminal.app with
   the same 3 sessions; write results to `docs/en/ENERGY.md` + `docs/ko/ENERGY.md`.
 - **Owns:** `scripts/`, those two docs.
 

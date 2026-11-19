@@ -1,4 +1,4 @@
-// The renderer's only door to the main process. Never touch window.agentrix elsewhere.
-import type { AgentrixApi } from './types';
+// The renderer's only door to the main process. Never touch window.aquila elsewhere.
+import type { AquilaApi } from './types';
 
-export const api: AgentrixApi = window.agentrix;
+export const api: AquilaApi = window.aquila;

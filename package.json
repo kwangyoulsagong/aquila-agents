@@ -1,12 +1,12 @@
 {
-  "name": "agentrix",
-  "productName": "Agentrix",
+  "name": "aquila-agents",
+  "productName": "Aquila Agents",
   "version": "0.1.0",
   "private": true,
   "description": "One window for all your Claude Code / Codex sessions across projects.",
   "main": "dist-electron/electron/main.js",
   "scripts": {
-    "dev": "tsc -p tsconfig.electron.json && concurrently -k -n vite,tsc,app -c blue,yellow,magenta \"vite\" \"tsc -p tsconfig.electron.json -w --preserveWatchOutput\" \"wait-on tcp:5199 && cross-env AGENTRIX_DEV=1 electron .\"",
+    "dev": "tsc -p tsconfig.electron.json && concurrently -k -n vite,tsc,app -c blue,yellow,magenta \"vite\" \"tsc -p tsconfig.electron.json -w --preserveWatchOutput\" \"wait-on tcp:5199 && cross-env AQUILA_DEV=1 electron .\"",
     "build": "tsc -p tsconfig.electron.json && vite build",
     "start": "npm run build && electron .",
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.electron.json --noEmit",
@@ -15,7 +15,7 @@
     "format": "prettier --write .",
     "check": "npm run typecheck && npm run lint && npm run test",
     "postinstall": "electron-rebuild -f -w node-pty",
-    "smoke": "npm run build && cross-env AGENTRIX_SMOKE=1 electron ."
+    "smoke": "npm run build && cross-env AQUILA_SMOKE=1 electron ."
   },
   "dependencies": {
     "@fontsource/jetbrains-mono": "^5.3.0",

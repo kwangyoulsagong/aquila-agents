@@ -55,8 +55,8 @@ export class SessionManager {
       ...(process.env as Record<string, string>),
       TERM: 'xterm-256color',
       COLORTERM: 'truecolor',
-      AGENTRIX_TAB_ID: id,
-      AGENTRIX_PORT: String(this.deps.hookPort),
+      AQUILA_TAB_ID: id,
+      AQUILA_PORT: String(this.deps.hookPort),
     };
     delete env.CLAUDE_CONFIG_DIR;
     // Account only matters for Claude; codex/shell keep the user's environment as-is.
