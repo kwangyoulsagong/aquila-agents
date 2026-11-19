@@ -1,0 +1,74 @@
+# 아키텍처
+
+> English: [../en/ARCHITECTURE.md](../en/ARCHITECTURE.md)
+
+```
+┌──────── 렌더러 (src/, React, FSD) ────────┐        ┌──────────── Main (electron/, Node) ─────────────┐
+│ app/      진입점, 전역 스타일                │  IPC   │ main.ts       창 + IPC 핸들러                     │
+│ pages/    workspace (상태 훅, 단축키)        │◀──────▶│ config.ts     ~/.agentrix/config.json           │
+│ widgets/  sidebar, session-tabs, stage    │preload │ sessions.ts   세션마다 node-pty 하나              │
+│ features/ switch-account, switch-language,│  .ts   │ hooks.ts      127.0.0.1:<port> hook 수신기       │
+│           open-session                    │        │               + ~/.agentrix/claude-hooks.json   │
+│ entities/ session (xterm, 상태), project    │        │ smoke.ts      npm run smoke 자동 점검            │
+│ shared/   api (타입·IPC·bridge), i18n       │        │                                                 │
+└───────────────────────────────────────────┘        └─────────────────────────────────────────────────┘
+                                                              │ 실행 (로그인 + 인터랙티브 zsh)
+                                                              ▼
+                              claude --settings ~/.agentrix/claude-hooks.json  |  codex  |  $SHELL  |  ssh …
+```
+
+## FSD 규칙 (렌더러)
+
+- 레이어 순서: `app → pages → widgets → features → entities → shared`. **아래 레이어만** import 가능.
+- 다른 슬라이스는 공개 index로만: `@/entities/session` (O), `@/entities/session/ui/TerminalView` (X).
+- 같은 레이어의 슬라이스끼리 import 금지. 슬라이스 사이는 `@/` 별칭 사용.
+- ESLint(`eslint.config.mjs`)가 위 규칙을 강제합니다. `npm run lint`에서 걸립니다.
+- `shared/api/types.ts`와 `shared/i18n/dictionary.ts`는 main 프로세스도 같이 씁니다. 그래서 의존성 없이 유지해요.
+
+## 세션 흐름
+
+1. 렌더러가 `createSession(projectId, kind)` 호출.
+2. Main이 프로젝트 폴더에서 `$SHELL -l -i -c "<명령>; exec $SHELL -l -i"` 실행. 그래서 PATH/fnm/alias가 그대로 동작하고,
+   에이전트가 끝나면 탭이 셸로 남습니다.
+3. 세션별 환경변수: `AGENTRIX_TAB_ID`, `AGENTRIX_PORT`, 그리고 **개인** 계정의 Claude 세션에만
+   `CLAUDE_CONFIG_DIR=~/.claude-personal` (`claude-personal` 셸 함수와 같음). **공용** 계정은 설정하지 않음(그냥 `claude`).
+   Claude가 이 변수로 키체인 항목을 구분하기 때문에 `~/.claude`로 명시하면 안 됩니다.
+4. pty 출력 → `session:data` → `terminalBus` → 해당 id의 xterm (아직 안 붙었으면 버퍼에 보관).
+5. 안 보이는 세션도 마운트 상태 유지(`hidden`) → 스크롤 기록 유지, xterm은 숨겨진 화면을 그리지 않음.
+
+## 상태
+
+| 출처 | 대상 | 방식 |
+|---|---|---|
+| Claude hooks | 로컬 `claude` | `UserPromptSubmit`/`PostToolUse` → working, `Notification` → waiting, `Stop` → done. hook = 로컬 수신기로 `curl` |
+| 출력 활동 | codex, 셸, ssh | 3초 넘게 출력 → working, 이후 3초 조용 → done |
+| 종료 코드 | 전부 | 0이 아니면 → error |
+
+`done`은 그 세션을 화면에 띄우면 `idle`로 바뀝니다. 창에 포커스가 없거나 다른 세션을 보고 있을 때
+done/waiting이 되면 알림을 띄웁니다. 프로젝트 행 = 세션 중 가장 급한 상태 (`waiting > error > working > done > idle`).
+
+## 설정 (`~/.agentrix/config.json`)
+
+```jsonc
+{
+  "language": "ko",                       // "ko" | "en" — 사이드바 하단에서 전환
+  "accounts": { "shared":   { "claudeConfigDir": null },                  // `claude`
+                "personal": { "claudeConfigDir": "~/.claude-personal" } },// `claude-personal`
+  "groups":   [{ "id": "work" }, { "id": "personal" }, { "id": "remote" }], // 라벨은 자동 번역, "label"로 덮어쓰기 가능
+  "projects": [{ "id": "salt", "name": "SALT", "group": "personal", "account": "shared", "path": "~/Desktop/SALT" },
+               { "id": "remote", "name": "원격 서버", "group": "remote", "account": "shared", "path": "~", "ssh": "ssh -t user@host" }]
+}
+```
+
+탭바 오른쪽 계정 전환은 `project.account`를 바꿉니다. 그 프로젝트에서 **새로 여는** Claude 세션부터 적용돼요.
+
+## 다국어
+
+`src/shared/i18n/dictionary.ts`에 모든 문구가 `ko`/`en`으로 있습니다 (한쪽이라도 빠지면 타입 체크 실패).
+렌더러는 `useT()`, main(알림)은 `translator(config.language)`.
+
+## 빌드·점검
+
+- 렌더러: Vite → `dist/`. Main + preload: `tsc -p tsconfig.electron.json` → `dist-electron/` (CommonJS).
+- `node-pty`는 네이티브 모듈이라 `postinstall`에서 `electron-rebuild` 실행. Electron 버전을 바꾸면 `npm install` 다시.
+- `npm run smoke`: 빌드 후 앱을 띄워 셸 세션을 열고 pty 왕복을 확인, `dist/smoke.png` 스크린샷 저장 후 종료 (성공 0 / 실패 1).
