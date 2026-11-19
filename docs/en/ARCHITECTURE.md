@@ -6,7 +6,8 @@
 ┌──────── Renderer (src/, React, FSD) ──────┐        ┌──────────── Main (electron/, Node) ─────────────┐
 │ app/      entry, global styles            │  IPC   │ main.ts       window + IPC handlers              │
 │ pages/    workspace (state hook, shortcuts)│◀──────▶│ config.ts     ~/.agentrix/config.json            │
-│ widgets/  sidebar, session-tabs, stage    │preload │ sessions.ts   one node-pty per session           │
+│ widgets/  sidebar, session-tabs,          │preload │ sessions.ts   one node-pty per session           │
+│           split-view                      │        │                                                 │
 │ features/ switch-account, switch-language,│  .ts   │ hooks.ts      127.0.0.1:<port> hook receiver     │
 │           open-session                    │        │               + ~/.agentrix/claude-hooks.json     │
 │ entities/ session (xterm, status), project│        │ smoke.ts      npm run smoke self-check           │
@@ -35,6 +36,16 @@
    it unset (plain `claude`): Claude keys its keychain entry off this variable, so it must not be set to `~/.claude`.
 4. pty output → `session:data` → `terminalBus` → the xterm for that id (buffered until mounted).
 5. Hidden sessions stay mounted (`hidden`), so scrollback survives; xterm skips painting hidden ones.
+
+## Split view
+
+- `widgets/split-view/model/layout.ts`: a binary tree of panes (max 4), pure functions + tests. Each pane holds one
+  session or none (empty pane → open actions). The layout is **global**, so panes can mix projects.
+- Terminals are not children of panes: every session is mounted once in a flat list and absolutely positioned over
+  its pane's rect. Re-splitting never remounts xterm; the host resize triggers a refit.
+- The focused pane's session is the active one. Focusing a pane from another project switches the sidebar/tabs to it.
+  Selecting a project focuses a pane that already shows it, otherwise the focused pane takes that project's last session.
+- Tabs are draggable (`shared/lib/sessionDrag.ts`); dropping on a pane edge splits, on the middle replaces.
 
 ## Status
 

@@ -3,7 +3,7 @@ import { AccountSwitch } from '@/features/switch-account';
 import { LanguageToggle } from '@/features/switch-language';
 import { Sidebar } from '@/widgets/sidebar';
 import { SessionTabs } from '@/widgets/session-tabs';
-import { SessionStage } from '@/widgets/session-stage';
+import { SplitView } from '@/widgets/split-view';
 import { useWorkspace } from '../model/useWorkspace';
 import { useShortcuts } from '../model/useShortcuts';
 
@@ -14,7 +14,10 @@ export default function WorkspacePage() {
     activeSessionId: ws.activeSessionId,
     openSession: ws.openSession,
     closeSession: ws.closeSession,
-    selectProject: ws.setActiveProjectId,
+    selectProject: ws.selectProject,
+    splitFocused: ws.split.splitFocused,
+    moveFocus: ws.split.moveFocus,
+    closePane: ws.split.closePane,
   });
 
   const { config, project } = ws;
@@ -27,7 +30,7 @@ export default function WorkspacePage() {
           config={config}
           sessions={ws.sessions}
           activeProjectId={ws.activeProjectId}
-          onSelect={ws.setActiveProjectId}
+          onSelect={ws.selectProject}
           footer={<LanguageToggle config={config} onChanged={ws.setConfig} />}
         />
         <main className="app__main">
@@ -45,11 +48,15 @@ export default function WorkspacePage() {
               {ws.error}
             </div>
           )}
-          <SessionStage
+          <SplitView
+            config={config}
             sessions={ws.sessions}
+            layout={ws.split.layout}
             project={project}
-            activeSessionId={ws.activeSessionId}
             onOpen={ws.openSession}
+            onFocusPane={ws.split.focusPane}
+            onClosePane={ws.split.closePane}
+            onDropSession={ws.split.dropSession}
           />
         </main>
       </div>

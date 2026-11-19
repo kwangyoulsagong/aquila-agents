@@ -6,7 +6,8 @@
 ┌──────── 렌더러 (src/, React, FSD) ────────┐        ┌──────────── Main (electron/, Node) ─────────────┐
 │ app/      진입점, 전역 스타일                │  IPC   │ main.ts       창 + IPC 핸들러                     │
 │ pages/    workspace (상태 훅, 단축키)        │◀──────▶│ config.ts     ~/.agentrix/config.json           │
-│ widgets/  sidebar, session-tabs, stage    │preload │ sessions.ts   세션마다 node-pty 하나              │
+│ widgets/  sidebar, session-tabs,          │preload │ sessions.ts   세션마다 node-pty 하나              │
+│           split-view                      │        │                                                 │
 │ features/ switch-account, switch-language,│  .ts   │ hooks.ts      127.0.0.1:<port> hook 수신기       │
 │           open-session                    │        │               + ~/.agentrix/claude-hooks.json   │
 │ entities/ session (xterm, 상태), project    │        │ smoke.ts      npm run smoke 자동 점검            │
@@ -35,6 +36,16 @@
    Claude가 이 변수로 키체인 항목을 구분하기 때문에 `~/.claude`로 명시하면 안 됩니다.
 4. pty 출력 → `session:data` → `terminalBus` → 해당 id의 xterm (아직 안 붙었으면 버퍼에 보관).
 5. 안 보이는 세션도 마운트 상태 유지(`hidden`) → 스크롤 기록 유지, xterm은 숨겨진 화면을 그리지 않음.
+
+## 화면 분할
+
+- `widgets/split-view/model/layout.ts`: 패널의 이진 트리(최대 4개), 순수 함수 + 테스트. 패널마다 세션 하나 또는
+  없음(빈 화면 → 열기 버튼). 레이아웃은 **전역**이라 여러 프로젝트 세션을 섞어 띄울 수 있음.
+- 터미널은 패널의 자식이 아님: 모든 세션을 평평한 목록에 한 번만 마운트하고 패널 위치에 절대 배치.
+  분할을 바꿔도 xterm이 다시 마운트되지 않고, 크기 변화로 다시 맞춤.
+- 포커스된 패널의 세션이 활성 세션. 다른 프로젝트 패널에 포커스하면 사이드바/탭도 그 프로젝트로 바뀜.
+  프로젝트를 고르면 그 프로젝트를 띄운 패널로 포커스, 없으면 포커스된 패널이 그 프로젝트의 마지막 세션을 띄움.
+- 탭은 드래그 가능(`shared/lib/sessionDrag.ts`). 패널 가장자리에 놓으면 분할, 가운데에 놓으면 교체.
 
 ## 상태
 

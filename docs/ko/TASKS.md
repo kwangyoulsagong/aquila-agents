@@ -14,10 +14,11 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
 ---
 
 ### T1 · 화면 분할
-- [ ] **목표:** 세션 2~4개를 한 화면에서 보고 채팅 (프로젝트 상관없이).
+- [x] **목표:** 세션 2~4개를 한 화면에서 보고 채팅 (프로젝트 상관없이).
+  _남은 것: 패널 크기는 반반 고정(경계선 드래그로 크기 조절 없음), 화면이 하나일 땐 `.c-pane__head` 숨김(탭 바와 중복)._
 - **UX:** ⌘D 오른쪽 분할, ⌘⇧D 아래 분할, ⌘⌥방향키로 포커스 이동, 탭을 패널 가장자리로 끌어 놓으면 그 방향으로 분할.
   각 패널에 `.c-pane__head` (상태 점 · 종류 · 프로젝트 · 계정). 포커스된 패널은 `data-focused`.
-- **담당:** `src/widgets/split-view/`, `src/widgets/split-view/model/layout.ts` (+ 테스트), `src/widgets/session-stage/`.
+- **담당:** `src/widgets/split-view/`, `src/widgets/split-view/model/layout.ts` (+ 테스트), `src/widgets/session-stage/` (split-view로 합침).
 - **완료 기준:** 프로젝트를 바꿔도 레이아웃 유지, 세션을 닫으면 패널이 합쳐짐, 크기 바뀌면 xterm 다시 맞춤.
 
 ### T2 · 계정 설정 (공용 `claude` / 개인 `claude-personal`)
