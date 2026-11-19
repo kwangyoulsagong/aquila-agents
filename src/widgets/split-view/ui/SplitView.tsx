@@ -151,7 +151,9 @@ export default function SplitView({
         );
       })}
 
+      {/* A dormant restored tab gets its terminal once it's started (on first show). */}
       {sessions.map((s) => {
+        if (s.dormant) return null;
         const r = panes.find((x) => x.leaf.sessionId === s.id);
         return (
           <div
@@ -162,12 +164,7 @@ export default function SplitView({
             onMouseDownCapture={() => r && onFocusPane(r.leaf.id)}
             onFocusCapture={() => r && onFocusPane(r.leaf.id)}
           >
-            <TerminalView
-              id={s.id}
-              kind={s.kind}
-              visible={!!r}
-              focused={r?.leaf.id === layout.focusedId}
-            />
+            <TerminalView id={s.id} kind={s.kind} visible={!!r} focused={r?.leaf.id === layout.focusedId} />
           </div>
         );
       })}

@@ -4,6 +4,7 @@ import {
   createLayout,
   drop,
   focusedLeaf,
+  fromSaved,
   leaves,
   MAX_PANES,
   neighbor,
@@ -13,6 +14,7 @@ import {
   removeSession,
   show,
   split,
+  toSaved,
   zoneAt,
   type Layout,
 } from './layout';
@@ -131,5 +133,42 @@ describe('geometry', () => {
     expect(zoneAt(0.5, 0.05)).toBe('top');
     expect(zoneAt(0.5, 0.95)).toBe('bottom');
     expect(zoneAt(0.5, 0.5)).toBe('center');
+  });
+});
+
+describe('toSaved / fromSaved', () => {
+  it('round-trips the tree and the focused pane', () => {
+    let l = createLayout('s1');
+    l = split(l, 'p1', 'right', 's2');
+    l = split(l, l.focusedId, 'bottom', 's3');
+    l = { ...l, focusedId: 'p2' };
+    const saved = toSaved(l);
+    expect(saved.focused).toBe(1);
+    expect(JSON.stringify(saved)).not.toContain('"id"');
+    const back = fromSaved(saved, new Set(['s1', 's2', 's3']))!;
+    expect(sessions(back)).toEqual(['s1', 's2', 's3']);
+    expect(focusedLeaf(back).sessionId).toBe('s2');
+    expect(toSaved(back)).toEqual(saved);
+  });
+
+  it('empties panes of unknown or repeated sessions, rejects too many panes', () => {
+    const leaf = (sessionId: string | null) => ({ kind: 'leaf' as const, sessionId });
+    const back = fromSaved(
+      {
+        root: {
+          kind: 'split',
+          dir: 'row',
+          a: leaf('s1'),
+          b: { kind: 'split', dir: 'column', a: leaf('gone'), b: leaf('s1') },
+        },
+        focused: 9,
+      },
+      new Set(['s1']),
+    )!;
+    expect(sessions(back)).toEqual(['s1', null, null]);
+    expect(back.focusedId).toBe('p1');
+    const pair = { kind: 'split' as const, dir: 'row' as const, a: leaf(null), b: leaf(null) };
+    const five = { kind: 'split' as const, dir: 'row' as const, a: { ...pair, a: pair }, b: pair };
+    expect(fromSaved({ root: five, focused: 0 }, new Set())).toBeNull();
   });
 });

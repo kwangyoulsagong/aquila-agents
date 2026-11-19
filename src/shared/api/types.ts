@@ -126,6 +126,25 @@ export interface SessionInfo {
   account?: string;
   /** Runs in this worktree instead of the project dir. */
   worktree?: Worktree;
+  /** Restored but not spawned yet: starts on first show (`startSession`). */
+  dormant?: boolean;
+}
+
+/** A split layout as saved across launches: the pane tree with session ids, and the focused pane's index. */
+export type SavedPane =
+  | { kind: 'leaf'; sessionId: string | null }
+  | { kind: 'split'; dir: 'row' | 'column'; a: SavedPane; b: SavedPane };
+
+export interface SavedLayout {
+  root: SavedPane;
+  /** Index of the focused pane among the leaves (left to right / top to bottom). */
+  focused: number;
+}
+
+/** What `restoreSessions` returns: the tabs (on-screen ones spawned, the rest dormant) and the saved layout. */
+export interface RestoreResult {
+  sessions: SessionInfo[];
+  layout: SavedLayout | null;
 }
 
 export interface Session extends SessionInfo {
@@ -224,8 +243,17 @@ export interface AquilaApi {
   createWorktreeSession(projectId: string, branch: string, kind: SessionKind): Promise<SessionInfo>;
   /** Repo root, current branch, local branches and worktrees of the project (read-only). */
   worktreeInfo(projectId: string): Promise<WorktreeInfo>;
-  /** Reopens the tabs saved at the last quit (~/.aquila/state.json), once per launch; later calls return the live ones. */
-  restoreSessions(): Promise<SessionInfo[]>;
+  /**
+   * Reopens the tabs saved at the last quit (~/.aquila/state.json), once per launch; later calls return the live ones.
+   * Tabs in the saved layout's panes are spawned, the others come back `dormant`.
+   */
+  restoreSessions(): Promise<RestoreResult>;
+  /** Spawns a dormant restored tab (same id). */
+  startSession(id: string): Promise<SessionInfo>;
+  /** The split layout changed (saved with the tabs). */
+  saveLayout(layout: SavedLayout): void;
+  /** Plain-text snapshot of a terminal's output, shown read-only if the tab can't resume after a relaunch. */
+  saveScrollback(id: string, text: string): void;
   accountsStatus(): Promise<Record<string, AccountStatus>>;
   /** Creates the account's config dir. */
   prepareAccount(account: string): Promise<AccountStatus>;
@@ -277,6 +305,9 @@ export const IPC = {
   uiContextMenu: 'ui:context-menu',
   sessionCreate: 'session:create',
   sessionRestore: 'session:restore',
+  sessionStart: 'session:start',
+  layoutSave: 'layout:save',
+  sessionScrollback: 'session:scrollback',
   sessionCreateWorktree: 'session:create-worktree',
   worktreeInfo: 'worktree:info',
   accountsStatus: 'accounts:status',
