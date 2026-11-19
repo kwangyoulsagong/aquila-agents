@@ -83,7 +83,7 @@ Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-1
 
 ### T13 · Shortcut map
 - [x] **Goal:** one shortcut list that every part of the app reads, so shortcuts never drift apart. (#1)
-  _Left over: there is no app menu bar yet (only the **+** context menu shows accelerators); the guide (T23) will read `SHORTCUTS` too._
+  _Left over: there is no app menu bar yet (only the **+** context menu shows accelerators). The guide (T23) reads the map._
 - **Spec:** one map in `src/shared/lib/shortcuts.ts` (`CommandOrControl`-style ids, so Windows can reuse it later) that
   the key handler, the palette, menus and the guide all read; labels show ⌘ on macOS.
 - **Owns:** `src/shared/lib/shortcuts.ts` (+ tests), `useShortcuts.ts`.
@@ -167,7 +167,8 @@ Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-1
 - **Owns:** `src/widgets/split-view/`.
 
 ### T23 · In-app guide (? button)
-- [ ] **Goal:** every feature is discoverable without docs. (#16, owner)
+- [x] **Goal:** every feature is discoverable without docs. (#16, owner)
+  _Left over: no item has media yet — each shows a placeholder (title + shortcut) until T24 captures them into `src/features/guide/media/`; the registry field is `shortcuts: ShortcutId[]` (several per feature) instead of one `shortcutId`._
 - **Spec:** `?` in the sidebar footer, ⌘/. Modal: searchable feature list on the left;
   screenshot or short loop (bundled WebP/MP4, still frame under reduced motion), 1–2 lines and the shortcut on the right.
   Registry `{ id, titleKey, bodyKey, media, shortcutId }`; shortcuts read from T13's map; includes the full shortcut

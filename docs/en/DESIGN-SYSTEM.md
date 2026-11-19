@@ -97,6 +97,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `--size-sidebar` / `--size-panel` | 248 / 416 | |
 | `--size-dialog` / `--size-dialog-wide` | 440 / 560 | Dialog width / with a checklist (first run) |
 | `--size-palette` / `--size-palette-list` | 560 / 352 | Command palette width / list height before it scrolls (11 rows) |
+| `--size-modal` / `--size-modal-height` / `--size-modal-aside` | 760 / 520 / 240 | List + detail modal (guide, release notes) / its list column |
 
 ## Components (`components.css`)
 
@@ -124,6 +125,9 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `.c-dialog` `__title` `__body` `__actions` `__check` `__code` `__form` | Modal dialog (native `<dialog>`, rises in) |
 | `.c-palette` `__input` `__list` `__item[aria-selected]` `__leading` `__label` `__mark` `__hint` `__empty` `__foot` | Command palette (native `<dialog>` near the top, rises in): input as tall as the title bar, 32px rows, matched letters bold |
 | `.c-dialog--wide` | Wider dialog for a checklist |
+| `.c-modal` `__head` `__title` `__body` `__aside` `__search` `__list` `__item[aria-selected]` `__item-label` `__empty` `__main` `__heading` `__text` `__keys` `__foot` | Large list + detail modal (native `<dialog>`, rises in): head and search as tall as the title bar, searchable list on the left, detail on the right (guide; shared with release notes and trends) |
+| `.c-media` `__frame` `__placeholder` | 16:10 frame for a screenshot or a short loop; placeholder while there is none |
+| `.c-shortcuts` `__group` `__row` `__label` `__keys` | Shortcut sheet: grouped rows, label left, keys right |
 | `.c-checklist` `__item` `__lead` `__main` `__title` `__meta` `__actions` `__detail` `__command` | Bordered list of checks: dot on the title line · title (+ badge) / mono meta · buttons, then a full-width detail (install command with Copy, drop zone) |
 | `.c-dropzone[data-over]` | Dashed drop area; accent border + selected background while dragging over |
 | `.c-field` `__label` `__hint`, `.c-input`, `.c-select` `__control` | Form field: label, text input / select (focus = blue border), monospace hint |
@@ -149,6 +153,9 @@ from `src/` (ESLint enforces it). New primitive → add the class to `components
 | `Field` `label` `hint`, `Input`, `Select` `options` `onChange(value)` | `.c-field`, `.c-input`, `.c-select` |
 | `ChangeRow` `status` `path` | `.c-change` |
 | `Palette` `open` `onClose` `label` `query` `onQueryChange` `listId` `activeId`, `PaletteList`, `PaletteItem` `selected` `label` `marks` `leading` `hint` `kbd`, `PaletteEmpty` | `.c-palette` (combobox + listbox) |
+| `Modal` `open` `title` `onClose` `closeLabel` `aside` `footer`, `ModalSearch` (focused on open), `ModalList` `id` `label`, `ModalItem` `selected` `label` `trailing` `onSelect`, `ModalEmpty`, `ModalDetail` `heading` `text` `keys` | `.c-modal` |
+| `Media` `src` `kind` `poster` `alt` `still` `placeholder` | `.c-media` (video → poster under reduced motion or `still`) |
+| `ShortcutSheet` `groups` | `.c-shortcuts` |
 
 ## Copy
 

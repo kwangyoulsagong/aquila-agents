@@ -208,6 +208,11 @@ export interface FirstRunReport {
   tools: ToolCheck[];
 }
 
+/** In-app guide (T23): the "Take a tour" offer after the first-run checklist was shown. */
+export interface GuideState {
+  offered: boolean;
+}
+
 /** macOS thermal pressure (Electron `powerMonitor.getCurrentThermalState`). */
 export type ThermalState = 'unknown' | 'nominal' | 'fair' | 'serious' | 'critical';
 
@@ -274,6 +279,10 @@ export interface AquilaApi {
   pickBinary(tool: ToolId): Promise<ToolCheck | null>;
   /** Forget the picked binary, back to PATH. */
   resetBinary(tool: ToolId): Promise<ToolCheck>;
+  /** Whether the "Take a tour" offer was shown already (~/.aquila/guide.json). */
+  guideState(): Promise<GuideState>;
+  /** The offer was shown (or the guide opened): never offer it again. */
+  markGuideOffered(): Promise<void>;
   /** Absolute path of a dropped `File` (Electron's webUtils; typed loosely because main has no DOM types). */
   pathForFile(file: object): string;
   copyText(text: string): void;
@@ -320,6 +329,8 @@ export const IPC = {
   firstRunFinish: 'first-run:finish',
   firstRunPickBinary: 'first-run:pick-binary',
   firstRunResetBinary: 'first-run:reset-binary',
+  guideGet: 'guide:get',
+  guideOffered: 'guide:offered',
   sessionWrite: 'session:write',
   sessionResize: 'session:resize',
   sessionKill: 'session:kill',

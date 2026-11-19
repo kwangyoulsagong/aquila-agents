@@ -7,6 +7,7 @@ import { CONFIG_PATH, editProjects, loadConfig, setLanguage, setProjectAccount }
 import { showContextMenu } from './menu';
 import { gitChanges } from './git';
 import { ensureWorktree, worktreeInfo } from './worktrees';
+import { markGuideOffered, readGuideState } from './guide';
 import { binaryFor, finishFirstRun, firstRunReport, loadOverrides, setBinaryPath } from './detect';
 import { detectClaudeVersion, startHookServer, supportsHttpHooks, writeClaudeHookSettings } from './hooks';
 import { PowerWatcher, type PowerSource } from './power';
@@ -233,6 +234,11 @@ app.whenReady().then(async () => {
     const check = await setBinaryPath(tool, null);
     if (tool === 'claude') void detectHooks();
     return check;
+  });
+  // In-app guide (T23). Smoke never reads or writes its state: the tour is never offered.
+  ipcMain.handle(IPC.guideGet, () => (isSmoke ? { offered: true } : readGuideState()));
+  ipcMain.handle(IPC.guideOffered, () => {
+    if (!isSmoke) markGuideOffered();
   });
   ipcMain.on(IPC.sessionWrite, (_e, { id, data }: { id: string; data: string }) => s.write(id, data));
   ipcMain.on(IPC.sessionResize, (_e, { id, cols, rows }: { id: string; cols: number; rows: number }) =>

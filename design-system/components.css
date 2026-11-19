@@ -112,9 +112,12 @@ body {
 .c-sidebar__group > .c-label { height: var(--size-badge); display: flex; align-items: center; margin-bottom: var(--space-inline-xs); }
 .c-sidebar__lang { margin-left: auto; }
 .c-sidebar__foot {
-  display: flex; align-items: center; gap: var(--space-inline-sm);
+  display: flex; align-items: center; gap: var(--space-inline-xs);
   padding: var(--space-inset-sm); border-top: 1px solid var(--color-border-subtle);
 }
+/* One line: buttons keep their label on one line; the first (text) button truncates if the footer runs out. */
+.c-sidebar__foot > .c-btn { flex: none; white-space: nowrap; }
+.c-sidebar__foot > .c-btn:first-child { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 
 /* ── Project row ──────────────────────────────────────────── */
 .c-row {
@@ -377,6 +380,80 @@ body {
   border-top: 1px solid var(--color-border-subtle); font-size: var(--font-size-caption); color: var(--color-text-tertiary);
 }
 
+/* ── Modal (list + detail: guide, release notes, trends) ──── */
+/* Native <dialog>. Head as tall as the title bar; body = searchable list on the left, detail on the right. */
+.c-modal {
+  width: var(--size-modal); height: var(--size-modal-height);
+  max-width: calc(100vw - 2 * var(--space-stack-lg)); max-height: calc(100vh - 2 * var(--space-stack-lg));
+  padding: 0; border: 1px solid var(--color-border-default); border-radius: var(--radius-container);
+  background: var(--color-bg-surface); color: var(--color-text-primary); overflow: hidden;
+}
+.c-modal[open] { display: flex; flex-direction: column; }
+.c-modal::backdrop { background: var(--color-bg-scrim); }
+.c-modal__head {
+  display: flex; align-items: center; gap: var(--space-inline-sm); flex: none;
+  height: var(--size-titlebar); padding: 0 var(--space-inset-sm) 0 var(--space-stack-md);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+.c-modal__title { flex: 1; min-width: 0; margin: 0; font-size: var(--font-size-title); font-weight: 600; }
+.c-modal__body { flex: 1; min-height: 0; display: flex; }
+.c-modal__aside {
+  width: var(--size-modal-aside); flex: none; display: flex; flex-direction: column;
+  border-right: 1px solid var(--color-border-subtle);
+}
+.c-modal__search {
+  flex: none; height: var(--size-titlebar); padding: 0 var(--space-stack-md);
+  border: 0; border-bottom: 1px solid var(--color-border-subtle); background: transparent;
+  color: var(--color-text-primary); font: var(--font-size-body) var(--font-family-ui); user-select: text;
+}
+.c-modal__search:focus-visible { outline: none; }
+.c-modal__search::placeholder { color: var(--color-text-tertiary); }
+.c-modal__list { flex: 1; overflow-y: auto; padding: var(--space-inline-xs); }
+.c-modal__item {
+  display: flex; align-items: center; gap: var(--space-inline-sm);
+  height: var(--size-row); padding: 0 var(--space-inset-md); border-radius: var(--radius-control);
+  color: var(--color-text-secondary); cursor: pointer;
+}
+.c-modal__item:hover { background: var(--color-bg-hover); }
+.c-modal__item[aria-selected='true'] { background: var(--color-bg-selected); color: var(--color-text-primary); }
+.c-modal__item-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.c-modal__item .c-kbd { flex: none; }
+.c-modal__empty { padding: var(--space-inset-md); color: var(--color-text-tertiary); }
+.c-modal__main {
+  flex: 1; min-width: 0; overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-inset-md);
+  padding: var(--space-stack-md); color: var(--color-text-secondary);
+}
+.c-modal__heading { margin: 0; font-size: var(--font-size-title); font-weight: 600; color: var(--color-text-primary); }
+.c-modal__text { margin: 0; line-height: var(--line-height-body); }
+.c-modal__keys { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-inline-xs); }
+.c-modal__foot {
+  display: flex; align-items: center; gap: var(--space-inset-md); flex: none; padding: var(--space-inset-sm) var(--space-stack-md);
+  border-top: 1px solid var(--color-border-subtle); font-size: var(--font-size-caption); color: var(--color-text-tertiary);
+}
+
+/* ── Media (guide screenshot / short loop) ────────────────── */
+.c-media {
+  flex: none; width: 100%; aspect-ratio: 16 / 10; display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--color-border-subtle); border-radius: var(--radius-control);
+  background: var(--color-bg-canvas); overflow: hidden;
+}
+.c-media__frame { display: block; width: 100%; height: 100%; object-fit: cover; }
+.c-media__placeholder {
+  display: flex; flex-direction: column; align-items: center; gap: var(--space-inline-sm);
+  color: var(--color-text-tertiary); font-size: var(--font-size-title);
+}
+
+/* ── Shortcut sheet ───────────────────────────────────────── */
+.c-shortcuts { display: flex; flex-direction: column; gap: var(--space-stack-md); }
+.c-shortcuts__group { display: flex; flex-direction: column; }
+.c-shortcuts__group > .c-label { padding: 0; margin-bottom: var(--space-inline-xs); }
+.c-shortcuts__row {
+  display: flex; align-items: center; gap: var(--space-inline-sm); min-height: var(--size-row);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+.c-shortcuts__label { flex: 1; min-width: 0; }
+.c-shortcuts__keys { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-inline-xs); }
+
 /* ── Form field ───────────────────────────────────────────── */
 .c-field { display: flex; flex-direction: column; gap: var(--space-inline-xs); }
 .c-field__label { font: 500 var(--font-size-label) var(--font-family-ui); color: var(--color-text-secondary); }
@@ -450,6 +527,9 @@ body {
 .c-palette[open] { animation: c-fade-up var(--motion-medium) var(--motion-ease) both; }
 .c-palette[open]::backdrop { animation: c-fade-in var(--motion-medium) var(--motion-ease) both; }
 .c-palette__item { transition: background var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease); }
+.c-modal[open] { animation: c-fade-up var(--motion-medium) var(--motion-ease) both; }
+.c-modal[open]::backdrop { animation: c-fade-in var(--motion-medium) var(--motion-ease) both; }
+.c-modal__item { transition: background var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease); }
 
 /* Right panel slides in from the edge. */
 .c-dropzone { transition: border-color var(--motion-fast) var(--motion-ease), background var(--motion-fast) var(--motion-ease); }

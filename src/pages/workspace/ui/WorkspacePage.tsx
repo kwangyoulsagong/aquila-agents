@@ -9,6 +9,7 @@ import { OpenInWorktreeDialog } from '@/features/open-in-worktree';
 import { LanguageToggle } from '@/features/switch-language';
 import { nextWaiting } from '@/features/next-waiting';
 import { FirstRunChecklist, useFirstRun } from '@/features/first-run';
+import { GuideButton, GuideModal, GuideOffer, useGuide } from '@/features/guide';
 import { Sidebar } from '@/widgets/sidebar';
 import { SessionTabs } from '@/widgets/session-tabs';
 import { SplitView } from '@/widgets/split-view';
@@ -27,6 +28,8 @@ export default function WorkspacePage() {
   const openWorktreeDialog = useCallback(() => setWorktreeOpen(true), []);
   const firstRun = useFirstRun();
   const { reopen: reopenFirstRun } = firstRun;
+  const guide = useGuide();
+  const { toggle: toggleGuide, show: showGuide } = guide;
   const { sessions, activeSessionId: focusedId, selectSession } = ws;
   const waitingNext = nextWaiting(sessions, focusedId);
   const goNextWaiting = useCallback(() => {
@@ -45,6 +48,7 @@ export default function WorkspacePage() {
     closePane: ws.split.closePane,
     toggleChanges,
     togglePalette,
+    toggleGuide,
     nextWaiting: goNextWaiting,
   });
 
@@ -66,6 +70,7 @@ export default function WorkspacePage() {
     if (activeSessionId) a.closeSession = () => closeSession(activeSessionId);
     if (waitingNext) a.nextWaiting = goNextWaiting;
     a.firstRun = reopenFirstRun;
+    a.guide = showGuide;
     if (config) {
       a.switchLanguage = () =>
         api
@@ -90,6 +95,7 @@ export default function WorkspacePage() {
     waitingNext,
     goNextWaiting,
     reopenFirstRun,
+    showGuide,
   ]);
 
   if (!config) return null;
@@ -106,7 +112,12 @@ export default function WorkspacePage() {
           onConfigChanged={ws.setConfig}
           onProjectRemoved={ws.forgetProject}
           onError={ws.showError}
-          footer={<LanguageToggle config={config} onChanged={ws.setConfig} />}
+          footer={
+            <>
+              <LanguageToggle config={config} onChanged={ws.setConfig} />
+              <GuideButton open={guide.open} onClick={toggleGuide} />
+            </>
+          }
         />
         <main className="app__main">
           <SessionTabs
@@ -174,13 +185,22 @@ export default function WorkspacePage() {
         )}
         {firstRun.open && (
           <FirstRunChecklist
-            firstRun={firstRun}
+            // Closing the checklist offers the tour once.
+            firstRun={{
+              ...firstRun,
+              close: () => {
+                firstRun.close();
+                guide.offerOnce();
+              },
+            }}
             config={config}
             onConfigChanged={ws.setConfig}
             onSelectProject={ws.selectProject}
             onError={ws.showError}
           />
         )}
+        <GuideOffer open={guide.offer} onTake={showGuide} onSkip={guide.dismissOffer} />
+        <GuideModal open={guide.open} onClose={guide.close} />
         <CommandPalette
           open={paletteOpen}
           onClose={() => setPaletteOpen(false)}

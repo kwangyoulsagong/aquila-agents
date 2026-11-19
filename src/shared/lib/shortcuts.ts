@@ -7,6 +7,7 @@
 
 export type ShortcutId =
   | 'palette'
+  | 'guide'
   | 'openClaude'
   | 'openCodex'
   | 'openShell'
@@ -30,6 +31,7 @@ export type Platform = 'mac' | 'other';
 
 export const SHORTCUTS: Readonly<Record<ShortcutId, string>> = {
   palette: 'CommandOrControl+K',
+  guide: 'CommandOrControl+/',
   openClaude: 'CommandOrControl+T',
   openCodex: 'CommandOrControl+Shift+T',
   openShell: 'CommandOrControl+Alt+T',

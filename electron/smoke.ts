@@ -1,6 +1,7 @@
 // `npm run smoke`: launch the built app, open a shell session, check the pty round-trips,
 // check OSC 7501 (main answers the query; a report becomes the session status), check Ctrl+C stops a `yes` flood fast, open shells from the UI and check terminals on screen render with WebGL, save a screenshot to dist/smoke.png,
-// open the first-run checklist from ⌘K (dist/smoke-first-run.png), run the Korean IME scenarios (real composition
+// open the first-run checklist from ⌘K (dist/smoke-first-run.png), open the guide with ⌘/ (dist/smoke-guide.png,
+// dist/smoke-guide-shortcuts.png), run the Korean IME scenarios (real composition
 // events through Chromium's IME path via CDP; checks the exact bytes the terminal sends), then quit with exit code 0 (ok) or 1 (fail).
 // Agents use this to verify their change actually runs.
 import fs from 'node:fs';
@@ -106,6 +107,8 @@ export async function runSmoke(
     console.log(`[smoke] PATH has claude: ${onPath('claude')}, codex: ${onPath('codex')}`);
     const firstRunError = await checkFirstRun(win, config, path.join(outDir, 'smoke-first-run.png'));
     if (firstRunError) return fail(firstRunError);
+    const guideError = await checkGuide(win, outDir);
+    if (guideError) return fail(guideError);
     const imeError = await checkIme(win);
     if (imeError) return fail(imeError);
     console.log(
@@ -272,6 +275,45 @@ async function checkFirstRun(win: BrowserWindow, config: Config, out: string): P
     `!!document.querySelector('.c-dialog[open]')`,
   );
   return stillOpen ? 'Esc did not close the first-run checklist' : null;
+}
+
+/**
+ * ⌘/ opens the guide: a list of features, the first one selected with its detail; the last item shows the full
+ * shortcut sheet. Saves both screenshots, then Esc closes it. Returns an error or null.
+ */
+async function checkGuide(win: BrowserWindow, outDir: string): Promise<string | null> {
+  win.show();
+  win.focus();
+  press(win, '/', ['meta']);
+  await wait(500);
+  const items: number = await win.webContents.executeJavaScript(
+    `document.querySelectorAll('.c-modal[open] .c-modal__item').length`,
+  );
+  if (items < 10) return `guide (⌘/) lists ${items} features, expected at least 10`;
+  const heading: string = await win.webContents.executeJavaScript(
+    `document.querySelector('.c-modal[open] .c-modal__heading')?.textContent ?? ''`,
+  );
+  if (!heading) return 'guide shows no detail for the selected feature';
+  await wait(300); // let the modal finish rising in
+  fs.writeFileSync(path.join(outDir, 'smoke-guide.png'), (await win.webContents.capturePage()).toPNG());
+  const rows: number = await win.webContents.executeJavaScript(`(() => {
+    const all = document.querySelectorAll('.c-modal[open] .c-modal__item');
+    all[all.length - 1]?.click();
+    return new Promise((r) => requestAnimationFrame(() =>
+      r(document.querySelectorAll('.c-modal[open] .c-shortcuts__row').length)));
+  })()`);
+  if (rows < 10) return `guide shortcut sheet shows ${rows} rows, expected at least 10`;
+  fs.writeFileSync(
+    path.join(outDir, 'smoke-guide-shortcuts.png'),
+    (await win.webContents.capturePage()).toPNG(),
+  );
+  console.log(`[smoke] guide: ${items} features, "${heading}" first, ${rows} shortcut rows`);
+  press(win, 'Escape', []);
+  await wait(400);
+  const stillOpen: boolean = await win.webContents.executeJavaScript(
+    `!!document.querySelector('.c-modal[open]')`,
+  );
+  return stillOpen ? 'Esc did not close the guide' : null;
 }
 
 /** CDP modifier bits. */

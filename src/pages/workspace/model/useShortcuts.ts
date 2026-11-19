@@ -18,6 +18,7 @@ interface Deps {
   closePane: () => void;
   toggleChanges: () => void;
   togglePalette: () => void;
+  toggleGuide: () => void;
   /** Jump to the next session that needs the user (any project). */
   nextWaiting: () => void;
 }
@@ -36,6 +37,7 @@ export function useShortcuts({
   closePane,
   toggleChanges,
   togglePalette,
+  toggleGuide,
   nextWaiting,
 }: Deps) {
   useEffect(() => {
@@ -54,6 +56,8 @@ export function useShortcuts({
       switch (id) {
         case 'palette':
           return togglePalette();
+        case 'guide':
+          return toggleGuide();
         case 'openClaude':
           return openSession('claude');
         case 'openCodex':
@@ -105,6 +109,7 @@ export function useShortcuts({
     closePane,
     toggleChanges,
     togglePalette,
+    toggleGuide,
     nextWaiting,
   ]);
 }

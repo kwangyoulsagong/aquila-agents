@@ -12,7 +12,7 @@
 │ features/ switch-account, switch-language,│        │ hooks.ts      127.0.0.1:<port> hook receiver     │
 │           open-session, setup-account,    │        │               + ~/.aquila/claude-hooks.json       │
 │           manage-projects, next-waiting,  │
-│           first-run                       │        │ git.ts        git status + diff (read-only)      │
+│           first-run, guide                │        │ git.ts        git status + diff (read-only)      │
 │ entities/ session (xterm, status), project│        │ state.ts      ~/.aquila/state.json (tabs, layout)│
 │                                           │        │               + scrollback/ (T21)                │
 │                                           │        │ codex.ts      codex session id per tab (T21)     │
@@ -23,6 +23,7 @@
 │                                           │        │ output.ts     output batching + flow control     │
 │                                           │        │ power.ts      power profile: battery/heat (T9)   │
 │                                           │        │ detect.ts     CLI checks, first-run state (T17)  │
+│                                           │        │ guide.ts      tour offered once (T23)            │
 │                                           │        │ smoke.ts      npm run smoke self-check           │
 │ shared/   api (types · IPC · bridge), i18n│        │                                                 │
 └───────────────────────────────────────────┘        └─────────────────────────────────────────────────┘
@@ -253,6 +254,22 @@ on an explicit click, append `claude-<id>() { … }` to `~/.zshrc` — skipped i
   `--version`. A picked `claude` / `codex` is used (quoted) in the session command instead of the bare name, and for the
   hook-version check; a picked `git` goes first in main's PATH. Smoke never reads or writes `first-run.json`.
 
+## In-app guide
+
+- `features/guide`: `?` in the sidebar footer, ⌘/ (`guide` in the shortcut map) or ⌘K → "Guide" opens a `Modal`
+  (design system, shared with T27/T35): searchable feature list on the left, the selected feature's media, 1–2 lines
+  and its shortcuts on the right. ↑↓ pick (ignored during IME composition), Esc / × / backdrop close.
+- Registry `model/registry.ts`: `{ id, titleKey, bodyKey, media?, shortcuts? }` — shortcuts are ids from
+  `shared/lib/shortcuts.ts` (`project1` + `project9` = the ⌘1–⌘9 range), so labels never drift. Body text gets the
+  palette's key as `{palette}`. New feature → add an item and its two strings.
+- The last item is the full shortcut sheet (`model/sheet.ts`); a test checks it lists every shortcut of the map once.
+- Search (`model/search.ts`, tested): fuzzy on the title, then the body containing the query as typed (no scattered
+  letters across a long sentence); the sheet also matches every shortcut's name.
+- Media (`Media`): a WebP/PNG screenshot or an MP4 loop, muted; under `prefers-reduced-motion` or in power-saver mode
+  a video shows its poster. Items without media show a placeholder (title + shortcut) until T24 captures them.
+- Offer: when the first-run checklist closes, "Take a tour / Skip" is shown once (`~/.aquila/guide.json`
+  `offered`, via `guide:get` / `guide:offered`); opening the guide also counts. Smoke never reads or writes it.
+
 ## i18n
 
 `src/shared/i18n/dictionary.ts` holds every string in `ko` and `en` (typecheck fails if a key is missing in one).
@@ -263,7 +280,8 @@ Renderer: `useT()`; main (notifications): `translator(config.language)`.
 - Renderer: Vite → `dist/`. Main + preload: `tsc -p tsconfig.electron.json` → `dist-electron/` (CommonJS).
 - `node-pty` is native: `postinstall` runs `electron-rebuild`. After changing Electron's version, rerun `npm install`.
 - `npm run smoke`: build, launch, open a shell session, verify the pty round-trip, save `dist/smoke.png`, quit (0 ok / 1 fail).
-  It also logs whether `claude`/`codex` are on PATH, and opens the first-run checklist from ⌘K (`dist/smoke-first-run.png`). A packaged app saves the screenshot to the temp dir.
+  It also logs whether `claude`/`codex` are on PATH, and opens the first-run checklist from ⌘K (`dist/smoke-first-run.png`) and the guide with ⌘/
+  (`dist/smoke-guide.png`, `dist/smoke-guide-shortcuts.png`). A packaged app saves the screenshot to the temp dir.
 - Finder launches get launchd's minimal PATH. `env.ts` reads the login + interactive shell's PATH once at startup and
   puts it in front (sessions already start a login shell; this is for what main runs directly, like `git`).
 - `npm run dist`: electron-builder (`electron-builder.yml`) → `release/*.dmg` + `.zip`, arm64, unsigned. Only `node-pty`
