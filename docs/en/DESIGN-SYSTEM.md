@@ -91,6 +91,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `--size-row` | 32 | Sidebar rows; tabs are 32 tall too (40 − 8 top offset) |
 | `--size-control` | 28 | Buttons, segmented control |
 | `--size-pane-head` | 28 | Split pane header |
+| `--size-focus-line` | 2 | Accent line under the focused pane's header (the only focus mark on a pane) |
 | `--size-badge` / `--size-dot` | 16 / 8 | |
 | `--size-sidebar` / `--size-panel` | 248 / 416 | |
 | `--size-dialog` / `--size-dialog-wide` | 440 / 560 | Dialog width / with a checklist (first run) |
