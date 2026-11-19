@@ -12,6 +12,7 @@ import { copyLastReply, toggleQuickSelect } from '@/features/terminal-helpers';
 import { FirstRunChecklist, useFirstRun } from '@/features/first-run';
 import { GuideButton, GuideModal, GuideOffer, useGuide } from '@/features/guide';
 import { ManageProjectsDialog, useManageProjects } from '@/features/manage-projects';
+import { FigmaSettings } from '@/features/figma';
 import { Sidebar } from '@/widgets/sidebar';
 import { SessionTabs } from '@/widgets/session-tabs';
 import { SplitView } from '@/widgets/split-view';
@@ -156,7 +157,9 @@ export default function WorkspacePage() {
           aboveFooter={
             <UsageGauge
               config={config}
-              onOpenWith={project && !project.remote ? (account) => void openSession('claude', account) : undefined}
+              onOpenWith={
+                project && !project.remote ? (account) => void openSession('claude', account) : undefined
+              }
             />
           }
           footer={
@@ -231,6 +234,7 @@ export default function WorkspacePage() {
             onName={manage.submitName}
             onRemove={manage.submitRemove}
             onSettings={manage.submitSettings}
+            renderFigma={(p) => <FigmaSettings key={p.account} {...p} />}
           />
         )}
         {worktreeOpen && project && !project.remote && (

@@ -28,6 +28,7 @@ import {
 } from './hooks';
 import { refreshDue, UsageTracker } from './usage';
 import { ContextWatcher, statusLineSources, userHasStatusLine } from './context';
+import { connect as figmaConnect, FIGMA_DOCS_URL, readProfiles as figmaProfiles } from './figma';
 import { PowerWatcher, type PowerSource } from './power';
 import { SessionManager } from './sessions';
 import { checkRemote } from './remote/check';
@@ -126,6 +127,16 @@ app.whenReady().then(async () => {
   const context = new ContextWatcher((u) => win?.webContents.send(IPC.contextChanged, u));
   if (!isSmoke) safe('context watch', () => context.start());
   ipcMain.handle(IPC.contextGet, () => context.all());
+  // Figma MCP (T32): the hidden whoami check runs with the account's config dir (its `/mcp` login).
+  ipcMain.handle(IPC.figmaProfiles, () => figmaProfiles());
+  ipcMain.handle(IPC.figmaConnect, (_e, account: string) => {
+    const config = loadConfig();
+    const a = config.accounts[account];
+    if (!a) throw new Error(`Unknown account ${account}`);
+    // Unset for the shared account, like its sessions (setting it would change where Claude keeps the login).
+    return figmaConnect(account, a.claudeConfigDir ? claudeConfigDir(config, account) : undefined);
+  });
+  ipcMain.handle(IPC.figmaOpenDocs, () => shell.openExternal(FIGMA_DOCS_URL));
   // http hooks unless `claude --version` says it's older than they need (then command + curl).
   let httpHooks = true;
   const detectHooks = () =>
@@ -269,7 +280,8 @@ app.whenReady().then(async () => {
   });
   ipcMain.handle(IPC.clipboardPaths, async () => {
     const byType = new Map<string, Electron.ClipboardItem>();
-    for (const item of await clipboard.read()) for (const type of item.types) if (!byType.has(type)) byType.set(type, item);
+    for (const item of await clipboard.read())
+      for (const type of item.types) if (!byType.has(type)) byType.set(type, item);
     return clipboardPaths({
       types: [...byType.keys()],
       get: async (type) => {
@@ -341,23 +353,24 @@ app.whenReady().then(async () => {
   // Changes panel (T25). The renderer names a project/session; paths and commits are resolved here, never taken from it.
   const worktreeFor = (projectId: string, sessionId?: string) =>
     sessionId ? s.worktreeOf(sessionId, projectId) : undefined;
-  ipcMain.handle(
-    IPC.gitChanges,
-    (_e, { projectId, sessionId, scope }: GitTarget & { scope?: GitScope }) => {
-      localOnly(projectId);
-      return gitChanges(
-        loadConfig(),
-        projectId,
-        worktreeFor(projectId, sessionId),
-        scope === 'session' && sessionId ? s.startHeadOf(sessionId, projectId) || undefined : undefined,
-      );
-    },
-  );
+  ipcMain.handle(IPC.gitChanges, (_e, { projectId, sessionId, scope }: GitTarget & { scope?: GitScope }) => {
+    localOnly(projectId);
+    return gitChanges(
+      loadConfig(),
+      projectId,
+      worktreeFor(projectId, sessionId),
+      scope === 'session' && sessionId ? s.startHeadOf(sessionId, projectId) || undefined : undefined,
+    );
+  });
   const treeWatcher = new TreeWatcher(() => win?.webContents.send(IPC.gitChanged));
   ipcMain.on(IPC.gitWatch, (_e, target: GitTarget | null) => {
     try {
       if (target) localOnly(target.projectId);
-      treeWatcher.watch(target ? treeOf(loadConfig(), target.projectId, worktreeFor(target.projectId, target.sessionId)) : null);
+      treeWatcher.watch(
+        target
+          ? treeOf(loadConfig(), target.projectId, worktreeFor(target.projectId, target.sessionId))
+          : null,
+      );
     } catch {
       treeWatcher.watch(null);
     }
@@ -383,14 +396,21 @@ app.whenReady().then(async () => {
     IPC.historySetMeta,
     (_e, { ref, change }: { ref: HistoryRef; change: { name?: string | null; favorite?: boolean } }) =>
       history.setMeta(known(ref), {
-        ...(change.name !== undefined ? { name: typeof change.name === 'string' ? change.name.slice(0, 200) : null } : {}),
+        ...(change.name !== undefined
+          ? { name: typeof change.name === 'string' ? change.name.slice(0, 200) : null }
+          : {}),
         ...(typeof change.favorite === 'boolean' ? { favorite: change.favorite } : {}),
       }) ?? null,
   );
   ipcMain.handle(IPC.historyExport, async (_e, ref: HistoryRef) => {
     const entry = known(ref);
     const title = displayTitle(entry);
-    const file = `${title.replace(/[/\\:*?"<>|\n]+/g, ' ').trim().slice(0, 60) || entry.id}.md`;
+    const file = `${
+      title
+        .replace(/[/\\:*?"<>|\n]+/g, ' ')
+        .trim()
+        .slice(0, 60) || entry.id
+    }.md`;
     const options: Electron.SaveDialogOptions = {
       defaultPath: path.join(app.getPath('downloads'), file),
       filters: [{ name: 'Markdown', extensions: ['md'] }],
@@ -400,34 +420,38 @@ app.whenReady().then(async () => {
     fs.writeFileSync(r.filePath, toMarkdown({ ...entry, title }, await history.fullTranscript(entry)));
     return r.filePath;
   });
-  ipcMain.handle(IPC.historyResume, async (_e, { ref, addProject }: { ref: HistoryRef; addProject: boolean }) => {
-    const entry = known(ref);
-    const t = translator(loadConfig().language);
-    if (!fs.existsSync(entry.cwd)) throw new Error(t('history.error.folderGone', { path: entry.cwd }));
-    let config = loadConfig();
-    let added = false;
-    let projectId = matchProject(config, entry.cwd);
-    if (!projectId && addProject) {
-      const account = entry.account && config.accounts[entry.account] ? entry.account : Object.keys(config.accounts)[0];
-      config = editProjects({
-        op: 'addProject',
-        path: entry.cwd,
-        name: '',
-        group: config.groups[0]?.id ?? 'work',
-        account: account ?? 'shared',
-      });
-      added = true;
-      projectId = matchProject(config, entry.cwd);
-    }
-    const project = projectId && config.projects.find((p) => p.id === projectId);
-    if (!project) throw new Error(t('history.error.noProject'));
-    const worktree = resumeWorktree(project.path, entry.cwd, entry.branch);
-    const session =
-      entry.agent === 'claude'
-        ? s.create(config, project.id, 'claude', entry.account, { resumeClaude: entry.id }, worktree)
-        : s.create(config, project.id, 'codex', undefined, { resumeCodexId: entry.id }, worktree);
-    return added ? { session, config } : { session };
-  });
+  ipcMain.handle(
+    IPC.historyResume,
+    async (_e, { ref, addProject }: { ref: HistoryRef; addProject: boolean }) => {
+      const entry = known(ref);
+      const t = translator(loadConfig().language);
+      if (!fs.existsSync(entry.cwd)) throw new Error(t('history.error.folderGone', { path: entry.cwd }));
+      let config = loadConfig();
+      let added = false;
+      let projectId = matchProject(config, entry.cwd);
+      if (!projectId && addProject) {
+        const account =
+          entry.account && config.accounts[entry.account] ? entry.account : Object.keys(config.accounts)[0];
+        config = editProjects({
+          op: 'addProject',
+          path: entry.cwd,
+          name: '',
+          group: config.groups[0]?.id ?? 'work',
+          account: account ?? 'shared',
+        });
+        added = true;
+        projectId = matchProject(config, entry.cwd);
+      }
+      const project = projectId && config.projects.find((p) => p.id === projectId);
+      if (!project) throw new Error(t('history.error.noProject'));
+      const worktree = resumeWorktree(project.path, entry.cwd, entry.branch);
+      const session =
+        entry.agent === 'claude'
+          ? s.create(config, project.id, 'claude', entry.account, { resumeClaude: entry.id }, worktree)
+          : s.create(config, project.id, 'codex', undefined, { resumeCodexId: entry.id }, worktree);
+      return added ? { session, config } : { session };
+    },
+  );
   // First-run checklist (T17). Smoke never reads or writes its state: it always reports "not pending".
   ipcMain.handle(IPC.firstRunGet, async (_e, recheck: boolean) => {
     if (recheck) pathRestored = (await restoreShellPath()) || pathRestored;

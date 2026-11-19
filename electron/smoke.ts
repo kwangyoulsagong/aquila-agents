@@ -1,6 +1,6 @@
 // `npm run smoke`: launch the built app, open a shell session, check the pty round-trips,
 // check OSC 7501 (main answers the query; a report becomes the session status), check Ctrl+C stops a `yes` flood fast, open shells from the UI and check terminals on screen render with WebGL, save a screenshot to dist/smoke.png,
-// open the first-run checklist from ⌘K (dist/smoke-first-run.png), project settings from ⌘K (dist/smoke-settings.png), open the guide with ⌘/ (dist/smoke-guide.png,
+// open the first-run checklist from ⌘K (dist/smoke-first-run.png), project settings from ⌘K (dist/smoke-settings.png, Figma on: dist/smoke-settings-figma.png), open the guide with ⌘/ (dist/smoke-guide.png,
 // dist/smoke-guide-shortcuts.png; every feature must show captured media), run the Korean IME scenarios (real composition
 // events through Chromium's IME path via CDP; checks the exact bytes the terminal sends), then quit with exit code 0 (ok) or 1 (fail).
 // Agents use this to verify their change actually runs.
@@ -310,6 +310,24 @@ async function checkProjectSettings(win: BrowserWindow, config: Config, out: str
   await wait(400); // let the dialog finish rising in
   fs.writeFileSync(out, (await win.webContents.capturePage()).toPNG());
   console.log(`[smoke] project settings: ${fields} fields, screenshot: ${out}`);
+  // Figma MCP (T32): switching it on shows the check + docs buttons (screenshot only; Esc discards it).
+  const figmaOn = translator(config.language)('figma.on');
+  const figmaShown: boolean = await win.webContents.executeJavaScript(`(() => {
+    const segs = [...document.querySelectorAll('.c-dialog[open] .c-segment')];
+    const on = [...(segs.at(-1)?.querySelectorAll('button, [role=radio]') ?? [])].find((el) => el.textContent === ${JSON.stringify(figmaOn)});
+    on?.click();
+    return !!on;
+  })()`);
+  if (figmaShown) {
+    await wait(300);
+    await win.webContents.executeJavaScript(
+      `document.querySelector('.c-dialog[open] .c-dialog__body')?.scrollTo(0, 1e6)`,
+    );
+    await wait(200);
+    const figmaOut = out.replace(/\.png$/, '-figma.png');
+    fs.writeFileSync(figmaOut, (await win.webContents.capturePage()).toPNG());
+    console.log(`[smoke] figma settings: screenshot: ${figmaOut}`);
+  }
   press(win, 'Escape', []);
   await wait(400);
   const stillOpen: boolean = await win.webContents.executeJavaScript(

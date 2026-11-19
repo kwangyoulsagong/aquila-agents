@@ -38,6 +38,8 @@ export interface SettingsForm {
   /** Remote projects only (T29). */
   remoteAlias: string;
   remoteClaudeDir: string;
+  /** Figma MCP (T32), local projects only. */
+  figma: boolean;
 }
 
 export function toForm(p: Project): SettingsForm {
@@ -53,6 +55,7 @@ export function toForm(p: Project): SettingsForm {
     openIn: p.openIn ?? '',
     remoteAlias: p.remote?.alias ?? '',
     remoteClaudeDir: p.remote?.claudeConfigDir ?? '',
+    figma: !!p.figma,
   };
 }
 
@@ -78,6 +81,7 @@ export function toSettings(form: SettingsForm, original: Project): ProjectSettin
     setupScript: form.setupScript,
     portBase: port ?? null,
     openIn: form.openIn,
+    ...(original.remote ? {} : { figma: form.figma }),
     ...(original.remote
       ? { remote: { alias: form.remoteAlias.trim(), claudeConfigDir: form.remoteClaudeDir.trim() } }
       : {}),

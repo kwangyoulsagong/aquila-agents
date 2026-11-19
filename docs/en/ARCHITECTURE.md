@@ -24,6 +24,7 @@
 │                                           │        │ power.ts      power profile: battery/heat (T9)   │
 │           usage-gauge                     │        │ usage.ts      5h / weekly usage per account (T30)│
 │                                           │        │ context.ts    context use per tab (T31)          │
+│                                           │        │ figma.ts      Figma MCP args + whoami (T32)      │
 │                                           │        │ detect.ts     CLI checks, first-run state (T17)  │
 │                                           │        │ guide.ts      tour offered once (T23)            │
 │                                           │        │ history.ts    past sessions, read-only (T11)     │
@@ -297,6 +298,28 @@ side: the 5-hour block (with its reset time) and the last 7 days. Labelled "Esti
   stays) → file removed, `usage: null`. `/clear` just reports anew.
 - **UI:** grey ring; from 60% the number shows and it turns orange, from 85% red. Tooltip: percent, `used of size`
   tokens, and from 60% a /compact hint. Not shown for remote tabs (no hooks there) or smoke.
+
+## Figma MCP (T32)
+
+`electron/figma.ts` + `features/figma` (`FigmaSettings`, slotted into project settings by the workspace page —
+features don't import each other).
+
+- **Opt-in per project:** `Project.figma` (local projects only; off = key removed). The block in project settings
+  shows only the On/Off switch until it's on.
+- **Sessions:** new Claude tabs get `--mcp-config ~/.aquila/mcp/figma.json` (`{ type: "http", url:
+  "https://mcp.figma.com/mcp" }`, written when missing) — no `--strict-mcp-config`, so the user's own servers stay.
+  Codex tabs get `codex -c 'mcp_servers.figma.url="https://mcp.figma.com/mcp"'` (checked on codex-cli 0.170 with
+  `codex -c … mcp list`), so nothing is written to the repo or `~/.codex`. Open tabs keep what they started with.
+- **Auth stays in the CLIs:** Claude `/mcp` → figma → Authenticate (per account config dir); Codex
+  `codex mcp login figma`.
+- **Connect:** `figma:connect(account)` runs a hidden `claude -p` (haiku, `--strict-mcp-config`,
+  `--allowedTools mcp__figma__whoami`, `--no-session-persistence`, 90 s timeout) with that account's
+  `CLAUDE_CONFIG_DIR`, asks for the raw `whoami` result and parses it defensively: first JSON in the reply, email /
+  handle, plans with tier + seat under several key names, anything missing → `unknown`. `NO_FIGMA_TOOL` → `needsAuth`.
+  Cached per account in `~/.aquila/figma-profile.json` (`figma:profiles`).
+- **Hints, not limits:** "Design to code" needs a Dev or Full seat, "Code Connect" may need Organization — shown as
+  tooltips from the cached plan; unknown → "see Figma docs" (`figma:open-docs` opens Figma's MCP docs). No hard-coded
+  rate limits.
 
 ## Shortcuts
 

@@ -156,7 +156,11 @@ function placeProject(projects: Project[], project: Project, group: string, inde
 const KINDS: SessionKind[] = ['claude', 'codex', 'shell'];
 
 /** An optional text setting: trimmed; blank removes the key. */
-function setText<K extends 'defaultBranch' | 'setupScript' | 'openIn'>(p: Project, key: K, value: string): Project {
+function setText<K extends 'defaultBranch' | 'setupScript' | 'openIn'>(
+  p: Project,
+  key: K,
+  value: string,
+): Project {
   const v = key === 'setupScript' ? value.replace(/\s+$/, '') : value.trim();
   return v.trim() ? { ...p, [key]: v } : dropKey(p, key);
 }
@@ -205,6 +209,9 @@ export function applySettings(
   if (s.defaultBranch !== undefined) next = setText(next, 'defaultBranch', s.defaultBranch);
   if (s.setupScript !== undefined) next = setText(next, 'setupScript', s.setupScript);
   if (s.openIn !== undefined) next = setText(next, 'openIn', s.openIn);
+  // Figma MCP (T32): local projects only; off = key removed.
+  if (s.figma === true && !p.remote) next.figma = true;
+  else if (s.figma === false) next = dropKey(next, 'figma');
   return next;
 }
 
@@ -221,7 +228,8 @@ export function projectForPath(c: Config, dir: string, home = HOME): string | nu
 /** Opens the project folder with its "Open in" app (`open -a`), or in Finder when none is set. */
 export function openProjectIn(c: Config, projectId: string): Promise<void> {
   const project = c.projects.find((p) => p.id === projectId);
-  if (!project) return Promise.reject(new Error(translator(c.language)('error.projectNotFound', { id: projectId })));
+  if (!project)
+    return Promise.reject(new Error(translator(c.language)('error.projectNotFound', { id: projectId })));
   if (project.remote) return Promise.reject(new Error(translator(c.language)('remote.unsupported')));
   const dir = expand(project.path);
   const args = project.openIn ? ['-a', project.openIn, dir] : [dir];

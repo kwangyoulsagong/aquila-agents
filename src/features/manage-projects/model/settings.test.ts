@@ -17,7 +17,15 @@ describe('project settings form', () => {
       setupScript: '',
       portBase: null,
       openIn: '',
+      figma: false,
     });
+  });
+
+  it('sends Figma on/off for local projects only', () => {
+    expect(toForm({ ...project, figma: true }).figma).toBe(true);
+    expect(toSettings({ ...toForm(project), figma: true }, project)).toMatchObject({ figma: true });
+    const remote: Project = { ...project, remote: { alias: 'devbox' } };
+    expect(toSettings({ ...toForm(remote), figma: true }, remote)).not.toHaveProperty('figma');
   });
 
   it('sends the path only when it changed', () => {

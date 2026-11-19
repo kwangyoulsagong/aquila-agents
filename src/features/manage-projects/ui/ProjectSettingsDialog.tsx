@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useState, type ReactNode } from 'react';
 import {
   Button,
   Dialog,
@@ -24,12 +24,20 @@ interface Props {
   config: Config;
   onClose: () => void;
   onSave: (settings: ReturnType<typeof toSettings>) => Promise<void>;
+  /** Figma MCP block (T32), composed by the page: features don't import each other. Local projects only. */
+  renderFigma?: RenderFigma;
 }
+
+export type RenderFigma = (p: {
+  enabled: boolean;
+  onChange: (enabled: boolean) => void;
+  account: string;
+}) => ReactNode;
 
 const KINDS: SessionKind[] = ['claude', 'codex', 'shell'];
 
 /** Per-project defaults: folder, group, account, default agent, worktree base branch + setup, ports, editor. */
-export default function ProjectSettingsDialog({ project, config, onClose, onSave }: Props) {
+export default function ProjectSettingsDialog({ project, config, onClose, onSave, renderFigma }: Props) {
   const t = useT();
   const formId = useId();
   const branchList = useId();
@@ -244,6 +252,11 @@ export default function ProjectSettingsDialog({ project, config, onClose, onSave
                 ]}
               />
             </Field>
+            {renderFigma?.({
+              enabled: form.figma,
+              onChange: (v) => set('figma', v),
+              account: form.account,
+            })}
           </>
         )}
       </DialogForm>
