@@ -11,9 +11,10 @@
 │           command-palette                 │  .ts   │               zsh function (explicit click)      │
 │ features/ switch-account, switch-language,│        │ hooks.ts      127.0.0.1:<port> hook receiver     │
 │           open-session, setup-account,    │        │               + ~/.aquila/claude-hooks.json       │
-│           manage-projects                 │        │ git.ts        git status + diff (read-only)      │
+│           manage-projects,                │        │ git.ts        git status + diff (read-only)      │
 │ entities/ session (xterm, status), project│        │ state.ts      ~/.aquila/state.json (open tabs)   │
-│           diff                            │        │ menu.ts       native context menus               │
+│           diff                            │        │ worktrees.ts  git worktree add / reuse (T7)      │
+│           open-in-worktree                │        │ menu.ts       native context menus               │
 │                                           │        │ smoke.ts      npm run smoke self-check           │
 │ shared/   api (types · IPC · bridge), i18n│        │                                                 │
 └───────────────────────────────────────────┘        └─────────────────────────────────────────────────┘
@@ -65,7 +66,7 @@
 
 - ⌘K toggles `widgets/command-palette` (`.c-palette` on a native `<dialog>`, near the top). It lists open sessions
   (most urgent first: waiting > error > done > working > idle), then projects (sidebar order), then actions.
-- Actions: open Claude / Codex / shell, split right / down, changes panel, close session, switch language. The
+- Actions: open Claude / Codex / shell, new Claude in worktree, split right / down, changes panel, close session, switch language. The
   workspace passes a handler only for actions that apply right now (no project → no open actions, no session → no close).
 - `shared/lib/fuzzy.ts` (tested): the query's characters must appear in order, case-insensitive; word starts
   (incl. camelCase) and consecutive runs score higher, gaps cost a little. A project also matches on group · path,
@@ -74,9 +75,23 @@
   The command runs on the next frame, after the dialog has closed and returned focus, so the terminal it shows
   takes the keyboard.
 
+## Worktree sessions
+
+- "New Claude in worktree…" (right-click the tab bar's **+**, or the ⌘K palette) opens `features/open-in-worktree`:
+  a dialog with a branch field (local branches suggested) and a line saying what will happen and where.
+- Main (`worktrees.ts`, `session:create-worktree`): validates the name with `git check-ref-format --branch`, then
+  reuses the worktree that already has the branch checked out (`git worktree list --porcelain`, incl. the main one),
+  otherwise `git worktree add <repo>-wt/<branch>` next to the main worktree — checking out the branch if it exists,
+  else `-b` from the project's current HEAD. Git's own error is shown in the dialog. Nothing is ever removed.
+- The session (`SessionInfo.worktree = { path, branch }`) spawns with that cwd. The tab shows the branch
+  (`.c-tab__branch`, path in the tooltip), as do the pane head, the palette label and the notification title.
+- The changes panel follows the focused session: for a worktree session it shows that worktree (main resolves the
+  path from the live session id, never from a renderer-supplied path).
+- `worktree:info` gives the dialog the repo root, the current branch, local branches and existing worktrees (read-only).
+
 ## Restore on relaunch
 
-- Main keeps `~/.aquila/state.json` = the open tabs in tab order (`{ projectId, kind, account?, claudeSessionId? }`),
+- Main keeps `~/.aquila/state.json` = the open tabs in tab order (`{ projectId, kind, account?, worktree?, claudeSessionId? }`),
   rewritten on every create / exit / Claude session change (temp file + rename), so a crash keeps them too. It's read
   once at startup, before any session exists; quitting kills the ptys without overwriting it. Smoke never reads or writes it.
 - Claude tabs start with `--session-id <uuid>` we generate. A `SessionStart` hook posts Claude's stdin JSON to
@@ -84,7 +99,8 @@
 - After the config loads, the renderer calls `restoreSessions()` (once per launch): Claude → `claude --resume <id>`
   if `<configDir>/projects/*/<id>.jsonl` exists (Claude writes it only after the first message), otherwise a new
   session; codex → `codex resume --last` (codex filters by cwd); shell → fresh shell. Tabs of removed projects are
-  dropped; a removed account falls back to the project's account.
+  dropped; a removed account falls back to the project's account. Worktree tabs reopen in their worktree, or are
+  dropped if its folder is gone.
 
 ## Status
 

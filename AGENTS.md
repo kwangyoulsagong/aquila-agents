@@ -61,7 +61,7 @@ docs/en, docs/ko   README, ARCHITECTURE, DESIGN-SYSTEM, TASKS (English / Korean,
    `design-system/` never imports from `src/`. `src/app/styles/app.css` is layout only.
 6. **Don't touch the user's CLI setup.** Claude hooks are injected only via `--settings ~/.aquila/claude-hooks.json`
    for sessions we spawn. Never write to `~/.claude*`, `~/.codex`, or shell rc files — except the explicit,
-   user-confirmed actions specified in T2 (zshrc alias) and T11 (move sessions/memory to Trash).
+   user-confirmed action specified in T2 (zshrc alias). Session history (T11) is read-only.
 7. **UI copy in Korean and English.** Every string goes through `src/shared/i18n/dictionary.ts` (both `ko` and `en`; the typecheck
    fails if one is missing). Short and literal ("Claude 열기" / "Open Claude"). Code, comments, commits in English.
 8. **Stay in your task's files** (see `docs/en/TASKS.md` → Owns). Need to change a shared file

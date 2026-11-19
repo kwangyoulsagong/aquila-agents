@@ -106,7 +106,7 @@
 | `.c-sidebar` `__drag` `__body` `__group` `__foot` `__lang` | 사이드바 |
 | `.c-row[aria-current]` `__name` `__meta` | 프로젝트 행 |
 | `.c-row[data-drop=before\|after]` `[data-dragging]`, `.c-sidebar__group[data-drop]`, `.c-sidebar__empty` | 끌어서 순서 변경: 놓일 위치 선, 끄는 행은 흐리게, 빈 그룹도 놓을 수 있음 |
-| `.c-tabbar` `__add` `__trailing`, `.c-tab[aria-selected]` `__title` `__close` | 탭 |
+| `.c-tabbar` `__add` `__trailing`, `.c-tab[aria-selected]` `__title` `__branch` `__close` | 탭 (`__branch` = 워크트리 브랜치, mono, 먼저 잘림) |
 | `.c-split`, `.c-pane[data-focused]` `__head` `__term` | 화면 분할 |
 | `.c-split--free`, `.c-split__drop`, `.c-pane__title` `__close` | 앱의 화면 분할: 절대 배치 패널, 드롭 표시(영역 사이를 미끄러지듯 이동), 패널 헤더 제목 + 닫기 |
 | `.c-panel` `__head` `__body` `__actions` `__section` `__note` | 오른쪽 패널 (밀려 들어옴, 헤더는 탭 바처럼 창 드래그 영역) |

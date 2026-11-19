@@ -107,7 +107,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `.c-sidebar` `__drag` `__body` `__group` `__foot` `__lang` | Sidebar |
 | `.c-row[aria-current]` `__name` `__meta` | Project row |
 | `.c-row[data-drop=before\|after]` `[data-dragging]`, `.c-sidebar__group[data-drop]`, `.c-sidebar__empty` | Drag to reorder: landing line, dimmed dragged row, empty group as a drop target |
-| `.c-tabbar` `__add` `__trailing`, `.c-tab[aria-selected]` `__title` `__close` | Tabs |
+| `.c-tabbar` `__add` `__trailing`, `.c-tab[aria-selected]` `__title` `__branch` `__close` | Tabs (`__branch` = worktree branch, mono, truncates first) |
 | `.c-split`, `.c-pane[data-focused]` `__head` `__term` | Split view |
 | `.c-split--free`, `.c-split__drop`, `.c-pane__title` `__close` | Split view in the app: absolutely placed panes, drop indicator (glides between zones), pane head title + close |
 | `.c-panel` `__head` `__body` `__actions` `__section` `__note` | Right panel (slides in; head is a drag region like the tab bar) |

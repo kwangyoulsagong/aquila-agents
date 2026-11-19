@@ -1,6 +1,6 @@
 import { Button } from '@design-system/react';
 import type { ReactNode } from 'react';
-import type { Config, Session, SessionKind } from '@/shared/api';
+import { api, type Config, type Session, type SessionKind } from '@/shared/api';
 import { kindLabel, useT } from '@/shared/i18n';
 import { endSessionDrag, startSessionDrag } from '@/shared/lib/sessionDrag';
 import { AccountBadge } from '@/entities/project';
@@ -13,6 +13,8 @@ interface Props {
   onSelect: (id: string) => void;
   onClose: (id: string) => void;
   onNew: (kind: SessionKind) => void;
+  /** "New Claude in worktree…" in the + button's right-click menu. */
+  onNewInWorktree?: () => void;
   /** Right-aligned controls (account switch). */
   trailing?: ReactNode;
 }
@@ -24,9 +26,20 @@ export default function SessionTabs({
   onSelect,
   onClose,
   onNew,
+  onNewInWorktree,
   trailing,
 }: Props) {
   const t = useT();
+  const newMenu = async () => {
+    const id = await api.showContextMenu([
+      { id: 'claude', label: t('action.openClaude') },
+      { id: 'codex', label: t('action.openCodex') },
+      { id: 'shell', label: t('palette.openShell') },
+      ...(onNewInWorktree ? [{ separator: true }, { id: 'worktree', label: t('worktree.action') }] : []),
+    ]);
+    if (id === 'worktree') onNewInWorktree?.();
+    else if (id === 'claude' || id === 'codex' || id === 'shell') onNew(id);
+  };
   return (
     <div className="c-tabbar" role="tablist">
       {sessions.map((s) => (
@@ -44,6 +57,11 @@ export default function SessionTabs({
         >
           <StatusDot status={s.status} />
           <span className="c-tab__title">{kindLabel(t, s.kind)}</span>
+          {s.worktree && (
+            <span className="c-tab__branch" title={s.worktree.path}>
+              {s.worktree.branch}
+            </span>
+          )}
           {s.account && <AccountBadge config={config} account={s.account} />}
           <button
             className="c-tab__close"
@@ -63,6 +81,10 @@ export default function SessionTabs({
         className="c-tabbar__add"
         title={`${t('action.openClaude')} (⌘T)`}
         onClick={() => onNew('claude')}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          void newMenu();
+        }}
       >
         +
       </Button>

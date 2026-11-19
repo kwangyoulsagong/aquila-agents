@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { APP_DIR, expand } from './config';
-import type { Config, SessionKind } from '../src/shared/api/types';
+import type { Config, SessionKind, Worktree } from '../src/shared/api/types';
 
 export const STATE_PATH = path.join(APP_DIR, 'state.json');
 
@@ -14,6 +14,8 @@ export interface SavedTab {
   kind: SessionKind;
   /** Account the Claude session was started with. */
   account?: string;
+  /** The git worktree the session ran in (T7). */
+  worktree?: Worktree;
   /** Current Claude session id (changes on /clear; tracked through the SessionStart hook). */
   claudeSessionId?: string;
 }
@@ -27,6 +29,11 @@ const KINDS: readonly SessionKind[] = ['claude', 'codex', 'shell'];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export const isSessionId = (id: unknown): id is string => typeof id === 'string' && UUID.test(id);
+
+const isWorktree = (w: unknown): w is Worktree =>
+  typeof (w as Worktree | null)?.path === 'string' &&
+  path.isAbsolute((w as Worktree).path) &&
+  typeof (w as Worktree).branch === 'string';
 
 /** Saved tabs; anything unreadable or malformed is dropped rather than failing the launch. */
 export function readState(file = STATE_PATH): SavedTab[] {
@@ -45,6 +52,7 @@ export function readState(file = STATE_PATH): SavedTab[] {
             projectId: t.projectId,
             kind: t.kind as SessionKind,
             ...(typeof t.account === 'string' ? { account: t.account } : {}),
+            ...(isWorktree(t.worktree) ? { worktree: { path: t.worktree.path, branch: t.worktree.branch } } : {}),
             ...(isSessionId(t.claudeSessionId) ? { claudeSessionId: t.claudeSessionId } : {}),
           },
         ]
@@ -87,26 +95,33 @@ export interface RestorePlan {
   projectId: string;
   kind: SessionKind;
   account?: string;
+  worktree?: Worktree;
   /** Claude: `--resume` this id. Absent = start a new Claude session. */
   resumeClaude?: string;
   /** Codex: `codex resume --last`. */
   resumeCodex?: boolean;
 }
 
-/** What to spawn for the saved tabs. Tabs of projects no longer in the config are dropped. */
+/**
+ * What to spawn for the saved tabs. Tabs of projects no longer in the config are dropped, and so are worktree tabs
+ * whose worktree folder is gone (removed with `git worktree remove`).
+ */
 export function planRestore(
   tabs: SavedTab[],
   config: Config,
   transcriptExists: (configDir: string, sessionId: string) => boolean = hasClaudeTranscript,
+  dirExists: (dir: string) => boolean = fs.existsSync,
 ): RestorePlan[] {
   return tabs.flatMap((t): RestorePlan[] => {
     const project = config.projects.find((p) => p.id === t.projectId);
     if (!project) return [];
-    if (t.kind === 'shell') return [{ projectId: t.projectId, kind: 'shell' }];
-    if (t.kind === 'codex') return [{ projectId: t.projectId, kind: 'codex', resumeCodex: true }];
+    if (t.worktree && !dirExists(t.worktree.path)) return [];
+    const where = { projectId: t.projectId, ...(t.worktree ? { worktree: t.worktree } : {}) };
+    if (t.kind === 'shell') return [{ ...where, kind: 'shell' }];
+    if (t.kind === 'codex') return [{ ...where, kind: 'codex', resumeCodex: true }];
     const account = t.account && config.accounts[t.account] ? t.account : project.account;
     const id = t.claudeSessionId;
     const resume = id && transcriptExists(claudeConfigDir(config, account), id) ? id : undefined;
-    return [{ projectId: t.projectId, kind: 'claude', account, ...(resume ? { resumeClaude: resume } : {}) }];
+    return [{ ...where, kind: 'claude', account, ...(resume ? { resumeClaude: resume } : {}) }];
   });
 }

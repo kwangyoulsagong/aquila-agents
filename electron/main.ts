@@ -6,6 +6,7 @@ import { accountsStatus, installShellFunction, prepareAccount, shellFunctionPrev
 import { CONFIG_PATH, editProjects, loadConfig, setLanguage, setProjectAccount } from './config';
 import { showContextMenu } from './menu';
 import { gitChanges } from './git';
+import { ensureWorktree, worktreeInfo } from './worktrees';
 import { startHookServer, writeClaudeHookSettings } from './hooks';
 import { SessionManager } from './sessions';
 import { planRestore, readState, writeState, type SavedTab } from './state';
@@ -76,7 +77,7 @@ app.whenReady().then(async () => {
       const config = loadConfig();
       restored = planRestore(savedTabs, config).flatMap((plan) => {
         try {
-          return [s.create(config, plan.projectId, plan.kind, plan.account, plan)];
+          return [s.create(config, plan.projectId, plan.kind, plan.account, plan, plan.worktree)];
         } catch (err) {
           console.error('[state] restore failed', plan, err);
           return [];
@@ -108,6 +109,15 @@ app.whenReady().then(async () => {
     (_e, { projectId, kind, account }: { projectId: string; kind: SessionKind; account?: string }) =>
       s.create(loadConfig(), projectId, kind, account),
   );
+  ipcMain.handle(
+    IPC.sessionCreateWorktree,
+    async (_e, { projectId, branch, kind }: { projectId: string; branch: string; kind: SessionKind }) => {
+      const config = loadConfig();
+      const worktree = await ensureWorktree(config, projectId, branch);
+      return s.create(config, projectId, kind, undefined, {}, worktree);
+    },
+  );
+  ipcMain.handle(IPC.worktreeInfo, (_e, projectId: string) => worktreeInfo(loadConfig(), projectId));
   ipcMain.handle(IPC.sessionRestore, () => restoreSessions());
   ipcMain.handle(IPC.accountsStatus, () => accountsStatus(loadConfig()));
   ipcMain.handle(IPC.accountsPrepare, (_e, account: string) => prepareAccount(loadConfig(), account));
@@ -117,7 +127,11 @@ app.whenReady().then(async () => {
   ipcMain.handle(IPC.accountsShellInstall, (_e, account: string) =>
     installShellFunction(loadConfig(), account),
   );
-  ipcMain.handle(IPC.gitChanges, (_e, projectId: string) => gitChanges(loadConfig(), projectId));
+  ipcMain.handle(
+    IPC.gitChanges,
+    (_e, { projectId, sessionId }: { projectId: string; sessionId?: string }) =>
+      gitChanges(loadConfig(), projectId, sessionId ? s.worktreeOf(sessionId, projectId) : undefined),
+  );
   ipcMain.on(IPC.sessionWrite, (_e, { id, data }: { id: string; data: string }) => s.write(id, data));
   ipcMain.on(IPC.sessionResize, (_e, { id, cols, rows }: { id: string; cols: number; rows: number }) =>
     s.resize(id, cols, rows),

@@ -81,12 +81,36 @@ export interface ContextMenuItem {
   submenu?: ContextMenuItem[];
 }
 
+/** A git worktree a session runs in instead of the project dir (T7). */
+export interface Worktree {
+  /** Absolute path of the worktree. */
+  path: string;
+  branch: string;
+}
+
+/** What `worktree:info` reports for a project, for the "New Claude in worktree" dialog. */
+export interface WorktreeInfo {
+  isRepo: boolean;
+  /** Main worktree of the repo. */
+  repoRoot: string;
+  /** Where new worktrees go: `<parent>/<repo>-wt` (a branch `a/b` lands in `<root>/a/b`). */
+  root: string;
+  /** Branch checked out in the project dir ('' when detached); new branches start from it. */
+  current: string;
+  /** Local branches. */
+  branches: string[];
+  /** Worktrees that have a branch checked out (incl. the main one); opening that branch reuses it. */
+  worktrees: Worktree[];
+}
+
 export interface SessionInfo {
   id: string;
   projectId: string;
   kind: SessionKind;
   /** Account the session was started with (claude sessions only). */
   account?: string;
+  /** Runs in this worktree instead of the project dir. */
+  worktree?: Worktree;
 }
 
 export interface Session extends SessionInfo {
@@ -134,6 +158,13 @@ export interface AquilaApi {
   showContextMenu(items: ContextMenuItem[]): Promise<string | null>;
   /** `account` overrides the project's account for this one session (setup opens a Claude login with it). */
   createSession(projectId: string, kind: SessionKind, account?: string): Promise<SessionInfo>;
+  /**
+   * Opens a session in the worktree of `branch`: reuses the one that has it checked out, else
+   * `git worktree add` at `../<repo>-wt/<branch>` (new branch from the project's current HEAD if needed).
+   */
+  createWorktreeSession(projectId: string, branch: string, kind: SessionKind): Promise<SessionInfo>;
+  /** Repo root, current branch, local branches and worktrees of the project (read-only). */
+  worktreeInfo(projectId: string): Promise<WorktreeInfo>;
   /** Reopens the tabs saved at the last quit (~/.aquila/state.json), once per launch; later calls return the live ones. */
   restoreSessions(): Promise<SessionInfo[]>;
   accountsStatus(): Promise<Record<string, AccountStatus>>;
@@ -142,8 +173,11 @@ export interface AquilaApi {
   shellFunctionPreview(account: string): Promise<ShellFunctionPreview>;
   /** Appends the previewed function to ~/.zshrc unless already defined. Explicit click only. */
   installShellFunction(account: string): Promise<ShellFunctionPreview>;
-  /** Branch, changed files and diff of the project's dir (read-only). */
-  gitChanges(projectId: string): Promise<GitChanges>;
+  /**
+   * Branch, changed files and diff of the project's dir (read-only). With `sessionId` of a worktree session in
+   * that project, of its worktree instead.
+   */
+  gitChanges(projectId: string, sessionId?: string): Promise<GitChanges>;
   write(id: string, data: string): void;
   resize(id: string, cols: number, rows: number): void;
   kill(id: string): void;
@@ -166,6 +200,8 @@ export const IPC = {
   uiContextMenu: 'ui:context-menu',
   sessionCreate: 'session:create',
   sessionRestore: 'session:restore',
+  sessionCreateWorktree: 'session:create-worktree',
+  worktreeInfo: 'worktree:info',
   accountsStatus: 'accounts:status',
   accountsPrepare: 'accounts:prepare',
   accountsShellPreview: 'accounts:shell-preview',

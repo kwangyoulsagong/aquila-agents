@@ -11,6 +11,7 @@ import {
   type SessionInfo,
   type SessionKind,
   type SessionStatus,
+  type Worktree,
 } from '../src/shared/api/types';
 
 const SHELL = process.env.SHELL || '/bin/zsh';
@@ -24,6 +25,8 @@ interface LiveSession {
   kind: SessionKind;
   /** Claude sessions only. */
   account?: string;
+  /** Runs in this git worktree instead of the project dir. */
+  worktree?: Worktree;
   /** Current Claude session id: ours from `--session-id`, then whatever SessionStart reports (/clear changes it). */
   claudeSessionId?: string;
   proc: pty.IPty;
@@ -62,6 +65,7 @@ export class SessionManager {
     kind: SessionKind,
     accountOverride?: string,
     restore: RestoreOptions = {},
+    worktree?: Worktree,
   ): SessionInfo {
     const project = config.projects.find((p) => p.id === projectId);
     if (!project) throw new Error(translator(config.language)('error.projectNotFound', { id: projectId }));
@@ -88,16 +92,17 @@ export class SessionManager {
       name: 'xterm-256color',
       cols: 120,
       rows: 32,
-      cwd: expand(project.path),
+      cwd: worktree?.path ?? expand(project.path),
       env,
     });
 
     const s: LiveSession = {
       id,
       projectId,
-      projectName: project.name,
+      projectName: worktree ? `${project.name} · ${worktree.branch}` : project.name,
       kind,
       account: kind === 'claude' ? accountId : undefined,
+      worktree,
       claudeSessionId,
       proc,
       status: 'idle',
@@ -123,7 +128,13 @@ export class SessionManager {
     });
     this.tabsChanged();
 
-    return { id, projectId, kind, account: kind === 'claude' ? accountId : undefined };
+    return {
+      id,
+      projectId,
+      kind,
+      ...(kind === 'claude' ? { account: accountId } : {}),
+      ...(worktree ? { worktree } : {}),
+    };
   }
 
   private commandFor(kind: SessionKind, claudeSessionId: string | undefined, restore: RestoreOptions): string | null {
@@ -155,6 +166,7 @@ export class SessionManager {
       projectId: s.projectId,
       kind: s.kind,
       ...(s.account ? { account: s.account } : {}),
+      ...(s.worktree ? { worktree: s.worktree } : {}),
       ...(s.claudeSessionId ? { claudeSessionId: s.claudeSessionId } : {}),
     }));
   }
@@ -206,6 +218,12 @@ export class SessionManager {
   markSeen(id: string): void {
     const s = this.sessions.get(id);
     if (s?.status === 'done') this.setStatus(s, 'idle');
+  }
+
+  /** Worktree path of a live session in that project; undefined for any other session (never a renderer path). */
+  worktreeOf(id: string, projectId: string): string | undefined {
+    const s = this.sessions.get(id);
+    return s?.projectId === projectId ? s.worktree?.path : undefined;
   }
 
   has(id: string): boolean {

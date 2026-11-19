@@ -83,10 +83,11 @@ export function capText(text: string, cap = DIFF_CAP): { text: string; truncated
   return { text: nl > 0 ? cut.slice(0, nl + 1) : cut, truncated: true };
 }
 
-export async function gitChanges(config: Config, projectId: string): Promise<GitChanges> {
+/** `worktree` = a worktree session's dir (T7), resolved by main from a live session; default is the project dir. */
+export async function gitChanges(config: Config, projectId: string, worktree?: string): Promise<GitChanges> {
   const project = config.projects.find((p) => p.id === projectId);
   if (!project) throw new Error(`Unknown project: ${projectId}`);
-  const cwd = expand(project.path);
+  const cwd = worktree ?? expand(project.path);
   const empty: GitChanges = {
     isRepo: false,
     branch: '',

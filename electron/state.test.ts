@@ -29,6 +29,7 @@ describe('readState / writeState', () => {
     const file = path.join(dir(), 'nested', 'state.json');
     const tabs: SavedTab[] = [
       { projectId: 'a', kind: 'claude', account: 'shared', claudeSessionId: ID },
+      { projectId: 'a', kind: 'claude', account: 'shared', worktree: { path: '/tmp/a-wt/feat/x', branch: 'feat/x' } },
       { projectId: 'b', kind: 'shell' },
     ];
     writeState(tabs, file);
@@ -50,7 +51,7 @@ describe('readState / writeState', () => {
         tabs: [
           { projectId: 'a', kind: 'vim' },
           { kind: 'shell' },
-          { projectId: 'a', kind: 'claude', claudeSessionId: 'x' },
+          { projectId: 'a', kind: 'claude', claudeSessionId: 'x', worktree: { path: 'rel/x', branch: 'x' } },
         ],
       }),
     );
@@ -106,6 +107,25 @@ describe('planRestore', () => {
       { projectId: 'b', kind: 'claude', account: 'personal' },
       { projectId: 'a', kind: 'codex', resumeCodex: true },
       { projectId: 'a', kind: 'shell' },
+    ]);
+  });
+
+  it('keeps a worktree tab in its worktree, drops it when the folder is gone', () => {
+    const wt = { path: '/tmp/a-wt/feat', branch: 'feat' };
+    const gone = { path: '/tmp/a-wt/old', branch: 'old' };
+    const plan = planRestore(
+      [
+        { projectId: 'a', kind: 'claude', worktree: wt, claudeSessionId: ID },
+        { projectId: 'a', kind: 'claude', worktree: gone },
+        { projectId: 'a', kind: 'codex', worktree: wt },
+      ],
+      config,
+      () => true,
+      (d) => d === wt.path,
+    );
+    expect(plan).toEqual([
+      { projectId: 'a', kind: 'claude', account: 'shared', worktree: wt, resumeClaude: ID },
+      { projectId: 'a', kind: 'codex', worktree: wt, resumeCodex: true },
     ]);
   });
 });

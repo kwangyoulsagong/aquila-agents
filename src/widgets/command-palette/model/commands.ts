@@ -6,6 +6,7 @@ export type ActionId =
   | 'openClaude'
   | 'openCodex'
   | 'openShell'
+  | 'openWorktree'
   | 'splitRight'
   | 'splitDown'
   | 'toggleChanges'
@@ -40,6 +41,7 @@ const ACTIONS: { action: ActionId; label: (t: Translate) => string; kbd?: string
   { action: 'openClaude', label: (t) => t('action.openClaude'), kbd: '⌘T' },
   { action: 'openCodex', label: (t) => t('action.openCodex'), kbd: '⌘⇧T' },
   { action: 'openShell', label: (t) => t('palette.openShell'), kbd: '⌘⌥T' },
+  { action: 'openWorktree', label: (t) => t('worktree.title') },
   { action: 'splitRight', label: (t) => t('palette.splitRight'), kbd: '⌘D' },
   { action: 'splitDown', label: (t) => t('palette.splitDown'), kbd: '⌘⇧D' },
   { action: 'toggleChanges', label: (t) => t('changes.toggle'), kbd: '⌘⇧G' },
@@ -97,7 +99,7 @@ export function buildCommands({
         type: 'session' as const,
         id: `session:${s.id}`,
         sessionId: s.id,
-        label: `${kind} · ${projectName.get(s.projectId)}`,
+        label: [kind, projectName.get(s.projectId), s.worktree?.branch].filter(Boolean).join(' · '),
         kind: s.kind,
         status: s.status,
         account: s.account,
