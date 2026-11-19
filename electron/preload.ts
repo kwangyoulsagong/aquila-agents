@@ -78,6 +78,9 @@ const api: AquilaApi = {
   onUsage: on(IPC.usageChanged),
   contextUsage: () => ipcRenderer.invoke(IPC.contextGet),
   onContext: on(IPC.contextChanged),
+  figmaProfiles: () => ipcRenderer.invoke(IPC.figmaProfiles),
+  figmaConnect: (account) => ipcRenderer.invoke(IPC.figmaConnect, account),
+  figmaOpenDocs: () => ipcRenderer.invoke(IPC.figmaOpenDocs),
 };
 
 contextBridge.exposeInMainWorld('aquila', api);

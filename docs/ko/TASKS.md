@@ -239,7 +239,8 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
 - **담당:** `electron/hooks.ts`(설정 파일), `src/entities/session` 게이지.
 
 ### T32 · Figma MCP (선택)
-- [ ] **목표:** 클릭 한 번으로 프로젝트의 Claude에 공식 Figma MCP 연결. (#35, #36)
+- [x] **목표:** 클릭 한 번으로 프로젝트의 Claude에 공식 Figma MCP 연결. (#35, #36)
+  _남은 것: Codex는 `-c mcp_servers.figma.url`로 동작(저장소 `.codex/config.toml` 불필요). 로컬 프로젝트만(원격은 호스트에서 따로 `/mcp` 로그인 필요). whoami 형식이 문서화돼 있지 않음: 실제 응답으로 파서 확인(플랜은 `whoami.plans` 안, seat ≠ role), 단 숨은 `claude -p` 확인은 Figma 로그인 없이만 실제 실행; 시트·플랜 힌트는 추정이고 Figma 문서로 연결. 인앱 가이드 항목 없음(캡처 미디어 필요)._
 - **명세:** 기본 꺼짐, 프로젝트별 토글, 꺼지면 Figma UI 숨김. `~/.aquila/mcp/figma.json`(`https://mcp.figma.com/mcp`)을
   `--mcp-config`로(`--strict-mcp-config` 없이), 인증은 CLI 안에서(`/mcp`). Codex: `-c mcp_servers.figma.*` 실측, 안 되면
   확인 후 repo `.codex/config.toml`에 쓰기. "연결"은 숨은 짧은 `claude -p`로 `whoami`를 불러 플랜·시트를

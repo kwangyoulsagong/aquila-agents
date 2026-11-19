@@ -218,6 +218,21 @@ describe('applyProjectEdit', () => {
   });
 });
 
+describe('figma setting', () => {
+  it('turns on for a local project, off removes the key, a remote project never gets it', () => {
+    let c = applyProjectEdit(base(), { op: 'updateProject', id: 'a', figma: true });
+    expect(c.projects.find((p) => p.id === 'a')?.figma).toBe(true);
+    c = applyProjectEdit(c, { op: 'updateProject', id: 'a', figma: false });
+    expect(c.projects.find((p) => p.id === 'a')).not.toHaveProperty('figma');
+    const remote = {
+      ...base(),
+      projects: base().projects.map((p) => (p.id === 'a' ? { ...p, remote: { alias: 'h' } } : p)),
+    };
+    c = applyProjectEdit(remote, { op: 'updateProject', id: 'a', figma: true });
+    expect(c.projects.find((p) => p.id === 'a')).not.toHaveProperty('figma');
+  });
+});
+
 describe('helpers', () => {
   it('tildify / slugify', () => {
     expect(tildify('/home/me', '/home/me')).toBe('~');

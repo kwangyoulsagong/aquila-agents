@@ -71,6 +71,8 @@ export interface Project {
   openIn?: string;
   /** Runs on an SSH host (T29): `path` is then the folder on that host (`~/…` = the remote home). */
   remote?: RemoteHost;
+  /** Sessions get the official Figma MCP (T32). Local projects only. */
+  figma?: boolean;
 }
 
 /** Where a remote project runs (T29). Uses the user's `~/.ssh/config` and ssh-agent; nothing secret is stored. */
@@ -126,6 +128,8 @@ export interface ProjectSettings {
   openIn?: string;
   /** Remote project only: host alias / remote Claude config dir ('' clears it). `path` is then sent as typed. */
   remote?: { alias: string; claudeConfigDir: string };
+  /** Figma MCP on/off (T32). */
+  figma?: boolean;
 }
 
 export interface Config {
@@ -487,7 +491,10 @@ export interface AquilaApi {
   historySearch(query: string): Promise<HistoryMatch[]>;
   historyTranscript(ref: HistoryRef): Promise<HistoryTranscript>;
   /** Name (empty = back to the CLI's name) or favorite, saved in ~/.aquila/history.json. */
-  historySetMeta(ref: HistoryRef, change: { name?: string | null; favorite?: boolean }): Promise<HistoryEntry | null>;
+  historySetMeta(
+    ref: HistoryRef,
+    change: { name?: string | null; favorite?: boolean },
+  ): Promise<HistoryEntry | null>;
   /** Save dialog → the whole conversation as Markdown. Resolves with the path, or null when cancelled. */
   historyExport(ref: HistoryRef): Promise<string | null>;
   /**
@@ -547,6 +554,30 @@ export interface AquilaApi {
   /** Context use per Claude tab (T31); tabs whose user has their own statusline report nothing. */
   contextUsage(): Promise<ContextUpdate[]>;
   onContext(cb: (u: ContextUpdate) => void): Unsubscribe;
+  /** Cached Figma profiles per account (T32). */
+  figmaProfiles(): Promise<Record<string, FigmaProfile>>;
+  /** Runs the hidden `whoami` check for this account and caches it (takes a few seconds). */
+  figmaConnect(account: string): Promise<FigmaProfile>;
+  /** Opens Figma's MCP docs in the browser. */
+  figmaOpenDocs(): Promise<void>;
+}
+
+/** One Figma team/org from `whoami` (T32). Fields the tool didn't give are 'unknown'. */
+export interface FigmaPlan {
+  name: string;
+  tier: string;
+  seat: string;
+}
+
+/** Cached result of "Connect" (T32), per local Claude account, in `~/.aquila/figma-profile.json`. */
+export interface FigmaProfile {
+  /** needsAuth: the Figma server isn't logged in for this account yet (`/mcp` in a Claude tab). */
+  state: 'connected' | 'needsAuth' | 'error';
+  checkedAt: number;
+  email?: string;
+  handle?: string;
+  plans: FigmaPlan[];
+  error?: string;
 }
 
 /** IPC channel names — single source for main, preload and renderer. */
@@ -611,4 +642,7 @@ export const IPC = {
   usageChanged: 'usage:changed',
   contextGet: 'context:get',
   contextChanged: 'context:changed',
+  figmaProfiles: 'figma:profiles',
+  figmaConnect: 'figma:connect',
+  figmaOpenDocs: 'figma:open-docs',
 } as const;

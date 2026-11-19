@@ -8,6 +8,7 @@ import * as pty from 'node-pty';
 import { expand, loadConfig } from './config';
 import { assignRollouts, findRollouts } from './codex';
 import { commandName } from './detect';
+import { ensureMcpConfig, figmaArgs } from './figma';
 import { headSha } from './git';
 import type { HookEvent } from './hooks';
 import { OutputBatcher } from './output';
@@ -249,7 +250,16 @@ export class SessionManager {
     const resuming = !!(restore.resumeClaude || restore.resumeCodexId);
     // Remote: ssh runs from home; the project folder is on the host (cd'd into by the remote script).
     const cwd = remote ? os.homedir() : (worktree?.path ?? expand(project.path));
-    let command = this.commandFor(kind, claudeSessionId, restore, { cwd, configDir: env.CLAUDE_CONFIG_DIR });
+    // Figma MCP (T32): local projects only (the server's login lives in this Mac's CLI config).
+    const figma = !!project.figma && !remote && kind !== 'shell';
+    if (figma) ensureMcpConfig();
+    let command = this.commandFor(
+      kind,
+      claudeSessionId,
+      restore,
+      { cwd, configDir: env.CLAUDE_CONFIG_DIR },
+      figma,
+    );
     // A failed resume prints our marker, then the tab drops to the shell as usual (cold restore).
     if (command && resuming) command = `${command} || printf '\\033]7501;${RESUME_FAILED}\\007'`;
     // The setup script runs in the same login shell (the user's PATH), visibly, once; the program starts either way.
@@ -413,18 +423,21 @@ export class SessionManager {
     claudeSessionId: string | undefined,
     restore: RestoreOptions,
     at: { cwd: string; configDir?: string },
+    figma = false,
   ): string | null {
     if (kind === 'claude') {
       // Only uuids reach here (ours or validated from state/hook), so no shell quoting is needed for the id.
       const session = restore.resumeClaude
         ? `--resume ${claudeSessionId}`
         : `--session-id ${claudeSessionId}`;
-      return `${commandName('claude')} --settings ${JSON.stringify(this.deps.hookSettingsPath(at))} ${session}`;
+      const mcp = figma ? ` ${figmaArgs('claude')}` : '';
+      return `${commandName('claude')} --settings ${JSON.stringify(this.deps.hookSettingsPath(at))}${mcp} ${session}`;
     }
     if (kind === 'codex') {
+      const codex = figma ? `${commandName('codex')} ${figmaArgs('codex')}` : commandName('codex');
       // Codex ids are validated uuids (state.ts), safe unquoted.
-      if (restore.resumeCodexId) return `${commandName('codex')} resume ${restore.resumeCodexId}`;
-      return restore.resumeCodex ? `${commandName('codex')} resume --last` : commandName('codex');
+      if (restore.resumeCodexId) return `${codex} resume ${restore.resumeCodexId}`;
+      return restore.resumeCodex ? `${codex} resume --last` : codex;
     }
     return null;
   }
@@ -651,7 +664,10 @@ export class SessionManager {
   /** Which transcript holds a live agent tab's replies (T28 "copy last response"); undefined for shells. */
   replySource(
     id: string,
-  ): { agent: 'claude'; account?: string; sessionId: string } | { agent: 'codex'; sessionId: string } | undefined {
+  ):
+    | { agent: 'claude'; account?: string; sessionId: string }
+    | { agent: 'codex'; sessionId: string }
+    | undefined {
     const s = this.sessions.get(id);
     // Remote transcripts live on the host.
     if (s?.remote) return undefined;

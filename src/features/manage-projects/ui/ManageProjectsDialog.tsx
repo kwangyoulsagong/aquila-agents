@@ -4,7 +4,7 @@ import type { Config, ProjectSettings, RemoteHost } from '@/shared/api';
 import { accountLabel, groupLabel, useT } from '@/shared/i18n';
 import type { ManageDialog } from '../model/useManageProjects';
 import { useDuplicateFolder } from '../model/useDuplicateFolder';
-import ProjectSettingsDialog from './ProjectSettingsDialog';
+import ProjectSettingsDialog, { type RenderFigma } from './ProjectSettingsDialog';
 import RemoteProjectDialog from './RemoteProjectDialog';
 
 interface Props {
@@ -13,6 +13,8 @@ interface Props {
   /** Preselected in the add dialog (the current project's group and account). */
   defaults: { group?: string; account?: string };
   onClose: () => void;
+  /** Figma MCP block in project settings (T32). */
+  renderFigma?: RenderFigma;
   onAdd: (values: {
     name: string;
     group: string;
@@ -37,6 +39,7 @@ export default function ManageProjectsDialog(props: Props) {
         config={props.config}
         onClose={props.onClose}
         onSave={props.onSettings}
+        renderFigma={props.renderFigma}
       />
     );
   if (dialog.kind === 'addRemote')

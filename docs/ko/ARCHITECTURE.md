@@ -24,6 +24,7 @@
 │                                           │        │ power.ts      절전 프로필: 배터리·발열 (T9)      │
 │           usage-gauge                     │        │ usage.ts      계정별 5시간·주간 사용량 (T30)     │
 │                                           │        │ context.ts    탭별 컨텍스트 사용량 (T31)         │
+│                                           │        │ figma.ts      Figma MCP 인자 + whoami (T32)      │
 │                                           │        │ detect.ts     CLI 점검, 첫 실행 상태 (T17)       │
 │                                           │        │ guide.ts      둘러보기 제안 한 번만 (T23)        │
 │                                           │        │ history.ts    지난 세션, 읽기 전용 (T11)         │
@@ -282,6 +283,25 @@ xterm 인스턴스는 `useTerminal(id)`(`entities/session`, `TerminalView`가 �
   `usage: null`. `/clear`는 새로 보고될 뿐.
 - **UI:** 회색 링, 60%부터 숫자가 보이고 주황, 85%부터 빨강. 툴팁: 비율, `사용 / 전체` 토큰, 60%부터 /compact 안내.
   원격 탭(훅 없음)과 smoke에선 안 보임.
+
+## Figma MCP (T32)
+
+`electron/figma.ts` + `features/figma`(`FigmaSettings`, 워크스페이스 페이지가 프로젝트 설정에 끼워 넣음 — feature끼리는
+import하지 않음).
+
+- **프로젝트별 선택:** `Project.figma`(로컬 프로젝트만, 끄면 키 삭제). 프로젝트 설정의 블록은 켜기 전엔 켜기/끄기만 보임.
+- **세션:** 새 Claude 탭은 `--mcp-config ~/.aquila/mcp/figma.json`(`{ type: "http", url:
+  "https://mcp.figma.com/mcp" }`, 없으면 작성) — `--strict-mcp-config` 없이, 사용자 서버는 그대로. Codex 탭은
+  `codex -c 'mcp_servers.figma.url="https://mcp.figma.com/mcp"'`(codex-cli 0.170에서 `codex -c … mcp list`로 확인) —
+  저장소나 `~/.codex`에 아무것도 안 씀. 이미 열린 탭은 시작할 때 설정 그대로.
+- **인증은 CLI 안에서:** Claude `/mcp` → figma → Authenticate(계정 config dir별), Codex `codex mcp login figma`.
+- **연결 확인:** `figma:connect(account)`가 그 계정의 `CLAUDE_CONFIG_DIR`로 숨은 `claude -p`(haiku,
+  `--strict-mcp-config`, `--allowedTools mcp__figma__whoami`, `--no-session-persistence`, 90초 제한)를 실행해
+  `whoami` 원본 결과를 받고 방어적으로 파싱: 응답의 첫 JSON, 이메일·핸들, 여러 키 이름의 tier·seat 플랜, 없으면
+  `unknown`. `NO_FIGMA_TOOL` → `needsAuth`. 계정별로 `~/.aquila/figma-profile.json`에 캐시(`figma:profiles`).
+- **제한이 아니라 힌트:** "디자인 → 코드"는 Dev·Full 시트 필요, "Code Connect"는 Organization이 필요할 수 있음 —
+  캐시된 플랜으로 툴팁 표시, 모르면 "Figma 문서 확인"(`figma:open-docs`가 Figma MCP 문서 열기). 사용량 제한은
+  하드코딩하지 않음.
 
 ## 단축키
 
