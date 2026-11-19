@@ -125,7 +125,7 @@ export default function SplitView({
               <div className="c-pane__head">
                 {s ? (
                   <>
-                    <StatusDot status={s.status} />
+                    <StatusDot status={s.status} estimated={s.estimated} reason={s.reason} />
                     <span className="c-pane__title">
                       {kindLabel(t, s.kind)} · {p?.name ?? s.projectId}
                       {s.worktree && ` · ${s.worktree.branch}`}

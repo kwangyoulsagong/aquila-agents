@@ -46,13 +46,15 @@
 
 | 상태 | 토큰 | 의미 | 출처 |
 |---|---|---|---|
-| working | `--color-status-working` (깜빡임) | 에이전트 작업 중 | Claude hook `UserPromptSubmit`/`PostToolUse`, Codex/셸은 출력 활동 |
-| waiting | `--color-status-waiting` (후광) | 나를 기다림: 권한 승인이나 질문 | Claude hook `Notification` |
-| done | `--color-status-done` | 끝났고 아직 안 봄 | Claude hook `Stop`, 3초 이상 활동 후 조용해짐 |
-| error | `--color-status-error` | 0이 아닌 코드로 종료 | pty 종료 코드 |
+| working | `--color-status-working` (깜빡임) | 에이전트 작업 중 | OSC 7501 `working`, Claude hooks, 보고하지 않는 프로그램은 출력 활동 |
+| waiting | `--color-status-waiting` (후광) | 나를 기다림: 권한 승인이나 질문 | OSC 7501 `blocked`, Claude hook `PermissionRequest` / `Notification` |
+| done | `--color-status-done` | 끝났고 아직 안 봄 | OSC 7501 `done`, Claude hook `Stop` |
+| done (추정) | `--color-status-done-estimated` (`data-estimated`, 흐리게) | 아마 끝남: 출력이 조용해져서 추측 | 출력 활동 (보고하지 않는 codex/셸) |
+| error | `--color-status-error` | 실패: API 오류(사용량 제한·로그인·결제·서버)나 0이 아닌 종료. 이유는 점의 라벨 | OSC 7501 `error`, Claude hook `StopFailure`, pty 종료 코드 |
+| stopped | `--color-status-stopped` (고리) | 내가 멈춤(Esc / Ctrl+C) 또는 정상 종료 | 입력한 키, `SessionEnd`, 종료 코드 0 / 130 |
 | idle | `--color-status-idle` | 아무 일 없음 / 이미 봄 | 기본값 |
 
-프로젝트 행은 세션 중 가장 급한 상태를 보여줍니다: `waiting > error > working > done > idle`.
+프로젝트 행은 세션 중 가장 급한 상태를 보여줍니다: `waiting > error > working > done > stopped > idle`.
 
 ## 글자
 
@@ -127,7 +129,7 @@
 | 컴포넌트 | 그리는 것 |
 |---|---|
 | `Button` `variant="primary\|ghost"` `icon` | `.c-btn` |
-| `Dot` `status` | `.c-dot` |
+| `Dot` `status` `estimated?` `label?` | `.c-dot` |
 | `Badge` `tone` | `.c-badge--<tone>` |
 | `Kbd`, `Label` | `.c-kbd`, `.c-label` |
 | `Segment` `options` `value` `onChange` | `.c-segment` |

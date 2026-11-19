@@ -89,7 +89,8 @@ Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-1
 - **Owns:** `src/shared/lib/shortcuts.ts` (+ tests), `useShortcuts.ts`.
 
 ### T14 · Status engine: OSC 7501 first, http hooks
-- [ ] **Goal:** "who is waiting for me" is right and immediate; no false "done". (#25, #2, #3, #24)
+- [x] **Goal:** "who is waiting for me" is right and immediate; no false "done". (#25, #2, #3, #24)
+  _Left over: Codex 0.170 emits 7501 in our pty (idle seen; working/blocked not yet observed live), so the OSC 9 `-c` fallback wasn't added — old Codex falls back to output activity. http-hook events other than SessionStart weren't exercised live (needs a prompt). Hook payloads (tool summary, `last_assistant_message`) are parsed but not used yet — T15._
 - **Spec:**
   - Main answers the OSC 7501 query in the pty stream (`OSC 7501 ; ?` → `states=idle,working,done,blocked,error :
     kinds=permission,question,auth`), parses reports (sequences split across chunks are buffered), and uses them as the

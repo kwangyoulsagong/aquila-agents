@@ -1,78 +1,157 @@
-// Claude Code reports status through hooks. We pass `--settings ~/.aquila/claude-hooks.json`
-// only to sessions we spawn, so normal terminal Claude is untouched. Hooks are local shell commands: no tokens.
+// Claude Code hooks: notification context and the status fallback for Claude versions without OSC 7501.
+// We pass `--settings ~/.aquila/claude-hooks*.json` only to sessions we spawn, so normal terminal Claude is untouched.
+// Claude posts each event's JSON to our local receiver (`type: "http"`, no shell, no curl per event);
+// Claude older than HTTP_HOOKS_SINCE (and SessionStart, which can't be http) gets the same POST through a
+// command + curl. No tokens either way.
+import { execFile } from 'node:child_process';
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
 import type { AddressInfo } from 'node:net';
 import { APP_DIR } from './config';
 import { isSessionId } from './state';
-import type { HookStatus } from '../src/shared/api/types';
+import { WAITING_NOTIFICATIONS, type HookSignal } from './status/tracker';
 
-const HOOK_SETTINGS_PATH = path.join(APP_DIR, 'claude-hooks.json');
+export const HOOK_SETTINGS_PATH = path.join(APP_DIR, 'claude-hooks.json');
+export const LEGACY_HOOK_SETTINGS_PATH = path.join(APP_DIR, 'claude-hooks-legacy.json');
 
-const EVENTS: Record<string, HookStatus> = {
-  UserPromptSubmit: 'working',
-  PostToolUse: 'working',
-  Notification: 'waiting',
-  Stop: 'done',
+/** `onFailure` and the hook fields we rely on: Claude Code 2.1.295 (the same release as OSC 7501). */
+export const HTTP_HOOKS_SINCE: [number, number, number] = [2, 1, 295];
+
+export const SESSION_HEADER = 'X-Aquila-Session';
+
+/** Events we listen to, with their matcher. */
+const EVENTS: Record<string, string | undefined> = {
+  SessionStart: undefined,
+  SessionEnd: undefined,
+  UserPromptSubmit: undefined,
+  PostToolUse: '*',
+  PermissionRequest: '*',
+  PermissionDenied: '*',
+  Notification: WAITING_NOTIFICATIONS.join('|'),
+  Stop: undefined,
+  StopFailure: undefined,
+  SubagentStart: '*',
+  SubagentStop: '*',
 };
 
-const hookCommand = (status: HookStatus) =>
-  `[ -n "$AQUILA_PORT" ] && curl -s -m 1 -X POST "http://127.0.0.1:$AQUILA_PORT/hook/$AQUILA_TAB_ID/${status}" -o /dev/null; true`;
+const MAX_BODY = 1024 * 1024;
 
-/** SessionStart gets `{ session_id, ... }` on stdin; forward it so restore resumes the right session after /clear. */
-const SESSION_START_COMMAND =
-  '[ -n "$AQUILA_PORT" ] && curl -s -m 1 -X POST -H "Content-Type: application/json" --data-binary @- ' +
-  '"http://127.0.0.1:$AQUILA_PORT/session/$AQUILA_TAB_ID" -o /dev/null; true';
+type HookHandler = Record<string, unknown>;
 
-const MAX_BODY = 64 * 1024;
-
-export function writeClaudeHookSettings(): string {
-  const hooks: Record<string, unknown[]> = {};
-  for (const [event, status] of Object.entries(EVENTS)) {
-    hooks[event] = [
-      {
-        ...(event === 'PostToolUse' ? { matcher: '*' } : {}),
-        hooks: [{ type: 'command', command: hookCommand(status) }],
-      },
-    ];
-  }
-  hooks.SessionStart = [{ hooks: [{ type: 'command', command: SESSION_START_COMMAND }] }];
-  fs.mkdirSync(APP_DIR, { recursive: true });
-  fs.writeFileSync(HOOK_SETTINGS_PATH, JSON.stringify({ hooks }, null, 2));
-  return HOOK_SETTINGS_PATH;
+function httpHook(port: number): HookHandler {
+  return {
+    type: 'http',
+    url: `http://127.0.0.1:${port}/hook`,
+    headers: { [SESSION_HEADER]: '$AQUILA_TAB_ID' },
+    allowedEnvVars: ['AQUILA_TAB_ID'],
+    timeout: 5,
+    onFailure: 'continue',
+  };
 }
 
-export function startHookServer(
-  onHook: (tabId: string, status: HookStatus) => void,
-  onClaudeSession: (tabId: string, claudeSessionId: string) => void = () => {},
-): Promise<number> {
+/** Old Claude: the event JSON arrives on stdin; forward it as-is. */
+const LEGACY_COMMAND =
+  `[ -n "$AQUILA_PORT" ] && curl -s -m 1 -X POST -H "${SESSION_HEADER}: $AQUILA_TAB_ID" ` +
+  '-H "Content-Type: application/json" --data-binary @- "http://127.0.0.1:$AQUILA_PORT/hook" -o /dev/null; true';
+
+/** Claude skips http hooks for these ("HTTP hooks are not supported for SessionStart"): command + curl there. */
+const COMMAND_ONLY = new Set(['SessionStart', 'Setup']);
+const COMMAND_HOOK: HookHandler = { type: 'command', command: LEGACY_COMMAND };
+
+export function hookSettings(handler: HookHandler): { hooks: Record<string, unknown[]> } {
+  const hooks: Record<string, unknown[]> = {};
+  for (const [event, matcher] of Object.entries(EVENTS)) {
+    const h = COMMAND_ONLY.has(event) ? COMMAND_HOOK : handler;
+    hooks[event] = [{ ...(matcher ? { matcher } : {}), hooks: [h] }];
+  }
+  return { hooks };
+}
+
+/** Writes both settings files (the port is baked into the http one); returns their paths. */
+export function writeClaudeHookSettings(port: number): { http: string; legacy: string } {
+  fs.mkdirSync(APP_DIR, { recursive: true });
+  fs.writeFileSync(HOOK_SETTINGS_PATH, JSON.stringify(hookSettings(httpHook(port)), null, 2));
+  fs.writeFileSync(
+    LEGACY_HOOK_SETTINGS_PATH,
+    JSON.stringify(hookSettings(COMMAND_HOOK), null, 2),
+  );
+  return { http: HOOK_SETTINGS_PATH, legacy: LEGACY_HOOK_SETTINGS_PATH };
+}
+
+/** `2.1.328 (Claude Code)` → [2, 1, 328]; null when it doesn't look like a version. */
+export function parseClaudeVersion(out: string): [number, number, number] | null {
+  const m = /(\d+)\.(\d+)\.(\d+)/.exec(out);
+  return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : null;
+}
+
+export function supportsHttpHooks(version: [number, number, number] | null): boolean {
+  if (!version) return true; // unknown: assume a current Claude
+  for (let i = 0; i < 3; i++) {
+    if (version[i] !== HTTP_HOOKS_SINCE[i]) return version[i] > HTTP_HOOKS_SINCE[i];
+  }
+  return true;
+}
+
+/** `claude --version` with the session environment (PATH restored); null if it can't be run. */
+export function detectClaudeVersion(env: NodeJS.ProcessEnv): Promise<[number, number, number] | null> {
+  return new Promise((resolve) => {
+    execFile('claude', ['--version'], { env, timeout: 10_000 }, (err, stdout) =>
+      resolve(err ? null : parseClaudeVersion(stdout)),
+    );
+  });
+}
+
+/** Pulls what we use out of a hook's JSON. Large bodies past the cap still give us the event name. */
+export function readHookBody(body: string): (HookSignal & { sessionId?: string }) | null {
+  let json: Record<string, unknown> | null = null;
+  try {
+    const parsed: unknown = JSON.parse(body);
+    if (parsed && typeof parsed === 'object') json = parsed as Record<string, unknown>;
+  } catch {
+    const m = /"hook_event_name"\s*:\s*"(\w+)"/.exec(body);
+    return m ? { event: m[1] } : null;
+  }
+  const str = (k: string) => (typeof json?.[k] === 'string' ? (json[k] as string) : undefined);
+  const event = str('hook_event_name');
+  if (!event) return null;
+  const sessionId = str('session_id');
+  return {
+    event,
+    notificationType: str('notification_type'),
+    reason: str('reason'),
+    error: str('error'),
+    ...(isSessionId(sessionId) ? { sessionId } : {}),
+  };
+}
+
+export interface HookEventHandler {
+  (tabId: string, hook: HookSignal & { sessionId?: string }): void;
+}
+
+/** Local receiver for `POST /hook` with the tab id in `X-Aquila-Session`. Always answers at once with no body. */
+export function startHookServer(onHook: HookEventHandler): Promise<number> {
   return new Promise((resolve) => {
     const server = http.createServer((req, res) => {
-      const start = req.method === 'POST' ? /^\/session\/([\w-]+)$/.exec(req.url ?? '') : null;
-      if (start) {
-        let body = '';
-        req.setEncoding('utf8');
-        req.on('data', (chunk: string) => {
-          body += chunk;
-          if (body.length > MAX_BODY) req.destroy();
-        });
-        req.on('end', () => {
-          try {
-            const id = (JSON.parse(body) as { session_id?: unknown }).session_id;
-            if (isSessionId(id)) onClaudeSession(start[1], id);
-          } catch {
-            // not JSON: ignore
-          }
-          res.writeHead(204).end();
-        });
+      const tab = req.headers[SESSION_HEADER.toLowerCase()];
+      const ok =
+        req.method === 'POST' && req.url === '/hook' && typeof tab === 'string' && /^[\w-]+$/.test(tab);
+      if (!ok) {
+        req.resume();
+        res.writeHead(404).end();
         return;
       }
-      const m =
-        req.method === 'POST' ? /^\/hook\/([\w-]+)\/(working|waiting|done)$/.exec(req.url ?? '') : null;
-      req.resume();
-      if (m) onHook(m[1], m[2] as HookStatus);
-      res.writeHead(m ? 204 : 404).end();
+      let body = '';
+      req.setEncoding('utf8');
+      req.on('data', (chunk: string) => {
+        if (body.length < MAX_BODY) body += chunk;
+      });
+      req.on('end', () => {
+        // Empty 2xx = no decision: we never approve or deny anything (PermissionRequest included).
+        res.writeHead(204).end();
+        const hook = readHookBody(body);
+        if (hook) onHook(tab, hook);
+      });
     });
     server.listen(0, '127.0.0.1', () => resolve((server.address() as AddressInfo).port));
   });

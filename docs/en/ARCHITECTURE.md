@@ -15,6 +15,7 @@
 │ entities/ session (xterm, status), project│        │ state.ts      ~/.aquila/state.json (open tabs)   │
 │           diff                            │        │ worktrees.ts  git worktree add / reuse (T7)      │
 │           open-in-worktree                │        │ menu.ts       native context menus               │
+│                                           │        │ status/       OSC 7501 parser + status tracker   │
 │                                           │        │ smoke.ts      npm run smoke self-check           │
 │ shared/   api (types · IPC · bridge), i18n│        │                                                 │
 └───────────────────────────────────────────┘        └─────────────────────────────────────────────────┘
@@ -94,8 +95,8 @@
 - Main keeps `~/.aquila/state.json` = the open tabs in tab order (`{ projectId, kind, account?, worktree?, claudeSessionId? }`),
   rewritten on every create / exit / Claude session change (temp file + rename), so a crash keeps them too. It's read
   once at startup, before any session exists; quitting kills the ptys without overwriting it. Smoke never reads or writes it.
-- Claude tabs start with `--session-id <uuid>` we generate. A `SessionStart` hook posts Claude's stdin JSON to
-  `/session/<tab>` on the hook receiver, so the saved id follows `/clear` and resumes.
+- Claude tabs start with `--session-id <uuid>` we generate. The `SessionStart` hook posts Claude's stdin JSON to
+  the hook receiver (`POST /hook`), so the saved id follows `/clear` and resumes.
 - After the config loads, the renderer calls `restoreSessions()` (once per launch): Claude → `claude --resume <id>`
   if `<configDir>/projects/*/<id>.jsonl` exists (Claude writes it only after the first message), otherwise a new
   session; codex → `codex resume --last` (codex filters by cwd); shell → fresh shell. Tabs of removed projects are
@@ -112,15 +113,27 @@
 
 ## Status
 
+Main decides every session's status (`electron/status/`: `osc.ts` parser, `tracker.ts` per-session state machine)
+and sends `session:status` `{ id, status, estimated?, reason? }`. Sources, most trusted first:
+
 | Source | Sessions | How |
 |---|---|---|
-| Claude hooks | local `claude` | `UserPromptSubmit`/`PostToolUse` → working, `Notification` → waiting, `Stop` → done. Hook = `curl` to the local receiver. |
-| Output activity | codex, shell | output for >3s → working; then 3s quiet → done |
-| Exit code | all | non-zero → error |
+| OSC 7501 (Program Status Protocol) | Claude Code 2.1.295+, Codex 0.170+, anything run in a shell tab | Main scans pty output (sequences split across chunks are buffered, ≤4096 bytes). It answers `OSC 7501 ; ?` with `OSC 7501 ; ?:states=idle,working,done,blocked,error:kinds=permission,question,auth ST` **before** forwarding the chunk, so the reply beats xterm's DA1 answer (Claude only reports if it does). Reports: working → working, blocked → waiting, done → done, error → error, idle → idle; records by `id` (background tasks), the most urgent wins; `clear` of everything = the program exited → stopped, back to the fallbacks. Unknown keys/states are ignored. Once a session reports, hooks and output activity no longer set its status. |
+| Claude hooks | local `claude` (fallback without 7501) | `UserPromptSubmit`/`PostToolUse`/`PermissionDenied` → working, `PermissionRequest` and `Notification` (`permission_prompt`, `elicitation_dialog` only — never `idle_prompt`) → waiting, `Stop` → done (stays working while `SubagentStart/Stop` count > 0). Always, even with 7501: `StopFailure` → error with reason (rate limit, auth, billing, server; a later done/idle report doesn't hide it until a new turn), `SessionEnd` (not `/clear`) → stopped. |
+| Keys typed | all | Through `session:write` (focus/mouse/DA/CPR/OSC replies are filtered out). Without 7501: a key while waiting → working; Esc / Ctrl+C while busy → stopped. With 7501: an Esc / Ctrl+C turns the next `idle` report (within 5 s) into stopped. |
+| Output activity | codex / shell that don't report | output for >3s → working; then 3s quiet → done, marked `estimated` (dimmed dot) |
+| Exit code | all | 0, 130 or a signal → stopped; anything else → error (`reason: exit`) |
 
-`done` turns `idle` once the session is on screen. Notifications fire for done/waiting when the window
-isn't focused or the session isn't the active one. Project row = most urgent of its sessions
-(`waiting > error > working > done > idle`).
+Hooks are `type: "http"` (`url` = the local receiver, `X-Aquila-Session: $AQUILA_TAB_ID` via `allowedEnvVars`,
+`timeout: 5`, `onFailure: "continue"`) in `~/.aquila/claude-hooks.json`; the receiver answers 204 with no body, so
+`PermissionRequest` never gets a decision. Claude skips http hooks for `SessionStart`, so that one stays a
+command + `curl`; Claude older than 2.1.295 (`claude --version` at startup) gets `claude-hooks-legacy.json`, all
+command + `curl` posting the same JSON. Raw 7501 reports and hook event names go to `~/.aquila/status.log`
+(rotated at 512 KB).
+
+`done` turns `idle` once the session is on screen. Notifications fire for done / waiting / error (not exit errors)
+when the window isn't focused or the session isn't the active one. Project row = most urgent of its sessions
+(`waiting > error > working > done > stopped > idle`).
 
 ## Config (`~/.aquila/config.json`)
 

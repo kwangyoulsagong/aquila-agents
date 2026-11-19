@@ -56,7 +56,7 @@ export default function SessionTabs({
           onClick={() => onSelect(s.id)}
           onAuxClick={(e) => e.button === 1 && onClose(s.id)}
         >
-          <StatusDot status={s.status} />
+          <StatusDot status={s.status} estimated={s.estimated} reason={s.reason} />
           <span className="c-tab__title">{kindLabel(t, s.kind)}</span>
           {s.worktree && (
             <span className="c-tab__branch" title={s.worktree.path}>

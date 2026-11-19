@@ -10,6 +10,10 @@ describe('mostUrgent', () => {
     expect(mostUrgent(['done', 'working'])).toBe('working');
     expect(mostUrgent(['idle', 'done'])).toBe('done');
   });
+  it('puts stopped between done and idle', () => {
+    expect(mostUrgent(['idle', 'stopped'])).toBe('stopped');
+    expect(mostUrgent(['stopped', 'done'])).toBe('done');
+  });
   it('is idle with no sessions', () => {
     expect(mostUrgent([])).toBe('idle');
   });

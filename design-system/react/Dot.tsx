@@ -1,6 +1,15 @@
-export type DotStatus = 'working' | 'waiting' | 'done' | 'error' | 'idle';
+export type DotStatus = 'working' | 'waiting' | 'done' | 'error' | 'stopped' | 'idle';
 
-/** `.c-dot` — status dot. Waiting gets a halo, working pulses. */
-export function Dot({ status, label }: { status: DotStatus; label?: string }) {
-  return <i className="c-dot" data-status={status} aria-label={label} role={label ? 'img' : undefined} />;
+/** `.c-dot` — status dot. Waiting gets a halo, working pulses, stopped is a ring, `estimated` dims it. */
+export function Dot({ status, label, estimated }: { status: DotStatus; label?: string; estimated?: boolean }) {
+  return (
+    <i
+      className="c-dot"
+      data-status={status}
+      data-estimated={estimated || undefined}
+      aria-label={label}
+      title={label}
+      role={label ? 'img' : undefined}
+    />
+  );
 }

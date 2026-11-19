@@ -7,7 +7,7 @@ import { CONFIG_PATH, editProjects, loadConfig, setLanguage, setProjectAccount }
 import { showContextMenu } from './menu';
 import { gitChanges } from './git';
 import { ensureWorktree, worktreeInfo } from './worktrees';
-import { startHookServer, writeClaudeHookSettings } from './hooks';
+import { detectClaudeVersion, startHookServer, supportsHttpHooks, writeClaudeHookSettings } from './hooks';
 import { SessionManager } from './sessions';
 import { planRestore, readState, writeState, type SavedTab } from './state';
 import { isSmoke, runSmoke, watchOutput } from './smoke';
@@ -56,17 +56,24 @@ app.whenReady().then(async () => {
       console.error('[state] save failed', err);
     }
   };
-  const hookPort = await startHookServer(
-    (tabId, status) => sessions?.onHook(tabId, status),
-    (tabId, claudeSessionId) => sessions?.onClaudeSession(tabId, claudeSessionId),
-  );
-  const smokeOutput = { buffer: '' };
+  const hookPort = await startHookServer((tabId, hook) => sessions?.onHook(tabId, hook));
+  const hookFiles = writeClaudeHookSettings(hookPort);
+  // http hooks unless `claude --version` says it's older than they need (then command + curl).
+  let httpHooks = true;
+  void detectClaudeVersion(process.env).then((v) => (httpHooks = supportsHttpHooks(v)));
+  const smokeOutput = { buffer: '', statuses: [] as string[] };
   const send = (channel: string, payload: unknown) => win?.webContents.send(channel, payload);
   sessions = new SessionManager({
-    send: isSmoke ? watchOutput(send, (d) => (smokeOutput.buffer += d)) : send,
+    send: isSmoke
+      ? watchOutput(
+          send,
+          (d) => (smokeOutput.buffer += d),
+          (st) => smokeOutput.statuses.push(st),
+        )
+      : send,
     getWindow: () => win,
     hookPort,
-    hookSettingsPath: writeClaudeHookSettings(),
+    hookSettingsPath: () => (httpHooks ? hookFiles.http : hookFiles.legacy),
     onTabsChanged: isSmoke ? undefined : saveTabs,
   });
   const s = sessions;
