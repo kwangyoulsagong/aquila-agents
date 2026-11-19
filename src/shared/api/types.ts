@@ -133,7 +133,8 @@ export interface SessionInfo {
 /** A split layout as saved across launches: the pane tree with session ids, and the focused pane's index. */
 export type SavedPane =
   | { kind: 'leaf'; sessionId: string | null }
-  | { kind: 'split'; dir: 'row' | 'column'; a: SavedPane; b: SavedPane };
+  /** `ratio` = share of the split that `a` takes (missing = half). */
+  | { kind: 'split'; dir: 'row' | 'column'; a: SavedPane; b: SavedPane; ratio?: number };
 
 export interface SavedLayout {
   root: SavedPane;

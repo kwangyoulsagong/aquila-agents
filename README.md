@@ -42,6 +42,8 @@ Projects live in `~/.aquila/config.json` (created on first run; "Open settings f
 | ⌘W | Close session (empty pane: close the pane) |
 | ⌘D / ⇧⌘D | Split right / down (up to 4 panes) |
 | ⌥⌘←→↑↓ | Move focus between panes |
+| ⇧⌘↩ | Zoom the focused pane / restore (or double-click its head) |
+| ⌥⇧⌘←→↑↓ | Resize panes (or drag the divider; double-click evens it out) |
 | ⇧⌘G | Show / hide the changes panel (git diff) |
 | ⌘K | Command palette: jump to a session or project, or run an action |
 | ⌘J | Next session that needs you (waiting > error > done, any project) |

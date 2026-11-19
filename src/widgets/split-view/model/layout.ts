@@ -3,6 +3,10 @@
 import type { SavedLayout, SavedPane } from '@/shared/api';
 
 export const MAX_PANES = 4;
+/** A pane never gets less than this share of its split (drag and keyboard resize clamp to it). */
+export const MIN_RATIO = 0.15;
+/** One keyboard resize step. */
+export const RESIZE_STEP = 0.05;
 
 /** `row` = side by side (split right), `column` = stacked (split down). */
 export type SplitDir = 'row' | 'column';
@@ -20,12 +24,16 @@ export interface Branch {
   dir: SplitDir;
   a: PaneNode;
   b: PaneNode;
+  /** Share of the split that `a` takes (0–1); missing = half. */
+  ratio?: number;
 }
 export type PaneNode = Leaf | Branch;
 
 export interface Layout {
   root: PaneNode;
   focusedId: string;
+  /** A pane filling the whole stage (the others stay in the tree, hidden); null = not zoomed. */
+  zoomedId?: string | null;
 }
 
 /** Fractions (0–1) of the stage. */
@@ -37,7 +45,22 @@ export interface PaneRect {
   h: number;
 }
 
+/** A draggable divider between the two halves of a split. `path` = a/b steps from the root to that split. */
+export interface Divider {
+  path: string;
+  dir: SplitDir;
+  ratio: number;
+  /** The split's own box (fractions of the stage); the line sits at `ratio` across it. */
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
 const EPS = 1e-6;
+
+const clampRatio = (r: number) => Math.min(1 - MIN_RATIO, Math.max(MIN_RATIO, r));
+const ratioOf = (b: Branch) => b.ratio ?? 0.5;
 
 export function createLayout(sessionId: string | null = null): Layout {
   return { root: { kind: 'leaf', id: 'p1', sessionId }, focusedId: 'p1' };
@@ -59,9 +82,22 @@ export function paneCount(layout: Layout): number {
   return leaves(layout.root).length;
 }
 
+/** Focusing another pane leaves zoom (the focused pane is the one on screen). */
 export function focus(layout: Layout, paneId: string): Layout {
   if (layout.focusedId === paneId || !leaves(layout.root).some((l) => l.id === paneId)) return layout;
-  return { ...layout, focusedId: paneId };
+  return { ...layout, focusedId: paneId, zoomedId: null };
+}
+
+/** Zoom the focused pane to fill the stage, or back. A single pane can't zoom. */
+export function toggleZoom(layout: Layout): Layout {
+  if (layout.zoomedId) return { ...layout, zoomedId: null };
+  if (layout.root.kind === 'leaf') return layout;
+  return { ...layout, zoomedId: focusedLeaf(layout).id };
+}
+
+/** The zoomed pane, if it still exists. */
+export function zoomed(layout: Layout): Leaf | null {
+  return (layout.zoomedId && leaves(layout.root).find((l) => l.id === layout.zoomedId)) || null;
 }
 
 function mapLeaves(node: PaneNode, fn: (leaf: Leaf) => PaneNode): PaneNode {
@@ -89,7 +125,7 @@ export function place(layout: Layout, paneId: string, sessionId: string | null):
     if (source && l.id === source.id) return { ...l, sessionId: target.sessionId };
     return l;
   });
-  return { root, focusedId: paneId };
+  return { root, focusedId: paneId, zoomedId: layout.zoomedId === paneId ? paneId : null };
 }
 
 /** Tab click: focus the pane already showing the session, otherwise show it in the focused pane. */
@@ -113,7 +149,8 @@ export function closePane(layout: Layout, paneId: string): Layout {
   const root = prune(layout.root);
   if (!sibling) return layout;
   const focusedId = layout.focusedId === paneId ? leaves(sibling)[0].id : layout.focusedId;
-  return { root, focusedId };
+  const zoomedId = layout.zoomedId === paneId || root.kind === 'leaf' ? null : (layout.zoomedId ?? null);
+  return { root, focusedId, zoomedId };
 }
 
 /**
@@ -137,7 +174,8 @@ export function split(layout: Layout, paneId: string, edge: Edge, sessionId: str
     found = true;
     return first ? { kind: 'split', dir, a: newLeaf, b: l } : { kind: 'split', dir, a: l, b: newLeaf };
   });
-  return found ? { root, focusedId: newLeaf.id } : layout;
+  // A new pane has to be seen: splitting leaves zoom.
+  return found ? { root, focusedId: newLeaf.id, zoomedId: null } : layout;
 }
 
 /** Drop a dragged session on a pane. */
@@ -157,11 +195,74 @@ export function removeSession(layout: Layout, sessionId: string, fallback: strin
 
 export function rects(node: PaneNode, x = 0, y = 0, w = 1, h = 1): PaneRect[] {
   if (node.kind === 'leaf') return [{ leaf: node, x, y, w, h }];
-  if (node.dir === 'row') return [...rects(node.a, x, y, w / 2, h), ...rects(node.b, x + w / 2, y, w / 2, h)];
-  return [...rects(node.a, x, y, w, h / 2), ...rects(node.b, x, y + h / 2, w, h / 2)];
+  const r = ratioOf(node);
+  if (node.dir === 'row')
+    return [...rects(node.a, x, y, w * r, h), ...rects(node.b, x + w * r, y, w * (1 - r), h)];
+  return [...rects(node.a, x, y, w, h * r), ...rects(node.b, x, y + h * r, w, h * (1 - r))];
 }
 
-/** The pane next to the focused one in a direction (most overlap, then nearest), or null. */
+/** What's on screen: every pane, or only the zoomed one filling the stage. */
+export function visibleRects(layout: Layout): PaneRect[] {
+  const z = zoomed(layout);
+  return z ? [{ leaf: z, x: 0, y: 0, w: 1, h: 1 }] : rects(layout.root);
+}
+
+/** Every split's divider (none while zoomed). */
+export function dividers(layout: Layout): Divider[] {
+  if (zoomed(layout)) return [];
+  const out: Divider[] = [];
+  const walk = (node: PaneNode, path: string, x: number, y: number, w: number, h: number) => {
+    if (node.kind === 'leaf') return;
+    const r = ratioOf(node);
+    out.push({ path, dir: node.dir, ratio: r, x, y, w, h });
+    if (node.dir === 'row') {
+      walk(node.a, path + 'a', x, y, w * r, h);
+      walk(node.b, path + 'b', x + w * r, y, w * (1 - r), h);
+    } else {
+      walk(node.a, path + 'a', x, y, w, h * r);
+      walk(node.b, path + 'b', x, y + h * r, w, h * (1 - r));
+    }
+  };
+  walk(layout.root, '', 0, 0, 1, 1);
+  return out;
+}
+
+/** Set the ratio of the split at `path` (clamped so neither side gets too small). */
+export function resize(layout: Layout, path: string, ratio: number): Layout {
+  const next = clampRatio(ratio);
+  const walk = (node: PaneNode, rest: string): PaneNode => {
+    if (node.kind === 'leaf') return node;
+    if (!rest) return Math.abs(ratioOf(node) - next) < EPS ? node : { ...node, ratio: next };
+    const side = rest[0] === 'a' ? 'a' : 'b';
+    const child = walk(node[side], rest.slice(1));
+    return child === node[side] ? node : { ...node, [side]: child };
+  };
+  const root = walk(layout.root, path);
+  return root === layout.root ? layout : { ...layout, root };
+}
+
+/**
+ * Keyboard resize: move the nearest divider around the focused pane that runs across `edge`'s axis one step toward
+ * `edge` (← / → move a side-by-side divider, ↑ / ↓ a stacked one). No such divider → unchanged.
+ */
+export function nudge(layout: Layout, edge: Edge, step = RESIZE_STEP): Layout {
+  if (zoomed(layout)) return layout;
+  const dir: SplitDir = edge === 'left' || edge === 'right' ? 'row' : 'column';
+  const sign = edge === 'left' || edge === 'top' ? -1 : 1;
+  let found: { path: string; ratio: number } | null = null;
+  const walk = (node: PaneNode, path: string): boolean => {
+    if (node.kind === 'leaf') return node.id === layout.focusedId;
+    const inA = walk(node.a, path + 'a');
+    const inside = inA || walk(node.b, path + 'b');
+    if (inside && !found && node.dir === dir) found = { path, ratio: ratioOf(node) };
+    return inside;
+  };
+  walk(layout.root, '');
+  const hit = found as { path: string; ratio: number } | null;
+  return hit ? resize(layout, hit.path, hit.ratio + sign * step) : layout;
+}
+
+/** The pane next to the focused one in a direction (most overlap, then nearest), or null. Zoom is ignored. */
 export function neighbor(layout: Layout, edge: Edge): string | null {
   const all = rects(layout.root);
   const cur = all.find((r) => r.leaf.id === layout.focusedId);
@@ -217,7 +318,13 @@ export function toSaved(layout: Layout): SavedLayout {
   const strip = (node: PaneNode): SavedPane =>
     node.kind === 'leaf'
       ? { kind: 'leaf', sessionId: node.sessionId }
-      : { kind: 'split', dir: node.dir, a: strip(node.a), b: strip(node.b) };
+      : {
+          kind: 'split',
+          dir: node.dir,
+          a: strip(node.a),
+          b: strip(node.b),
+          ...(node.ratio !== undefined && { ratio: node.ratio }),
+        };
   const focused = leaves(layout.root).findIndex((l) => l.id === layout.focusedId);
   return { root: strip(layout.root), focused: Math.max(0, focused) };
 }
@@ -236,7 +343,15 @@ export function fromSaved(saved: SavedLayout, known: Set<string>): Layout | null
       if (id) shown.add(id);
       return { kind: 'leaf', id: `p${++n}`, sessionId: id };
     }
-    return { kind: 'split', dir: node.dir, a: build(node.a), b: build(node.b) };
+    const ratio =
+      typeof node.ratio === 'number' && Number.isFinite(node.ratio) ? clampRatio(node.ratio) : undefined;
+    return {
+      kind: 'split',
+      dir: node.dir,
+      a: build(node.a),
+      b: build(node.b),
+      ...(ratio !== undefined && { ratio }),
+    };
   };
   const root = build(saved.root);
   const all = leaves(root);

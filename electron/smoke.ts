@@ -99,6 +99,8 @@ export async function runSmoke(
     const gpuError = await checkGpuFollowsScreen(win);
     if (gpuError) return fail(gpuError);
     fs.writeFileSync(out, (await win.webContents.capturePage()).toPNG());
+    const panesError = await checkPaneResizeAndZoom(win, outDir);
+    if (panesError) return fail(panesError);
     const onPath = (bin: string) =>
       (process.env.PATH ?? '').split(':').some((dir) => dir && fs.existsSync(path.join(dir, bin)));
     console.log(`[smoke] PATH has claude: ${onPath('claude')}, codex: ${onPath('codex')}`);
@@ -163,6 +165,70 @@ async function checkGpuFollowsScreen(win: BrowserWindow): Promise<string | null>
   press(win, 'T', ['meta', 'alt']);
   await wait(1500);
   return expect('split: two on screen, one hidden', 2);
+}
+
+/** Left/width of each visible pane, in px. */
+async function paneBoxes(win: BrowserWindow): Promise<{ x: number; w: number }[]> {
+  return win.webContents.executeJavaScript(`[...document.querySelectorAll('.c-split > .c-pane')].map((p) => {
+    const r = p.getBoundingClientRect();
+    return { x: Math.round(r.left), w: Math.round(r.width) };
+  })`);
+}
+
+/**
+ * T22, on the split smoke leaves: drag the divider with real mouse input, nudge it with ⌥⇧⌘←, zoom with ⇧⌘↩ (one
+ * terminal fills the stage) and back. Saves smoke-panes.png (resized) and smoke-zoom.png. Returns an error or null.
+ */
+async function checkPaneResizeAndZoom(win: BrowserWindow, outDir: string): Promise<string | null> {
+  const handle: { x: number; y: number } | null = await win.webContents.executeJavaScript(`(() => {
+    const d = document.querySelector('.c-split__divider[data-dir="row"]');
+    if (!d) return null;
+    const r = d.getBoundingClientRect();
+    return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) };
+  })()`);
+  if (!handle) return 'panes: no divider between the two panes';
+  const before = await paneBoxes(win);
+  const to = handle.x - Math.round(before[0].w * 0.3);
+  const mouse = (type: 'mouseDown' | 'mouseMove' | 'mouseUp', x: number) =>
+    win.webContents.sendInputEvent({
+      type,
+      x,
+      y: handle.y,
+      button: 'left',
+      clickCount: 1,
+      // A drag: the button is held during the moves (without this Chromium sees a hover and drops the capture).
+      modifiers: type === 'mouseMove' && x !== handle.x ? ['leftbuttondown'] : [],
+    });
+  mouse('mouseMove', handle.x);
+  mouse('mouseDown', handle.x);
+  for (let i = 1; i <= 5; i++) {
+    mouse('mouseMove', Math.round(handle.x + ((to - handle.x) * i) / 5));
+    await wait(30);
+  }
+  mouse('mouseUp', to);
+  await wait(400);
+  const dragged = await paneBoxes(win);
+  console.log(`[smoke] panes: ${JSON.stringify(before)} → dragged ${JSON.stringify(dragged)}`);
+  if (!(dragged[0].w < before[0].w * 0.8)) return 'panes: dragging the divider did not resize the left pane';
+  press(win, 'Right', ['meta', 'alt', 'shift']);
+  await wait(300);
+  const nudged = await paneBoxes(win);
+  if (!(nudged[0].w > dragged[0].w)) return 'panes: ⌥⇧⌘→ did not move the divider';
+  fs.writeFileSync(path.join(outDir, 'smoke-panes.png'), (await win.webContents.capturePage()).toPNG());
+  press(win, 'Enter', ['meta', 'shift']);
+  await wait(500);
+  const zoomed = await paneBoxes(win);
+  const onScreen = (await terminals(win)).filter((t) => t.visible).length;
+  console.log(`[smoke] zoomed: ${JSON.stringify(zoomed)}, terminals on screen: ${onScreen}`);
+  if (zoomed.length !== 1 || zoomed[0].w <= nudged[0].w + nudged[1].w - 2 || onScreen !== 1)
+    return 'panes: ⇧⌘↩ did not zoom the focused pane to the whole stage';
+  fs.writeFileSync(path.join(outDir, 'smoke-zoom.png'), (await win.webContents.capturePage()).toPNG());
+  press(win, 'Enter', ['meta', 'shift']);
+  await wait(500);
+  const back = await paneBoxes(win);
+  if (back.length !== 2 || Math.abs(back[0].w - nudged[0].w) > 1)
+    return 'panes: zoom did not toggle back to the same sizes';
+  return null;
 }
 
 /**

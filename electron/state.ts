@@ -64,7 +64,14 @@ export function mapPanes(node: unknown, fn: (id: string) => string | null): Save
   let count = 0;
   const walk = (n: unknown, depth: number): SavedPane | null => {
     if (depth > MAX_LEAVES) return null;
-    const p = n as Partial<{ kind: string; sessionId: unknown; dir: string; a: unknown; b: unknown }> | null;
+    const p = n as Partial<{
+      kind: string;
+      sessionId: unknown;
+      dir: string;
+      a: unknown;
+      b: unknown;
+      ratio: unknown;
+    }> | null;
     if (p?.kind === 'leaf') {
       if (++count > MAX_LEAVES) return null;
       return { kind: 'leaf', sessionId: typeof p.sessionId === 'string' ? fn(p.sessionId) : null };
@@ -72,7 +79,9 @@ export function mapPanes(node: unknown, fn: (id: string) => string | null): Save
     if (p?.kind !== 'split' || (p.dir !== 'row' && p.dir !== 'column')) return null;
     const a = walk(p.a, depth + 1);
     const b = a && walk(p.b, depth + 1);
-    return a && b ? { kind: 'split', dir: p.dir, a, b } : null;
+    if (!a || !b) return null;
+    const ratio = typeof p.ratio === 'number' && p.ratio > 0 && p.ratio < 1 ? p.ratio : undefined;
+    return { kind: 'split', dir: p.dir, a, b, ...(ratio !== undefined && { ratio }) };
   };
   return walk(node, 0);
 }

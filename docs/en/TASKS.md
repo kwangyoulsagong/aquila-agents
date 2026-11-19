@@ -160,7 +160,8 @@ Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-1
 - **Owns:** `electron/state.ts`, `src/widgets/split-view/model/` (layout save/restore).
 
 ### T22 · Panes: zoom + resize
-- [ ] **Goal:** read long output without re-splitting. (#15 + T1 leftover)
+- [x] **Goal:** read long output without re-splitting. (#15 + T1 leftover)
+  _Left over: zoom isn't restored after a relaunch (sizes are); focusing another pane leaves zoom (tmux-style); dividers don't take keyboard focus (resize with ⌥⇧⌘arrows)._
 - **Spec:** toggle pane zoom (one pane fills the stage, toggle back); drag the divider and keyboard resize; sizes kept
   in the layout tree.
 - **Owns:** `src/widgets/split-view/`.

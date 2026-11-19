@@ -89,6 +89,12 @@ export function useSplitLayout(
       }),
     [],
   );
+  const toggleZoom = useCallback(() => setLayout((l) => L.toggleZoom(l)), []);
+  const resizeSplit = useCallback(
+    (path: string, ratio: number) => setLayout((l) => L.resize(l, path, ratio)),
+    [],
+  );
+  const nudgeFocused = useCallback((edge: L.Edge) => setLayout((l) => L.nudge(l, edge)), []);
   const dropSession = useCallback(
     (sessionId: string, paneId: string, zone: L.DropZone) =>
       setLayout((l) => L.drop(l, paneId, zone, sessionId)),
@@ -105,6 +111,7 @@ export function useSplitLayout(
     activeSessionId,
     visibleSessionIds,
     paneCount: L.paneCount(layout),
+    zoomed: !!L.zoomed(layout),
     selectProject,
     showSession,
     placeInFocused,
@@ -114,6 +121,9 @@ export function useSplitLayout(
     splitFocused,
     closePane,
     moveFocus,
+    toggleZoom,
+    resizeSplit,
+    nudgeFocused,
     dropSession,
   };
 }

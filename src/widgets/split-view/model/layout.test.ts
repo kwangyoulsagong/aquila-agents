@@ -2,20 +2,28 @@ import { describe, expect, it } from 'vitest';
 import {
   closePane,
   createLayout,
+  dividers,
   drop,
+  focus,
   focusedLeaf,
   fromSaved,
   leaves,
   MAX_PANES,
   neighbor,
+  nudge,
   paneCount,
   place,
   rects,
   removeSession,
+  resize,
   show,
   split,
+  toggleZoom,
   toSaved,
+  visibleRects,
   zoneAt,
+  zoomed,
+  type Branch,
   type Layout,
 } from './layout';
 
@@ -170,5 +178,67 @@ describe('toSaved / fromSaved', () => {
     const pair = { kind: 'split' as const, dir: 'row' as const, a: leaf(null), b: leaf(null) };
     const five = { kind: 'split' as const, dir: 'row' as const, a: { ...pair, a: pair }, b: pair };
     expect(fromSaved({ root: five, focused: 0 }, new Set())).toBeNull();
+  });
+});
+
+describe('resize', () => {
+  it('moves a divider and keeps both sides above the minimum', () => {
+    let l = threePanes(); // [a | (b / c)]
+    l = resize(l, '', 0.7);
+    expect(rects(l.root).map((r) => +r.w.toFixed(4))).toEqual([0.7, 0.3, 0.3]);
+    l = resize(l, 'b', 0.25);
+    expect(+rects(l.root)[1].h.toFixed(4)).toBe(0.25);
+    expect(dividers(l).map((d) => [d.path, d.dir, +d.ratio.toFixed(4)])).toEqual([
+      ['', 'row', 0.7],
+      ['b', 'column', 0.25],
+    ]);
+    expect((resize(l, '', 0.99).root as Branch).ratio).toBe(0.85);
+    expect(resize(l, '', 0.7)).toBe(l);
+  });
+
+  it('nudges the nearest divider around the focused pane, in the arrow direction', () => {
+    let l = threePanes(); // focused: c (bottom right)
+    l = nudge(l, 'left');
+    expect(+rects(l.root)[0].w.toFixed(4)).toBe(0.45);
+    l = nudge(l, 'bottom');
+    expect(+rects(l.root)[1].h.toFixed(4)).toBe(0.55);
+    const single = createLayout('a');
+    expect(nudge(single, 'left')).toBe(single);
+  });
+
+  it('keeps sizes across save and restore', () => {
+    const l = resize(threePanes(), '', 0.3);
+    const back = fromSaved(toSaved(l), new Set(['a', 'b', 'c']))!;
+    expect(+rects(back.root)[0].w.toFixed(4)).toBe(0.3);
+    const wild = { ...toSaved(l), root: { ...(toSaved(l).root as object), ratio: 5 } } as ReturnType<
+      typeof toSaved
+    >;
+    expect(+rects(fromSaved(wild, new Set())!.root)[0].w.toFixed(4)).toBe(0.85);
+  });
+});
+
+describe('zoom', () => {
+  it('fills the stage with the focused pane and toggles back', () => {
+    const l = threePanes();
+    const z = toggleZoom(l);
+    expect(zoomed(z)?.sessionId).toBe('c');
+    expect(visibleRects(z)).toEqual([{ leaf: zoomed(z), x: 0, y: 0, w: 1, h: 1 }]);
+    expect(dividers(z)).toEqual([]);
+    expect(nudge(z, 'left')).toBe(z);
+    expect(visibleRects(toggleZoom(z))).toHaveLength(3);
+    expect(toggleZoom(createLayout('a')).zoomedId).toBeUndefined();
+  });
+
+  it('leaves zoom when another pane is focused, a pane is added or the zoomed pane closes', () => {
+    const z = toggleZoom(threePanes());
+    expect(zoomed(focus(z, 'p1'))).toBeNull();
+    expect(zoomed(show(z, 'a'))).toBeNull();
+    expect(zoomed(split(z, z.focusedId, 'right', null))).toBeNull();
+    expect(zoomed(closePane(z, z.focusedId))).toBeNull();
+    // A new session in the zoomed pane keeps it zoomed.
+    expect(zoomed(place(z, z.focusedId, 'd'))?.sessionId).toBe('d');
+    // Closing another pane keeps zoom; down to one pane drops it.
+    expect(zoomed(closePane(z, 'p1'))?.id).toBe(z.zoomedId);
+    expect(closePane(closePane(z, 'p1'), 'p2').zoomedId).toBeNull();
   });
 });

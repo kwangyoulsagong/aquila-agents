@@ -19,6 +19,11 @@ export type ShortcutId =
   | 'focusRight'
   | 'focusUp'
   | 'focusDown'
+  | 'zoomPane'
+  | 'resizeLeft'
+  | 'resizeRight'
+  | 'resizeUp'
+  | 'resizeDown'
   | `project${1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9}`;
 
 export type Platform = 'mac' | 'other';
@@ -37,6 +42,11 @@ export const SHORTCUTS: Readonly<Record<ShortcutId, string>> = {
   focusRight: 'CommandOrControl+Alt+Right',
   focusUp: 'CommandOrControl+Alt+Up',
   focusDown: 'CommandOrControl+Alt+Down',
+  zoomPane: 'CommandOrControl+Shift+Enter',
+  resizeLeft: 'CommandOrControl+Alt+Shift+Left',
+  resizeRight: 'CommandOrControl+Alt+Shift+Right',
+  resizeUp: 'CommandOrControl+Alt+Shift+Up',
+  resizeDown: 'CommandOrControl+Alt+Shift+Down',
   project1: 'CommandOrControl+1',
   project2: 'CommandOrControl+2',
   project3: 'CommandOrControl+3',

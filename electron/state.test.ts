@@ -124,6 +124,22 @@ describe('mapLayout', () => {
     expect(mapLayout({ ...layout, focused: 7 }, (k) => k)?.focused).toBe(0);
   });
 
+  it('keeps a split ratio inside (0, 1), drops others', () => {
+    const leaf = { kind: 'leaf', sessionId: null };
+    expect(
+      mapLayout({ root: { kind: 'split', dir: 'row', a: leaf, b: leaf, ratio: 0.3 } }, (k) => k)?.root,
+    ).toEqual({
+      kind: 'split',
+      dir: 'row',
+      a: leaf,
+      b: leaf,
+      ratio: 0.3,
+    });
+    expect(
+      mapLayout({ root: { kind: 'split', dir: 'row', a: leaf, b: leaf, ratio: 2 } }, (k) => k)?.root,
+    ).not.toHaveProperty('ratio');
+  });
+
   it('rejects malformed trees and more than 4 panes', () => {
     expect(mapLayout(null, (k) => k)).toBeNull();
     expect(mapLayout({ root: { kind: 'split', dir: 'diagonal', a: {}, b: {} } }, (k) => k)).toBeNull();

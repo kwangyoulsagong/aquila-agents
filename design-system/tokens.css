@@ -150,6 +150,7 @@
   --size-tabbar: var(--size-titlebar);
   --size-pane-head: 28px;
   --size-focus-line: var(--p-size-2); /* accent under the focused pane's header */
+  --size-split-handle: var(--p-size-8); /* grab area of a split divider, centred on the hairline */
   --size-row: 32px;
   --size-control: 28px;
   --size-badge: 16px;
