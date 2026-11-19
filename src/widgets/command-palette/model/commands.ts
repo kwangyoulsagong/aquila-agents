@@ -1,5 +1,6 @@
 import type { Config, Session, SessionKind, SessionStatus } from '@/shared/api';
 import { groupLabel, kindLabel, type Translate } from '@/shared/i18n';
+import { shortcutLabel, type ShortcutId } from '@/shared/lib/shortcuts';
 
 /** Actions the palette can run. The workspace passes a handler for each one that applies right now. */
 export type ActionId =
@@ -37,15 +38,15 @@ export type Command =
   | { type: 'action'; id: string; action: ActionId; label: string; kbd?: string };
 
 /** Label and shortcut per action, in the order they're listed. */
-const ACTIONS: { action: ActionId; label: (t: Translate) => string; kbd?: string }[] = [
-  { action: 'openClaude', label: (t) => t('action.openClaude'), kbd: '⌘T' },
-  { action: 'openCodex', label: (t) => t('action.openCodex'), kbd: '⌘⇧T' },
-  { action: 'openShell', label: (t) => t('palette.openShell'), kbd: '⌘⌥T' },
+const ACTIONS: { action: ActionId; label: (t: Translate) => string; shortcut?: ShortcutId }[] = [
+  { action: 'openClaude', label: (t) => t('action.openClaude'), shortcut: 'openClaude' },
+  { action: 'openCodex', label: (t) => t('action.openCodex'), shortcut: 'openCodex' },
+  { action: 'openShell', label: (t) => t('palette.openShell'), shortcut: 'openShell' },
   { action: 'openWorktree', label: (t) => t('worktree.title') },
-  { action: 'splitRight', label: (t) => t('palette.splitRight'), kbd: '⌘D' },
-  { action: 'splitDown', label: (t) => t('palette.splitDown'), kbd: '⌘⇧D' },
-  { action: 'toggleChanges', label: (t) => t('changes.toggle'), kbd: '⌘⇧G' },
-  { action: 'closeSession', label: (t) => t('action.closeSession'), kbd: '⌘W' },
+  { action: 'splitRight', label: (t) => t('palette.splitRight'), shortcut: 'splitRight' },
+  { action: 'splitDown', label: (t) => t('palette.splitDown'), shortcut: 'splitDown' },
+  { action: 'toggleChanges', label: (t) => t('changes.toggle'), shortcut: 'toggleChanges' },
+  { action: 'closeSession', label: (t) => t('action.closeSession'), shortcut: 'closeSession' },
   { action: 'switchLanguage', label: (t) => t('palette.switchLanguage') },
 ];
 
@@ -126,7 +127,7 @@ export function buildCommands({
     id: `action:${a.action}`,
     action: a.action,
     label: a.label(t),
-    kbd: a.kbd,
+    kbd: a.shortcut && shortcutLabel(a.shortcut),
   }));
 
   return [...sessionCommands, ...projectCommands, ...actionCommands];

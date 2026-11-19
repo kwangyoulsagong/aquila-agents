@@ -11,6 +11,8 @@ function template(items: ContextMenuItem[], pick: (id: string) => void): MenuIte
       label: item.label,
       enabled: item.enabled,
       ...(item.checked !== undefined ? { type: 'checkbox', checked: item.checked } : {}),
+      // The renderer handles the keys; the menu only shows them.
+      ...(item.accelerator ? { accelerator: item.accelerator, registerAccelerator: false } : {}),
       click: () => item.id && pick(item.id),
     };
   });

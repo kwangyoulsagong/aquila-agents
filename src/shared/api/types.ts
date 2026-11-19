@@ -77,6 +77,8 @@ export interface ContextMenuItem {
   label?: string;
   enabled?: boolean;
   checked?: boolean;
+  /** Shortcut shown next to the label (Electron accelerator from `shared/lib/shortcuts.ts`); display only. */
+  accelerator?: string;
   separator?: boolean;
   submenu?: ContextMenuItem[];
 }

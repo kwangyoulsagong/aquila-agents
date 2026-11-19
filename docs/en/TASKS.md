@@ -82,7 +82,8 @@ Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-1
 ## Now
 
 ### T13 · Shortcut map
-- [ ] **Goal:** one shortcut list that every part of the app reads, so shortcuts never drift apart. (#1)
+- [x] **Goal:** one shortcut list that every part of the app reads, so shortcuts never drift apart. (#1)
+  _Left over: there is no app menu bar yet (only the **+** context menu shows accelerators); the guide (T23) will read `SHORTCUTS` too._
 - **Spec:** one map in `src/shared/lib/shortcuts.ts` (`CommandOrControl`-style ids, so Windows can reuse it later) that
   the key handler, the palette, menus and the guide all read; labels show ⌘ on macOS.
 - **Owns:** `src/shared/lib/shortcuts.ts` (+ tests), `useShortcuts.ts`.

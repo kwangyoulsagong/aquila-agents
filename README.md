@@ -38,11 +38,11 @@ Projects live in `~/.aquila/config.json` (created on first run; "Open settings f
 
 | Keys | Action |
 |---|---|
-| ⌘T / ⌘⇧T / ⌘⌥T | Open Claude / Codex / shell in the current project |
+| ⌘T / ⇧⌘T / ⌥⌘T | Open Claude / Codex / shell in the current project |
 | ⌘W | Close session (empty pane: close the pane) |
-| ⌘D / ⌘⇧D | Split right / down (up to 4 panes) |
-| ⌘⌥←→↑↓ | Move focus between panes |
-| ⌘⇧G | Show / hide the changes panel (git diff) |
+| ⌘D / ⇧⌘D | Split right / down (up to 4 panes) |
+| ⌥⌘←→↑↓ | Move focus between panes |
+| ⇧⌘G | Show / hide the changes panel (git diff) |
 | ⌘K | Command palette: jump to a session or project, or run an action |
 | Right-click **+** | New Claude / Codex / shell, or **New Claude in worktree…** (`../<repo>-wt/<branch>`) |
 | ⌘1–9 | Jump to project |

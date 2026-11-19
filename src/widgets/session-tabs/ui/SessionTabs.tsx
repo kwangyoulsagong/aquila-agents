@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { api, type Config, type Session, type SessionKind } from '@/shared/api';
 import { kindLabel, useT } from '@/shared/i18n';
 import { endSessionDrag, startSessionDrag } from '@/shared/lib/sessionDrag';
+import { SHORTCUTS, withShortcut } from '@/shared/lib/shortcuts';
 import { AccountBadge } from '@/entities/project';
 import { StatusDot } from '@/entities/session';
 
@@ -32,9 +33,9 @@ export default function SessionTabs({
   const t = useT();
   const newMenu = async () => {
     const id = await api.showContextMenu([
-      { id: 'claude', label: t('action.openClaude') },
-      { id: 'codex', label: t('action.openCodex') },
-      { id: 'shell', label: t('palette.openShell') },
+      { id: 'claude', label: t('action.openClaude'), accelerator: SHORTCUTS.openClaude },
+      { id: 'codex', label: t('action.openCodex'), accelerator: SHORTCUTS.openCodex },
+      { id: 'shell', label: t('palette.openShell'), accelerator: SHORTCUTS.openShell },
       ...(onNewInWorktree ? [{ separator: true }, { id: 'worktree', label: t('worktree.action') }] : []),
     ]);
     if (id === 'worktree') onNewInWorktree?.();
@@ -79,7 +80,7 @@ export default function SessionTabs({
         variant="ghost"
         icon
         className="c-tabbar__add"
-        title={`${t('action.openClaude')} (⌘T)`}
+        title={withShortcut(t('action.openClaude'), 'openClaude')}
         onClick={() => onNew('claude')}
         onContextMenu={(e) => {
           e.preventDefault();

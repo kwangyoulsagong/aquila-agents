@@ -102,6 +102,14 @@
   dropped; a removed account falls back to the project's account. Worktree tabs reopen in their worktree, or are
   dropped if its folder is gone.
 
+## Shortcuts
+
+- One map in `src/shared/lib/shortcuts.ts`: `ShortcutId` → Electron accelerator (`CommandOrControl+Shift+T`).
+  `matchShortcut(e)` runs it in `pages/workspace/model/useShortcuts.ts` (capture phase, exact modifiers, matched by
+  `KeyboardEvent.code` so the Korean input source doesn't break it); `shortcutLabel(id)` / `withShortcut(label, id)` give
+  `⇧⌘T` on macOS (Apple order ⌃⌥⇧⌘) and `Ctrl+Shift+T` elsewhere for the palette, buttons and tooltips; native menus
+  get the accelerator via `ContextMenuItem.accelerator` (display only). New shortcut → add it to the map, never a literal.
+
 ## Status
 
 | Source | Sessions | How |
