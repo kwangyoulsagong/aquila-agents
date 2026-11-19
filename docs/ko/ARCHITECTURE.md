@@ -47,9 +47,11 @@
    **흐름 제어:** xterm이 묶음을 다 쓰면 렌더러가 `session:ack`을 보냄. 확인 안 된 묶음이 5개면 main이 pty를 멈추고
    2개가 되면 다시 읽음 → `yes` 같은 폭주에도 수 MB가 쌓이지 않고 Ctrl+C가 즉시 먹힘(smoke가 확인). 렌더러가
    새로고침되면 카운트 초기화. 터미널이 붙기 전에 버퍼에 들어간 출력은 받는 즉시 ack.
-5. 안 보이는 세션도 마운트 상태 유지(`hidden`) → 스크롤 기록 유지, xterm은 숨겨진 화면을 그리지 않음. WebGL은
-   화면에 보이는 터미널(pane ≤4)에만: 숨기면 addon을 dispose하고 DOM 렌더러로 다시 그림. context loss도 DOM으로
-   (3번 잃으면 그 터미널은 계속 DOM). 크기 변경은 프레임당 한 번으로 모으고 cols/rows가 바뀔 때만 refit.
+5. 안 보이는 세션도 마운트 상태 유지(`hidden`) → 스크롤 기록 유지, xterm은 숨겨진 화면을 그리지 않음. WebGL
+   (`lib/gpuPool.ts`): 화면에 보이는 터미널은 항상 사용, 숨긴 터미널은 합쳐서 12개까지 유지하고 가장 오래 안 보인
+   것부터 DOM 렌더러로 바꿈(Chromium은 페이지당 live context ~16개, 넘으면 오래된 것을 끊음. DOM 렌더러는 메모리를 더
+   씀: 세션 15개에서 숨긴 터미널 전부 WebGL을 끄면 +125 MB로 측정됨). context loss는 DOM으로(3번 잃으면 그 터미널은
+   계속 DOM). 스크롤바는 스크롤 기록이 있을 때만 보임. 크기 변경은 프레임당 한 번으로 모으고 cols/rows가 바뀔 때만 refit.
    스크롤 기록: 셸 10,000줄, Claude/Codex 5,000줄(`model/terminal.ts`). xterm 6.x.
 
 ## 화면 분할

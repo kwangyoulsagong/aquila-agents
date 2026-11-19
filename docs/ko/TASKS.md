@@ -116,7 +116,7 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
 
 ### T16 · 터미널 성능
 - [x] **목표:** 세션 15개 이상에서도 부드럽고 가볍게. (#4, #18, #19)
-  _남은 것: 실제 세션 15개로 측정은 안 함. smoke가 `yes` + Ctrl+C(~200 ms)와, 새 탭·탭 전환·분할에서 WebGL이 화면에 보이는 터미널에만 켜지는지 확인._
+  _측정(`npm run perf`, 셸 15개, 화면에 2개, 전 → 후): 에이전트 같은 출력 스트리밍 IPC 493 → 127개/초, CPU 3.6 → 2.8 %; `yes` 폭주 22,700 → 280개/초, CPU 13 → 9 %, 렌더러 470 → 310 MB, Ctrl+C 14 ms / 10초 안에 응답 없음 → 21 ms; 내내 120 fps. 명세와 다른 점: 숨긴 터미널 전부 WebGL을 끄면 +125 MB라서 12개까지는 유지(gpuPool). 남은 것: 실제 Claude/Codex 세션 대신 비슷한 출력을 내는 셸로 측정._
 - **명세:** WebGL은 보이는 pane(≤4)에만. 숨기면 dispose + `term.refresh(0, rows-1)`, context loss면 DOM 렌더러.
   `@xterm/xterm` 5.5 → 6.x, addon 짝 맞추기(webgl 0.19, fit 0.11, web-links 0.12 — 지금은 5.5에 webgl 0.19 혼용).
   스크롤·viewport와 smoke 재확인. Main이 pty 출력을 묶어 보냄(16 ms 또는 64–100 KB, 숨긴 세션 100–250 ms) + 렌더러

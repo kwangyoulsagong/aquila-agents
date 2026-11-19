@@ -4,6 +4,7 @@ import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import { WebglAddon } from '@xterm/addon-webgl';
 import { api, type SessionKind } from '@/shared/api';
+import { gpuPool } from '../lib/gpuPool';
 import { attach } from '../lib/terminalBus';
 import { SCROLLBACK, sizeChanged } from '../model/terminal';
 
@@ -24,7 +25,7 @@ interface Handle {
   term: Terminal;
   /** Refit on the next frame; repeated calls in one frame collapse into one. */
   scheduleFit: () => void;
-  /** GPU renderer on (on screen) / off (hidden: frees the WebGL context, at most ~16 per page). */
+  /** WebGL renderer on / off (DOM renderer). Driven by `gpuPool`: on screen always on, hidden ones up to a cap. */
   setGpu: (on: boolean) => void;
 }
 
@@ -47,6 +48,9 @@ export default function TerminalView({ id, kind, visible, focused = visible }: P
         foreground: token('--color-terminal-fg'),
         cursor: token('--color-terminal-cursor'),
         selectionBackground: token('--color-terminal-selection'),
+        scrollbarSliderBackground: token('--color-terminal-scrollbar'),
+        scrollbarSliderHoverBackground: token('--color-terminal-scrollbar-hover'),
+        scrollbarSliderActiveBackground: token('--color-terminal-scrollbar-hover'),
       },
     });
     const fit = new FitAddon();
@@ -64,7 +68,6 @@ export default function TerminalView({ id, kind, visible, focused = visible }: P
       });
     };
 
-    // GPU rendering only while on screen: less CPU/battery than the DOM renderer, and browsers cap live contexts.
     let webgl: WebglAddon | null = null;
     let losses = 0;
     const repaint = () => term.refresh(0, term.rows - 1);
@@ -76,6 +79,7 @@ export default function TerminalView({ id, kind, visible, focused = visible }: P
             losses++;
             addon.dispose();
             if (webgl === addon) webgl = null;
+            gpuPool.remove(handle);
             repaint(); // back on the DOM renderer
           });
           term.loadAddon(addon);
@@ -90,11 +94,20 @@ export default function TerminalView({ id, kind, visible, focused = visible }: P
         repaint();
       }
     };
-    handleRef.current = { term, scheduleFit, setGpu };
+    const handle: Handle = { term, scheduleFit, setGpu };
+    handleRef.current = handle;
 
     const detach = attach(id, (data, done) => term.write(data, done));
     const input = term.onData((data) => api.write(id, data));
     const resized = term.onResize(({ cols, rows }) => api.resize(id, cols, rows));
+    // Scrollbar only when there is something to scroll (CSS hides it otherwise).
+    const syncScrollable = () =>
+      host.toggleAttribute('data-scrollable', term.buffer.active.length > term.rows);
+    const scrollable = [
+      term.onWriteParsed(syncScrollable),
+      term.buffer.onBufferChange(syncScrollable),
+      term.onResize(syncScrollable),
+    ];
     const ro = new ResizeObserver(scheduleFit);
     ro.observe(host);
     // The webfont can finish loading after the first fit; cell size changes but the host doesn't.
@@ -106,8 +119,10 @@ export default function TerminalView({ id, kind, visible, focused = visible }: P
       document.fonts.removeEventListener('loadingdone', scheduleFit);
       input.dispose();
       resized.dispose();
+      for (const d of scrollable) d.dispose();
       detach();
       handleRef.current = null;
+      gpuPool.remove(handle);
       term.dispose();
     };
     // `kind` never changes for a session id.
@@ -118,7 +133,7 @@ export default function TerminalView({ id, kind, visible, focused = visible }: P
     const h = handleRef.current;
     if (!h) return;
     api.setVisible(id, visible);
-    h.setGpu(visible);
+    gpuPool.show(h, visible);
     if (!visible) return;
     h.scheduleFit();
     if (focused) requestAnimationFrame(() => h.term.focus());

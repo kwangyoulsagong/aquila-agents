@@ -47,9 +47,11 @@
    **Flow control:** the renderer sends `session:ack` once xterm has written a batch; main pauses the pty at 5
    unacknowledged batches and resumes at 2, so a flood (`yes`) never queues megabytes and Ctrl+C stays instant
    (smoke checks it). A renderer reload resets the counts. Output buffered before a terminal mounts is acked on arrival.
-5. Hidden sessions stay mounted (`hidden`), so scrollback survives; xterm skips painting hidden ones. WebGL runs only
-   on terminals on screen (≤4 panes): hiding disposes the addon and repaints on the DOM renderer; a lost context falls
-   back to DOM (after 3 losses that terminal stays on DOM). Resizes are coalesced per frame and refit only when
+5. Hidden sessions stay mounted (`hidden`), so scrollback survives; xterm skips painting hidden ones. WebGL
+   (`lib/gpuPool.ts`): terminals on screen always have it; hidden ones keep it up to 12 in all, the least recently seen
+   dropping to the DOM renderer first (Chromium keeps ~16 live contexts per page and drops the oldest, while the DOM
+   renderer costs more memory: dropping WebGL from every hidden terminal measured +125 MB with 15 sessions). A lost
+   context falls back to DOM (after 3 losses that terminal stays on DOM). The scrollbar shows only with scrollback. Resizes are coalesced per frame and refit only when
    cols/rows change. Scrollback: 10,000 rows for shells, 5,000 for Claude/Codex (`model/terminal.ts`). xterm 6.x.
 
 ## Split view

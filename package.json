@@ -16,6 +16,7 @@
     "check": "npm run typecheck && npm run lint && npm run test",
     "postinstall": "electron-rebuild -f -w node-pty",
     "smoke": "npm run build && cross-env AQUILA_SMOKE=1 electron .",
+    "perf": "npm run build && cross-env AQUILA_SMOKE=1 AQUILA_PERF=1 electron .",
     "dist": "npm run build && electron-builder --mac --arm64",
     "icon": "tsc -p tsconfig.electron.json && electron dist-electron/electron/tools/render-icon.js"
   },

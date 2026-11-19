@@ -1,9 +1,10 @@
 // `npm run smoke`: launch the built app, open a shell session, check the pty round-trips,
-// check OSC 7501 (main answers the query; a report becomes the session status), check Ctrl+C stops a `yes` flood fast, open shells from the UI and check WebGL runs only on terminals on screen, save a screenshot to dist/smoke.png, then quit with exit code 0 (ok) or 1 (fail).
+// check OSC 7501 (main answers the query; a report becomes the session status), check Ctrl+C stops a `yes` flood fast, open shells from the UI and check terminals on screen render with WebGL, save a screenshot to dist/smoke.png, then quit with exit code 0 (ok) or 1 (fail).
 // Agents use this to verify their change actually runs.
 import fs from 'node:fs';
 import path from 'node:path';
 import { app, type BrowserWindow } from 'electron';
+import { runPerf } from './perf';
 import type { SessionManager } from './sessions';
 import type { Config } from '../src/shared/api/types';
 
@@ -21,6 +22,8 @@ const YES_BUDGET_MS = 3000;
 /** Smoke keeps only the tail of the output (the `yes` flood would grow it without bound). */
 export const SMOKE_BUFFER_BYTES = 256 * 1024;
 const TIMEOUT_MS = 25000;
+/** = MAX_GPU in src/entities/session/lib/gpuPool.ts (main only compiles shared/ from the renderer). */
+const MAX_GPU = 12;
 
 export const isSmoke = process.env.AQUILA_SMOKE === '1';
 
@@ -43,6 +46,7 @@ export async function runSmoke(
   config: Config,
   output: { buffer: string; statuses: string[] },
 ) {
+  if (process.env.AQUILA_PERF === '1') return runPerf(win, sessions);
   const fail = (why: string) => {
     console.error(`[smoke] FAIL: ${why}`);
     app.exit(1);
@@ -116,7 +120,8 @@ async function terminals(win: BrowserWindow): Promise<{ visible: boolean; webgl:
 }
 
 /**
- * Two shells, switch tabs, split: WebGL must be on exactly the terminals on screen. Returns an error or null.
+ * Two shells, switch tabs, split: every terminal on screen has WebGL, at most MAX_GPU have it (hidden ones keep it
+ * up to that cap, see gpuPool). Returns an error or null.
  * Leaves the app split with two shells (the screenshot).
  */
 async function checkGpuFollowsScreen(win: BrowserWindow): Promise<string | null> {
@@ -124,7 +129,8 @@ async function checkGpuFollowsScreen(win: BrowserWindow): Promise<string | null>
     const ts = await terminals(win);
     console.log(`[smoke] ${step}: ${JSON.stringify(ts)}`);
     if (ts.filter((t) => t.visible).length !== visible) return `${step}: expected ${visible} terminal(s) on screen`;
-    if (ts.some((t) => t.visible !== t.webgl)) return `${step}: WebGL should be on exactly the visible terminals`;
+    if (ts.some((t) => t.visible && !t.webgl)) return `${step}: a terminal on screen has no WebGL`;
+    if (ts.filter((t) => t.webgl).length > MAX_GPU) return `${step}: more than ${MAX_GPU} WebGL contexts`;
     return null;
   };
   press(win, 'T', ['meta', 'alt']);
