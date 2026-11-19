@@ -62,7 +62,8 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
 - **담당:** `src/widgets/command-palette/`, `src/shared/lib/fuzzy.ts` (+ 테스트).
 
 ### T7 · 워크트리 세션
-- [ ] **목표:** "워크트리에서 새 Claude" → `../<repo>-wt/<branch>` 만들고 거기서 세션 시작, 탭에 브랜치 표시.
+- [x] **목표:** "워크트리에서 새 Claude" → `../<repo>-wt/<branch>` 만들고 거기서 세션 시작, 탭에 브랜치 표시.
+  _남은 것: 앱에서 워크트리 삭제는 없음(`git worktree remove` 사용); 변경사항 패널은 워크트리가 아니라 프로젝트 폴더를 보여줌; Claude만 버튼 있음(API는 codex/셸도 지원)._
 - **담당:** `electron/worktrees.ts`, `src/features/open-in-worktree/`.
 
 ### T8 · 패키징

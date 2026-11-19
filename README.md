@@ -44,6 +44,7 @@ Projects live in `~/.aquila/config.json` (created on first run; "Open settings f
 | ⌘⌥←→↑↓ | Move focus between panes |
 | ⌘⇧G | Show / hide the changes panel (git diff) |
 | ⌘K | Command palette: jump to a session or project, or run an action |
+| Right-click **+** | New Claude / Codex / shell, or **New Claude in worktree…** (`../<repo>-wt/<branch>`) |
 | ⌘1–9 | Jump to project |
 
 ## Docs

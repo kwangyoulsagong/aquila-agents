@@ -62,7 +62,8 @@ only with small additive edits. Merge order follows the numbering when two tasks
 - **Owns:** `src/widgets/command-palette/`, `src/shared/lib/fuzzy.ts` (+ test).
 
 ### T7 · Worktree sessions
-- [ ] **Goal:** "New Claude in worktree" creates `../<repo>-wt/<branch>` and opens the session there; tab shows the branch.
+- [x] **Goal:** "New Claude in worktree" creates `../<repo>-wt/<branch>` and opens the session there; tab shows the branch.
+  _Left over: no way to remove a worktree from the app (use `git worktree remove`); the changes panel still shows the project dir, not the worktree; Claude only (codex/shell in a worktree is supported by the API but has no button)._
 - **Owns:** `electron/worktrees.ts`, `src/features/open-in-worktree/`.
 
 ### T8 · Packaging

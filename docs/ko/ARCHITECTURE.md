@@ -11,9 +11,10 @@
 │           command-palette                 │  .ts   │               zsh 함수 (명시적 클릭만)            │
 │ features/ switch-account, switch-language,│        │ hooks.ts      127.0.0.1:<port> hook 수신기       │
 │           open-session, setup-account,    │        │               + ~/.aquila/claude-hooks.json     │
-│           manage-projects                 │        │ git.ts        git status + diff (읽기만)        │
+│           manage-projects,                │        │ git.ts        git status + diff (읽기만)        │
 │ entities/ session (xterm, 상태), project    │        │ state.ts      ~/.aquila/state.json (열린 탭)     │
-│           diff                            │        │ menu.ts       네이티브 우클릭 메뉴               │
+│           diff                            │        │ worktrees.ts  git worktree 만들기 / 재사용 (T7)  │
+│           open-in-worktree                │        │ menu.ts       네이티브 우클릭 메뉴               │
 │                                           │        │ smoke.ts      npm run smoke 자동 점검            │
 │ shared/   api (타입·IPC·bridge), i18n       │        │                                                 │
 └───────────────────────────────────────────┘        └─────────────────────────────────────────────────┘
@@ -65,7 +66,7 @@
 
 - ⌘K로 `widgets/command-palette`를 열고 닫습니다(네이티브 `<dialog>` 위의 `.c-palette`, 화면 위쪽). 열린 세션
   (급한 순: waiting > error > done > working > idle), 프로젝트(사이드바 순서), 동작 순으로 보여요.
-- 동작: Claude / Codex / 셸 열기, 오른쪽 / 아래로 분할, 변경사항 패널, 세션 닫기, 언어 바꾸기. 워크스페이스는 지금
+- 동작: Claude / Codex / 셸 열기, 워크트리에서 새 Claude, 오른쪽 / 아래로 분할, 변경사항 패널, 세션 닫기, 언어 바꾸기. 워크스페이스는 지금
   할 수 있는 동작에만 핸들러를 넘겨요(프로젝트 없음 → 열기 없음, 세션 없음 → 닫기 없음).
 - `shared/lib/fuzzy.ts`(테스트 있음): 검색어 글자가 순서대로 있으면 매치, 대소문자 무시. 단어 시작(camelCase 포함)과
   연속 글자는 점수가 높고, 건너뛴 글자는 조금 깎여요. 프로젝트는 그룹 · 경로로도 찾히지만 이름 매치보다 아래.
@@ -73,16 +74,29 @@
 - ↑↓(또는 ⌃N/⌃P)로 고르고 Enter로 실행, Esc / 바깥 클릭으로 닫기. 한글 조합 중에는 키를 무시해요.
   명령은 다이얼로그가 닫히고 포커스를 돌려준 다음 프레임에 실행돼서, 새로 보이는 터미널이 키보드를 받아요.
 
+## 워크트리 세션
+
+- "워크트리에서 새 Claude…"(탭 바의 **+** 우클릭, 또는 ⌘K 팔레트) → `features/open-in-worktree` 다이얼로그:
+  브랜치 입력칸(로컬 브랜치 추천)과 무엇을 어디에 하는지 알려주는 한 줄.
+- Main (`worktrees.ts`, `session:create-worktree`): `git check-ref-format --branch`로 이름을 확인한 뒤, 그 브랜치가
+  이미 체크아웃된 워크트리가 있으면 재사용(`git worktree list --porcelain`, 메인 포함), 없으면 메인 워크트리 옆
+  `<repo>-wt/<branch>`에 `git worktree add` — 브랜치가 있으면 체크아웃, 없으면 프로젝트의 현재 HEAD에서 `-b`로 만들어요.
+  실패하면 git 메시지를 다이얼로그에 보여줘요. 아무것도 지우지 않아요.
+- 세션(`SessionInfo.worktree = { path, branch }`)은 그 폴더에서 시작. 탭에 브랜치가 보이고(`.c-tab__branch`, 툴팁에 경로),
+  분할 화면 헤더·팔레트 이름·알림 제목에도 붙어요.
+- `worktree:info`는 다이얼로그에 저장소 루트, 현재 브랜치, 로컬 브랜치, 기존 워크트리를 알려줘요(읽기만).
+
 ## 다시 열면 복원
 
-- Main이 `~/.aquila/state.json`에 열린 탭을 탭 순서대로 저장 (`{ projectId, kind, account?, claudeSessionId? }`).
+- Main이 `~/.aquila/state.json`에 열린 탭을 탭 순서대로 저장 (`{ projectId, kind, account?, worktree?, claudeSessionId? }`).
   세션 생성·종료·Claude 세션 변경 때마다 다시 씀(임시 파일 + rename)이라 앱이 죽어도 남아요. 시작할 때 세션이 생기기 전에
   한 번 읽고, 종료할 때 pty를 끄면서 덮어쓰지 않아요. smoke는 읽지도 쓰지도 않아요.
 - Claude 탭은 우리가 만든 `--session-id <uuid>`로 시작. `SessionStart` hook이 Claude의 stdin JSON을 hook 수신기의
   `/session/<tab>`으로 보내서, `/clear`나 resume 뒤에도 저장된 id가 따라가요.
 - 설정을 읽은 뒤 렌더러가 `restoreSessions()`를 실행 1회당 한 번 호출: Claude → `<configDir>/projects/*/<id>.jsonl`이
   있으면 `claude --resume <id>`(Claude는 첫 메시지 뒤에야 이 파일을 씀), 없으면 새 세션. codex → `codex resume --last`
-  (codex가 cwd로 거름). 셸 → 새 셸. 없어진 프로젝트의 탭은 버리고, 없어진 계정은 프로젝트 계정으로 대체.
+  (codex가 cwd로 거름). 셸 → 새 셸. 없어진 프로젝트의 탭은 버리고, 없어진 계정은 프로젝트 계정으로 대체. 워크트리 탭은 그 워크트리에서 다시 열고,
+  폴더가 없어졌으면 버려요.
 
 ## 상태
 
