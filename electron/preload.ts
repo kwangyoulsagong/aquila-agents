@@ -18,6 +18,9 @@ const api: AquilaApi = {
   setLanguage: (language) => ipcRenderer.invoke(IPC.configSetLanguage, language),
   setProjectAccount: (projectId, account) =>
     ipcRenderer.invoke(IPC.configSetProjectAccount, { projectId, account }),
+  editProjects: (edit) => ipcRenderer.invoke(IPC.configEditProjects, edit),
+  pickFolder: () => ipcRenderer.invoke(IPC.dialogPickFolder),
+  showContextMenu: (items) => ipcRenderer.invoke(IPC.uiContextMenu, items),
   createSession: (projectId, kind, account) =>
     ipcRenderer.invoke(IPC.sessionCreate, { projectId, kind, account }),
   restoreSessions: () => ipcRenderer.invoke(IPC.sessionRestore),

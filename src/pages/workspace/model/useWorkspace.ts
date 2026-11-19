@@ -99,6 +99,15 @@ export function useWorkspace() {
     [forgetSession],
   );
 
+  /** A project left the config: close its sessions; if it was selected, select the first one left. */
+  const forgetProject = useCallback(
+    (projectId: string, next: Config) => {
+      sessions.filter((s) => s.projectId === projectId).forEach((s) => closeSession(s.id));
+      if (projectId === activeProjectId && next.projects[0]) split.selectProject(next.projects[0].id);
+    },
+    [sessions, closeSession, activeProjectId, split],
+  );
+
   return {
     config,
     setConfig,
@@ -112,7 +121,9 @@ export function useWorkspace() {
     split,
     openSession,
     closeSession,
+    forgetProject,
     error,
+    showError: setError,
     clearError: () => setError(null),
   };
 }

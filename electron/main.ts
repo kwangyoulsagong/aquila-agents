@@ -1,15 +1,23 @@
 // Main process: window, config, pty sessions, Claude hook receiver.
 import path from 'node:path';
-import { app, BrowserWindow, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import { restoreShellPath } from './env';
 import { accountsStatus, installShellFunction, prepareAccount, shellFunctionPreview } from './accounts';
-import { CONFIG_PATH, loadConfig, setLanguage, setProjectAccount } from './config';
+import { CONFIG_PATH, editProjects, loadConfig, setLanguage, setProjectAccount } from './config';
+import { showContextMenu } from './menu';
 import { gitChanges } from './git';
 import { startHookServer, writeClaudeHookSettings } from './hooks';
 import { SessionManager } from './sessions';
 import { planRestore, readState, writeState, type SavedTab } from './state';
 import { isSmoke, runSmoke, watchOutput } from './smoke';
-import { IPC, type Language, type SessionInfo, type SessionKind } from '../src/shared/api/types';
+import {
+  IPC,
+  type ContextMenuItem,
+  type Language,
+  type ProjectEdit,
+  type SessionInfo,
+  type SessionKind,
+} from '../src/shared/api/types';
 
 const isDev = process.env.AQUILA_DEV === '1';
 let win: BrowserWindow | null = null;
@@ -85,6 +93,15 @@ app.whenReady().then(async () => {
     IPC.configSetProjectAccount,
     (_e, { projectId, account }: { projectId: string; account: string }) =>
       setProjectAccount(projectId, account),
+  );
+  ipcMain.handle(IPC.configEditProjects, (_e, edit: ProjectEdit) => editProjects(edit));
+  ipcMain.handle(IPC.dialogPickFolder, async () => {
+    const options: Electron.OpenDialogOptions = { properties: ['openDirectory', 'createDirectory'] };
+    const r = win ? await dialog.showOpenDialog(win, options) : await dialog.showOpenDialog(options);
+    return r.canceled ? null : (r.filePaths[0] ?? null);
+  });
+  ipcMain.handle(IPC.uiContextMenu, (e, items: ContextMenuItem[]) =>
+    showContextMenu(BrowserWindow.fromWebContents(e.sender), items),
   );
   ipcMain.handle(
     IPC.sessionCreate,

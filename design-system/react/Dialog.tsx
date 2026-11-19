@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { useEffect, useId, useRef, type FormEvent, type ReactNode } from 'react';
 
 interface Props {
   open: boolean;
@@ -51,4 +51,28 @@ export function DialogCheck({ leading, children }: { leading?: ReactNode; childr
 /** `.c-dialog__code` — selectable monospace block (commands, snippets). */
 export function DialogCode({ children }: { children: ReactNode }) {
   return <pre className="c-dialog__code">{children}</pre>;
+}
+
+/**
+ * `.c-dialog__form` — fields stacked like the body; Enter submits. Give the submit button in `actions`
+ * `type="submit"` and `form={id}` (actions sit outside the form).
+ */
+export function DialogForm({
+  id,
+  onSubmit,
+  children,
+}: {
+  id: string;
+  onSubmit: () => void;
+  children: ReactNode;
+}) {
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    onSubmit();
+  };
+  return (
+    <form id={id} className="c-dialog__form" onSubmit={submit}>
+      {children}
+    </form>
+  );
 }

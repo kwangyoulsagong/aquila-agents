@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import type { Config, Language } from '../src/shared/api/types';
+import type { Config, Group, Language, Project, ProjectEdit } from '../src/shared/api/types';
 import { translator } from '../src/shared/i18n/dictionary';
 
 const HOME = os.homedir();
@@ -96,4 +96,125 @@ export function setProjectAccount(projectId: string, account: string): Config {
   const c = loadConfig();
   if (!c.accounts[account]) return c;
   return saveConfig({ ...c, projects: c.projects.map((p) => (p.id === projectId ? { ...p, account } : p)) });
+}
+
+// ── Project / group edits (sidebar UI) ────────────────────────────────────────
+
+/** `~/…` for paths under home, so the config stays portable between machines. */
+export function tildify(p: string, home = HOME): string {
+  if (p === home) return '~';
+  return p.startsWith(home + path.sep) ? '~' + p.slice(home.length) : p;
+}
+
+/** ASCII slug for ids; `fallback` when nothing is left (e.g. a Korean name). */
+export function slugify(s: string, fallback: string): string {
+  const slug = s
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return slug || fallback;
+}
+
+function uniqueId(base: string, taken: string[]): string {
+  if (!taken.includes(base)) return base;
+  let n = 2;
+  while (taken.includes(`${base}-${n}`)) n++;
+  return `${base}-${n}`;
+}
+
+const move = <T>(list: T[], from: number, to: number): T[] => {
+  const next = [...list];
+  const [item] = next.splice(from, 1);
+  next.splice(Math.max(0, Math.min(to, next.length)), 0, item);
+  return next;
+};
+
+/** Puts `project` into `group` at `index` among that group's projects; the flat order elsewhere is kept. */
+function placeProject(projects: Project[], project: Project, group: string, index: number): Project[] {
+  const rest = projects.filter((p) => p.id !== project.id);
+  const members = rest.filter((p) => p.group === group);
+  const moved = { ...project, group };
+  if (members.length === 0) return [...rest, moved];
+  const anchor =
+    index < members.length ? rest.indexOf(members[Math.max(0, index)]) : rest.indexOf(members.at(-1)!) + 1;
+  return [...rest.slice(0, anchor), moved, ...rest.slice(anchor)];
+}
+
+/** Applies one sidebar edit. Pure: unknown ids and invalid values leave the config unchanged. */
+export function applyProjectEdit(c: Config, e: ProjectEdit, home = HOME): Config {
+  const hasGroup = (id: string) => c.groups.some((g) => g.id === id);
+  const hasAccount = (id: string) => Boolean(c.accounts[id]);
+  switch (e.op) {
+    case 'addProject': {
+      const name = e.name.trim() || path.basename(e.path) || e.path;
+      const groups: Group[] = c.groups.length ? c.groups : [{ id: 'work' }];
+      const group = groups.some((g) => g.id === e.group) ? e.group : groups[0].id;
+      const account = hasAccount(e.account) ? e.account : (Object.keys(c.accounts)[0] ?? 'shared');
+      const id = uniqueId(
+        slugify(name, 'project'),
+        c.projects.map((p) => p.id),
+      );
+      const project: Project = { id, name, group, account, path: tildify(e.path, home) };
+      return { ...c, groups, projects: placeProject(c.projects, project, group, Infinity) };
+    }
+    case 'updateProject': {
+      const name = e.name?.trim();
+      return {
+        ...c,
+        projects: c.projects.map((p) =>
+          p.id !== e.id
+            ? p
+            : {
+                ...p,
+                ...(name ? { name } : {}),
+                ...(e.group && hasGroup(e.group) ? { group: e.group } : {}),
+                ...(e.account && hasAccount(e.account) ? { account: e.account } : {}),
+              },
+        ),
+      };
+    }
+    case 'removeProject':
+      return { ...c, projects: c.projects.filter((p) => p.id !== e.id) };
+    case 'moveProject': {
+      const project = c.projects.find((p) => p.id === e.id);
+      if (!project || !hasGroup(e.group)) return c;
+      return { ...c, projects: placeProject(c.projects, project, e.group, e.index) };
+    }
+    case 'addGroup': {
+      const label = e.label.trim();
+      if (!label) return c;
+      const id = uniqueId(
+        slugify(label, 'group'),
+        c.groups.map((g) => g.id),
+      );
+      return { ...c, groups: [...c.groups, { id, label }] };
+    }
+    case 'renameGroup': {
+      const label = e.label.trim();
+      return {
+        ...c,
+        groups: c.groups.map((g) => {
+          if (g.id !== e.id) return g;
+          if (label) return { ...g, label };
+          const { label: _dropped, ...rest } = g;
+          void _dropped;
+          return rest;
+        }),
+      };
+    }
+    case 'removeGroup':
+      if (c.projects.some((p) => p.group === e.id)) return c;
+      return { ...c, groups: c.groups.filter((g) => g.id !== e.id) };
+    case 'moveGroup': {
+      const from = c.groups.findIndex((g) => g.id === e.id);
+      return from < 0 ? c : { ...c, groups: move(c.groups, from, e.index) };
+    }
+  }
+}
+
+export function editProjects(edit: ProjectEdit): Config {
+  const c = loadConfig();
+  // A config we couldn't read must not be overwritten with the defaults.
+  if (c.error) throw new Error(c.error);
+  return saveConfig(applyProjectEdit(c, edit));
 }

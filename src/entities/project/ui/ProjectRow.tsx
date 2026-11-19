@@ -1,7 +1,7 @@
-import type { ReactNode } from 'react';
+import type { HTMLAttributes, ReactNode } from 'react';
 import type { Project } from '@/shared/api';
 
-interface Props {
+interface Props extends Omit<HTMLAttributes<HTMLDivElement>, 'onSelect'> {
   project: Project;
   current: boolean;
   onSelect: (projectId: string) => void;
@@ -11,9 +11,11 @@ interface Props {
   trailing?: ReactNode;
 }
 
-export default function ProjectRow({ project, current, onSelect, leading, trailing }: Props) {
+/** Extra props (drag handlers, `data-drop`, onContextMenu) go to the row element. */
+export default function ProjectRow({ project, current, onSelect, leading, trailing, ...rest }: Props) {
   return (
     <div
+      {...rest}
       className="c-row"
       role="button"
       tabIndex={0}
