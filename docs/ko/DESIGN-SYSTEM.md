@@ -156,6 +156,7 @@
 | `Dialog` `open` `title` `onClose` `actions` `wide`, `DialogCheck`, `DialogCode`, `DialogForm` `id` `onSubmit` | `.c-dialog` |
 | `Checklist` `label`, `ChecklistItem` `leading` `title` `tag` `meta` `actions`, `ChecklistCommand` `command` `action` | `.c-checklist` |
 | `Dropzone` `over` (+ div 속성) | `.c-dropzone` |
+| `TermOverlay` (+ div 속성, `ref`), `TermJump` (Button 속성), `TermNote` `bar?`, `TermHint` `box` `label?` `typed?` | `.c-term-overlay`, `.c-term-overlay__jump`, `.c-term-overlay__note(--bar)`, `.c-term-hint` (터미널 위 도우미, T28) |
 | `Field` `label` `hint` `warning`, `FieldRow`, `FieldGrid`, `Input`, `Textarea`, `Select` `options` `onChange(value)` | `.c-field`, `.c-field__row`, `.c-field-grid`, `.c-input`, `.c-input--multiline`, `.c-select` |
 | `ChangeRow` `status` `path` | `.c-change` |
 | `Palette` `open` `onClose` `label` `query` `onQueryChange` `listId` `activeId`, `PaletteList`, `PaletteItem` `selected` `label` `marks` `leading` `hint` `kbd`, `PaletteEmpty` | `.c-palette` (combobox + listbox) |

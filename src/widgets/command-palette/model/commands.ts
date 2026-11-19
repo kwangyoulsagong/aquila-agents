@@ -17,6 +17,8 @@ export type ActionId =
   | 'toggleChanges'
   | 'history'
   | 'nextWaiting'
+  | 'copyLastReply'
+  | 'quickSelect'
   | 'closeSession'
   | 'switchLanguage'
   | 'firstRun'
@@ -65,6 +67,8 @@ const ACTIONS: {
   { action: 'toggleChanges', label: (t) => t('changes.toggle'), shortcut: 'toggleChanges' },
   { action: 'history', label: (t) => t('history.title'), shortcut: 'history' },
   { action: 'nextWaiting', label: (t) => t('attention.next'), shortcut: 'nextWaiting' },
+  { action: 'copyLastReply', label: (t) => t('term.copyLastReply'), shortcut: 'copyLastReply' },
+  { action: 'quickSelect', label: (t) => t('term.quickSelect'), shortcut: 'quickSelect' },
   { action: 'closeSession', label: (t) => t('action.closeSession'), shortcut: 'closeSession' },
   { action: 'switchLanguage', label: (t) => t('palette.switchLanguage') },
   { action: 'firstRun', label: (t) => t('firstRun.checklist') },

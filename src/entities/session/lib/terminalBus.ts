@@ -1,6 +1,7 @@
 // Routes pty output to the xterm that owns it. One IPC listener for the whole app.
 // Output that arrives before a terminal mounts is buffered and flushed on attach.
 // Every batch is acknowledged once xterm has written it: main pauses the pty while acks lag (flow control).
+import type { Terminal } from '@xterm/xterm';
 import { api } from '@/shared/api';
 
 /** Writes `data` and calls `done` once it has been parsed. */
@@ -46,4 +47,35 @@ export function pasteIntoSession(id: string, text: string): boolean {
   if (!paste) return false;
   paste(text);
   return true;
+}
+
+/**
+ * Mounted xterm instances by session id, for features that work on a terminal (T28 helpers: paste, quick select,
+ * jump to bottom). They get the instance; the terminal itself stays owned by TerminalView.
+ */
+const terminals = new Map<string, Terminal>();
+const terminalListeners = new Set<() => void>();
+const notifyTerminals = () => {
+  for (const l of terminalListeners) l();
+};
+
+export function registerTerminal(id: string, term: Terminal): () => void {
+  terminals.set(id, term);
+  notifyTerminals();
+  return () => {
+    if (terminals.get(id) !== term) return;
+    terminals.delete(id);
+    notifyTerminals();
+  };
+}
+
+export function getTerminal(id: string): Terminal | null {
+  return terminals.get(id) ?? null;
+}
+
+export function subscribeTerminals(cb: () => void): () => void {
+  terminalListeners.add(cb);
+  return () => {
+    terminalListeners.delete(cb);
+  };
 }

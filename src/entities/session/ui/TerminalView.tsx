@@ -8,7 +8,7 @@ import { usePowerSaver } from '@/shared/lib/usePowerSaver';
 import { gpuPool } from '../lib/gpuPool';
 import { createImeGuard } from '../lib/imeGuard';
 import { SNAPSHOT_MS, SNAPSHOT_SAVER_MS, snapshotText } from '../lib/snapshot';
-import { attach, registerPaste } from '../lib/terminalBus';
+import { attach, registerPaste, registerTerminal } from '../lib/terminalBus';
 import { SCROLLBACK, sizeChanged } from '../model/terminal';
 
 const token = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -111,6 +111,7 @@ export default function TerminalView({ id, kind, visible, focused = visible }: P
       term.paste(text);
       term.focus();
     });
+    const unregister = registerTerminal(id, term);
     // Hangul IME: keys the IME swallows while composing (Enter, Esc, Ctrl+C…) still reach the session, once.
     const ime = createImeGuard({ write: (data) => api.write(id, data) });
     term.attachCustomKeyEventHandler(ime.onKey);
@@ -156,6 +157,7 @@ export default function TerminalView({ id, kind, visible, focused = visible }: P
       document.fonts.removeEventListener('loadingdone', scheduleFit);
       input.dispose();
       unpaste();
+      unregister();
       term.textarea?.removeEventListener('compositionend', ime.onCompositionEnd);
       ime.dispose();
       resized.dispose();

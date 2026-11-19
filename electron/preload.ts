@@ -1,5 +1,5 @@
 // The only bridge between renderer and main. Shape is defined by AquilaApi in src/shared/api/types.ts.
-import { clipboard, contextBridge, ipcRenderer, webUtils } from 'electron';
+import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import { IPC, type AquilaApi } from '../src/shared/api/types';
 
 const on =
@@ -54,7 +54,9 @@ const api: AquilaApi = {
   guideState: () => ipcRenderer.invoke(IPC.guideGet),
   markGuideOffered: () => ipcRenderer.invoke(IPC.guideOffered),
   pathForFile: (file) => webUtils.getPathForFile(file as Parameters<typeof webUtils.getPathForFile>[0]),
-  copyText: (text) => clipboard.writeText(text),
+  copyText: (text) => ipcRenderer.send(IPC.clipboardWrite, text),
+  clipboardPaths: () => ipcRenderer.invoke(IPC.clipboardPaths),
+  lastReply: (sessionId) => ipcRenderer.invoke(IPC.sessionLastReply, sessionId),
   write: (id, data) => ipcRenderer.send(IPC.sessionWrite, { id, data }),
   resize: (id, cols, rows) => ipcRenderer.send(IPC.sessionResize, { id, cols, rows }),
   kill: (id) => ipcRenderer.send(IPC.sessionKill, { id }),

@@ -4,6 +4,7 @@ import { kindLabel, useT } from '@/shared/i18n';
 import { draggedSession, endSessionDrag } from '@/shared/lib/sessionDrag';
 import { AccountBadge } from '@/entities/project';
 import { StatusDot, TerminalView } from '@/entities/session';
+import { TerminalHelpers } from '@/features/terminal-helpers';
 import { OpenSessionPanel } from '@/features/open-session';
 import { withShortcut } from '@/shared/lib/shortcuts';
 import {
@@ -242,6 +243,7 @@ export default function SplitView({
             onFocusCapture={() => r && onFocusPane(r.leaf.id)}
           >
             <TerminalView id={s.id} kind={s.kind} visible={!!r} focused={r?.leaf.id === layout.focusedId} />
+            <TerminalHelpers sessionId={s.id} kind={s.kind} />
           </div>
         );
       })}

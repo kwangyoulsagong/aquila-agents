@@ -8,6 +8,7 @@ import { SetupAccount } from '@/features/setup-account';
 import { OpenInWorktreeDialog } from '@/features/open-in-worktree';
 import { LanguageToggle } from '@/features/switch-language';
 import { nextWaiting } from '@/features/next-waiting';
+import { copyLastReply, toggleQuickSelect } from '@/features/terminal-helpers';
 import { FirstRunChecklist, useFirstRun } from '@/features/first-run';
 import { GuideButton, GuideModal, GuideOffer, useGuide } from '@/features/guide';
 import { ManageProjectsDialog, useManageProjects } from '@/features/manage-projects';
@@ -39,6 +40,14 @@ export default function WorkspacePage() {
   const goNextWaiting = useCallback(() => {
     if (waitingNext) selectSession(waitingNext);
   }, [waitingNext, selectSession]);
+  const focusedSession = sessions.find((x) => x.id === focusedId);
+  const agentFocused = !!focusedSession && focusedSession.kind !== 'shell' && !focusedSession.dormant;
+  const copyReply = useCallback(() => {
+    if (focusedId && agentFocused) void copyLastReply(focusedId);
+  }, [focusedId, agentFocused]);
+  const quickSelect = useCallback(() => {
+    if (focusedId && focusedSession && !focusedSession.dormant) toggleQuickSelect(focusedId);
+  }, [focusedId, focusedSession]);
   useShortcuts({
     config: ws.config,
     activeSessionId: ws.activeSessionId,
@@ -55,6 +64,8 @@ export default function WorkspacePage() {
     toggleGuide,
     toggleHistory,
     nextWaiting: goNextWaiting,
+    copyLastReply: copyReply,
+    quickSelect,
   });
 
   const { config, project, activeSessionId, openSession, closeSession, setConfig, showError } = ws;
@@ -87,6 +98,8 @@ export default function WorkspacePage() {
     a.history = toggleHistory;
     if (activeSessionId) a.closeSession = () => closeSession(activeSessionId);
     if (waitingNext) a.nextWaiting = goNextWaiting;
+    if (agentFocused) a.copyLastReply = copyReply;
+    if (focusedSession && !focusedSession.dormant) a.quickSelect = quickSelect;
     a.firstRun = reopenFirstRun;
     a.guide = showGuide;
     if (config) {
@@ -118,6 +131,10 @@ export default function WorkspacePage() {
     addProject,
     openSettings,
     openIn,
+    agentFocused,
+    copyReply,
+    focusedSession,
+    quickSelect,
   ]);
 
   if (!config) return null;

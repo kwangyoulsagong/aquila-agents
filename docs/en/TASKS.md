@@ -214,7 +214,8 @@ Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-1
 - **Owns:** `src/features/manage-projects/`, `electron/config.ts`.
 
 ### T28 · Terminal helpers
-- [ ] **Goal:** small host-side fixes for daily annoyances. (#27)
+- [x] **Goal:** small host-side fixes for daily annoyances. (#27)
+  _Left over: quick select reads the screen once when opened (labels don't follow output that scrolls meanwhile) and only the visible rows; the right-click menu has no Paste; ⌘V with an image is checked by unit tests and capture, not yet by hand with a real screenshot in Claude._
 - **Spec:** ⌘V with an image on the clipboard (and drag & drop of files) → temp file, path typed into the session;
   "copy last response"; scrolling up pauses auto-scroll and shows a "jump to bottom" button; keyboard URL/path picker
   (QuickSelect style).

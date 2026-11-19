@@ -575,6 +575,17 @@ export class SessionManager {
     return s?.projectId === projectId ? (s.startHead ?? '') : '';
   }
 
+  /** Which transcript holds a live agent tab's replies (T28 "copy last response"); undefined for shells. */
+  replySource(
+    id: string,
+  ): { agent: 'claude'; account?: string; sessionId: string } | { agent: 'codex'; sessionId: string } | undefined {
+    const s = this.sessions.get(id);
+    if (s?.kind === 'claude' && s.claudeSessionId)
+      return { agent: 'claude', sessionId: s.claudeSessionId, ...(s.account ? { account: s.account } : {}) };
+    if (s?.kind === 'codex' && s.codexSessionId) return { agent: 'codex', sessionId: s.codexSessionId };
+    return undefined;
+  }
+
   has(id: string): boolean {
     return this.sessions.has(id) || this.dormant.has(id);
   }

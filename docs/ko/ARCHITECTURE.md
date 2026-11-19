@@ -25,6 +25,7 @@
 │                                           │        │ detect.ts     CLI 점검, 첫 실행 상태 (T17)       │
 │                                           │        │ guide.ts      둘러보기 제안 한 번만 (T23)        │
 │                                           │        │ history.ts    지난 세션, 읽기 전용 (T11)         │
+│                                           │        │ terminalHelpers.ts 클립보드 경로, 마지막 응답    │
 │                                           │        │ smoke.ts      npm run smoke 자동 점검            │
 │ shared/   api (타입·IPC·bridge), i18n       │        │                                                 │
 └───────────────────────────────────────────┘        └─────────────────────────────────────────────────┘
@@ -176,6 +177,27 @@
   쓰고, 첫 줄이 `id`·`cwd`가 든 `session_meta`. id를 모르는 codex 탭에서 Enter를 치면 main이 (1.5초, 6초 뒤) 그 탭이
   spawn된 뒤 시작한 rollout의 머리를 읽고, 새 rollout마다 cwd가 같고 Enter 시각이 시작 시각에 가장 가까운 탭에 줘요
   (다른 탭이 가진 id는 건너뜀).
+
+## 터미널 도우미 (T28)
+
+`features/terminal-helpers/`가 세션마다 터미널 위에 `TermOverlay`를 그려요(분할 화면에서 `TerminalView` 옆에 렌더).
+xterm 인스턴스는 `useTerminal(id)`(`entities/session`, `TerminalView`가 채우는 레지스트리)로 받아서, 터미널은 계속
+엔티티가 소유해요.
+
+- **⌘V로 파일·이미지:** xterm 루트의 capture `paste` 리스너가 xterm보다 먼저 받아요. 클립보드에 파일이 있으면
+  `clipboard:paths`(main, `electron/terminalHelpers.ts`)가 Finder에서 복사한 경로는 그대로, 이미지는
+  `$TMPDIR/aquila-paste/paste-<시각>.png`로 저장해서(하루 지나면 삭제) 돌려줘요. 경로는 셸 이스케이프해서 입력처럼
+  붙여 넣어요(bracketed paste) → Claude/Codex가 이미지로 첨부. 일반 텍스트 붙여넣기는 그대로예요.
+- **파일 끌어다 놓기:** 터미널의 `dragover`/`drop`(탭 드래그 제외) → `webUtils.getPathForFile` → 같은 이스케이프 경로.
+- **마지막 응답 복사**(⇧⌘C, 팔레트, 우클릭): `session:last-reply`가 탭의 대화 기록 끝 4 MB를 읽어요 — Claude
+  `<configDir>/projects/*/<세션 id>.jsonl`, Codex `rollout-…-<id>.jsonl` — 마지막 assistant 메시지의 텍스트(Claude는 그
+  메시지의 텍스트 블록을 이어 붙임, 도구·thinking 제외)를 돌려줘요. 읽기 전용.
+- **맨 아래로:** 위로 스크롤하면 xterm 6이 이미 화면을 멈춰 둬요. 오버레이는 `viewportY < baseY`를 보고 버튼을
+  띄워요(그 사이 출력이 오면 "새 출력").
+- **URL·경로 고르기**(⇧⌘E): 보이는 줄(줄바꿈된 줄은 이어서, 넓은 글자는 칸에 맞춰)의 URL, 경로(`a/b.ts:12`, `~/x`,
+  `README.md`), 커밋 해시에 홈 row 라벨을 붙여요. 아래쪽부터 짧은 라벨, 같은 텍스트는 라벨 하나. 라벨을 치면 복사,
+  ⇧+라벨은 세션에 입력, Esc는 닫기. 키는 `code`로 읽어서 한글 입력 상태여도 돼요.
+- Electron 45는 preload에 `clipboard` 모듈이 없어서 `copyText`는 main의 `clipboard:write`를 거쳐요.
 
 ## 단축키
 

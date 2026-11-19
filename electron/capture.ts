@@ -241,6 +241,18 @@ export async function runCapture(win: BrowserWindow, sessions: SessionManager, c
         await press('G', ['meta', 'shift'], 500);
       },
     },
+    {
+      // Terminal helpers (T28): quick select labels the paths on screen; typing one copies it.
+      id: 'terminal',
+      rect: FULL,
+      ms: 3600,
+      act: async () => {
+        await wait(400);
+        await press('E', ['meta', 'shift'], 1900);
+        await press('A', [], 1000); // ends on the "Copied" note (shown 1.6 s)
+      },
+      after: () => press('Escape', [], 300),
+    },
     { id: 'accounts', rect: TOP_RIGHT },
     { id: 'projects', rect: SIDEBAR },
     {

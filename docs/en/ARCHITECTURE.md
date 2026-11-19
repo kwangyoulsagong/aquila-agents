@@ -25,6 +25,7 @@
 │                                           │        │ detect.ts     CLI checks, first-run state (T17)  │
 │                                           │        │ guide.ts      tour offered once (T23)            │
 │                                           │        │ history.ts    past sessions, read-only (T11)     │
+│                                           │        │ terminalHelpers.ts clipboard paths, last reply   │
 │                                           │        │ smoke.ts      npm run smoke self-check           │
 │ shared/   api (types · IPC · bridge), i18n│        │                                                 │
 └───────────────────────────────────────────┘        └─────────────────────────────────────────────────┘
@@ -185,6 +186,28 @@
   on the first prompt; its first line is `session_meta` with `id` and `cwd`. After Enter in a codex tab that doesn't
   know its id, main reads the heads of rollouts started since that tab spawned (1.5 s and 6 s later) and gives each new
   one to the tab with the same cwd where Enter was typed closest to its start, skipping ids other tabs own.
+
+## Terminal helpers (T28)
+
+`features/terminal-helpers/` draws a `TermOverlay` over each session's terminal (rendered next to `TerminalView` in
+split view). It gets the xterm instance through `useTerminal(id)` (`entities/session`, a registry `TerminalView` fills),
+so the terminal stays owned by the entity.
+
+- **⌘V with files / an image:** a capture `paste` listener on xterm's root runs before xterm's own. When the clipboard
+  carries files, `clipboard:paths` (main, `electron/terminalHelpers.ts`) returns Finder-copied paths as they are, or
+  saves the image as `$TMPDIR/aquila-paste/paste-<time>.png` (pruned after a day). The paths are shell-escaped and pasted
+  like typed text (bracketed paste), so Claude/Codex attach the image. Plain text paste is untouched.
+- **Drop files:** `dragover`/`drop` on the terminal (not tab drags) → `webUtils.getPathForFile` → same escaped paths.
+- **Copy last response** (⇧⌘C, palette, right-click): `session:last-reply` reads the tail (4 MB) of the tab's
+  transcript — Claude `<configDir>/projects/*/<session id>.jsonl`, Codex `rollout-…-<id>.jsonl` — and returns the text
+  of the last assistant message (Claude's text blocks of that message joined; tools and thinking left out). Read-only.
+- **Jump to bottom:** xterm 6 already holds the view while you're scrolled up; the overlay watches `viewportY < baseY`
+  and shows a button ("New output" once something arrived).
+- **Quick select** (⇧⌘E): URLs, paths (`a/b.ts:12`, `~/x`, `README.md`) and commit hashes in the visible rows
+  (wrapped rows joined; wide characters mapped to their cells) get home-row labels, nearest to the bottom first; equal
+  texts share one. Typing a label copies it, ⇧+label types it into the session, Esc closes. Keys are read by `code`, so
+  the Korean input source doesn't matter.
+- Electron 45 has no `clipboard` module in the preload: `copyText` goes through `clipboard:write` in main.
 
 ## Shortcuts
 

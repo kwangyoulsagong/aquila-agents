@@ -15,6 +15,8 @@ export type ShortcutId =
   | 'toggleChanges'
   | 'history'
   | 'nextWaiting'
+  | 'copyLastReply'
+  | 'quickSelect'
   | 'splitRight'
   | 'splitDown'
   | 'focusLeft'
@@ -40,6 +42,8 @@ export const SHORTCUTS: Readonly<Record<ShortcutId, string>> = {
   toggleChanges: 'CommandOrControl+Shift+G',
   history: 'CommandOrControl+Y',
   nextWaiting: 'CommandOrControl+J',
+  copyLastReply: 'CommandOrControl+Shift+C',
+  quickSelect: 'CommandOrControl+Shift+E',
   splitRight: 'CommandOrControl+D',
   splitDown: 'CommandOrControl+Shift+D',
   focusLeft: 'CommandOrControl+Alt+Left',

@@ -22,6 +22,9 @@ interface Deps {
   toggleHistory: () => void;
   /** Jump to the next session that needs the user (any project). */
   nextWaiting: () => void;
+  /** Terminal helpers (T28) on the focused session. */
+  copyLastReply: () => void;
+  quickSelect: () => void;
 }
 
 /** Runs the shortcuts of `shared/lib/shortcuts.ts`. Capture phase so xterm doesn't eat them. */
@@ -41,6 +44,8 @@ export function useShortcuts({
   toggleGuide,
   toggleHistory,
   nextWaiting,
+  copyLastReply,
+  quickSelect,
 }: Deps) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -74,6 +79,10 @@ export function useShortcuts({
           return toggleHistory();
         case 'nextWaiting':
           return nextWaiting();
+        case 'copyLastReply':
+          return copyLastReply();
+        case 'quickSelect':
+          return quickSelect();
         case 'splitRight':
           return splitFocused('row');
         case 'splitDown':
@@ -116,5 +125,7 @@ export function useShortcuts({
     toggleGuide,
     toggleHistory,
     nextWaiting,
+    copyLastReply,
+    quickSelect,
   ]);
 }
