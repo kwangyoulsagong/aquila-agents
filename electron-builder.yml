@@ -1,0 +1,29 @@
+# `npm run dist` → release/Aquila Agents-<version>-arm64.dmg (+ .zip). Builds are shared by hand for now:
+# not signed or notarized, no auto-update (see docs/en/TASKS.md T8 → left over).
+appId: dev.aquila.agents
+productName: Aquila Agents
+copyright: Copyright © 2026 Aquila Agents
+directories:
+  output: release
+  buildResources: build
+files:
+  - dist/**
+  - '!dist/smoke.png'
+  - dist-electron/**
+  - '!dist-electron/**/*.test.js'
+  - '!dist-electron/electron/tools/**'
+  - package.json
+# node-pty is native: its .node files and spawn-helper must live outside the asar to load and execute.
+asarUnpack:
+  - node_modules/node-pty/**
+mac:
+  target:
+    - target: dmg
+      arch: arm64
+    - target: zip
+      arch: arm64
+  category: public.app-category.developer-tools
+  icon: build/icon.png
+  identity: null
+dmg:
+  title: Aquila Agents ${version}
