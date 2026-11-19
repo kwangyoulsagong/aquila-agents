@@ -1,3 +1,4 @@
+import { Button, Label } from '@design-system/react';
 import type { ReactNode } from 'react';
 import { api, type Config, type Session } from '@/shared/api';
 import { groupLabel, useT } from '@/shared/i18n';
@@ -26,7 +27,7 @@ export default function Sidebar({ config, sessions, activeProjectId, onSelect, f
           if (projects.length === 0) return null;
           return (
             <div key={group.id} className="c-sidebar__group">
-              <div className="c-label">{groupLabel(t, group)}</div>
+              <Label>{groupLabel(t, group)}</Label>
               {projects.map((p) => {
                 const mine = sessions.filter((s) => s.projectId === p.id);
                 return (
@@ -59,9 +60,9 @@ export default function Sidebar({ config, sessions, activeProjectId, onSelect, f
         })}
       </nav>
       <div className="c-sidebar__foot">
-        <button className="c-btn c-btn--ghost" onClick={() => api.openConfig()}>
+        <Button variant="ghost" onClick={() => api.openConfig()}>
           {t('action.openConfig')}
-        </button>
+        </Button>
         {footer}
       </div>
     </aside>

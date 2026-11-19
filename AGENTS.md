@@ -34,7 +34,7 @@ src/               React renderer, Feature-Sliced Design:
   features/        switch-account, switch-language, open-session
   entities/        session (xterm, status), project
   shared/          api (types, IPC names, bridge), i18n (dictionary + useT)
-design-system/     tokens.css (primitive → semantic), components.css, preview.html
+design-system/     tokens.css (primitive → semantic), components.css, react/ (components), preview.html
 docs/en, docs/ko   README, ARCHITECTURE, DESIGN-SYSTEM, TASKS (English / Korean, kept in sync)
 ```
 
@@ -54,8 +54,10 @@ docs/en, docs/ko   README, ARCHITECTURE, DESIGN-SYSTEM, TASKS (English / Korean,
    Sidebar content edge is 20px. Check `design-system/preview.html` after visual changes.
 4b. **Micro-interactions** use `--motion-*` tokens only, are short (≤320ms), confirm an action or a state change,
    and are disabled under `prefers-reduced-motion` (already global in `components.css`).
-5. **Components look like the design system.** Reuse `.c-*` classes from `components.css`; add new ones there
-   (BEM: `.c-x`, `.c-x__part`, `.c-x--variant`, state via `aria-*`/`data-*`). `src/styles/app.css` is layout only.
+5. **Components come from the design system.** Use the React components in `design-system/react/`
+   (`@design-system/react`) instead of writing `.c-*` class names. New primitive → class in `components.css`
+   (BEM: `.c-x`, `.c-x__part`, `.c-x--variant`, state via `aria-*`/`data-*`) + component in `design-system/react/`.
+   `design-system/` never imports from `src/`. `src/app/styles/app.css` is layout only.
 6. **Don't touch the user's CLI setup.** Claude hooks are injected only via `--settings ~/.agentrix/claude-hooks.json`
    for sessions we spawn. Never write to `~/.claude*`, `~/.codex`, or shell rc files — except the explicit,
    user-confirmed actions specified in T2 (zshrc alias) and T11 (move sessions/memory to Trash).

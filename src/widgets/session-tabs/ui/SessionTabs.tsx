@@ -1,3 +1,4 @@
+import { Button } from '@design-system/react';
 import type { ReactNode } from 'react';
 import type { Config, Session, SessionKind } from '@/shared/api';
 import { kindLabel, useT } from '@/shared/i18n';
@@ -56,13 +57,15 @@ export default function SessionTabs({
           </button>
         </div>
       ))}
-      <button
-        className="c-btn c-btn--ghost c-btn--icon c-tabbar__add"
+      <Button
+        variant="ghost"
+        icon
+        className="c-tabbar__add"
         title={`${t('action.openClaude')} (⌘T)`}
         onClick={() => onNew('claude')}
       >
         +
-      </button>
+      </Button>
       {trailing && <div className="c-tabbar__trailing">{trailing}</div>}
     </div>
   );

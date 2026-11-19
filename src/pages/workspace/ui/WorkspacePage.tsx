@@ -1,5 +1,6 @@
 import { I18nContext, translator } from '@/shared/i18n';
 import { AccountSwitch } from '@/features/switch-account';
+import { SetupAccount } from '@/features/setup-account';
 import { LanguageToggle } from '@/features/switch-language';
 import { Sidebar } from '@/widgets/sidebar';
 import { SessionTabs } from '@/widgets/session-tabs';
@@ -41,7 +42,17 @@ export default function WorkspacePage() {
             onSelect={ws.selectSession}
             onClose={ws.closeSession}
             onNew={ws.openSession}
-            trailing={project && <AccountSwitch config={config} project={project} onChanged={ws.setConfig} />}
+            trailing={
+              project && (
+                <>
+                  <SetupAccount
+                    config={config}
+                    onOpenClaude={(account) => ws.openSession('claude', account)}
+                  />
+                  <AccountSwitch config={config} project={project} onChanged={ws.setConfig} />
+                </>
+              )
+            }
           />
           {ws.error && (
             <div className="app__error" role="alert" onClick={ws.clearError}>

@@ -1,3 +1,4 @@
+import { Button, EmptyState, Kbd } from '@design-system/react';
 import type { Project, SessionKind } from '@/shared/api';
 import { useT } from '@/shared/i18n';
 import { OPEN_ACTIONS } from '../model/actions';
@@ -10,23 +11,17 @@ interface Props {
 /** Empty state of a project: what it is, and the three ways to start. */
 export default function OpenSessionPanel({ project, onOpen }: Props) {
   const t = useT();
-  if (!project) return <div className="c-empty">{t('empty.pickProject')}</div>;
+  if (!project) return <EmptyState>{t('empty.pickProject')}</EmptyState>;
   return (
-    <div className="c-empty">
-      <div className="c-empty__title">{project.name}</div>
-      <div className="c-empty__path">{project.path}</div>
-      <div className="c-empty__actions">
-        {OPEN_ACTIONS.map((a) => (
-          <button
-            key={a.kind}
-            className={`c-btn${a.primary ? ' c-btn--primary' : ''}`}
-            onClick={() => onOpen(a.kind)}
-          >
-            {t(a.key)}
-            <span className="c-kbd">{a.kbd}</span>
-          </button>
-        ))}
-      </div>
-    </div>
+    <EmptyState
+      title={project.name}
+      path={project.path}
+      actions={OPEN_ACTIONS.map((a) => (
+        <Button key={a.kind} variant={a.primary ? 'primary' : 'default'} onClick={() => onOpen(a.kind)}>
+          {t(a.key)}
+          <Kbd>{a.kbd}</Kbd>
+        </Button>
+      ))}
+    />
   );
 }

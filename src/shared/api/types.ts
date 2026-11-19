@@ -16,6 +16,24 @@ export interface Account {
   claudeConfigDir: string | null;
 }
 
+/** What `accounts:status` reports per account. */
+export interface AccountStatus {
+  /** ~/.claude for shared, the account's claudeConfigDir otherwise. */
+  configDirExists: boolean;
+  /** `.claude.json` has `oauthAccount` (shared: ~/.claude.json, others: <dir>/.claude.json). */
+  loggedIn: boolean;
+}
+
+/** The zsh function that runs Claude with an account, e.g. `claude-personal`. */
+export interface ShellFunctionPreview {
+  name: string;
+  rcPath: string;
+  /** Exact line that would be appended. */
+  snippet: string;
+  /** Already a function/alias in the user's shell: nothing will be written. */
+  defined: boolean;
+}
+
 export interface Group {
   id: string;
   /** Optional: translated name is used for known ids (work/personal). */
@@ -59,7 +77,14 @@ export interface AgentrixApi {
   openConfig(): Promise<string>;
   setLanguage(language: Language): Promise<Config>;
   setProjectAccount(projectId: string, account: string): Promise<Config>;
-  createSession(projectId: string, kind: SessionKind): Promise<SessionInfo>;
+  /** `account` overrides the project's account for this one session (setup opens a Claude login with it). */
+  createSession(projectId: string, kind: SessionKind, account?: string): Promise<SessionInfo>;
+  accountsStatus(): Promise<Record<string, AccountStatus>>;
+  /** Creates the account's config dir. */
+  prepareAccount(account: string): Promise<AccountStatus>;
+  shellFunctionPreview(account: string): Promise<ShellFunctionPreview>;
+  /** Appends the previewed function to ~/.zshrc unless already defined. Explicit click only. */
+  installShellFunction(account: string): Promise<ShellFunctionPreview>;
   write(id: string, data: string): void;
   resize(id: string, cols: number, rows: number): void;
   kill(id: string): void;
@@ -78,6 +103,10 @@ export const IPC = {
   configSetLanguage: 'config:set-language',
   configSetProjectAccount: 'config:set-project-account',
   sessionCreate: 'session:create',
+  accountsStatus: 'accounts:status',
+  accountsPrepare: 'accounts:prepare',
+  accountsShellPreview: 'accounts:shell-preview',
+  accountsShellInstall: 'accounts:shell-install',
   sessionWrite: 'session:write',
   sessionResize: 'session:resize',
   sessionKill: 'session:kill',

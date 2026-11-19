@@ -2,7 +2,12 @@ import { useEffect } from 'react';
 import type { Config, SessionKind } from '@/shared/api';
 import type { Edge, SplitDir } from '@/widgets/split-view';
 
-const ARROWS: Record<string, Edge> = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'top', ArrowDown: 'bottom' };
+const ARROWS: Record<string, Edge> = {
+  ArrowLeft: 'left',
+  ArrowRight: 'right',
+  ArrowUp: 'top',
+  ArrowDown: 'bottom',
+};
 
 interface Deps {
   config: Config | null;

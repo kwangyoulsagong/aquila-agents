@@ -55,10 +55,11 @@ export function useWorkspace() {
   }, [visibleSessionIds]);
 
   const openSession = useCallback(
-    async (kind: SessionKind) => {
+    /** `account` overrides the project's Claude account for this session (account setup). */
+    async (kind: SessionKind, account?: string) => {
       if (!activeProjectId) return;
       try {
-        const s = await api.createSession(activeProjectId, kind);
+        const s = await api.createSession(activeProjectId, kind, account);
         setSessions((list) => [...list, { ...s, status: 'idle' }]);
         placeInFocused(s.id);
       } catch (e) {

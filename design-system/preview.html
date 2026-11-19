@@ -56,6 +56,20 @@
   </section>
 
   <section>
+    <h2>Dialog</h2>
+    <div class="c-dialog" style="position:static;display:block">
+      <h2 class="c-dialog__title">개인 계정 설정</h2>
+      <div class="c-dialog__body">
+        <p>~/.claude-personal 에 Claude 로그인을 따로 만들어요.</p>
+        <div class="c-dialog__check"><i class="c-dot" data-status="done"></i>폴더 있음</div>
+        <div class="c-dialog__check"><i class="c-dot" data-status="waiting"></i>로그인 필요</div>
+        <pre class="c-dialog__code">claude-personal() { CLAUDE_CONFIG_DIR="$HOME/.claude-personal" command claude "$@"; }</pre>
+      </div>
+      <div class="c-dialog__actions"><button class="c-btn c-btn--ghost">닫기</button><button class="c-btn c-btn--primary">폴더 만들고 로그인</button></div>
+    </div>
+  </section>
+
+  <section>
     <h2>App</h2>
     <div class="mock">
       <aside class="c-sidebar">

@@ -44,11 +44,21 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    files: ['src/**/*.{ts,tsx}'],
+    files: ['src/**/*.{ts,tsx}', 'design-system/**/*.{ts,tsx}'],
     languageOptions: { globals: globals.browser },
     plugins: { 'react-hooks': reactHooks },
     rules: { ...reactHooks.configs.recommended.rules },
   },
   ...fsdBoundaries,
+  // The design system sits below every layer: it must not import app code.
+  {
+    files: ['design-system/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        { patterns: [{ group: ['@/*', '**/src/**'], message: 'design-system must not import from src/.' }] },
+      ],
+    },
+  },
   { files: ['electron/**/*.ts'], languageOptions: { globals: globals.node } },
 );
