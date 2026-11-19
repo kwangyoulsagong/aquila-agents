@@ -5,13 +5,14 @@
 ```
 ┌──────── Renderer (src/, React, FSD) ──────┐        ┌──────────── Main (electron/, Node) ─────────────┐
 │ app/      entry, global styles            │  IPC   │ main.ts       window + IPC handlers              │
-│ pages/    workspace (state hook, shortcuts)│◀──────▶│ config.ts     ~/.aquila/config.json            │
+│ pages/    workspace (state hook, shortcuts)│◀──────▶│ config.ts     ~/.aquila/config.json              │
 │ widgets/  sidebar, session-tabs,          │preload │ sessions.ts   one node-pty per session           │
-│           split-view                      │        │ accounts.ts   account status, ~/.claude-* dir,   │
+│           split-view, changes-panel       │        │ accounts.ts   account status, ~/.claude-* dir,   │
 │ features/ switch-account, switch-language,│  .ts   │               zsh function (explicit click)      │
 │           open-session, setup-account     │        │ hooks.ts      127.0.0.1:<port> hook receiver     │
-│                                           │        │               + ~/.aquila/claude-hooks.json     │
-│ entities/ session (xterm, status), project│        │ smoke.ts      npm run smoke self-check           │
+│                                           │        │               + ~/.aquila/claude-hooks.json       │
+│ entities/ session (xterm, status), project│        │ git.ts        git status + diff (read-only)      │
+│           diff                            │        │ smoke.ts      npm run smoke self-check           │
 │ shared/   api (types · IPC · bridge), i18n│        │                                                 │
 └───────────────────────────────────────────┘        └─────────────────────────────────────────────────┘
                                                               │ spawns (login + interactive zsh)
@@ -47,6 +48,16 @@
 - The focused pane's session is the active one. Focusing a pane from another project switches the sidebar/tabs to it.
   Selecting a project focuses a pane that already shows it, otherwise the focused pane takes that project's last session.
 - Tabs are draggable (`shared/lib/sessionDrag.ts`); dropping on a pane edge splits, on the middle replaces.
+
+## Changes panel
+
+- ⌘⇧G (or the ± button in the tab bar) toggles `widgets/changes-panel` on the right, for the selected project.
+- Main (`git.ts`, `git:changes`): `git status --porcelain=v1 -b -z` → branch, ahead/behind, files (status letter
+  M A D R C U ?); `git diff --no-color HEAD` (falls back to `git diff` before the first commit) plus up to 20
+  untracked files as new-file diffs (`--no-index /dev/null`). Output capped at 400 KB, cut at a line end. Read-only,
+  `GIT_OPTIONAL_LOCKS=0` so it never fights the agent for `index.lock`.
+- Renderer: `entities/diff` parses the diff into files/lines (`parseDiff`, tested) and renders `.c-diff`.
+  Clicking a file scrolls to it. Refreshes on window focus and every 5 s while open and visible; nothing polls when closed.
 
 ## Status
 
@@ -94,3 +105,9 @@ Renderer: `useT()`; main (notifications): `translator(config.language)`.
 - Renderer: Vite → `dist/`. Main + preload: `tsc -p tsconfig.electron.json` → `dist-electron/` (CommonJS).
 - `node-pty` is native: `postinstall` runs `electron-rebuild`. After changing Electron's version, rerun `npm install`.
 - `npm run smoke`: build, launch, open a shell session, verify the pty round-trip, save `dist/smoke.png`, quit (0 ok / 1 fail).
+  It also logs whether `claude`/`codex` are on PATH. A packaged app saves the screenshot to the temp dir.
+- Finder launches get launchd's minimal PATH. `env.ts` reads the login + interactive shell's PATH once at startup and
+  puts it in front (sessions already start a login shell; this is for what main runs directly, like `git`).
+- `npm run dist`: electron-builder (`electron-builder.yml`) → `release/*.dmg` + `.zip`, arm64, unsigned. Only `node-pty`
+  is a runtime dependency (renderer libraries are bundled by Vite, so they're devDependencies); it's unpacked from the
+  asar. Icon: `build/icon.svg` → `npm run icon` → `build/icon.png` (rendered by Electron, `electron/tools/render-icon.ts`).

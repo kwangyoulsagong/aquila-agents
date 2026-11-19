@@ -35,7 +35,8 @@ only with small additive edits. Merge order follows the numbering when two tasks
 - **Owns:** `electron/accounts.ts`, `src/features/setup-account/`, `src/features/switch-account/`.
 
 ### T3 · Changes panel
-- [ ] **Goal:** see what agents changed without leaving the app.
+- [x] **Goal:** see what agents changed without leaving the app.
+  _Left over: read-only (no stage/discard); untracked diffs limited to 20 files; panel width is fixed._
 - **UX:** ⌘⇧G toggles `.c-panel` on the right: branch, changed files (status letter + path), unified diff with
   `.c-diff__line--*`. Refresh on focus and every 5s while open.
 - **Owns:** `electron/git.ts` (`git status --porcelain=v1 -b`, `git diff --no-color`, 400 KB cap),
@@ -62,7 +63,8 @@ only with small additive edits. Merge order follows the numbering when two tasks
 - **Owns:** `electron/worktrees.ts`, `src/features/open-in-worktree/`.
 
 ### T8 · Packaging
-- [ ] **Goal:** `npm run dist` → `Aquila Agents.app` (arm64) the user drags to /Applications.
+- [x] **Goal:** `npm run dist` → `Aquila Agents.app` (arm64) the user drags to /Applications.
+  _Left over: unsigned/not notarized (receivers clear quarantine, see README), no auto-update, arm64 only, no Windows build, no in-app CLI-missing screen yet (PATH is restored)._
 - **Spec:** electron-builder, icon from the design system (dark tile, accent mark), asar with `node-pty` unpacked.
 - **Owns:** `electron-builder.yml`, `build/`, `package.json` scripts.
 

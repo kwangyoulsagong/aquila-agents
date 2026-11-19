@@ -8,7 +8,7 @@ interface Props {
   onOpen: (kind: SessionKind) => void;
 }
 
-/** Empty state of a project: what it is, and the three ways to start. */
+/** Empty state of a project: what it is, and how to start Claude or Codex. */
 export default function OpenSessionPanel({ project, onOpen }: Props) {
   const t = useT();
   if (!project) return <EmptyState>{t('empty.pickProject')}</EmptyState>;

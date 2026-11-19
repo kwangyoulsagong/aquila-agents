@@ -1,8 +1,10 @@
 // Main process: window, config, pty sessions, Claude hook receiver.
 import path from 'node:path';
 import { app, BrowserWindow, ipcMain, shell } from 'electron';
+import { restoreShellPath } from './env';
 import { accountsStatus, installShellFunction, prepareAccount, shellFunctionPreview } from './accounts';
 import { CONFIG_PATH, loadConfig, setLanguage, setProjectAccount } from './config';
+import { gitChanges } from './git';
 import { startHookServer, writeClaudeHookSettings } from './hooks';
 import { SessionManager } from './sessions';
 import { isSmoke, runSmoke, watchOutput } from './smoke';
@@ -34,6 +36,7 @@ function createWindow(): void {
 }
 
 app.whenReady().then(async () => {
+  await restoreShellPath(); // Finder launches get a minimal PATH
   const hookPort = await startHookServer((tabId, status) => sessions?.onHook(tabId, status));
   const smokeOutput = { buffer: '' };
   const send = (channel: string, payload: unknown) => win?.webContents.send(channel, payload);
@@ -66,6 +69,7 @@ app.whenReady().then(async () => {
   ipcMain.handle(IPC.accountsShellInstall, (_e, account: string) =>
     installShellFunction(loadConfig(), account),
   );
+  ipcMain.handle(IPC.gitChanges, (_e, projectId: string) => gitChanges(loadConfig(), projectId));
   ipcMain.on(IPC.sessionWrite, (_e, { id, data }: { id: string; data: string }) => s.write(id, data));
   ipcMain.on(IPC.sessionResize, (_e, { id, cols, rows }: { id: string; cols: number; rows: number }) =>
     s.resize(id, cols, rows),

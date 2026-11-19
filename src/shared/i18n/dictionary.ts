@@ -5,7 +5,6 @@ import type { Account, Group, Language, SessionKind } from '../api/types';
 const ko = {
   'action.openClaude': 'Claude 열기',
   'action.openCodex': 'Codex 열기',
-  'action.openShell': '셸 열기',
   'action.closeSession': '세션 닫기',
   'action.openConfig': '설정 파일 열기',
   'action.switchLanguage': 'English',
@@ -39,6 +38,13 @@ const ko = {
   'kind.shell': '셸',
   'notify.done': '작업 완료',
   'notify.waiting': '입력 필요',
+  'changes.title': '변경사항',
+  'changes.files': '{count}개 파일',
+  'changes.none': '변경사항 없음',
+  'changes.notRepo': 'git 저장소가 아니에요',
+  'changes.truncated': '처음 400 KB만 보여요',
+  'changes.refresh': '새로고침',
+  'changes.toggle': '변경사항 보기',
   'error.projectNotFound': '프로젝트를 찾을 수 없어요: {id}',
   'error.configRead': 'config.json을 읽지 못했어요: {message}',
 } as const;
@@ -48,7 +54,6 @@ type Key = keyof typeof ko;
 const en = {
   'action.openClaude': 'Open Claude',
   'action.openCodex': 'Open Codex',
-  'action.openShell': 'Open shell',
   'action.closeSession': 'Close session',
   'action.openConfig': 'Open settings file',
   'action.switchLanguage': '한국어',
@@ -82,6 +87,13 @@ const en = {
   'kind.shell': 'Shell',
   'notify.done': 'Done',
   'notify.waiting': 'Needs input',
+  'changes.title': 'Changes',
+  'changes.files': '{count} files',
+  'changes.none': 'No changes',
+  'changes.notRepo': 'Not a git repository',
+  'changes.truncated': 'Showing the first 400 KB',
+  'changes.refresh': 'Refresh',
+  'changes.toggle': 'Show changes',
   'error.projectNotFound': 'Project not found: {id}',
   'error.configRead': "Couldn't read config.json: {message}",
 } satisfies Record<Key, string>;

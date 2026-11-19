@@ -35,7 +35,8 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
 - **담당:** `electron/accounts.ts`, `src/features/setup-account/`, `src/features/switch-account/`.
 
 ### T3 · 변경사항 패널
-- [ ] **목표:** 에이전트가 바꾼 걸 앱 안에서 바로 확인.
+- [x] **목표:** 에이전트가 바꾼 걸 앱 안에서 바로 확인.
+  _남은 것: 읽기 전용(stage/되돌리기 없음), 추적 안 된 파일 diff는 20개까지, 패널 폭 고정._
 - **UX:** ⌘⇧G로 오른쪽 `.c-panel` 토글: 브랜치, 변경 파일(상태 글자 + 경로), `.c-diff__line--*`로 그린 diff.
   앱에 포커스가 오면, 그리고 열려 있는 동안 5초마다 새로고침.
 - **담당:** `electron/git.ts` (`git status --porcelain=v1 -b`, `git diff --no-color`, 400KB 제한),
@@ -62,7 +63,8 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
 - **담당:** `electron/worktrees.ts`, `src/features/open-in-worktree/`.
 
 ### T8 · 패키징
-- [ ] **목표:** `npm run dist` → /Applications로 옮길 수 있는 `Aquila Agents.app` (arm64).
+- [x] **목표:** `npm run dist` → /Applications로 옮길 수 있는 `Aquila Agents.app` (arm64).
+  _남은 것: 서명·공증 없음(받는 사람이 격리 해제, README 참고), 자동 업데이트 없음, arm64만, Windows 빌드 없음, CLI가 없을 때 안내 화면은 아직(PATH 복원은 됨)._
 - **스펙:** electron-builder, 디자인 시스템 기반 아이콘(어두운 타일 + 강조색 마크), `node-pty`는 asar 밖으로.
 - **담당:** `electron-builder.yml`, `build/`, `package.json` 스크립트.
 
