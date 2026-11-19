@@ -349,6 +349,9 @@ const ko = {
   'usage.nearTitle': '{account} 한도 임박',
   'usage.nearBody5h': '5시간 한도의 {percent}%를 썼어요 (추정). {time}에 리셋돼요. 다른 계정으로 새 세션을 열 수 있어요.',
   'usage.nearBodyWeek': '주간 한도의 {percent}%를 썼어요 (추정). 다른 계정으로 새 세션을 열 수 있어요.',
+  'context.label': '컨텍스트',
+  'context.ofWindow': '{used} / {size} 토큰',
+  'context.hint': '곧 자동 압축돼요. 지금 /compact 하거나 새 세션을 여는 게 좋아요.',
 } as const;
 
 type Key = keyof typeof ko;
@@ -700,6 +703,9 @@ const en = {
   'usage.nearTitle': '{account} is near its limit',
   'usage.nearBody5h': 'Used {percent}% of the 5-hour limit (estimated). Resets at {time}. You can open a new session with another account.',
   'usage.nearBodyWeek': 'Used {percent}% of the weekly limit (estimated). You can open a new session with another account.',
+  'context.label': 'Context',
+  'context.ofWindow': '{used} of {size} tokens',
+  'context.hint': 'Auto-compact is getting close. Consider /compact or a new session now.',
 } satisfies Record<Key, string>;
 
 const DICT: Record<Language, Record<Key, string>> = { ko, en };

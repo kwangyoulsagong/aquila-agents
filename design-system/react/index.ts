@@ -7,6 +7,7 @@ export { Badge, HostBadge, type ConnState } from './Badge';
 export { Kbd } from './Kbd';
 export { Elapsed } from './Elapsed';
 export { Meter, type MeterProps, type MeterTone } from './Meter';
+export { Ring, type RingProps } from './Ring';
 export { Label } from './Label';
 export { Segment, type SegmentOption } from './Segment';
 export { EmptyState } from './EmptyState';

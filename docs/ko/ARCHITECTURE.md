@@ -23,6 +23,7 @@
 │                                           │        │ output.ts     출력 묶음 + 흐름 제어              │
 │                                           │        │ power.ts      절전 프로필: 배터리·발열 (T9)      │
 │           usage-gauge                     │        │ usage.ts      계정별 5시간·주간 사용량 (T30)     │
+│                                           │        │ context.ts    탭별 컨텍스트 사용량 (T31)         │
 │                                           │        │ detect.ts     CLI 점검, 첫 실행 상태 (T17)       │
 │                                           │        │ guide.ts      둘러보기 제안 한 번만 (T23)        │
 │                                           │        │ history.ts    지난 세션, 읽기 전용 (T11)         │
@@ -261,6 +262,26 @@ xterm 인스턴스는 `useTerminal(id)`(`entities/session`, `TerminalView`가 �
 - **갱신:** 마운트 때 `usage:get`, 이후 `usage:changed` 푸시: `Stop` 훅 3초 뒤, 포커스 중 1분마다, 아니면 5분마다,
   절전 모드에선 두 배. 바쁜 한 주의 첫 스캔 ≈ 2초(비동기), 이후 ~25ms.
 - 빠지는 것: claude.ai, 다른 기기, 원격(SSH) 세션.
+
+## 컨텍스트 게이지 (T31)
+
+`electron/context.ts` + `entities/session`의 `ContextGauge`. 로컬 Claude 탭마다 12px 링.
+
+- **출처:** Claude가 statusline에 주는 JSON. 우리가 넘기는 `--settings` 파일에 `statusLine` 명령을 넣어 stdin을
+  `~/.aquila/context/$AQUILA_TAB_ID.json`에 씀(임시 파일 + `mv`, 아무것도 출력 안 함, 우리 탭이 아니면 아무 일 없음).
+  설정 파일은 이제 넷: http / legacy 훅 각각 statusline 있음·없음(`claude-hooks-status.json`,
+  `claude-hooks-legacy-status.json`).
+- **사용자 status line 우선:** 실행 전에 `statusLineSources` + `userHasStatusLine`이 `<configDir>/settings.json`,
+  `<cwd>/.claude/settings.json`, `<cwd>/.claude/settings.local.json`, managed settings를 읽기만 함. 어디든 `statusLine`이
+  있으면 기본 설정 파일을 쓰고(우리 것이 대체해 버리므로) 그 탭엔 게이지 없음.
+- **읽기:** `ContextWatcher`가 실행 때 폴더를 비우고 `fs.watch`, 몰려오는 갱신이 끝나고 250ms 뒤 탭 파일을 읽어
+  `context_window.used_percentage`(없으면 `current_usage`의 입력 + 캐시 토큰 ÷ `context_window_size`)를 씀. 첫 메시지 전엔
+  보여줄 게 없음. 반올림한 비율이나 토큰이 바뀔 때만 `context:changed`(`{ id, usage | null }`) 푸시, 렌더러가 다시 뜨면
+  `context:get`.
+- **지움:** 탭 닫힘(`SessionManager`의 `onEnded`) 또는 `/clear`가 아닌 `SessionEnd`(Claude 종료, 셸은 남음) → 파일 삭제,
+  `usage: null`. `/clear`는 새로 보고될 뿐.
+- **UI:** 회색 링, 60%부터 숫자가 보이고 주황, 85%부터 빨강. 툴팁: 비율, `사용 / 전체` 토큰, 60%부터 /compact 안내.
+  원격 탭(훅 없음)과 smoke에선 안 보임.
 
 ## 단축키
 

@@ -242,7 +242,8 @@ Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-1
 - **Owns:** `electron/usage.ts`, `src/widgets/usage-gauge/`.
 
 ### T31 · Context gauge per tab
-- [ ] **Goal:** see context use before auto-compact surprises you. (#34)
+- [x] **Goal:** see context use before auto-compact surprises you. (#34)
+  _Left over: tabs whose user has their own `statusLine` (account, project or managed settings) get no gauge, by design; remote tabs neither. Field names checked against Claude 2.1.328, but not yet watched live in the app with a real long session; no in-app guide entry (needs captured media)._
 - **Spec:** the injected `--settings` gets a statusline command that writes `context_window` JSON to `~/.aquila/`; small
   gauge per tab (hint at ~60%). If the user has their own `statusLine`, don't inject (ours would replace it).
 - **Owns:** `electron/hooks.ts` (settings file), `src/entities/session` gauge.
