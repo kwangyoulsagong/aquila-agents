@@ -5,6 +5,7 @@ import { WebLinksAddon } from '@xterm/addon-web-links';
 import { WebglAddon } from '@xterm/addon-webgl';
 import { api, type SessionKind } from '@/shared/api';
 import { gpuPool } from '../lib/gpuPool';
+import { createImeGuard } from '../lib/imeGuard';
 import { attach } from '../lib/terminalBus';
 import { SCROLLBACK, sizeChanged } from '../model/terminal';
 
@@ -99,6 +100,11 @@ export default function TerminalView({ id, kind, visible, focused = visible }: P
 
     const detach = attach(id, (data, done) => term.write(data, done));
     const input = term.onData((data) => api.write(id, data));
+    // Hangul IME: keys the IME swallows while composing (Enter, Esc, Ctrl+C…) still reach the session, once.
+    const ime = createImeGuard({ write: (data) => api.write(id, data) });
+    term.attachCustomKeyEventHandler(ime.onKey);
+    // Added after xterm's own listener, so xterm sends the committed syllable first.
+    term.textarea?.addEventListener('compositionend', ime.onCompositionEnd);
     const resized = term.onResize(({ cols, rows }) => api.resize(id, cols, rows));
     // Scrollbar only when there is something to scroll (CSS hides it otherwise).
     const syncScrollable = () =>
@@ -118,6 +124,8 @@ export default function TerminalView({ id, kind, visible, focused = visible }: P
       ro.disconnect();
       document.fonts.removeEventListener('loadingdone', scheduleFit);
       input.dispose();
+      term.textarea?.removeEventListener('compositionend', ime.onCompositionEnd);
+      ime.dispose();
       resized.dispose();
       for (const d of scrollable) d.dispose();
       detach();
