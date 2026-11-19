@@ -1,6 +1,6 @@
 // Main process: window, config, pty sessions, Claude hook receiver.
 import path from 'node:path';
-import { app, BrowserWindow, clipboard, dialog, ipcMain, powerMonitor, shell } from 'electron';
+import { app, BrowserWindow, clipboard, dialog, ipcMain, Notification, powerMonitor, shell } from 'electron';
 import { restoreShellPath } from './env';
 import { accountsStatus, installShellFunction, prepareAccount, shellFunctionPreview } from './accounts';
 import {
@@ -19,7 +19,14 @@ import { ensureWorktree, worktreeInfo } from './worktrees';
 import { markGuideOffered, readGuideState } from './guide';
 import { displayTitle, HistoryIndex, matchProject, resumeWorktree, toMarkdown } from './history';
 import { binaryFor, finishFirstRun, firstRunReport, loadOverrides, setBinaryPath } from './detect';
-import { detectClaudeVersion, startHookServer, supportsHttpHooks, writeClaudeHookSettings } from './hooks';
+import {
+  detectClaudeVersion,
+  startHookServer,
+  supportsHttpHooks,
+  writeClaudeHookSettings,
+  type HookEvent,
+} from './hooks';
+import { refreshDue, UsageTracker } from './usage';
 import { PowerWatcher, type PowerSource } from './power';
 import { SessionManager } from './sessions';
 import { checkRemote } from './remote/check';
@@ -40,9 +47,10 @@ import {
   type SavedTab,
 } from './state';
 import { isSmoke, runSmoke, SMOKE_BUFFER_BYTES, watchOutput } from './smoke';
-import { translator } from '../src/shared/i18n/dictionary';
+import { accountLabel, translator } from '../src/shared/i18n/dictionary';
 import {
   IPC,
+  type AccountUsage,
   type ConnectionUpdate,
   type ContextMenuItem,
   type GitAction,
@@ -107,7 +115,11 @@ app.whenReady().then(async () => {
       console.error(`[state] ${what} failed`, err);
     }
   };
-  const hookPort = await startHookServer((tabId, hook) => sessions?.onHook(tabId, hook));
+  let onUsageHook: ((tabId: string, hook: HookEvent) => void) | null = null;
+  const hookPort = await startHookServer((tabId, hook) => {
+    sessions?.onHook(tabId, hook);
+    onUsageHook?.(tabId, hook);
+  });
   const hookFiles = writeClaudeHookSettings(hookPort);
   // http hooks unless `claude --version` says it's older than they need (then command + curl).
   let httpHooks = true;
@@ -148,6 +160,47 @@ app.whenReady().then(async () => {
     send(IPC.powerChanged, powerState());
   });
   ipcMain.handle(IPC.powerGet, () => powerState());
+
+  // Usage gauge (T30): estimated per account from its transcripts; a rate limit hit teaches the 100% mark.
+  const notifyNearLimit = (u: AccountUsage, which: 'fiveHour' | 'weekly') => {
+    if (!Notification.isSupported()) return;
+    const config = loadConfig();
+    const t = translator(config.language);
+    const w = u[which];
+    const percent = String(Math.round((w.used / (w.limit ?? w.used)) * 100));
+    const time = w.resetsAt
+      ? new Date(w.resetsAt).toLocaleTimeString(config.language === 'ko' ? 'ko-KR' : 'en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      : '';
+    const n = new Notification({
+      title: t('usage.nearTitle', { account: accountLabel(t, u.account, config.accounts[u.account]) }),
+      body: t(which === 'fiveHour' ? 'usage.nearBody5h' : 'usage.nearBodyWeek', { percent, time }),
+    });
+    n.on('click', () => win?.show());
+    n.show();
+  };
+  const usage = new UsageTracker({ config: loadConfig, onNear: notifyNearLimit });
+  const pushUsage = (p: Promise<AccountUsage[]>) =>
+    p.then((list) => send(IPC.usageChanged, list)).catch((err: unknown) => console.error('[usage]', err));
+  ipcMain.handle(IPC.usageGet, () => usage.refresh());
+  let usageSoon: NodeJS.Timeout | undefined;
+  onUsageHook = (tabId, hook) => {
+    if (hook.event === 'StopFailure' && hook.error === 'rate_limit') {
+      const account = s.claudeAccount(tabId);
+      if (account) void pushUsage(usage.rateLimited(account));
+    } else if (hook.event === 'Stop') {
+      // The turn's last response is in the transcript now (or within a moment).
+      clearTimeout(usageSoon);
+      usageSoon = setTimeout(() => void pushUsage(usage.refresh()), 3_000);
+    }
+  };
+  if (!isSmoke)
+    setInterval(() => {
+      if (win && refreshDue(Date.now() - usage.lastRefresh, win.isFocused(), powerState().saver))
+        void pushUsage(usage.refresh());
+    }, 60_000);
 
   // Tabs on screen in the saved layout are spawned now; the rest stay dormant until first shown (T21).
   let restored: { sessions: SessionInfo[]; keys: Map<string, string> } | null = null;

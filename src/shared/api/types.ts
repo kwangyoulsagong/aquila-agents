@@ -328,6 +328,25 @@ export interface PowerState {
   saver: boolean;
 }
 
+/** One usage window of an account (T30), estimated from local transcripts. */
+export interface UsageWindow {
+  /** Weighted tokens in the window (input-token equivalents: output ×5, cache write ×1.25, cache read ×0.1). */
+  used: number;
+  /** Learned 100% mark: what was used when this account last hit a rate limit. null until one was seen. */
+  limit: number | null;
+  /** When the window ends (epoch ms). 5h: block start + 5h, null when no block is running. Weekly: always null (rolling). */
+  resetsAt: number | null;
+}
+
+/** What `usage:get` / `usage:changed` report per logged-in local Claude account (T30). */
+export interface AccountUsage {
+  account: string;
+  fiveHour: UsageWindow;
+  weekly: UsageWindow;
+  /** At or past 90% of a learned limit in either window. */
+  near: boolean;
+}
+
 /** Session history (T11): which CLI a past session belongs to. */
 export type HistoryAgent = 'claude' | 'codex';
 
@@ -507,6 +526,9 @@ export interface AquilaApi {
   /** Current power profile (battery / throttling / thermal). */
   powerState(): Promise<PowerState>;
   onPower(cb: (p: PowerState) => void): Unsubscribe;
+  /** Estimated 5-hour and weekly usage per account (T30). */
+  usage(): Promise<AccountUsage[]>;
+  onUsage(cb: (u: AccountUsage[]) => void): Unsubscribe;
 }
 
 /** IPC channel names — single source for main, preload and renderer. */
@@ -567,4 +589,6 @@ export const IPC = {
   sessionConnection: 'session:connection',
   powerGet: 'power:get',
   powerChanged: 'power:changed',
+  usageGet: 'usage:get',
+  usageChanged: 'usage:changed',
 } as const;

@@ -22,6 +22,7 @@
 │                                           │        │ status/       OSC 7501 parser + status tracker   │
 │                                           │        │ output.ts     output batching + flow control     │
 │                                           │        │ power.ts      power profile: battery/heat (T9)   │
+│           usage-gauge                     │        │ usage.ts      5h / weekly usage per account (T30)│
 │                                           │        │ detect.ts     CLI checks, first-run state (T17)  │
 │                                           │        │ guide.ts      tour offered once (T23)            │
 │                                           │        │ history.ts    past sessions, read-only (T11)     │
@@ -252,6 +253,29 @@ simple `Include`s), folder, name, group, optional `CLAUDE_CONFIG_DIR` on the hos
 - **Smoke** (`electron/remote/smoke.ts`): fake `ssh` / `tmux` on PATH run the real script locally: first attempt refused
   → reconnecting → connected; a typed marker comes back; a dropped link (exit 255) → reconnect → output again; closing
   the tab sends `kill-session`.
+
+## Usage gauge (T30)
+
+`electron/usage.ts` + `widgets/usage-gauge`, a band above the sidebar footer. One block per **logged-in local
+account** (per config dir, never per session — Claude's statusline `rate_limits` mixes accounts), two meters side by
+side: the 5-hour block (with its reset time) and the last 7 days. Labelled "Estimated".
+
+- **Source:** the account's own transcripts, `<configDir>/projects/*/*.jsonl` and `*/<session>/subagents/*.jsonl`,
+  read incrementally from a byte offset per file (files untouched for 7 days are skipped). Assistant lines with
+  `message.usage`, deduped by message id + request id (Claude writes one line per content block). Read-only.
+- **Weight:** input-token equivalents by price ratio: input ×1, output ×5, cache write ×1.25, cache read ×0.1.
+- **5-hour block:** starts at the hour of the first message after the previous block ended, lasts 5 h (ccusage's
+  rule). No running block → empty, "starts with next message". Weekly is a rolling 7 days (the real reset is unknown).
+- **100% mark:** learned. `StopFailure` with `error: rate_limit` from a tab (`SessionManager.claudeAccount`) records
+  what that account used then in `~/.aquila/usage-limits.json`. Counted as the 5-hour limit, unless a 5-hour limit is
+  known and the block is under 80% of it → the weekly limit. Stored with the account's `userRateLimitTier`
+  (or the organization's) from `.claude.json`; a different tier (plan change) drops the limits. Until then the meter
+  shows tokens, an outlined empty bar and no percentage.
+- **Near (≥ 90%):** one macOS notification per 5-hour block / per day for weekly, and a "New Claude with <other
+  account>" button (the other logged-in account with the most room; local projects only).
+- **Refresh:** `usage:get` on mount, `usage:changed` pushes: 3 s after each `Stop` hook, every minute while focused,
+  every 5 min otherwise, twice as long in power saver. First scan of a busy week ≈ 2 s (async), then ~25 ms.
+- Not counted: claude.ai, other machines, remote (SSH) sessions.
 
 ## Shortcuts
 

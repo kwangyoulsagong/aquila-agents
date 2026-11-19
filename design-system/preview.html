@@ -244,7 +244,7 @@
 
   <section>
     <h2>App</h2>
-    <div class="mock">
+    <div class="mock" style="height:560px">
       <aside class="c-sidebar">
         <div class="c-sidebar__drag"></div>
         <div class="c-sidebar__body">
@@ -259,6 +259,24 @@
             <div class="c-row"><i class="c-dot"></i><span class="c-row__name">DevAtlas</span></div>
           </div>
         </div>
+        <section class="c-usage" aria-label="사용량">
+          <div class="c-usage__head"><div class="c-label">사용량</div><span class="c-usage__est" title="이 Mac의 Claude 기록으로 추정한 값이에요">추정</span></div>
+          <div class="c-usage__account">
+            <span><span class="c-badge c-badge--account-shared">공용</span></span>
+            <div class="c-usage__bars">
+              <div class="c-meter" data-tone="danger"><div class="c-meter__head"><span>5시간</span><span class="c-meter__value">93%</span></div><div class="c-meter__track" role="meter"><div class="c-meter__fill" style="width:93%"></div></div><div class="c-meter__caption">오후 03:00 리셋</div></div>
+              <div class="c-meter" data-tone="warn"><div class="c-meter__head"><span>주간</span><span class="c-meter__value">78%</span></div><div class="c-meter__track" role="meter"><div class="c-meter__fill" style="width:78%"></div></div><div class="c-meter__caption">최근 7일</div></div>
+            </div>
+            <button class="c-btn c-btn--ghost">개인 계정으로 새 Claude</button>
+          </div>
+          <div class="c-usage__account">
+            <span><span class="c-badge c-badge--account-personal">개인</span></span>
+            <div class="c-usage__bars">
+              <div class="c-meter"><div class="c-meter__head"><span>5시간</span><span class="c-meter__value">24%</span></div><div class="c-meter__track" role="meter"><div class="c-meter__fill" style="width:24%"></div></div><div class="c-meter__caption">오후 05:00 리셋</div></div>
+              <div class="c-meter" data-unknown><div class="c-meter__head"><span>주간</span><span class="c-meter__value">188.7M</span></div><div class="c-meter__track" role="meter"><div class="c-meter__fill" style="width:0%"></div></div><div class="c-meter__caption">최근 7일</div></div>
+            </div>
+          </div>
+        </section>
         <div class="c-sidebar__foot"><button class="c-btn c-btn--ghost">설정</button></div>
       </aside>
       <main>

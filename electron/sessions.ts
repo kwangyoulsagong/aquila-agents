@@ -635,6 +635,12 @@ export class SessionManager {
     return s?.projectId === projectId ? (s.startHead ?? '') : '';
   }
 
+  /** The local Claude account a tab runs with (T30 usage); undefined for remote, Codex and shell tabs. */
+  claudeAccount(id: string): string | undefined {
+    const s = this.sessions.get(id);
+    return s?.kind === 'claude' && !s.remote ? s.account : undefined;
+  }
+
   /** Which transcript holds a live agent tab's replies (T28 "copy last response"); undefined for shells. */
   replySource(
     id: string,

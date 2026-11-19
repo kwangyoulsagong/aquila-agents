@@ -30,7 +30,7 @@ const readOrNull = (file: string): string | null => {
 };
 
 /** Config dir and `.claude.json` for an account. Shared (dir null) = Claude default: ~/.claude + ~/.claude.json. */
-function paths(dir: string | null): { dir: string; claudeJson: string } {
+export function accountPaths(dir: string | null): { dir: string; claudeJson: string } {
   if (!dir) return { dir: path.join(HOME, '.claude'), claudeJson: path.join(HOME, '.claude.json') };
   const abs = expand(dir);
   return { dir: abs, claudeJson: path.join(abs, '.claude.json') };
@@ -39,7 +39,7 @@ function paths(dir: string | null): { dir: string; claudeJson: string } {
 export function accountsStatus(config: Config): Record<string, AccountStatus> {
   return Object.fromEntries(
     Object.entries(config.accounts).map(([id, a]) => {
-      const p = paths(a.claudeConfigDir);
+      const p = accountPaths(a.claudeConfigDir);
       return [id, { configDirExists: fs.existsSync(p.dir), loggedIn: isLoggedIn(readOrNull(p.claudeJson)) }];
     }),
   );

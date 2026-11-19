@@ -98,6 +98,28 @@ body {
 .c-badge__conn[data-conn='reconnecting'] { background: var(--color-status-waiting); animation: c-pulse var(--motion-pulse) ease-in-out infinite; }
 .c-badge__conn[data-conn='lost'] { background: var(--color-status-error); }
 
+/* ── Meter ────────────────────────────────────────────────── */
+/* A share of a limit (usage gauge, T30): label · value, a thin bar, a caption. Unknown limit = outlined empty bar. */
+.c-meter { display: flex; flex-direction: column; gap: var(--space-inline-xs); min-width: 0; }
+.c-meter__head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-inline-xs);
+  font-size: var(--font-size-caption); color: var(--color-text-tertiary);
+}
+.c-meter__value { font-family: var(--font-family-mono); color: var(--color-text-secondary); white-space: nowrap; }
+.c-meter__track { height: var(--size-meter); border-radius: var(--radius-badge); background: var(--color-bg-pressed); overflow: hidden; }
+.c-meter__fill {
+  height: 100%; border-radius: inherit; background: var(--color-text-tertiary);
+  transition: width var(--motion-slow) var(--motion-ease), background-color var(--motion-medium) var(--motion-ease);
+}
+.c-meter[data-tone='warn'] .c-meter__fill { background: var(--color-status-waiting); }
+.c-meter[data-tone='danger'] .c-meter__fill { background: var(--color-status-error); }
+.c-meter[data-tone='danger'] .c-meter__value { color: var(--color-status-error); }
+.c-meter[data-unknown] .c-meter__track { background: none; box-shadow: inset 0 0 0 1px var(--color-border-subtle); }
+.c-meter__caption {
+  font-size: var(--font-size-caption); color: var(--color-text-tertiary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
 /* ── Section label ────────────────────────────────────────── */
 .c-label {
   font: 600 var(--font-size-caption) var(--font-family-ui); letter-spacing: 0.06em; text-transform: uppercase;
@@ -124,6 +146,20 @@ body {
 /* One line: buttons keep their label on one line; the first (text) button truncates if the footer runs out. */
 .c-sidebar__foot > .c-btn { flex: none; white-space: nowrap; }
 .c-sidebar__foot > .c-btn:first-child { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+
+/* Usage gauge (T30): a band above the footer, one block per account with two meters side by side.
+ * Content edge 20 like the rest of the sidebar (inset 8 + 12). */
+.c-usage {
+  display: flex; flex-direction: column; gap: var(--space-inline-sm);
+  padding: var(--space-inset-sm) calc(var(--space-inset-sm) + var(--space-inset-md));
+  border-top: 1px solid var(--color-border-subtle);
+}
+.c-usage__head { display: flex; align-items: center; justify-content: space-between; height: var(--size-badge); }
+.c-usage__head > .c-label { padding: 0; }
+.c-usage__est { font-size: var(--font-size-caption); color: var(--color-text-tertiary); cursor: help; }
+.c-usage__account { display: flex; flex-direction: column; gap: var(--space-inline-xs); }
+.c-usage__bars { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-inline-sm); }
+.c-usage__account > .c-btn { align-self: flex-start; margin-left: calc(-1 * var(--space-inset-md)); }
 
 /* ── Project row ──────────────────────────────────────────── */
 .c-row {

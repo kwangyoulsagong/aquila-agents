@@ -17,6 +17,7 @@ import { SessionTabs } from '@/widgets/session-tabs';
 import { SplitView } from '@/widgets/split-view';
 import { ChangesPanel } from '@/widgets/changes-panel';
 import { HistoryPanel } from '@/widgets/history-panel';
+import { UsageGauge } from '@/widgets/usage-gauge';
 import { CommandPalette, type ActionId } from '@/widgets/command-palette';
 import { useWorkspace } from '../model/useWorkspace';
 import { useShortcuts } from '../model/useShortcuts';
@@ -152,6 +153,12 @@ export default function WorkspacePage() {
           activeProjectId={ws.activeProjectId}
           onSelect={ws.selectProject}
           manage={manage}
+          aboveFooter={
+            <UsageGauge
+              config={config}
+              onOpenWith={project && !project.remote ? (account) => void openSession('claude', account) : undefined}
+            />
+          }
           footer={
             <>
               <LanguageToggle config={config} onChanged={ws.setConfig} />
