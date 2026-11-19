@@ -15,6 +15,8 @@ interface Deps {
   closePane: () => void;
   toggleChanges: () => void;
   togglePalette: () => void;
+  /** Jump to the next session that needs the user (any project). */
+  nextWaiting: () => void;
 }
 
 /** Runs the shortcuts of `shared/lib/shortcuts.ts`. Capture phase so xterm doesn't eat them. */
@@ -29,6 +31,7 @@ export function useShortcuts({
   closePane,
   toggleChanges,
   togglePalette,
+  nextWaiting,
 }: Deps) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -56,6 +59,8 @@ export function useShortcuts({
           return activeSessionId ? closeSession(activeSessionId) : closePane();
         case 'toggleChanges':
           return toggleChanges();
+        case 'nextWaiting':
+          return nextWaiting();
         case 'splitRight':
           return splitFocused('row');
         case 'splitDown':
@@ -83,5 +88,6 @@ export function useShortcuts({
     closePane,
     toggleChanges,
     togglePalette,
+    nextWaiting,
   ]);
 }

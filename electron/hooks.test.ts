@@ -71,6 +71,26 @@ describe('readHookBody', () => {
     );
     expect(readHookBody('[]')).toBeNull();
   });
+  it('gives the notification context: tool summary, last answer, notification message', () => {
+    const detail = (body: Record<string, unknown>) => readHookBody(JSON.stringify(body))?.detail;
+    expect(
+      detail({
+        hook_event_name: 'PermissionRequest',
+        tool_name: 'Bash',
+        tool_input: { command: 'npm install' },
+      }),
+    ).toBe('Bash: npm install');
+    expect(
+      detail({ hook_event_name: 'Stop', last_assistant_message: '\nAll 118 tests pass.\n\nDetails…' }),
+    ).toBe('All 118 tests pass.');
+    expect(detail({ hook_event_name: 'Notification', message: 'Claude needs your permission' })).toBe(
+      'Claude needs your permission',
+    );
+    expect(detail({ hook_event_name: 'Stop' })).toBeUndefined();
+    expect(
+      detail({ hook_event_name: 'PostToolUse', tool_name: 'Bash', tool_input: { command: 'ls' } }),
+    ).toBeUndefined();
+  });
 });
 
 describe('hookSettings', () => {

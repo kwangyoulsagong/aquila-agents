@@ -13,6 +13,8 @@ export interface StatusUpdate {
   /** Guessed from output activity, not reported by the program (shown dimmed). */
   estimated?: boolean;
   reason?: ErrorReason;
+  /** When this status started (ms since epoch) — "waiting for 12 min". */
+  since?: number;
 }
 
 export type Language = 'ko' | 'en';
@@ -130,6 +132,8 @@ export interface Session extends SessionInfo {
   status: SessionStatus;
   estimated?: boolean;
   reason?: ErrorReason;
+  /** When the current status started (ms since epoch). */
+  since?: number;
   exited?: boolean;
 }
 

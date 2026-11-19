@@ -1,18 +1,21 @@
 // One pty per session. Runs the user's real `claude` / `codex` / shell — same tokens, same config.
 import crypto from 'node:crypto';
-import { Notification, type BrowserWindow } from 'electron';
+import type { BrowserWindow } from 'electron';
 import * as pty from 'node-pty';
 import { expand, loadConfig } from './config';
+import type { HookEvent } from './hooks';
+import { Attention, firstLine, setDockBadge, type AttentionSession } from './notify';
 import type { RestorePlan, SavedTab } from './state';
 import { logStatus } from './status/log';
 import { OSC_7501_REPLY, OscScanner, parse7501 } from './status/osc';
-import { StatusTracker, type HookSignal } from './status/tracker';
-import { kindLabel, translator } from '../src/shared/i18n/dictionary';
+import { StatusTracker } from './status/tracker';
+import { translator } from '../src/shared/i18n/dictionary';
 import {
   IPC,
   type Config,
   type SessionInfo,
   type SessionKind,
+  type SessionStatus,
   type StatusUpdate,
   type Worktree,
 } from '../src/shared/api/types';
@@ -33,6 +36,12 @@ interface LiveSession {
   proc: pty.IPty;
   tracker: StatusTracker;
   osc: OscScanner;
+  /** Last status sent, to tell a status change from an estimated/reason change. */
+  sentStatus: SessionStatus;
+  /** When the current status started (ms); sent with every status update. */
+  since: number;
+  /** Notification context per status: the permission's tool summary, the last answer's first line. */
+  details: { waiting?: string; done?: string };
 }
 
 interface Deps {
@@ -54,9 +63,25 @@ export class SessionManager {
   private timer: NodeJS.Timeout;
   /** Set on quit so the exits caused by killAll don't wipe the saved tabs. */
   private closing = false;
+  private attention: Attention;
+  private badge = 0;
 
   constructor(private deps: Deps) {
     this.timer = setInterval(() => this.tickActivity(), 1000);
+    this.attention = new Attention({
+      get: (id) => {
+        const s = this.sessions.get(id);
+        return s && this.attentionView(s);
+      },
+      onScreen: (id) => !!this.deps.getWindow()?.isFocused() && this.activeId === id,
+      t: () => translator(loadConfig().language),
+      focus: (id) => {
+        const win = this.deps.getWindow();
+        win?.show();
+        win?.focus();
+        this.deps.send(IPC.uiFocusSession, { id });
+      },
+    });
   }
 
   create(
@@ -108,6 +133,9 @@ export class SessionManager {
       // Claude has hooks as its fallback; codex and shells fall back to output activity.
       tracker: new StatusTracker(kind !== 'claude'),
       osc: new OscScanner(),
+      sentStatus: 'idle',
+      since: Date.now(),
+      details: {},
     };
     this.sessions.set(id, s);
 
@@ -121,6 +149,8 @@ export class SessionManager {
       if (s.tracker.exit(exitCode, signal)) this.emitStatus(s);
       this.deps.send(IPC.sessionExit, { id, exitCode });
       this.sessions.delete(id);
+      this.attention.forget(id);
+      this.updateBadge();
       this.tabsChanged();
     });
     this.tabsChanged();
@@ -134,10 +164,16 @@ export class SessionManager {
     };
   }
 
-  private commandFor(kind: SessionKind, claudeSessionId: string | undefined, restore: RestoreOptions): string | null {
+  private commandFor(
+    kind: SessionKind,
+    claudeSessionId: string | undefined,
+    restore: RestoreOptions,
+  ): string | null {
     if (kind === 'claude') {
       // Only uuids reach here (ours or validated from state/hook), so no shell quoting is needed for the id.
-      const session = restore.resumeClaude ? `--resume ${claudeSessionId}` : `--session-id ${claudeSessionId}`;
+      const session = restore.resumeClaude
+        ? `--resume ${claudeSessionId}`
+        : `--session-id ${claudeSessionId}`;
       return `claude --settings ${JSON.stringify(this.deps.hookSettingsPath())} ${session}`;
     }
     if (kind === 'codex') return restore.resumeCodex ? 'codex resume --last' : 'codex';
@@ -153,20 +189,44 @@ export class SessionManager {
       return;
     }
     logStatus(s.id, 'osc7501', payload);
+    // `msg` is the program's own one-line context ("Allow Bash: npm install?").
+    const text = firstLine(msg.fields.msg);
+    if (text && msg.fields.state === 'blocked') s.details.waiting = text;
+    if (text && msg.fields.state === 'done') s.details.done = text;
     if (s.tracker.osc(msg.fields, Date.now())) this.emitStatus(s);
   }
 
   /** A Claude hook from this tab (status fallback; SessionStart also carries the Claude session id). */
-  onHook(id: string, hook: HookSignal & { sessionId?: string }): void {
+  onHook(id: string, hook: HookEvent): void {
     const s = this.sessions.get(id);
     if (!s) return;
-    logStatus(id, 'hook', [hook.event, hook.notificationType, hook.reason, hook.error].filter(Boolean).join(' '));
+    logStatus(
+      id,
+      'hook',
+      [hook.event, hook.notificationType, hook.reason, hook.error].filter(Boolean).join(' '),
+    );
     // SessionStart: Claude started, resumed or /clear'ed into this session id.
-    if (hook.event === 'SessionStart' && hook.sessionId && s.kind === 'claude' && s.claudeSessionId !== hook.sessionId) {
+    if (
+      hook.event === 'SessionStart' &&
+      hook.sessionId &&
+      s.kind === 'claude' &&
+      s.claudeSessionId !== hook.sessionId
+    ) {
       s.claudeSessionId = hook.sessionId;
       this.tabsChanged();
     }
+    // Context for the notification. With 7501 the status may already have changed: refresh the pending one.
+    const slot =
+      hook.event === 'Stop'
+        ? 'done'
+        : hook.event === 'PermissionRequest' || hook.event === 'Notification'
+          ? 'waiting'
+          : null;
+    if (slot && hook.detail && !(slot === 'waiting' && hook.event === 'Notification' && s.details.waiting))
+      s.details[slot] = hook.detail;
     if (s.tracker.hook(hook)) this.emitStatus(s);
+    else if (slot && hook.detail && s.tracker.current().status === slot)
+      this.attention.changed(this.attentionView(s));
   }
 
   /** Open tabs in creation order (= tab order). */
@@ -192,26 +252,45 @@ export class SessionManager {
 
   private emitStatus(s: LiveSession): void {
     const { status, estimated, reason } = s.tracker.current();
-    const update: StatusUpdate = { id: s.id, status, ...(estimated ? { estimated } : {}), ...(reason ? { reason } : {}) };
-    this.deps.send(IPC.sessionStatus, update);
-
-    const win = this.deps.getWindow();
-    const unseen = !win?.isFocused() || this.activeId !== s.id;
-    const notify = status === 'done' || status === 'waiting' || (status === 'error' && reason !== 'exit');
-    if (notify && unseen && Notification.isSupported()) {
-      const t = translator(loadConfig().language);
-      const what =
-        status === 'error'
-          ? `${t('notify.error')}: ${t(`status.reason.${reason ?? 'other'}`)}`
-          : t(status === 'done' ? 'notify.done' : 'notify.waiting');
-      const n = new Notification({ title: s.projectName, body: `${kindLabel(t, s.kind)} · ${what}` });
-      n.on('click', () => {
-        win?.show();
-        win?.focus();
-        this.deps.send(IPC.uiFocusSession, { id: s.id });
-      });
-      n.show();
+    if (s.sentStatus !== status) {
+      s.sentStatus = status;
+      s.since = Date.now();
+      // A new turn: the old question and answer no longer describe it.
+      if (status === 'working') s.details = {};
     }
+    const update: StatusUpdate = {
+      id: s.id,
+      status,
+      since: s.since,
+      ...(estimated ? { estimated } : {}),
+      ...(reason ? { reason } : {}),
+    };
+    this.deps.send(IPC.sessionStatus, update);
+    this.attention.changed(this.attentionView(s));
+    this.updateBadge();
+  }
+
+  private attentionView(s: LiveSession): AttentionSession {
+    const { status, reason } = s.tracker.current();
+    const detail = status === 'waiting' || status === 'done' ? s.details[status] : undefined;
+    return {
+      id: s.id,
+      projectName: s.projectName,
+      kind: s.kind,
+      status,
+      since: s.since,
+      ...(reason ? { reason } : {}),
+      ...(detail ? { detail } : {}),
+    };
+  }
+
+  /** Dock badge = sessions waiting for the user. */
+  private updateBadge(): void {
+    let waiting = 0;
+    for (const s of this.sessions.values()) if (s.tracker.current().status === 'waiting') waiting++;
+    if (waiting === this.badge) return;
+    this.badge = waiting;
+    setDockBadge(waiting);
   }
 
   setActive(id: string | null): void {
@@ -252,6 +331,7 @@ export class SessionManager {
   killAll(): void {
     this.closing = true;
     clearInterval(this.timer);
+    this.attention.dispose();
     for (const s of this.sessions.values()) s.proc.kill();
   }
 }

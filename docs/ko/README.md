@@ -44,6 +44,7 @@ npm run dist    # 패키징 → release/Aquila Agents-<버전>-arm64.dmg (+ .zip
 | ⌥⌘방향키 | 분할 화면 사이 포커스 이동 |
 | ⇧⌘G | 변경사항 패널(git diff) 열기 / 닫기 |
 | ⌘K | 명령 팔레트: 세션·프로젝트로 이동하거나 동작 실행 |
+| ⌘J | 나를 기다리는 다음 세션으로 (waiting > error > done, 모든 프로젝트) |
 | **+** 우클릭 | 새 Claude / Codex / 셸, 또는 **워크트리에서 새 Claude…** (`../<repo>-wt/<branch>`) |
 | ⌘1–9 | 프로젝트 이동 |
 

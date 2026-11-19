@@ -11,6 +11,7 @@ export type ActionId =
   | 'splitRight'
   | 'splitDown'
   | 'toggleChanges'
+  | 'nextWaiting'
   | 'closeSession'
   | 'switchLanguage';
 
@@ -46,12 +47,20 @@ const ACTIONS: { action: ActionId; label: (t: Translate) => string; shortcut?: S
   { action: 'splitRight', label: (t) => t('palette.splitRight'), shortcut: 'splitRight' },
   { action: 'splitDown', label: (t) => t('palette.splitDown'), shortcut: 'splitDown' },
   { action: 'toggleChanges', label: (t) => t('changes.toggle'), shortcut: 'toggleChanges' },
+  { action: 'nextWaiting', label: (t) => t('attention.next'), shortcut: 'nextWaiting' },
   { action: 'closeSession', label: (t) => t('action.closeSession'), shortcut: 'closeSession' },
   { action: 'switchLanguage', label: (t) => t('palette.switchLanguage') },
 ];
 
 /** Sessions that need you come first in the list. */
-const URGENCY: Record<SessionStatus, number> = { waiting: 0, error: 1, done: 2, working: 3, stopped: 4, idle: 5 };
+const URGENCY: Record<SessionStatus, number> = {
+  waiting: 0,
+  error: 1,
+  done: 2,
+  working: 3,
+  stopped: 4,
+  idle: 5,
+};
 
 function projectStatus(sessions: Session[]): SessionStatus {
   return sessions.reduce<SessionStatus>(

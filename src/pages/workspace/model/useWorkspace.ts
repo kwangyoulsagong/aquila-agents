@@ -42,8 +42,8 @@ export function useWorkspace() {
   }, [config, placeInFocused]);
 
   useEffect(() => {
-    const offStatus = api.onStatus(({ id, status, estimated, reason }) =>
-      setSessions((list) => list.map((s) => (s.id === id ? { ...s, status, estimated, reason } : s))),
+    const offStatus = api.onStatus(({ id, status, estimated, reason, since }) =>
+      setSessions((list) => list.map((s) => (s.id === id ? { ...s, status, estimated, reason, since } : s))),
     );
     // Main already sent the exit status (stopped / error) on session:status.
     const offExit = api.onExit(({ id }) =>

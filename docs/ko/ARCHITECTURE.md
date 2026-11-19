@@ -11,10 +11,11 @@
 │           command-palette                 │  .ts   │               zsh 함수 (명시적 클릭만)            │
 │ features/ switch-account, switch-language,│        │ hooks.ts      127.0.0.1:<port> hook 수신기       │
 │           open-session, setup-account,    │        │               + ~/.aquila/claude-hooks.json     │
-│           manage-projects,                │        │ git.ts        git status + diff (읽기만)        │
+│           manage-projects, next-waiting,  │        │ git.ts        git status + diff (읽기만)        │
 │ entities/ session (xterm, 상태), project    │        │ state.ts      ~/.aquila/state.json (열린 탭)     │
 │           diff                            │        │ worktrees.ts  git worktree 만들기 / 재사용 (T7)  │
 │           open-in-worktree                │        │ menu.ts       네이티브 우클릭 메뉴               │
+│                                           │        │ notify.ts     알림, 리마인더, Dock 배지          │
 │                                           │        │ status/       OSC 7501 파서 + 상태 판정          │
 │                                           │        │ smoke.ts      npm run smoke 자동 점검            │
 │ shared/   api (타입·IPC·bridge), i18n       │        │                                                 │
@@ -112,7 +113,7 @@
 ## 상태
 
 모든 세션의 상태는 main이 정합니다 (`electron/status/`: `osc.ts` 파서, `tracker.ts` 세션별 상태 기계).
-`session:status`로 `{ id, status, estimated?, reason? }`를 보냅니다. 출처는 믿을 만한 순서대로:
+`session:status`로 `{ id, status, estimated?, reason?, since? }`를 보냅니다(`since` = 이 상태가 시작된 시각). 출처는 믿을 만한 순서대로:
 
 | 출처 | 대상 | 방식 |
 |---|---|---|
@@ -129,9 +130,23 @@ command + `curl`로 둡니다. 2.1.295보다 오래된 Claude(시작할 때 `cla
 전부 같은 JSON을 보내는 command + `curl`입니다. 7501 원본 보고와 hook 이벤트 이름은 `~/.aquila/status.log`에
 남깁니다 (512 KB에서 교체).
 
-`done`은 그 세션을 화면에 띄우면 `idle`로 바뀝니다. 창에 포커스가 없거나 다른 세션을 보고 있을 때
-done / waiting / error(종료 코드 오류 제외)가 되면 알림을 띄웁니다. 프로젝트 행 = 세션 중 가장 급한 상태
+`done`은 그 세션을 화면에 띄우면 `idle`로 바뀝니다. 프로젝트 행 = 세션 중 가장 급한 상태
 (`waiting > error > working > done > stopped > idle`).
+
+### 주의 끌기 (`electron/notify.ts`, `features/next-waiting`)
+
+- **알림:** 창에 포커스가 없거나 다른 세션을 보고 있을 때 done / waiting / error(종료 코드 오류 제외)가 되면 띄웁니다.
+  제목 = 프로젝트(· 워크트리 브랜치), 본문 = `Claude · 입력 필요 — Bash: npm install`. 맥락은 waiting이면
+  `PermissionRequest`의 도구 요약(없으면 7501 `msg`, `Notification` 메시지), done이면 `Stop`의
+  `last_assistant_message` 첫 줄(없으면 7501 `msg`)이고, 새 턴이 시작되면 지웁니다. 알림은 400 ms 기다렸다
+  띄워서(늦게 온 hook 맥락은 합치고, waiting → working으로 금방 바뀌면 버림), 같은 세션의 같은 상태는 30초 안에
+  두 번 알리지 않습니다. 클릭 → 창을 올리고 그 세션으로.
+- **리마인더:** 화면 밖에서 10분째 기다리면 한 번 더 알림("10분째 입력 대기").
+- **Dock 배지** = `waiting`인 세션 수 (0이면 비움).
+- **대기 시간:** 탭과 프로젝트 행에 기다린 시간(`12분`, `since` 기준, 1분 이상)을 `.c-elapsed`로 보여 줍니다.
+  행은 가장 오래 기다린 세션 기준.
+- **다음 대기 세션**(⌘J, 팔레트에도): 프로젝트를 가로질러 waiting > error > done 순으로 돌고, 같은 단계에서는
+  오래 기다린 것부터. 목록 밖 세션에서 누르면 맨 앞으로.
 
 ## 설정 (`~/.aquila/config.json`)
 

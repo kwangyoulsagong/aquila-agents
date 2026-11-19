@@ -104,6 +104,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `.c-btn` `--primary` `--ghost` `--icon` | Buttons |
 | `.c-segment`, `__item[aria-checked]` | Segmented control (account switch) |
 | `.c-kbd` | Shortcut hint |
+| `.c-elapsed` | How long a session has waited ("12m", mono, waiting color) on a tab or project row |
 | `.c-badge` `--claude` `--codex` `--shell` `--account-shared` `--account-personal` | Tags |
 | `.c-label` | Section label |
 | `.c-sidebar` `__drag` `__body` `__group` `__foot` `__lang` | Sidebar |
@@ -133,6 +134,7 @@ from `src/` (ESLint enforces it). New primitive → add the class to `components
 | `Dot` `status` `estimated?` `label?` | `.c-dot` |
 | `Badge` `tone` | `.c-badge--<tone>` |
 | `Kbd`, `Label` | `.c-kbd`, `.c-label` |
+| `Elapsed` `title?` | `.c-elapsed` |
 | `Segment` `options` `value` `onChange` | `.c-segment` |
 | `EmptyState` `title` `path` `actions` | `.c-empty` |
 | `Dialog` `open` `title` `onClose` `actions`, `DialogCheck`, `DialogCode`, `DialogForm` `id` `onSubmit` | `.c-dialog` |

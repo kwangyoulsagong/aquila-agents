@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { api, type Config, type Session } from '@/shared/api';
 import { groupLabel, useT } from '@/shared/i18n';
 import { AccountBadge, ProjectRow } from '@/entities/project';
-import { StatusDot, mostUrgent } from '@/entities/session';
+import { StatusDot, WaitingTime, mostUrgent } from '@/entities/session';
 import { ManageProjectsDialog, useManageProjects } from '@/features/manage-projects';
 
 interface Props {
@@ -57,6 +57,13 @@ export default function Sidebar({
               {projects.length === 0 && <div className="c-sidebar__empty">{t('groups.empty')}</div>}
               {projects.map((p) => {
                 const mine = sessions.filter((s) => s.projectId === p.id);
+                // The longest wait in this project.
+                const waitingSince = mine
+                  .filter((s) => s.status === 'waiting' && s.since !== undefined)
+                  .reduce<number | undefined>(
+                    (min, s) => Math.min(min ?? Infinity, s.since ?? Infinity),
+                    undefined,
+                  );
                 return (
                   <ProjectRow
                     key={p.id}
@@ -68,11 +75,17 @@ export default function Sidebar({
                     leading={<StatusDot status={mostUrgent(mine.map((s) => s.status))} />}
                     trailing={
                       <>
+                        {waitingSince !== undefined && <WaitingTime since={waitingSince} />}
                         <AccountBadge config={config} account={p.account} />
                         {mine.length > 0 && (
                           <span className="c-row__sessions" aria-label={`${mine.length}`}>
                             {mine.slice(0, MAX_DOTS).map((s) => (
-                              <StatusDot key={s.id} status={s.status} estimated={s.estimated} reason={s.reason} />
+                              <StatusDot
+                                key={s.id}
+                                status={s.status}
+                                estimated={s.estimated}
+                                reason={s.reason}
+                              />
                             ))}
                             {mine.length > MAX_DOTS && (
                               <span className="c-row__meta">+{mine.length - MAX_DOTS}</span>
