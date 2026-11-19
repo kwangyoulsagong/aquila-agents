@@ -22,7 +22,8 @@ only with small additive edits. Merge order follows the numbering when two tasks
 - **Done:** layout persists while switching projects; closing a session collapses its pane; xterm refits on resize.
 
 ### T2 · Account setup (Shared `claude` / Personal `claude-personal`)
-- [ ] **Goal:** a user without `claude-personal` can set it up from the app.
+- [x] **Goal:** a user without `claude-personal` can set it up from the app.
+  _Left over: the setup dialog (and its zshrc option) is only reachable while an account is logged out._
 - **Spec:**
   - Main: `accounts:status` → for each account `{ configDirExists, loggedIn }` (`loggedIn` = `<dir>/.claude.json`
     contains `oauthAccount`; shared uses `~/.claude.json`).

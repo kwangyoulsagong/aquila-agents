@@ -22,7 +22,8 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
 - **완료 기준:** 프로젝트를 바꿔도 레이아웃 유지, 세션을 닫으면 패널이 합쳐짐, 크기 바뀌면 xterm 다시 맞춤.
 
 ### T2 · 계정 설정 (공용 `claude` / 개인 `claude-personal`)
-- [ ] **목표:** `claude-personal`이 없는 사람도 앱에서 바로 설정.
+- [x] **목표:** `claude-personal`이 없는 사람도 앱에서 바로 설정.
+  _남은 것: 설정 다이얼로그(와 zshrc 옵션)는 로그인 안 된 계정이 있을 때만 열 수 있음._
 - **스펙:**
   - Main: `accounts:status` → 계정마다 `{ configDirExists, loggedIn }` (`loggedIn` = `<dir>/.claude.json`에
     `oauthAccount`가 있음, 공용은 `~/.claude.json`).

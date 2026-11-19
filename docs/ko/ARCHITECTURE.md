@@ -7,9 +7,10 @@
 │ app/      진입점, 전역 스타일                │  IPC   │ main.ts       창 + IPC 핸들러                     │
 │ pages/    workspace (상태 훅, 단축키)        │◀──────▶│ config.ts     ~/.agentrix/config.json           │
 │ widgets/  sidebar, session-tabs,          │preload │ sessions.ts   세션마다 node-pty 하나              │
-│           split-view                      │        │                                                 │
-│ features/ switch-account, switch-language,│  .ts   │ hooks.ts      127.0.0.1:<port> hook 수신기       │
-│           open-session                    │        │               + ~/.agentrix/claude-hooks.json   │
+│           split-view                      │        │ accounts.ts   계정 상태, ~/.claude-* 폴더,        │
+│ features/ switch-account, switch-language,│  .ts   │               zsh 함수 (명시적 클릭만)            │
+│           open-session, setup-account     │        │ hooks.ts      127.0.0.1:<port> hook 수신기       │
+│                                           │        │               + ~/.agentrix/claude-hooks.json   │
 │ entities/ session (xterm, 상태), project    │        │ smoke.ts      npm run smoke 자동 점검            │
 │ shared/   api (타입·IPC·bridge), i18n       │        │                                                 │
 └───────────────────────────────────────────┘        └─────────────────────────────────────────────────┘
@@ -71,6 +72,13 @@ done/waiting이 되면 알림을 띄웁니다. 프로젝트 행 = 세션 중 가
 ```
 
 탭바 오른쪽 계정 전환은 `project.account`를 바꿉니다. 그 프로젝트에서 **새로 여는** Claude 세션부터 적용돼요.
+
+계정 설정 (`accounts.ts`): `accounts:status`가 계정마다 `{ configDirExists, loggedIn }`을 읽습니다 (`loggedIn` =
+`.claude.json`에 `oauthAccount`가 있음, 공용은 `~/.claude.json`). 로그인 안 된 계정은 계정 전환 옆에 "설정" 버튼이 뜨고
+→ 다이얼로그 → 폴더 생성(`~/.claude-*`만 허용) 후 그 계정으로 Claude 세션을 엽니다
+(`createSession(projectId, 'claude', account)`). 로그인은 Claude가 자체 `/login`으로 진행해요. 상태는 창 포커스 때,
+그리고 로그인 안 된 계정이 있으면 창이 포커스된 동안 5초마다 다시 읽습니다. 같은 다이얼로그에서 미리보기 후
+**명시적으로 눌렀을 때만** `~/.zshrc`에 `claude-<id>() { … }`를 추가해요. `whence`나 rc에 이미 있으면 건너뜁니다.
 
 ## 다국어
 

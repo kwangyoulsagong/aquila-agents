@@ -7,9 +7,10 @@
 │ app/      entry, global styles            │  IPC   │ main.ts       window + IPC handlers              │
 │ pages/    workspace (state hook, shortcuts)│◀──────▶│ config.ts     ~/.agentrix/config.json            │
 │ widgets/  sidebar, session-tabs,          │preload │ sessions.ts   one node-pty per session           │
-│           split-view                      │        │                                                 │
-│ features/ switch-account, switch-language,│  .ts   │ hooks.ts      127.0.0.1:<port> hook receiver     │
-│           open-session                    │        │               + ~/.agentrix/claude-hooks.json     │
+│           split-view                      │        │ accounts.ts   account status, ~/.claude-* dir,   │
+│ features/ switch-account, switch-language,│  .ts   │               zsh function (explicit click)      │
+│           open-session, setup-account     │        │ hooks.ts      127.0.0.1:<port> hook receiver     │
+│                                           │        │               + ~/.agentrix/claude-hooks.json     │
 │ entities/ session (xterm, status), project│        │ smoke.ts      npm run smoke self-check           │
 │ shared/   api (types · IPC · bridge), i18n│        │                                                 │
 └───────────────────────────────────────────┘        └─────────────────────────────────────────────────┘
@@ -72,6 +73,13 @@ isn't focused or the session isn't the active one. Project row = most urgent of 
 ```
 
 The account switch in the tab bar changes `project.account`; it applies to **new** Claude sessions in that project.
+
+Account setup (`accounts.ts`): `accounts:status` reads `{ configDirExists, loggedIn }` per account (`loggedIn` =
+`.claude.json` has `oauthAccount`; shared reads `~/.claude.json`). An account that isn't logged in gets a "Set up"
+button next to the switch → dialog → create the dir (only `~/.claude-*`) and open a Claude session with that account
+(`createSession(projectId, 'claude', account)`), where Claude runs its own `/login`. The status re-reads on window
+focus and every 5 s while the window is focused and an account is still logged out. The same dialog can preview and,
+on an explicit click, append `claude-<id>() { … }` to `~/.zshrc` — skipped if `whence` or the rc already defines it.
 
 ## i18n
 
