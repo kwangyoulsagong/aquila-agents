@@ -12,8 +12,10 @@ import {
   type Project,
   type ProjectEdit,
   type ProjectSettings,
+  type RemoteHost,
   type SessionKind,
 } from '../src/shared/api/types';
+import { validAlias } from './remote/ssh';
 import { translator } from '../src/shared/i18n/dictionary';
 
 const HOME = os.homedir();
@@ -165,6 +167,14 @@ function dropKey(p: Project, key: keyof Project): Project {
   return rest as Project;
 }
 
+/** A valid remote host from a form (alias trimmed, blank config dir dropped), else null. */
+export function cleanRemote(r: { alias: string; claudeConfigDir?: string } | undefined): RemoteHost | null {
+  const alias = r?.alias.trim() ?? '';
+  if (!validAlias(alias)) return null;
+  const dir = r?.claudeConfigDir?.trim();
+  return dir ? { alias, claudeConfigDir: dir } : { alias };
+}
+
 /** Settings dialog → project. Invalid values (unknown group/account, bad port, blank name) are ignored. */
 export function applySettings(
   p: Project,
@@ -176,7 +186,12 @@ export function applySettings(
   if (name) next.name = name;
   if (s.group && ctx.hasGroup(s.group)) next.group = s.group;
   if (s.account && ctx.hasAccount(s.account)) next.account = s.account;
-  if (s.path?.trim()) next.path = tildify(s.path.trim(), ctx.home);
+  // A remote project's path is on the host: kept as typed (`~` there is the remote home).
+  if (s.path?.trim()) next.path = p.remote ? s.path.trim() : tildify(s.path.trim(), ctx.home);
+  if (p.remote && s.remote) {
+    const remote = cleanRemote(s.remote);
+    if (remote) next.remote = remote;
+  }
   if (s.defaultAgent === null || s.defaultAgent === 'claude') next = dropKey(next, 'defaultAgent');
   else if (s.defaultAgent && KINDS.includes(s.defaultAgent)) next.defaultAgent = s.defaultAgent;
   if (s.portBase === null) next = dropKey(next, 'portBase');
@@ -200,13 +215,14 @@ export function projectForPath(c: Config, dir: string, home = HOME): string | nu
     return path.resolve(abs).replace(/\/+$/, '') || '/';
   };
   const target = norm(dir);
-  return c.projects.find((p) => norm(p.path) === target)?.id ?? null;
+  return c.projects.find((p) => !p.remote && norm(p.path) === target)?.id ?? null;
 }
 
 /** Opens the project folder with its "Open in" app (`open -a`), or in Finder when none is set. */
 export function openProjectIn(c: Config, projectId: string): Promise<void> {
   const project = c.projects.find((p) => p.id === projectId);
   if (!project) return Promise.reject(new Error(translator(c.language)('error.projectNotFound', { id: projectId })));
+  if (project.remote) return Promise.reject(new Error(translator(c.language)('remote.unsupported')));
   const dir = expand(project.path);
   const args = project.openIn ? ['-a', project.openIn, dir] : [dir];
   return new Promise((resolve, reject) =>
@@ -222,7 +238,9 @@ export function applyProjectEdit(c: Config, e: ProjectEdit, home = HOME): Config
   const hasAccount = (id: string) => Boolean(c.accounts[id]);
   switch (e.op) {
     case 'addProject': {
-      const name = e.name.trim() || path.basename(e.path) || e.path;
+      const remote = e.remote ? cleanRemote(e.remote) : undefined;
+      if (remote === null || (remote && !e.path.trim())) return c;
+      const name = e.name.trim() || path.basename(e.path) || (remote ? remote.alias : e.path);
       const groups: Group[] = c.groups.length ? c.groups : [{ id: 'work' }];
       const group = groups.some((g) => g.id === e.group) ? e.group : groups[0].id;
       const account = hasAccount(e.account) ? e.account : (Object.keys(c.accounts)[0] ?? 'shared');
@@ -230,7 +248,9 @@ export function applyProjectEdit(c: Config, e: ProjectEdit, home = HOME): Config
         slugify(name, 'project'),
         c.projects.map((p) => p.id),
       );
-      const project: Project = { id, name, group, account, path: tildify(e.path, home) };
+      const project: Project = remote
+        ? { id, name, group, account, path: e.path.trim(), remote }
+        : { id, name, group, account, path: tildify(e.path, home) };
       return { ...c, groups, projects: placeProject(c.projects, project, group, Infinity) };
     }
     case 'updateProject': {

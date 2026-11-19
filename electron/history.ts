@@ -477,6 +477,7 @@ export function matchProject(config: Config, cwd: string, resolve = realpath): s
   const dir = resolve(cwd);
   let best: { id: string; len: number } | undefined;
   for (const p of config.projects) {
+    if (p.remote) continue;
     const root = resolve(expand(p.path));
     if ((within(dir, root) || within(dir, `${root}-wt`)) && (!best || root.length > best.len))
       best = { id: p.id, len: root.length };

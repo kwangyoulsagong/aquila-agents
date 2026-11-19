@@ -1,6 +1,8 @@
 // One pty per session. Runs the user's real `claude` / `codex` / shell — same tokens, same config.
+import { execFile } from 'node:child_process';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
+import os from 'node:os';
 import type { BrowserWindow } from 'electron';
 import * as pty from 'node-pty';
 import { expand, loadConfig } from './config';
@@ -16,6 +18,8 @@ import { formatRestored, newTabKey, type RestorePlan, type SavedTab } from './st
 import { logStatus } from './status/log';
 import { OSC_7501_REPLY, OscScanner, parse7501 } from './status/osc';
 import { StatusTracker } from './status/tracker';
+import { Reconnector } from './remote/reconnect';
+import { killArgs, sessionArgs, SSH_FAILED } from './remote/ssh';
 import { translator } from '../src/shared/i18n/dictionary';
 import {
   IPC,
@@ -84,6 +88,13 @@ interface LiveSession {
   since: number;
   /** Notification context per status: the permission's tool summary, the last answer's first line. */
   details: { waiting?: string; done?: string };
+  /** Remote session (T29): ssh → tmux on that host, reconnected with backoff when ssh drops. */
+  remote?: { alias: string; reconnector: Reconnector };
+  /** Last size from the renderer (a reconnect spawns ssh at it). */
+  cols: number;
+  rows: number;
+  /** The user closed the tab: its exit is final (no reconnect). */
+  killed?: boolean;
 }
 
 interface Deps {
@@ -169,8 +180,10 @@ export class SessionManager {
       id,
       projectId: plan.projectId,
       kind: plan.kind,
-      ...(plan.kind === 'claude' ? { account: plan.account ?? project.account } : {}),
+      // A remote Claude uses the host's config dir, not a local account.
+      ...(plan.kind === 'claude' && !project.remote ? { account: plan.account ?? project.account } : {}),
       ...(plan.worktree ? { worktree: plan.worktree } : {}),
+      ...(project.remote ? { remote: project.remote.alias } : {}),
       dormant: true,
     };
   }
@@ -206,6 +219,8 @@ export class SessionManager {
     if (!project) throw new Error(translator(config.language)('error.projectNotFound', { id: projectId }));
     const accountId = accountOverride && config.accounts[accountOverride] ? accountOverride : project.account;
     const account = config.accounts[accountId];
+    const remote = project.remote;
+    const key = restore.key ?? newTabKey();
 
     const env: Record<string, string> = {
       ...(process.env as Record<string, string>),
@@ -216,13 +231,13 @@ export class SessionManager {
     };
     delete env.CLAUDE_CONFIG_DIR;
     // Project port base (T26): each worktree gets its own range so parallel dev servers don't collide.
-    if (project.portBase) {
+    if (project.portBase && !remote) {
       const port = String(project.portBase + (worktree ? PORT_STEP * worktreeSlot(worktree.path) : 0));
       env.PORT = port;
       env.AQUILA_PORT_BASE = port;
     }
     // Account only matters for Claude; codex/shell keep the user's environment as-is.
-    if (kind === 'claude' && account?.claudeConfigDir)
+    if (kind === 'claude' && account?.claudeConfigDir && !remote)
       env.CLAUDE_CONFIG_DIR = expand(account.claudeConfigDir);
 
     const claudeSessionId = kind === 'claude' ? (restore.resumeClaude ?? crypto.randomUUID()) : undefined;
@@ -234,74 +249,118 @@ export class SessionManager {
     const pre = setup?.trim()
       ? `printf '\\033[2m%s\\033[0m\\n' ${shellQuote(translator(config.language)('settings.setupRunning'))}; ${setup.trim()}\n`
       : '';
-    const args =
-      command || pre
+    const args = remote
+      ? sessionArgs({
+          host: remote,
+          path: project.path,
+          tabKey: key,
+          kind,
+          claudeSessionId,
+          resumeClaude: !!restore.resumeClaude,
+          resumeCodexId: restore.resumeCodexId,
+        })
+      : command || pre
         ? ['-l', '-i', '-c', `${pre}${command ? `${command}; ` : ''}exec ${SHELL} -l -i`]
         : ['-l', '-i'];
-    const cwd = worktree?.path ?? expand(project.path);
-    const proc = pty.spawn(SHELL, args, {
-      name: 'xterm-256color',
-      cols: 120,
-      rows: 32,
-      cwd,
-      env,
-    });
+    // Remote: ssh runs from home; the project folder is on the host (cd'd into by the remote script).
+    const cwd = remote ? os.homedir() : (worktree?.path ?? expand(project.path));
+    const spawnProc = (cols: number, rows: number) =>
+      pty.spawn(remote ? 'ssh' : SHELL, args, { name: 'xterm-256color', cols, rows, cwd, env });
+    const proc = spawnProc(120, 32);
 
     const now = Date.now();
     const s: LiveSession = {
       id,
-      key: restore.key ?? newTabKey(),
-      cwd: realpath(cwd),
+      key,
+      cwd: remote ? project.path : realpath(cwd),
       spawnedAt: now,
       ...(kind === 'codex' && restore.resumeCodexId ? { codexSessionId: restore.resumeCodexId } : {}),
       ...(resuming ? { resumeUntil: now + RESUME_FAIL_WINDOW_MS } : {}),
       projectId,
       projectName: worktree ? `${project.name} · ${worktree.branch}` : project.name,
       kind,
-      account: kind === 'claude' ? accountId : undefined,
+      account: kind === 'claude' && !remote ? accountId : undefined,
       worktree,
       claudeSessionId,
       proc,
-      // Claude has hooks as its fallback; codex and shells fall back to output activity.
-      tracker: new StatusTracker(kind !== 'claude'),
+      // Claude has hooks as its fallback; codex and shells fall back to output activity. Remote Claude has no
+      // hooks (they post to 127.0.0.1 here) and tmux drops OSC 7501, so it falls back to output activity too.
+      tracker: new StatusTracker(kind !== 'claude' || !!remote),
       osc: new OscScanner(),
       output: new OutputBatcher({
         send: (data) => this.deps.send(IPC.sessionData, { id, data }),
-        pause: () => proc.pause(),
-        resume: () => proc.resume(),
+        pause: () => s.proc.pause(),
+        resume: () => s.proc.resume(),
       }),
       sentStatus: 'idle',
       since: Date.now(),
       details: {},
+      cols: 120,
+      rows: 32,
     };
     this.sessions.set(id, s);
     if (!this.order.includes(id)) this.order.push(id);
-    void headSha(cwd).then((h) => (s.startHead = h));
+    if (!remote) void headSha(cwd).then((h) => (s.startHead = h));
     s.output.setSaver(this.saver);
-    // Cold restore: the last output, read-only, above the fresh shell.
-    if (restore.cold) this.showSaved(s, config, 'restore.previous');
+    // Cold restore: the last output, read-only, above the fresh shell. A remote tab reattaches to tmux instead.
+    if (restore.cold && !remote) this.showSaved(s, config, 'restore.previous');
 
+    if (remote) {
+      const reconnector = new Reconnector(
+        () => {
+          if (this.sessions.get(id) !== s || s.killed || this.closing) return;
+          s.output.resetFlow();
+          s.proc = spawnProc(s.cols, s.rows);
+          this.attach(s);
+          reconnector.spawned();
+        },
+        (state, retryAt) =>
+          this.deps.send(IPC.sessionConnection, { id, state, ...(retryAt ? { retryAt } : {}) }),
+      );
+      s.remote = { alias: remote.alias, reconnector };
+    }
+    this.attach(s);
+    s.remote?.reconnector.spawned();
+    this.tabsChanged();
+    return this.info(s);
+  }
+
+  /** Wires the session's current pty (a remote session gets a new one per reconnect). */
+  private attach(s: LiveSession): void {
+    const proc = s.proc;
     proc.onData((data) => {
+      if (s.proc !== proc) return;
       // OSC 7501 first: the query must be answered before the renderer's xterm answers DA1.
       for (const payload of s.osc.feed(data)) this.onOsc(s, payload);
       s.output.push(data);
       s.tracker.output(Date.now());
     });
     proc.onExit(({ exitCode, signal }) => {
-      s.output.flush();
-      s.output.dispose();
-      if (s.tracker.exit(exitCode, signal)) this.emitStatus(s);
-      this.deps.send(IPC.sessionExit, { id, exitCode });
-      this.sessions.delete(id);
-      this.order = this.order.filter((o) => o !== id);
-      // The tab is gone for good (not a quit): its saved output too.
-      if (!this.closing) this.deps.scrollback?.remove(s.key);
-      this.attention.forget(id);
-      this.updateBadge();
-      this.tabsChanged();
+      if (s.proc !== proc) return;
+      // ssh's own failure (connect failed / link lost): keep the tab and retry. Anything else ended the session.
+      if (s.remote && exitCode === SSH_FAILED && !s.killed && !this.closing) {
+        s.output.flush();
+        s.remote.reconnector.dropped();
+        return;
+      }
+      this.ended(s, exitCode, signal);
     });
+  }
+
+  private ended(s: LiveSession, exitCode: number, signal?: number): void {
+    const { id } = s;
+    s.remote?.reconnector.dispose();
+    s.output.flush();
+    s.output.dispose();
+    if (s.tracker.exit(exitCode, signal)) this.emitStatus(s);
+    this.deps.send(IPC.sessionExit, { id, exitCode });
+    this.sessions.delete(id);
+    this.order = this.order.filter((o) => o !== id);
+    // The tab is gone for good (not a quit): its saved output too.
+    if (!this.closing) this.deps.scrollback?.remove(s.key);
+    this.attention.forget(id);
+    this.updateBadge();
     this.tabsChanged();
-    return this.info(s);
   }
 
   private info(s: LiveSession): SessionInfo {
@@ -311,6 +370,7 @@ export class SessionManager {
       kind: s.kind,
       ...(s.account ? { account: s.account } : {}),
       ...(s.worktree ? { worktree: s.worktree } : {}),
+      ...(s.remote ? { remote: s.remote.alias } : {}),
     };
   }
 
@@ -580,6 +640,8 @@ export class SessionManager {
     id: string,
   ): { agent: 'claude'; account?: string; sessionId: string } | { agent: 'codex'; sessionId: string } | undefined {
     const s = this.sessions.get(id);
+    // Remote transcripts live on the host.
+    if (s?.remote) return undefined;
     if (s?.kind === 'claude' && s.claudeSessionId)
       return { agent: 'claude', sessionId: s.claudeSessionId, ...(s.account ? { account: s.account } : {}) };
     if (s?.kind === 'codex' && s.codexSessionId) return { agent: 'codex', sessionId: s.codexSessionId };
@@ -593,14 +655,24 @@ export class SessionManager {
   /** Keyboard path from the renderer (also xterm's own replies, which the tracker tells apart). */
   write(id: string, data: string): void {
     const s = this.sessions.get(id);
-    if (!s) return;
+    // A remote tab waiting to reconnect has no live ssh.
+    if (!s || s.remote?.reconnector.waiting) return;
     s.proc.write(data);
-    if (s.kind === 'codex' && !s.codexSessionId && data.includes('\r')) this.codexSubmitted(s);
+    if (s.kind === 'codex' && !s.codexSessionId && !s.remote && data.includes('\r')) this.codexSubmitted(s);
     if (s.tracker.input(data, Date.now())) this.emitStatus(s);
   }
 
   resize(id: string, cols: number, rows: number): void {
-    if (cols > 0 && rows > 0) this.sessions.get(id)?.proc.resize(cols, rows);
+    const s = this.sessions.get(id);
+    if (!s || !(cols > 0 && rows > 0)) return;
+    s.cols = cols;
+    s.rows = rows;
+    if (!s.remote?.reconnector.waiting) s.proc.resize(cols, rows);
+  }
+
+  /** "Reconnect now" on a remote tab that is waiting for its next attempt. */
+  reconnect(id: string): void {
+    this.sessions.get(id)?.remote?.reconnector.now();
   }
 
   kill(id: string): void {
@@ -612,7 +684,15 @@ export class SessionManager {
       this.tabsChanged();
       return;
     }
-    this.sessions.get(id)?.proc.kill();
+    const s = this.sessions.get(id);
+    if (!s) return;
+    if (s.remote) {
+      s.killed = true;
+      // Closing the tab ends its tmux session on the host too (a quit doesn't: relaunch reattaches).
+      execFile('ssh', killArgs(s.remote.alias, s.key), { timeout: 20_000 }, () => undefined);
+      if (s.remote.reconnector.waiting) return this.ended(s, 0);
+    }
+    s.proc.kill();
   }
 
   killAll(): void {
@@ -620,7 +700,14 @@ export class SessionManager {
     clearInterval(this.timer);
     for (const t of this.codexScans) clearTimeout(t);
     this.attention.dispose();
-    for (const s of this.sessions.values()) s.proc.kill();
+    for (const s of this.sessions.values()) {
+      s.remote?.reconnector.dispose();
+      try {
+        s.proc.kill();
+      } catch {
+        // already exited (a remote tab waiting to reconnect)
+      }
+    }
   }
 }
 

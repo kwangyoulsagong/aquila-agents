@@ -89,10 +89,13 @@ export default function WorkspacePage() {
       a.openClaude = () => openSession('claude');
       a.openCodex = () => openSession('codex');
       a.openShell = () => openSession('shell');
-      a.openWorktree = openWorktreeDialog;
-      a.toggleChanges = toggleChanges;
       a.projectSettings = () => openSettings(project);
-      a.openProjectIn = () => void openIn(project);
+      // Worktrees, the changes panel and "Open in" are local-only for now (T29; remote panels are T36).
+      if (!project.remote) {
+        a.openWorktree = openWorktreeDialog;
+        a.toggleChanges = toggleChanges;
+        a.openProjectIn = () => void openIn(project);
+      }
     }
     a.addProject = () => void addProject();
     a.history = toggleHistory;
@@ -165,7 +168,7 @@ export default function WorkspacePage() {
             onClose={ws.closeSession}
             onNew={ws.openSession}
             defaultKind={project?.defaultAgent}
-            onNewInWorktree={project && openWorktreeDialog}
+            onNewInWorktree={project && !project.remote ? openWorktreeDialog : undefined}
             trailing={
               project && (
                 <>
@@ -173,17 +176,21 @@ export default function WorkspacePage() {
                     config={config}
                     onOpenClaude={(account) => ws.openSession('claude', account)}
                   />
-                  <AccountSwitch config={config} project={project} onChanged={ws.setConfig} />
-                  <Button
-                    variant="ghost"
-                    icon
-                    aria-pressed={changesOpen}
-                    onClick={toggleChanges}
-                    title={withShortcut(t('changes.toggle'), 'toggleChanges')}
-                    aria-label={t('changes.toggle')}
-                  >
-                    ±
-                  </Button>
+                  {!project.remote && (
+                    <AccountSwitch config={config} project={project} onChanged={ws.setConfig} />
+                  )}
+                  {!project.remote && (
+                    <Button
+                      variant="ghost"
+                      icon
+                      aria-pressed={changesOpen}
+                      onClick={toggleChanges}
+                      title={withShortcut(t('changes.toggle'), 'toggleChanges')}
+                      aria-label={t('changes.toggle')}
+                    >
+                      ±
+                    </Button>
+                  )}
                 </>
               )
             }
@@ -219,7 +226,7 @@ export default function WorkspacePage() {
             onSettings={manage.submitSettings}
           />
         )}
-        {worktreeOpen && project && (
+        {worktreeOpen && project && !project.remote && (
           <OpenInWorktreeDialog
             key={project.id}
             project={project}
@@ -227,7 +234,7 @@ export default function WorkspacePage() {
             onOpen={ws.openWorktreeSession}
           />
         )}
-        {changesOpen && (
+        {changesOpen && !project?.remote && (
           <ChangesPanel
             project={project}
             session={ws.sessions.find((x) => x.id === activeSessionId)}

@@ -10,7 +10,8 @@ import { app, ipcMain, type BrowserWindow } from 'electron';
 import { runCapture } from './capture';
 import { runPerf } from './perf';
 import type { SessionManager } from './sessions';
-import { IPC, type Config } from '../src/shared/api/types';
+import { checkRemoteSession } from './remote/smoke';
+import { IPC, type Config, type ConnectionUpdate } from '../src/shared/api/types';
 import { translator } from '../src/shared/i18n/dictionary';
 
 const MARKER = 'AQUILA_SMOKE_OK';
@@ -37,10 +38,12 @@ export function watchOutput(
   send: (ch: string, p: unknown) => void,
   onData: (data: string) => void,
   onStatus: (status: string) => void = () => {},
+  onConnection: (update: ConnectionUpdate) => void = () => {},
 ) {
   return (channel: string, payload: unknown) => {
     if (channel === 'session:data') onData((payload as { data: string }).data);
     if (channel === 'session:status') onStatus((payload as { status: string }).status);
+    if (channel === IPC.sessionConnection) onConnection(payload as ConnectionUpdate);
     send(channel, payload);
   };
 }
@@ -49,7 +52,7 @@ export async function runSmoke(
   win: BrowserWindow,
   sessions: SessionManager,
   config: Config,
-  output: { buffer: string; statuses: string[] },
+  output: { buffer: string; statuses: string[]; connections: ConnectionUpdate[] },
 ) {
   if (process.env.AQUILA_PERF === '1') return runPerf(win, sessions);
   if (process.env.AQUILA_CAPTURE) return runCapture(win, sessions, config);
@@ -115,8 +118,10 @@ export async function runSmoke(
     if (guideError) return fail(guideError);
     const imeError = await checkIme(win);
     if (imeError) return fail(imeError);
+    const remoteError = await checkRemoteSession(sessions, config, output);
+    if (remoteError) return fail(remoteError);
     console.log(
-      `[smoke] OK — pty round-trip, OSC 7501, Ctrl+C under load and Korean IME work, screenshot: ${out}`,
+      `[smoke] OK — pty round-trip, OSC 7501, Ctrl+C under load, Korean IME and remote reconnect work, screenshot: ${out}`,
     );
     sessions.killAll();
     app.exit(0);

@@ -69,6 +69,43 @@ export interface Project {
   portBase?: number;
   /** macOS app name for "Open in" (`open -a <app>`), e.g. "Visual Studio Code". */
   openIn?: string;
+  /** Runs on an SSH host (T29): `path` is then the folder on that host (`~/…` = the remote home). */
+  remote?: RemoteHost;
+}
+
+/** Where a remote project runs (T29). Uses the user's `~/.ssh/config` and ssh-agent; nothing secret is stored. */
+export interface RemoteHost {
+  /** Host alias from `~/.ssh/config` (or `user@host`). */
+  alias: string;
+  /** `CLAUDE_CONFIG_DIR` on the host for Claude sessions (`~/…` = the remote home); unset = Claude's default. */
+  claudeConfigDir?: string;
+}
+
+/** Connection of a remote session: up, retrying with backoff, or retrying for a while without luck. */
+export type ConnectionState = 'connecting' | 'connected' | 'reconnecting' | 'lost';
+
+export interface ConnectionUpdate {
+  id: string;
+  state: ConnectionState;
+  /** Next automatic attempt (ms since epoch) while reconnecting / lost. */
+  retryAt?: number;
+}
+
+export type RemoteToolId = 'claude' | 'codex' | 'tmux' | 'git';
+
+/** What `remote:check` found on a host. Install commands are only shown, never run. */
+export interface RemoteCheck {
+  /** ssh connected without asking for anything (BatchMode). */
+  reachable: boolean;
+  /** ssh's own message when it didn't. */
+  error?: string;
+  /** `uname -sm`, e.g. "Linux x86_64". */
+  system?: string;
+  tools: { tool: RemoteToolId; path?: string; version?: string; install: string }[];
+  /** Claude has a login in its config dir on the host; undefined when Claude is missing. */
+  claudeLoggedIn?: boolean;
+  /** systemd-logind `KillUserProcesses=yes`: tmux sessions die when the last ssh login ends. */
+  killUserProcesses?: boolean;
 }
 
 /** Allowed `portBase` range (each worktree adds 10). */
@@ -87,6 +124,8 @@ export interface ProjectSettings {
   setupScript?: string;
   portBase?: number | null;
   openIn?: string;
+  /** Remote project only: host alias / remote Claude config dir ('' clears it). `path` is then sent as typed. */
+  remote?: { alias: string; claudeConfigDir: string };
 }
 
 export interface Config {
@@ -100,7 +139,7 @@ export interface Config {
 /** One change to the project list, made from the sidebar. Main applies it to ~/.aquila/config.json. */
 export type ProjectEdit =
   /** `path` is absolute (folder picker); stored as `~/…` when under home. Empty name = folder name. */
-  | { op: 'addProject'; path: string; name: string; group: string; account: string }
+  | { op: 'addProject'; path: string; name: string; group: string; account: string; remote?: RemoteHost }
   | ({ op: 'updateProject'; id: string } & ProjectSettings)
   | { op: 'removeProject'; id: string }
   /** `index` = position among the target group's other projects (past the end = last). */
@@ -158,6 +197,8 @@ export interface SessionInfo {
   worktree?: Worktree;
   /** Restored but not spawned yet: starts on first show (`startSession`). */
   dormant?: boolean;
+  /** SSH host alias of a remote session (T29). */
+  remote?: string;
 }
 
 /** A split layout as saved across launches: the pane tree with session ids, and the focused pane's index. */
@@ -185,6 +226,9 @@ export interface Session extends SessionInfo {
   /** When the current status started (ms since epoch). */
   since?: number;
   exited?: boolean;
+  /** Remote sessions: connection state and the next automatic retry. */
+  connection?: ConnectionState;
+  retryAt?: number;
 }
 
 /** One changed file from `git status --porcelain=v1`. */
@@ -453,6 +497,13 @@ export interface AquilaApi {
   onStatus(cb: (p: StatusUpdate) => void): Unsubscribe;
   onExit(cb: (p: { id: string; exitCode: number }) => void): Unsubscribe;
   onFocusSession(cb: (p: { id: string }) => void): Unsubscribe;
+  /** Host aliases from `~/.ssh/config` (no wildcards), for the remote project form. */
+  sshHosts(): Promise<string[]>;
+  /** Connects once (BatchMode) and reports OS, CLIs, tmux, git and the Claude login on the host. */
+  checkRemote(host: RemoteHost): Promise<RemoteCheck>;
+  /** Retry a remote session's connection now instead of waiting for the backoff. */
+  reconnect(id: string): void;
+  onConnection(cb: (p: ConnectionUpdate) => void): Unsubscribe;
   /** Current power profile (battery / throttling / thermal). */
   powerState(): Promise<PowerState>;
   onPower(cb: (p: PowerState) => void): Unsubscribe;
@@ -510,6 +561,10 @@ export const IPC = {
   sessionStatus: 'session:status',
   sessionExit: 'session:exit',
   uiFocusSession: 'ui:focus-session',
+  remoteHosts: 'remote:hosts',
+  remoteCheck: 'remote:check',
+  remoteReconnect: 'remote:reconnect',
+  sessionConnection: 'session:connection',
   powerGet: 'power:get',
   powerChanged: 'power:changed',
 } as const;

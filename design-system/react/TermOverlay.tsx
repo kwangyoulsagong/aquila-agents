@@ -23,6 +23,29 @@ export function TermNote({ bar, className, ...rest }: HTMLAttributes<HTMLDivElem
   );
 }
 
+/** `.c-term-overlay__banner` — a bar across the top that takes clicks (connection lost + an action). */
+export function TermBanner({
+  meta,
+  action,
+  children,
+}: {
+  /** Secondary text after the message (retry countdown). */
+  meta?: ReactNode;
+  /** Trailing control (a Button). */
+  action?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <div role="alert" className="c-term-overlay__banner">
+      <span className="c-term-overlay__banner-text">
+        {children}
+        {meta && <span className="c-term-overlay__banner-meta"> · {meta}</span>}
+      </span>
+      {action}
+    </div>
+  );
+}
+
 interface HintProps {
   /** Box of the tinted match in px, relative to the overlay (one per screen row the match spans). */
   box: { left: number; top: number; width: number; height: number };

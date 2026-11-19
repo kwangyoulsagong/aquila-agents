@@ -112,6 +112,8 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `.c-kbd` | Shortcut hint |
 | `.c-elapsed` | How long a session has waited ("12m", mono, waiting color) on a tab or project row |
 | `.c-badge` `--claude` `--codex` `--shell` `--account-shared` `--account-personal` | Tags |
+| `.c-badge--host`, `.c-badge__conn[data-conn=connecting\|connected\|reconnecting\|lost]` | Remote host alias (not uppercased) with a connection dot: idle grey / green / orange pulsing / red (T29) |
+| `.c-term-overlay__banner` `__banner-text` `__banner-meta` | Bar across the top of a terminal that takes clicks, red edge: connection lost + countdown + an action (T29) |
 | `.c-label` | Section label |
 | `.c-sidebar` `__drag` `__body` `__group` `__foot` `__lang` | Sidebar |
 | `.c-row[aria-current]` `__name` `__meta` | Project row |
@@ -150,6 +152,7 @@ from `src/` (ESLint enforces it). New primitive → add the class to `components
 | `Button` `variant="primary\|ghost"` `icon` `ref?` | `.c-btn` |
 | `Dot` `status` `estimated?` `label?` | `.c-dot` |
 | `Badge` `tone` | `.c-badge--<tone>` |
+| `HostBadge` `host` `conn?` `label?` | `.c-badge--host` (+ `.c-badge__conn`) |
 | `Kbd`, `Label` | `.c-kbd`, `.c-label` |
 | `Elapsed` `title?` | `.c-elapsed` |
 | `Segment` `options` `value` `onChange` | `.c-segment` |
@@ -158,6 +161,7 @@ from `src/` (ESLint enforces it). New primitive → add the class to `components
 | `Checklist` `label`, `ChecklistItem` `leading` `title` `tag` `meta` `actions`, `ChecklistCommand` `command` `action` | `.c-checklist` |
 | `Dropzone` `over` (+ div props) | `.c-dropzone` |
 | `TermOverlay` (+ div props, `ref`), `TermJump` (Button props), `TermNote` `bar?`, `TermHint` `box` `label?` `typed?` | `.c-term-overlay`, `.c-term-overlay__jump`, `.c-term-overlay__note(--bar)`, `.c-term-hint` (helpers over a terminal, T28) |
+| `TermBanner` `meta?` `action?` | `.c-term-overlay__banner` (connection lost, T29) |
 | `Field` `label` `hint` `warning`, `FieldRow`, `FieldGrid`, `Input`, `Textarea`, `Select` `options` `onChange(value)` | `.c-field`, `.c-field__row`, `.c-field-grid`, `.c-input`, `.c-input--multiline`, `.c-select` |
 | `ChangeRow` `status` `path` | `.c-change` |
 | `Palette` `open` `onClose` `label` `query` `onQueryChange` `listId` `activeId`, `PaletteList`, `PaletteItem` `selected` `label` `marks` `leading` `hint` `kbd`, `PaletteEmpty` | `.c-palette` (combobox + listbox) |

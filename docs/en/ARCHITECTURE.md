@@ -26,6 +26,7 @@
 │                                           │        │ guide.ts      tour offered once (T23)            │
 │                                           │        │ history.ts    past sessions, read-only (T11)     │
 │                                           │        │ terminalHelpers.ts clipboard paths, last reply   │
+│                                           │        │ remote/       ssh + tmux, reconnect, host check  │
 │                                           │        │ smoke.ts      npm run smoke self-check           │
 │ shared/   api (types · IPC · bridge), i18n│        │                                                 │
 └───────────────────────────────────────────┘        └─────────────────────────────────────────────────┘
@@ -209,6 +210,49 @@ so the terminal stays owned by the entity.
   the Korean input source doesn't matter.
 - Electron 45 has no `clipboard` module in the preload: `copyText` goes through `clipboard:write` in main.
 
+## Remote sessions (T29)
+
+A project can live on an SSH host: `project.remote = { alias, claudeConfigDir? }`, and `project.path` is then the
+folder **on the host** (`~/…` = the remote home). Added from the sidebar's **+** → "SSH host…" (`RemoteProjectDialog`:
+host with suggestions from `~/.ssh/config` (`remote:hosts`, `electron/remote/hosts.ts`, `Host` names without wildcards,
+simple `Include`s), folder, name, group, optional `CLAUDE_CONFIG_DIR` on the host). Project settings edit the same fields.
+
+- **Spawn** (`electron/remote/ssh.ts`, pure and tested, incl. a run of the generated script under `sh` with a fake tmux):
+  `ssh -t -o ServerAliveInterval=20 -o ServerAliveCountMax=3 -o ConnectTimeout=15 <alias> -- 'exec "$SHELL" -l -c <script>'`
+  — ssh runs its command without a login, so PATH from `~/.profile` (a tmux in `~/.local/bin`) would be missing. The script
+  checks for tmux (exit 127 with a message if missing), writes our `~/.aquila/tmux.conf` (the only file we write on the
+  host: no status bar, no alternate screen so output scrolls into xterm, `allow-passthrough on`, OSC 52), `cd`s into the
+  folder and `exec tmux -L aquila -f ~/.aquila/tmux.conf new-session -A -s aq-<tab key> -c "$PWD" '<inner>'`. Our own
+  tmux server (`-L aquila`) never touches the user's. `<inner>` = `exec "$SHELL" -l -i -c '<agent>; exec "$SHELL" -l -i'`
+  (same as local: the agent in a login shell, then the shell), with `export CLAUDE_CONFIG_DIR=…` first for Claude when set.
+  Claude starts with `--session-id` / `--resume`, codex with `resume <id>` — the plain names on the host's PATH.
+- **One tmux session per tab**, named after the stable tab key. `-A` attaches when it exists, so a reconnect and an
+  app relaunch both reattach to the running agent (tmux then ignores the command and folder). Closing a tab runs
+  `ssh -o BatchMode=yes <alias> tmux -L aquila kill-session -t aq-<key>`; quitting the app doesn't, so relaunch reattaches.
+- **Reconnect** (`electron/remote/reconnect.ts`, tested with a manual clock): ssh exit 255 (its own failure: connect
+  refused, keepalive timeout) keeps the tab and retries after 3 → 6 → 12 → 60 s, then every 60 s. ssh counts as
+  connected after staying up 2.5 s (it prints its own errors, so output alone doesn't mean connected); that resets the
+  backoff. After 3 failed attempts the state is `lost` but it keeps trying. Any other exit code is the session ending
+  (the agent and shell exited, or no tmux). The pty is replaced per attempt; the xterm, tab and status stay.
+  States go to the renderer on `session:connection` (`connecting | connected | reconnecting | lost` + `retryAt`).
+- **UI:** a host badge with a connection dot on the tab and pane head (`HostBadge`, `entities/project`), the host badge
+  instead of the account badge in the sidebar, and while `lost` a banner over the terminal (`features/remote-connection`:
+  countdown, "Reconnect now" → `remote:reconnect`, "the agent keeps running in tmux on the host").
+- **Status:** remote Claude has no hooks (they post to 127.0.0.1 on this Mac) and tmux drops unknown OSC sequences, so
+  OSC 7501 doesn't reach us (passthrough only forwards sequences the program wraps itself). Remote tabs use the output
+  activity heuristic, shown as estimated.
+- **Check host** (`remote:check`, `electron/remote/check.ts`): `ssh -o BatchMode=yes` runs one probe in the remote login
+  shell: `uname -sm`, `command -v` + version of claude / codex / tmux / git, Claude login (`<dir>/.credentials.json` or
+  `oauthAccount` in `.claude.json`), the package manager (for the install hint) and systemd-logind
+  `KillUserProcesses` (+ linger). Install commands are only shown, with Copy. A host that needs a password or a new host
+  key fails here with ssh's message; the session itself is a real pty and can ask.
+- Uses the user's `~/.ssh/config` and ssh-agent; nothing secret is stored. Local-only for now (refused with one
+  message by main, hidden in the UI): worktrees, changes panel, session history/resume, "Open in", copy last response,
+  port base, setup script, the local account switch.
+- **Smoke** (`electron/remote/smoke.ts`): fake `ssh` / `tmux` on PATH run the real script locally: first attempt refused
+  → reconnecting → connected; a typed marker comes back; a dropped link (exit 255) → reconnect → output again; closing
+  the tab sends `kill-session`.
+
 ## Shortcuts
 
 - One map in `src/shared/lib/shortcuts.ts`: `ShortcutId` → Electron accelerator (`CommandOrControl+Shift+T`).
@@ -287,7 +331,7 @@ The account switch in the tab bar changes `project.account`; it applies to **new
 
 `features/manage-projects` (used by the sidebar) edits the project list without touching JSON by hand:
 
-- **+** in the sidebar footer → native folder picker (`dialog:pick-folder`) → dialog: name (= folder name), group,
+- **+** in the sidebar footer → menu: "Local folder…" or "SSH host…" (remote project, T29). Local → native folder picker (`dialog:pick-folder`) → dialog: name (= folder name), group,
   account (preselected from the current project). The new project is selected.
 - Right-click a project → native menu (`ui:context-menu`, `electron/menu.ts`): Rename… · Group ▸ (incl. New group…) ·
   Claude account ▸ · Remove from sidebar… (confirm; its open sessions close; files are never touched).

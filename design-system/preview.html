@@ -55,6 +55,11 @@
       <span class="c-badge c-badge--claude">claude</span>
       <span class="c-badge c-badge--codex">codex</span>
       <span class="c-badge">개인</span>
+      <span class="c-badge c-badge--host"><i class="c-badge__conn" data-conn="connecting"></i>devbox</span>
+      <span class="c-badge c-badge--host"><i class="c-badge__conn" data-conn="connected"></i>devbox</span>
+      <span class="c-badge c-badge--host"><i class="c-badge__conn" data-conn="reconnecting"></i>devbox</span>
+      <span class="c-badge c-badge--host"><i class="c-badge__conn" data-conn="lost"></i>gpu-1</span>
+      <span class="c-badge c-badge--host">devbox</span>
     </div>
   </section>
 
@@ -221,6 +226,19 @@
     </div>
     <div class="mock" style="position: relative; height: 120px; margin-top: 8px; background: var(--color-terminal-bg);">
       <div class="c-term-overlay"><div class="c-dropzone" data-over="true">놓으면 경로를 입력해요</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Terminal overlay · connection lost banner (T29)</h2>
+    <div class="mock" style="position: relative; height: 120px; background: var(--color-terminal-bg); font: 13px/1.2 var(--font-family-mono); color: var(--color-terminal-fg); padding: 8px 12px;">
+      <div>&nbsp;</div><div>&nbsp;</div><div>● Running tests…</div>
+      <div class="c-term-overlay">
+        <div class="c-term-overlay__banner" role="alert">
+          <span class="c-term-overlay__banner-text">devbox 연결이 끊겼어요<span class="c-term-overlay__banner-meta"> · 42초 뒤 다시 시도 · 에이전트는 호스트의 tmux에서 계속 돌아요</span></span>
+          <button class="c-btn c-btn--ghost">지금 다시 연결</button>
+        </div>
+      </div>
     </div>
   </section>
 

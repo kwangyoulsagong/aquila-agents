@@ -1,10 +1,11 @@
 import { useId, useState } from 'react';
 import { Button, Dialog, DialogForm, Field, Input, Select } from '@design-system/react';
-import type { Config, ProjectSettings } from '@/shared/api';
+import type { Config, ProjectSettings, RemoteHost } from '@/shared/api';
 import { accountLabel, groupLabel, useT } from '@/shared/i18n';
 import type { ManageDialog } from '../model/useManageProjects';
 import { useDuplicateFolder } from '../model/useDuplicateFolder';
 import ProjectSettingsDialog from './ProjectSettingsDialog';
+import RemoteProjectDialog from './RemoteProjectDialog';
 
 interface Props {
   dialog: ManageDialog;
@@ -12,7 +13,13 @@ interface Props {
   /** Preselected in the add dialog (the current project's group and account). */
   defaults: { group?: string; account?: string };
   onClose: () => void;
-  onAdd: (values: { name: string; group: string; account: string }) => Promise<void>;
+  onAdd: (values: {
+    name: string;
+    group: string;
+    account?: string;
+    path?: string;
+    remote?: RemoteHost;
+  }) => Promise<void>;
   onName: (name: string) => Promise<void>;
   onRemove: () => Promise<void>;
   onSettings: (settings: ProjectSettings) => Promise<void>;
@@ -30,6 +37,15 @@ export default function ManageProjectsDialog(props: Props) {
         config={props.config}
         onClose={props.onClose}
         onSave={props.onSettings}
+      />
+    );
+  if (dialog.kind === 'addRemote')
+    return (
+      <RemoteProjectDialog
+        config={props.config}
+        defaultGroup={props.defaults.group}
+        onClose={props.onClose}
+        onAdd={props.onAdd}
       />
     );
   return <SimpleDialog {...props} />;

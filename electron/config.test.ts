@@ -64,6 +64,56 @@ describe('applyProjectEdit', () => {
     expect(ids(c)).toEqual(['a', 'b', 'c', 'a-2']);
   });
 
+  it('adds a remote project with its host, keeping the remote path as typed', () => {
+    const c = applyProjectEdit(
+      base(),
+      {
+        op: 'addProject',
+        path: '~/code/api',
+        name: '',
+        group: 'work',
+        account: 'shared',
+        remote: { alias: ' devbox ', claudeConfigDir: ' ' },
+      },
+      '/home/me',
+    );
+    expect(c.projects.at(-1)).toMatchObject({ name: 'api', path: '~/code/api', remote: { alias: 'devbox' } });
+    expect(c.projects.at(-1)!.remote).toEqual({ alias: 'devbox' });
+    // Invalid host or no path: nothing is added.
+    const bad = { op: 'addProject', name: '', group: 'work', account: 'shared' } as const;
+    expect(applyProjectEdit(base(), { ...bad, path: '/x', remote: { alias: '-oX' } }).projects).toHaveLength(
+      3,
+    );
+    expect(
+      applyProjectEdit(base(), { ...bad, path: ' ', remote: { alias: 'devbox' } }).projects,
+    ).toHaveLength(3);
+  });
+
+  it('updates a remote project host and path without tildifying', () => {
+    const added = applyProjectEdit(
+      base(),
+      {
+        op: 'addProject',
+        path: '/srv/a',
+        name: 'R',
+        group: 'work',
+        account: 'shared',
+        remote: { alias: 'a' },
+      },
+      '/srv',
+    );
+    const id = added.projects.at(-1)!.id;
+    const c = applyProjectEdit(
+      added,
+      { op: 'updateProject', id, path: '/srv/b', remote: { alias: 'b', claudeConfigDir: '~/.claude-w' } },
+      '/srv',
+    );
+    expect(c.projects.at(-1)).toMatchObject({
+      path: '/srv/b',
+      remote: { alias: 'b', claudeConfigDir: '~/.claude-w' },
+    });
+  });
+
   it('falls back to a known group/account and keeps paths outside home as they are', () => {
     const c = applyProjectEdit(
       base(),

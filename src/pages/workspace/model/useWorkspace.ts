@@ -56,7 +56,11 @@ export function useWorkspace() {
       setSessions((list) => list.map((s) => (s.id === id ? { ...s, exited: true } : s))),
     );
     const offFocus = api.onFocusSession(({ id }) => showSession(id));
+    const offConnection = api.onConnection(({ id, state, retryAt }) =>
+      setSessions((list) => list.map((s) => (s.id === id ? { ...s, connection: state, retryAt } : s))),
+    );
     return () => {
+      offConnection();
       offStatus();
       offExit();
       offFocus();

@@ -2,7 +2,7 @@ import { Button, Label } from '@design-system/react';
 import type { ReactNode } from 'react';
 import { api, type Config, type Session } from '@/shared/api';
 import { groupLabel, useT } from '@/shared/i18n';
-import { AccountBadge, ProjectRow } from '@/entities/project';
+import { AccountBadge, HostBadge, ProjectRow } from '@/entities/project';
 import { StatusDot, WaitingTime, mostUrgent } from '@/entities/session';
 import type { ManageProjects } from '@/features/manage-projects';
 
@@ -55,7 +55,11 @@ export default function Sidebar({ config, sessions, activeProjectId, onSelect, m
                     trailing={
                       <>
                         {waitingSince !== undefined && <WaitingTime since={waitingSince} />}
-                        <AccountBadge config={config} account={p.account} />
+                        {p.remote ? (
+                          <HostBadge host={p.remote.alias} />
+                        ) : (
+                          <AccountBadge config={config} account={p.account} />
+                        )}
                         {mine.length > 0 && (
                           <span className="c-row__sessions" aria-label={`${mine.length}`}>
                             {mine.slice(0, MAX_DOTS).map((s) => (
