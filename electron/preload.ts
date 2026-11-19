@@ -37,6 +37,8 @@ const api: AquilaApi = {
   kill: (id) => ipcRenderer.send(IPC.sessionKill, { id }),
   markSeen: (id) => ipcRenderer.send(IPC.sessionSeen, { id }),
   setActive: (id) => ipcRenderer.send(IPC.uiActive, { id }),
+  ackData: (id) => ipcRenderer.send(IPC.sessionAck, { id }),
+  setVisible: (id, visible) => ipcRenderer.send(IPC.sessionVisible, { id, visible }),
   onData: on(IPC.sessionData),
   onStatus: on(IPC.sessionStatus),
   onExit: on(IPC.sessionExit),

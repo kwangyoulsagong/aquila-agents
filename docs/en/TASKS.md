@@ -117,7 +117,8 @@ Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-1
 - **Owns:** `electron/notify.ts`, `src/features/next-waiting/`, small changes in `sessions.ts`, `useShortcuts.ts`.
 
 ### T16 · Terminal performance
-- [ ] **Goal:** 15+ sessions stay smooth and light. (#4, #18, #19)
+- [x] **Goal:** 15+ sessions stay smooth and light. (#4, #18, #19)
+  _Left over: not measured with 15 real sessions (smoke covers batching and `yes` + Ctrl+C: ~200 ms); the WebGL on/off on pane switches was checked only by the smoke screenshot, not in `npm run dev`._
 - **Spec:** WebGL only on visible panes (≤4); hidden → dispose + `term.refresh(0, rows-1)`; context loss → DOM renderer.
   Upgrade `@xterm/xterm` 5.5 → 6.x with matching addons (webgl 0.19, fit 0.11, web-links 0.12 — today 5.5 is mixed
   with webgl 0.19); recheck scroll/viewport and smoke. Main batches pty output (16 ms or 64–100 KB; hidden sessions

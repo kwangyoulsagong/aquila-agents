@@ -10,7 +10,7 @@ import { ensureWorktree, worktreeInfo } from './worktrees';
 import { detectClaudeVersion, startHookServer, supportsHttpHooks, writeClaudeHookSettings } from './hooks';
 import { SessionManager } from './sessions';
 import { planRestore, readState, writeState, type SavedTab } from './state';
-import { isSmoke, runSmoke, watchOutput } from './smoke';
+import { isSmoke, runSmoke, SMOKE_BUFFER_BYTES, watchOutput } from './smoke';
 import {
   IPC,
   type ContextMenuItem,
@@ -42,6 +42,8 @@ function createWindow(): void {
   });
   if (isDev) win.loadURL('http://localhost:5199');
   else win.loadFile(path.join(__dirname, '..', '..', 'dist', 'index.html'));
+  // A reload (dev, crash recovery) loses the renderer's pending acks: don't leave ptys paused.
+  win.webContents.on('did-start-loading', () => sessions?.resetFlow());
   win.on('closed', () => (win = null));
 }
 
@@ -67,7 +69,7 @@ app.whenReady().then(async () => {
     send: isSmoke
       ? watchOutput(
           send,
-          (d) => (smokeOutput.buffer += d),
+          (d) => (smokeOutput.buffer = (smokeOutput.buffer + d).slice(-SMOKE_BUFFER_BYTES)),
           (st) => smokeOutput.statuses.push(st),
         )
       : send,
@@ -146,6 +148,10 @@ app.whenReady().then(async () => {
   ipcMain.on(IPC.sessionKill, (_e, { id }: { id: string }) => s.kill(id));
   ipcMain.on(IPC.sessionSeen, (_e, { id }: { id: string }) => s.markSeen(id));
   ipcMain.on(IPC.uiActive, (_e, { id }: { id: string | null }) => s.setActive(id));
+  ipcMain.on(IPC.sessionAck, (_e, { id }: { id: string }) => s.ack(id));
+  ipcMain.on(IPC.sessionVisible, (_e, { id, visible }: { id: string; visible: boolean }) =>
+    s.setVisible(id, visible),
+  );
 
   createWindow();
   if (isSmoke && win) {

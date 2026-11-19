@@ -115,7 +115,8 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
 - **담당:** `electron/notify.ts`, `src/features/next-waiting/`, `sessions.ts`·`useShortcuts.ts` 소폭 수정.
 
 ### T16 · 터미널 성능
-- [ ] **목표:** 세션 15개 이상에서도 부드럽고 가볍게. (#4, #18, #19)
+- [x] **목표:** 세션 15개 이상에서도 부드럽고 가볍게. (#4, #18, #19)
+  _남은 것: 실제 세션 15개로 측정은 안 함(smoke가 묶음 전송과 `yes` + Ctrl+C ~200 ms를 확인). pane 전환 시 WebGL 켜고 끄기는 smoke 스크린샷으로만 봤고 `npm run dev`로는 안 봄._
 - **명세:** WebGL은 보이는 pane(≤4)에만. 숨기면 dispose + `term.refresh(0, rows-1)`, context loss면 DOM 렌더러.
   `@xterm/xterm` 5.5 → 6.x, addon 짝 맞추기(webgl 0.19, fit 0.11, web-links 0.12 — 지금은 5.5에 webgl 0.19 혼용).
   스크롤·viewport와 smoke 재확인. Main이 pty 출력을 묶어 보냄(16 ms 또는 64–100 KB, 숨긴 세션 100–250 ms) + 렌더러

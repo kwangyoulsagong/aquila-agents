@@ -17,6 +17,7 @@
 │           open-in-worktree                │        │ menu.ts       네이티브 우클릭 메뉴               │
 │                                           │        │ notify.ts     알림, 리마인더, Dock 배지          │
 │                                           │        │ status/       OSC 7501 파서 + 상태 판정          │
+│                                           │        │ output.ts     출력 묶음 + 흐름 제어              │
 │                                           │        │ smoke.ts      npm run smoke 자동 점검            │
 │ shared/   api (타입·IPC·bridge), i18n       │        │                                                 │
 └───────────────────────────────────────────┘        └─────────────────────────────────────────────────┘
@@ -41,8 +42,15 @@
 3. 세션별 환경변수: `AQUILA_TAB_ID`, `AQUILA_PORT`, 그리고 **개인** 계정의 Claude 세션에만
    `CLAUDE_CONFIG_DIR=~/.claude-personal` (`claude-personal` 셸 함수와 같음). **공용** 계정은 설정하지 않음(그냥 `claude`).
    Claude가 이 변수로 키체인 항목을 구분하기 때문에 `~/.claude`로 명시하면 안 됩니다.
-4. pty 출력 → `session:data` → `terminalBus` → 해당 id의 xterm (아직 안 붙었으면 버퍼에 보관).
-5. 안 보이는 세션도 마운트 상태 유지(`hidden`) → 스크롤 기록 유지, xterm은 숨겨진 화면을 그리지 않음.
+4. pty 출력 → `electron/output.ts`가 묶어서(16 ms 프레임 또는 64 KB마다 한 메시지, `session:visible`로 화면 밖이면
+   200 ms) → `session:data` → `terminalBus` → 해당 id의 xterm (아직 안 붙었으면 버퍼에 보관).
+   **흐름 제어:** xterm이 묶음을 다 쓰면 렌더러가 `session:ack`을 보냄. 확인 안 된 묶음이 5개면 main이 pty를 멈추고
+   2개가 되면 다시 읽음 → `yes` 같은 폭주에도 수 MB가 쌓이지 않고 Ctrl+C가 즉시 먹힘(smoke가 확인). 렌더러가
+   새로고침되면 카운트 초기화. 터미널이 붙기 전에 버퍼에 들어간 출력은 받는 즉시 ack.
+5. 안 보이는 세션도 마운트 상태 유지(`hidden`) → 스크롤 기록 유지, xterm은 숨겨진 화면을 그리지 않음. WebGL은
+   화면에 보이는 터미널(pane ≤4)에만: 숨기면 addon을 dispose하고 DOM 렌더러로 다시 그림. context loss도 DOM으로
+   (3번 잃으면 그 터미널은 계속 DOM). 크기 변경은 프레임당 한 번으로 모으고 cols/rows가 바뀔 때만 refit.
+   스크롤 기록: 셸 10,000줄, Claude/Codex 5,000줄(`model/terminal.ts`). xterm 6.x.
 
 ## 화면 분할
 
