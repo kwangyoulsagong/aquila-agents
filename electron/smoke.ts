@@ -1,5 +1,6 @@
 // `npm run smoke`: launch the built app, open a shell session, check the pty round-trips,
-// check OSC 7501 (main answers the query; a report becomes the session status), check Ctrl+C stops a `yes` flood fast, open shells from the UI and check terminals on screen render with WebGL, save a screenshot to dist/smoke.png, then quit with exit code 0 (ok) or 1 (fail).
+// check OSC 7501 (main answers the query; a report becomes the session status), check Ctrl+C stops a `yes` flood fast, open shells from the UI and check terminals on screen render with WebGL, save a screenshot to dist/smoke.png,
+// open the first-run checklist from ⌘K (dist/smoke-first-run.png), then quit with exit code 0 (ok) or 1 (fail).
 // Agents use this to verify their change actually runs.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -7,6 +8,7 @@ import { app, type BrowserWindow } from 'electron';
 import { runPerf } from './perf';
 import type { SessionManager } from './sessions';
 import type { Config } from '../src/shared/api/types';
+import { translator } from '../src/shared/i18n/dictionary';
 
 const MARKER = 'AQUILA_SMOKE_OK';
 /** Printed by the shell only when it read our 7501 reply; computed so the echoed command never matches. */
@@ -99,6 +101,8 @@ export async function runSmoke(
     const onPath = (bin: string) =>
       (process.env.PATH ?? '').split(':').some((dir) => dir && fs.existsSync(path.join(dir, bin)));
     console.log(`[smoke] PATH has claude: ${onPath('claude')}, codex: ${onPath('codex')}`);
+    const firstRunError = await checkFirstRun(win, config, path.join(outDir, 'smoke-first-run.png'));
+    if (firstRunError) return fail(firstRunError);
     console.log(`[smoke] OK — pty round-trip, OSC 7501 and Ctrl+C under load work, screenshot: ${out}`);
     sessions.killAll();
     app.exit(0);
@@ -152,4 +156,45 @@ async function checkGpuFollowsScreen(win: BrowserWindow): Promise<string | null>
   press(win, 'T', ['meta', 'alt']);
   await wait(1500);
   return expect('split: two on screen, one hidden', 2);
+}
+
+/**
+ * ⌘K → "Setup checklist": the first-run dialog opens with PATH, claude, codex, git, projects and login rows.
+ * Saves a screenshot, then closes it with Esc (smoke never writes ~/.aquila/first-run.json). Returns an error or null.
+ */
+async function checkFirstRun(win: BrowserWindow, config: Config, out: string): Promise<string | null> {
+  const label = translator(config.language)('firstRun.checklist');
+  // The palette runs its command in requestAnimationFrame, which an occluded window doesn't fire.
+  win.show();
+  win.focus();
+  press(win, 'K', ['meta']);
+  await wait(500);
+  const clicked: boolean = await win.webContents.executeJavaScript(`(() => {
+    const item = [...document.querySelectorAll('.c-palette__item')].find((el) => el.textContent === ${JSON.stringify(label)});
+    item?.click();
+    return !!item;
+  })()`);
+  if (!clicked) return `palette has no "${label}" action`;
+  const rows = async (): Promise<string[]> =>
+    win.webContents.executeJavaScript(
+      `[...document.querySelectorAll('.c-dialog[open] .c-checklist__item')].map((el) => el.textContent)`,
+    );
+  let found: string[] = [];
+  for (let i = 0; i < 40 && found.length < 6; i++) {
+    await wait(250);
+    found = await rows();
+  }
+  if (found.length < 6) {
+    const dialogs: string = await win.webContents.executeJavaScript(
+      `JSON.stringify([...document.querySelectorAll('dialog')].map((d) => [d.className, d.open, d.textContent.slice(0, 60)]))`,
+    );
+    return `first-run checklist shows ${found.length} rows, expected 6 (dialogs: ${dialogs})`;
+  }
+  await wait(400); // let the dialog finish rising in
+  fs.writeFileSync(out, (await win.webContents.capturePage()).toPNG());
+  console.log(`[smoke] first-run checklist: ${JSON.stringify(found.slice(1, 4))}, screenshot: ${out}`);
+  press(win, 'Escape', []);
+  await wait(400);
+  const stillOpen: boolean = await win.webContents.executeJavaScript(`!!document.querySelector('.c-dialog[open]')`);
+  return stillOpen ? 'Esc did not close the first-run checklist' : null;
 }

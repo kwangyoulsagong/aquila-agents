@@ -1,5 +1,5 @@
 // The only bridge between renderer and main. Shape is defined by AquilaApi in src/shared/api/types.ts.
-import { contextBridge, ipcRenderer } from 'electron';
+import { clipboard, contextBridge, ipcRenderer, webUtils } from 'electron';
 import { IPC, type AquilaApi } from '../src/shared/api/types';
 
 const on =
@@ -32,6 +32,12 @@ const api: AquilaApi = {
   shellFunctionPreview: (account) => ipcRenderer.invoke(IPC.accountsShellPreview, account),
   installShellFunction: (account) => ipcRenderer.invoke(IPC.accountsShellInstall, account),
   gitChanges: (projectId, sessionId) => ipcRenderer.invoke(IPC.gitChanges, { projectId, sessionId }),
+  firstRun: (recheck) => ipcRenderer.invoke(IPC.firstRunGet, recheck === true),
+  finishFirstRun: () => ipcRenderer.invoke(IPC.firstRunFinish),
+  pickBinary: (tool) => ipcRenderer.invoke(IPC.firstRunPickBinary, tool),
+  resetBinary: (tool) => ipcRenderer.invoke(IPC.firstRunResetBinary, tool),
+  pathForFile: (file) => webUtils.getPathForFile(file as Parameters<typeof webUtils.getPathForFile>[0]),
+  copyText: (text) => clipboard.writeText(text),
   write: (id, data) => ipcRenderer.send(IPC.sessionWrite, { id, data }),
   resize: (id, cols, rows) => ipcRenderer.send(IPC.sessionResize, { id, cols, rows }),
   kill: (id) => ipcRenderer.send(IPC.sessionKill, { id }),

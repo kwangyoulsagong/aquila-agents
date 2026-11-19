@@ -274,6 +274,49 @@ body {
 }
 .c-dialog__form { display: flex; flex-direction: column; gap: var(--space-inset-md); }
 .c-dialog__check { display: flex; align-items: center; gap: var(--space-inline-sm); }
+.c-dialog--wide { width: var(--size-dialog-wide); }
+
+/* ── Checklist (first run) ────────────────────────────────── */
+.c-checklist {
+  display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none;
+  border: 1px solid var(--color-border-subtle); border-radius: var(--radius-control);
+}
+.c-checklist__item {
+  display: grid; grid-template-columns: var(--size-dot) minmax(0, 1fr) auto;
+  column-gap: var(--space-inset-md); row-gap: var(--space-inset-sm); align-items: center;
+  padding: var(--space-inset-md);
+}
+.c-checklist__item + .c-checklist__item { border-top: 1px solid var(--color-border-subtle); }
+/* The dot sits on the title line, not the middle of title + meta. */
+.c-checklist__lead {
+  align-self: start; display: flex; align-items: center;
+  height: calc(var(--font-size-body) * var(--line-height-body));
+}
+.c-checklist__main { display: flex; flex-direction: column; min-width: 0; }
+.c-checklist__title {
+  display: flex; align-items: center; gap: var(--space-inline-sm);
+  color: var(--color-text-primary); font-size: var(--font-size-body); line-height: var(--line-height-body);
+}
+.c-checklist__meta {
+  font: var(--font-size-caption) / var(--line-height-body) var(--font-family-mono); color: var(--color-text-tertiary);
+  overflow-wrap: anywhere; user-select: text;
+}
+.c-checklist__actions { display: flex; gap: var(--space-inline-xs); }
+.c-checklist__detail { grid-column: 2 / -1; display: flex; flex-direction: column; gap: var(--space-inset-sm); min-width: 0; }
+.c-checklist__command { display: flex; align-items: center; gap: var(--space-inline-sm); }
+.c-checklist__command code {
+  flex: 1; min-width: 0; padding: var(--space-inline-xs) var(--space-inset-sm); border-radius: var(--radius-control);
+  background: var(--color-bg-canvas); color: var(--color-text-primary);
+  font: var(--font-size-label) / var(--line-height-body) var(--font-family-mono); overflow-wrap: anywhere; user-select: text;
+}
+
+/* ── Drop zone ────────────────────────────────────────────── */
+.c-dropzone {
+  display: flex; align-items: center; justify-content: center; gap: var(--space-inline-sm); flex-wrap: wrap;
+  padding: var(--space-inset-md); border: 1px dashed var(--color-border-default); border-radius: var(--radius-control);
+  color: var(--color-text-secondary); font-size: var(--font-size-label);
+}
+.c-dropzone[data-over] { border-color: var(--color-border-focus); background: var(--color-bg-selected); color: var(--color-text-primary); }
 
 /* ── Command palette ──────────────────────────────────────── */
 .c-palette {
@@ -385,6 +428,7 @@ body {
 .c-palette__item { transition: background var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease); }
 
 /* Right panel slides in from the edge. */
+.c-dropzone { transition: border-color var(--motion-fast) var(--motion-ease), background var(--motion-fast) var(--motion-ease); }
 .c-panel { animation: c-slide-in var(--motion-slow) var(--motion-ease) both; }
 @keyframes c-slide-in { from { opacity: 0; transform: translateX(var(--space-stack-md)); } }
 .c-change { transition: background var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease); }

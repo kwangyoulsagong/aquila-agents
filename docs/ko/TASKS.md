@@ -125,7 +125,8 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
 - **담당:** `src/entities/session/`(TerminalView, terminalBus), `electron/sessions.ts` 출력 경로, `package.json` xterm 의존성.
 
 ### T17 · 첫 실행 체크리스트
-- [ ] **목표:** 첫 실행이 조용히 실패하지 않게. (#7)
+- [x] **목표:** 첫 실행이 조용히 실패하지 않게. (#7)
+  _남은 것: "CLI 없음" 상태는 `design-system/preview.html`로만 확인(이 Mac엔 셋 다 있음). 기존 사용자도 업데이트 후 한 번 보게 됨. 체크리스트 밖(예: 사이드바)에 폴더 드롭은 미지원. 지정한 `git`을 해제해도 다시 켤 때까지 그 폴더가 PATH에 남음. 기본 설정의 예시 프로젝트 폴더가 없어도 표시하지 않음._
 - **명세:** 체크리스트 화면: PATH 복원(macOS, 있음), `claude` / `codex` / `git` 감지와 버전. 없으면 설치 명령 복사, 바이너리 경로 직접 지정, "폴더 추가"(드래그앤드롭), "로그인은 CLI 안에서" 안내.
   선택 항목은 기본 건너뛰기. 한 번만 표시(`~/.aquila/`에 저장), 다시 열 수 있음.
 - **담당:** `src/features/first-run/`, `electron/detect.ts`(+ 테스트).

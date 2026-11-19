@@ -8,6 +8,7 @@ import { SetupAccount } from '@/features/setup-account';
 import { OpenInWorktreeDialog } from '@/features/open-in-worktree';
 import { LanguageToggle } from '@/features/switch-language';
 import { nextWaiting } from '@/features/next-waiting';
+import { FirstRunChecklist, useFirstRun } from '@/features/first-run';
 import { Sidebar } from '@/widgets/sidebar';
 import { SessionTabs } from '@/widgets/session-tabs';
 import { SplitView } from '@/widgets/split-view';
@@ -24,6 +25,8 @@ export default function WorkspacePage() {
   const togglePalette = useCallback(() => setPaletteOpen((o) => !o), []);
   const [worktreeOpen, setWorktreeOpen] = useState(false);
   const openWorktreeDialog = useCallback(() => setWorktreeOpen(true), []);
+  const firstRun = useFirstRun();
+  const { reopen: reopenFirstRun } = firstRun;
   const { sessions, activeSessionId: focusedId, selectSession } = ws;
   const waitingNext = nextWaiting(sessions, focusedId);
   const goNextWaiting = useCallback(() => {
@@ -59,6 +62,7 @@ export default function WorkspacePage() {
     }
     if (activeSessionId) a.closeSession = () => closeSession(activeSessionId);
     if (waitingNext) a.nextWaiting = goNextWaiting;
+    a.firstRun = reopenFirstRun;
     if (config) {
       a.switchLanguage = () =>
         api
@@ -80,6 +84,7 @@ export default function WorkspacePage() {
     showError,
     waitingNext,
     goNextWaiting,
+    reopenFirstRun,
   ]);
 
   if (!config) return null;
@@ -158,6 +163,15 @@ export default function WorkspacePage() {
             project={project}
             session={ws.sessions.find((x) => x.id === activeSessionId)}
             onClose={() => setChangesOpen(false)}
+          />
+        )}
+        {firstRun.open && (
+          <FirstRunChecklist
+            firstRun={firstRun}
+            config={config}
+            onConfigChanged={ws.setConfig}
+            onSelectProject={ws.selectProject}
+            onError={ws.showError}
           />
         )}
         <CommandPalette

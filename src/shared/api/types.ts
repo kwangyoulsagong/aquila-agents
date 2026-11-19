@@ -161,6 +161,33 @@ export interface GitChanges {
   truncated: boolean;
 }
 
+/** A CLI the first-run checklist looks for (T17). */
+export type ToolId = 'claude' | 'codex' | 'git';
+
+export interface ToolCheck {
+  tool: ToolId;
+  /** Found and `--version` ran. */
+  found: boolean;
+  /** Resolved binary (also set when it exists but didn't run). */
+  path?: string;
+  version?: string;
+  /** Path the user picked in the checklist, used instead of PATH. */
+  override?: string;
+  /** Copyable install command (macOS). */
+  install: string;
+  /** A picked path that didn't run `--version`; it was not saved. */
+  rejected?: string;
+}
+
+/** What `first-run:get` reports. */
+export interface FirstRunReport {
+  /** The checklist hasn't been closed yet: open it at launch. */
+  pending: boolean;
+  /** The login shell's PATH was read (Finder launches start with a minimal one). */
+  pathRestored: boolean;
+  tools: ToolCheck[];
+}
+
 export type Unsubscribe = () => void;
 
 /** API exposed on window.aquila by electron/preload.ts. */
@@ -197,6 +224,17 @@ export interface AquilaApi {
    * that project, of its worktree instead.
    */
   gitChanges(projectId: string, sessionId?: string): Promise<GitChanges>;
+  /** First-run checklist: PATH and CLI checks. `recheck` reads the login shell's PATH again first (after an install). */
+  firstRun(recheck?: boolean): Promise<FirstRunReport>;
+  /** The checklist was closed (done or skipped): don't open it at launch again. */
+  finishFirstRun(): Promise<void>;
+  /** File picker for a CLI binary; saved only if it runs. null when cancelled. */
+  pickBinary(tool: ToolId): Promise<ToolCheck | null>;
+  /** Forget the picked binary, back to PATH. */
+  resetBinary(tool: ToolId): Promise<ToolCheck>;
+  /** Absolute path of a dropped `File` (Electron's webUtils; typed loosely because main has no DOM types). */
+  pathForFile(file: object): string;
+  copyText(text: string): void;
   write(id: string, data: string): void;
   resize(id: string, cols: number, rows: number): void;
   kill(id: string): void;
@@ -230,6 +268,10 @@ export const IPC = {
   accountsShellPreview: 'accounts:shell-preview',
   accountsShellInstall: 'accounts:shell-install',
   gitChanges: 'git:changes',
+  firstRunGet: 'first-run:get',
+  firstRunFinish: 'first-run:finish',
+  firstRunPickBinary: 'first-run:pick-binary',
+  firstRunResetBinary: 'first-run:reset-binary',
   sessionWrite: 'session:write',
   sessionResize: 'session:resize',
   sessionKill: 'session:kill',

@@ -13,7 +13,8 @@ export type ActionId =
   | 'toggleChanges'
   | 'nextWaiting'
   | 'closeSession'
-  | 'switchLanguage';
+  | 'switchLanguage'
+  | 'firstRun';
 
 export type Command =
   | {
@@ -50,6 +51,7 @@ const ACTIONS: { action: ActionId; label: (t: Translate) => string; shortcut?: S
   { action: 'nextWaiting', label: (t) => t('attention.next'), shortcut: 'nextWaiting' },
   { action: 'closeSession', label: (t) => t('action.closeSession'), shortcut: 'closeSession' },
   { action: 'switchLanguage', label: (t) => t('palette.switchLanguage') },
+  { action: 'firstRun', label: (t) => t('firstRun.checklist') },
 ];
 
 /** Sessions that need you come first in the list. */
