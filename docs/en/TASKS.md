@@ -72,41 +72,248 @@ only with small additive edits. Merge order follows the numbering when two tasks
 - **Spec:** electron-builder, icon from the design system (dark tile, accent mark), asar with `node-pty` unpacked.
 - **Owns:** `electron-builder.yml`, `build/`, `package.json` scripts.
 
-### T9 · Battery check
-- [ ] **Goal:** numbers, not guesses.
-- **Spec:** `scripts/measure-energy.sh` samples `top -l 6 -s 5 -o power` for Aquila Agents vs Terminal.app with
-  the same 3 sessions; write results to `docs/en/ENERGY.md` + `docs/ko/ENERGY.md`.
-- **Owns:** `scripts/`, those two docs.
+---
 
-### T10 · Light theme (later)
-- [ ] Add `[data-theme='light']` semantic remap in `tokens.css`; terminal theme follows. No component changes allowed.
+## Roadmap after v0.1
 
-### T11 · Session history · delete sessions · clear memory
-- [ ] **Goal:** per project, browse past sessions, resume one, delete ones you don't need, and wipe Claude's project memory.
-- **Data (read):**
-  - Claude: `<configDir>/projects/<encoded-cwd>/*.jsonl` (encoded-cwd = absolute path with `/` and `.` → `-`),
-    for **each** account's config dir (`~/.claude`, `~/.claude-personal`). Title = first user message, plus
-    last-modified time, message count, account.
-  - Codex: `~/.codex/sessions/**/rollout-*.jsonl` whose `cwd` matches the project.
-- **UX:** "History" (⌘Y) panel in `.c-panel`: list grouped by day, search box, per row: Resume · Delete.
-  Resume = new tab running `claude --resume <id>` (right account) / `codex resume <id>`.
-  Project menu: "Clear Claude memory" → `<configDir>/projects/<encoded-cwd>/memory/`.
-  Session tab menu: "Clear context" → sends `/clear` + Enter to that Claude pty (no files touched).
-- **Safety (required):** delete and clear-memory **move to macOS Trash** (`shell.trashItem`), never `rm`.
-  Always confirm in an in-app dialog that names exactly what goes (count + paths). Never touch a session that is
-  currently open in a tab. These are the only places we may write inside `~/.claude*` / `~/.codex`.
-- **Owns:** `electron/history.ts` (+ test for path encoding/parsing with fixture files), `src/widgets/history-panel/`, `src/features/resume-session/`,
-  `src/features/delete-session/`, `src/features/clear-memory/`, `src/shared/ui/ConfirmDialog.tsx`.
+Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-19, roadmap items `#n`). Order: **Now** →
+**Next** → **Later**. The platform layer (T13) and the status engine (T14) come first because almost everything else
+builds on them (and on Windows).
 
-### T12 · System monitor (CPU · RAM · battery · per session)
-- [ ] **Goal:** see machine load at a glance and which session is eating it.
-- **UX:** a compact meter strip in the sidebar footer: CPU %, memory used / total with a pressure color
-  (`--color-status-done` normal, `-waiting` warn, `-error` critical), swap used, battery % + charging + time left.
-  Click → popover with per-session rows (project · kind · CPU % · RAM) and the top 5 other processes
-  (so you spot e.g. a forgotten `next dev`). Tab tooltip shows that session's CPU/RAM.
-- **Data (main, no new deps):** CPU from `os.cpus()` deltas; memory from `vm_stat` + `sysctl hw.memsize` +
-  `sysctl vm.swapusage` + `memory_pressure -Q`; battery from `pmset -g batt`; per session: sum `ps -Ao pid,ppid,%cpu,rss`
-  over the pty pid's process tree.
-- **Battery-aware:** poll every 3s only while the window is visible and focused, every 15s when unfocused, stop when hidden.
-- **Owns:** `electron/system.ts` (+ test for `vm_stat`/`pmset`/`ps` parsers with fixture output),
-  `src/widgets/system-meter/`, `src/entities/system/`.
+## Now
+
+### T13 · Platform layer
+- [ ] **Goal:** one place for everything that differs between macOS and Windows, so later features are written once. (#1)
+- **Spec:** `electron/platform/{darwin,win32}.ts` behind one interface: shell detection + profiles (Windows:
+  pwsh 7 > Windows PowerShell 5.1 > Git Bash > CMD; WSL distros detected once at startup and on request, never polled),
+  spawn template per shell (`pwsh -NoLogo -NoExit -Command`, `cmd /K`, `bash -l -i -c "…; exec bash -l -i"`,
+  `wsl.exe -d <distro> --cd <path> -- bash -lic "…"`), path conversion (`wslpath -a`, `\\wsl.localhost\…`),
+  notifications. One platform-independent shortcut map in `src/shared/lib/shortcuts.ts` (`CommandOrControl`-style ids)
+  that the key handler, the palette, menus and the guide all read; labels show ⌘ on macOS, Ctrl+Shift on Windows.
+- **Owns:** `electron/platform/`, `src/shared/lib/shortcuts.ts` (+ tests), small changes in `sessions.ts`, `useShortcuts.ts`.
+
+### T14 · Status engine: OSC 7501 first, http hooks
+- [ ] **Goal:** "who is waiting for me" is right and immediate; no false "done". (#25, #2, #3, #24)
+- **Spec:**
+  - Main answers the OSC 7501 query in the pty stream (`OSC 7501 ; ?` → `states=idle,working,done,blocked,error :
+    kinds=permission,question,auth`), parses reports (sequences split across chunks are buffered), and uses them as the
+    primary status for Claude Code 2.1.295+ (and Codex if it emits them — spike first). Unknown keys/states ignored,
+    raw reports in a debug log, heuristics kept as fallback.
+  - Hooks switch to `type: "http"` on all platforms (`url` to the local receiver, `X-Aquila-Session` header from
+    `AQUILA_TAB_ID`, `timeout: 5`, `onFailure: "continue"`); command+curl only for old Claude versions
+    (`claude --version`). Add `PermissionRequest` (→ waiting at once, no decision returned), `StopFailure` (→ error:
+    rate limit, auth, billing, server), clear waiting on `PermissionDenied` / `PostToolUse` / `UserPromptSubmit` / a key
+    typed into that session. Never use `idle_prompt`. Keep `SubagentStart/Stop` counts so a Stop during subagents stays working.
+  - New status `stopped` (Ctrl+C / normal exit) separate from `error`. Heuristic "done" is shown as estimated (dimmed).
+  - Codex fallback only if it doesn't emit 7501: `-c tui.notifications=true -c tui.notification_method="osc9"
+    -c tui.notification_condition="always"` and catch OSC 9.
+- **Owns:** `electron/hooks.ts`, `electron/status/` (osc parser + tests), status parts of `sessions.ts`, `entities/session` status.
+
+### T15 · Attention: badge, next waiting, notifications with context
+- [ ] **Goal:** never hunt for the tab that needs you. (#5, #6)
+- **Spec:** waiting count on the Dock badge (macOS) / taskbar overlay icon + `flashFrame` (Windows). Shortcut
+  "next waiting session" across projects (cycles waiting > error > done), plus "waiting for 12 min" elapsed time on the
+  tab/row and one reminder. Notification body: project · tab · first line of `last_assistant_message` (Stop), or the
+  `PermissionRequest` tool summary ("Bash: npm install"). Debounce same-status repeats; click focuses that exact session
+  (exists). No notification when the session is already on screen (exists).
+- **Owns:** `electron/notify.ts`, `src/features/next-waiting/`, small changes in `sessions.ts`, `useShortcuts.ts`.
+
+### T16 · Terminal performance
+- [ ] **Goal:** 15+ sessions stay smooth and light. (#4, #18, #19)
+- **Spec:** WebGL only on visible panes (≤4); hidden → dispose + `term.refresh(0, rows-1)`; context loss → DOM renderer.
+  Upgrade `@xterm/xterm` 5.5 → 6.x with matching addons (webgl 0.19, fit 0.11, web-links 0.12 — today 5.5 is mixed
+  with webgl 0.19); recheck scroll/viewport and smoke. Main batches pty output (16 ms or 64–100 KB; hidden sessions
+  100–250 ms) with renderer ACK flow control (pause at 5 pending, resume at 2); test: `yes` then Ctrl-C responds fast.
+  Resize: coalesce in rAF, call `fit()`/pty resize only when cols/rows change. Scrollback per kind instead of 10,000 for all.
+- **Owns:** `src/entities/session/` (TerminalView, terminalBus), `electron/sessions.ts` output path, `package.json` xterm deps.
+
+### T17 · First-run checklist
+- [ ] **Goal:** the first launch never fails silently. (#7)
+- **Spec:** checklist screen: PATH restored (macOS, exists), `claude` / `codex` / `git` found (Windows: native and per
+  WSL distro) with versions; missing → copyable install command; manual binary path override; "Add folder" (drag & drop);
+  "log in inside the CLI" hint. Optional things default to Skip. Shown once (state in `~/.aquila/`), reopenable.
+- **Owns:** `src/features/first-run/`, `electron/detect.ts` (+ tests).
+
+### T18 · Korean IME
+- [ ] **Goal:** Hangul input never breaks in our host. (#8)
+- **Spec:** regression checklist run by smoke on macOS and Windows: jamo split, duplicate input, composition shown while
+  typing, Enter/Space during composition, Ctrl/⌘ shortcuts right after 한/영 switch. Fix in our input layer (follow VS
+  Code's xterm integration). Font fallbacks `"Cascadia Mono", "D2Coding", Consolas` in `--font-*` tokens.
+- **Owns:** `electron/smoke.ts` (IME scenarios), IME handling in `TerminalView`, font tokens.
+
+### T9 · Battery check + power profile
+- [ ] **Goal:** numbers, not guesses — and use less power on battery. (#26)
+- **Spec:** `scripts/measure-energy.sh`: `top -l 6 -s 5 -o power`, `powermetrics --samplers tasks` idle wakeups/s,
+  `yes` Ctrl-C test; Aquila Agents vs Terminal.app / Ghostty / iTerm2 with the same sessions (5 Claude, 1 streaming).
+  Results in `docs/en/ENERGY.md` + `docs/ko/ENERGY.md`. Power profile from `powerMonitor` (`on-battery`,
+  `speed-limit-change`, macOS `thermal-state-change`): longer poll intervals, no cursor blink / looping animations.
+  Windows measurement: tool to be decided.
+- **Owns:** `scripts/`, `electron/power.ts`, those two docs.
+
+## Next
+
+### T19 · Windows runtime
+- [ ] **Goal:** the app runs properly on Windows 10 1809+ / 11, x64 + arm64, native and WSL. (#9–#13)
+- **Spec:**
+  - node-pty: serialize kills in a short queue, never kill an exited pty, clean leftover conhost on quit, rebuild per
+    arch for Electron's ABI in CI, renderer `windowsPty: { backend: 'conpty', buildNumber }` (build number via IPC).
+  - Shortcuts from T13's map: Ctrl+Shift+T/W/K/G, Ctrl/Alt+1–9, Alt+arrows for focus; Ctrl+C copies when there's a
+    selection, else SIGINT; Ctrl+V goes to the pty (image paste — verify Ctrl+V vs Alt+V); no Ctrl+Alt (AltGr).
+  - Window: `titleBarStyle: 'hidden'` + `titleBarOverlay` (height = `--size-titlebar`, colors from tokens), avoid
+    `env(titlebar-area-*)`; window controls are on the right — recheck the tab bar's right end.
+  - Accounts: `CLAUDE_CONFIG_DIR` in the spawn env (shared stays unset); WSL sessions show "log in separately in this distro".
+  - WSL projects: run environment saved per project (native / distro), `wsl.exe -e git` for the changes panel, hook
+    receiver address for NAT mode (host IP + token) if hooks are still needed there.
+  - Notifications: `app.setAppUserModelId()`, Start Menu shortcut with AUMID.
+- **Owns:** `electron/platform/win32.ts`, Windows parts of `sessions.ts`, `main.ts` window options, CI workflow.
+
+### T20 · Windows packaging + signing
+- [ ] **Goal:** a Windows installer people can run. (#28)
+- **Spec:** decide the signing path first (Korean individual: no Azure Artifact Signing; Korean company: eligible →
+  company + Artifact Signing / unsigned + winget/scoop + SmartScreen note / MSIX — check MSIX file-system limits).
+  NSIS x64 + arm64, electron-updater (also for macOS).
+- **Owns:** `electron-builder.yml`, `build/`, update code in `electron/updater.ts`.
+
+### T21 · Restore v2
+- [ ] **Goal:** relaunch brings back content too, fast. (#14 + T4 leftovers)
+- **Spec:** save the last scrollback per tab to `~/.aquila/`; if resume fails, show it read-only and open a fresh shell
+  in that dir (cold restore). Spawn the visible tabs first, background tabs on first click. Capture codex session ids so
+  two codex tabs resume their own sessions. Restore the split layout and the focused tab.
+- **Owns:** `electron/state.ts`, `src/widgets/split-view/model/` (layout save/restore).
+
+### T22 · Panes: zoom + resize
+- [ ] **Goal:** read long output without re-splitting. (#15 + T1 leftover)
+- **Spec:** toggle pane zoom (one pane fills the stage, toggle back); drag the divider and keyboard resize; sizes kept
+  in the layout tree.
+- **Owns:** `src/widgets/split-view/`.
+
+### T23 · In-app guide (? button)
+- [ ] **Goal:** every feature is discoverable without docs. (#16, owner)
+- **Spec:** `?` in the sidebar footer, ⌘/ (Windows Ctrl+/, F1 as backup). Modal: searchable feature list on the left;
+  screenshot or short loop (bundled WebP/MP4, still frame under reduced motion), 1–2 lines and the shortcut on the right.
+  Registry `{ id, titleKey, bodyKey, media, shortcutId }`; shortcuts read from T13's map; includes the full shortcut
+  sheet. Offered once after the first-run checklist ("Take a tour / Skip"), state in `~/.aquila/`. Modal shell =
+  design-system component (shared with T27 and T35).
+- **Owns:** `src/features/guide/`, `design-system/react/` modal, `components.css` (additive).
+
+### T24 · Smoke capture for guide media
+- [ ] **Goal:** guide and release-note media never go stale. (#17, owner)
+- **Spec:** smoke scenarios stage a demo state per guide item from fixed fixtures (no real user data), capture
+  `capturePage(rect)` in ko/en (and per OS runner), encode short animations (tool to pick); smoke fails when an item has
+  no media. Budget: resolution and 3–5 s length.
+- **Owns:** `electron/smoke.ts`, `scripts/capture/`, `src/features/guide/media/`.
+
+### T25 · Changes panel v2: watch + review loop
+- [ ] **Goal:** review what the agent did and send feedback without leaving the app. (#20, #21)
+- **Spec:** replace the 5 s poll with `fs.watch` (recursive) + 300–500 ms debounce + lazy diff, 30–60 s poll as a safety
+  net; show "git working tree · updated n s ago". Unified / side-by-side, j/k between files. Line comments → a prompt
+  (`file:line` + quoted code + comment) pasted into the focused session's input; the user presses Enter. Then hunk/file
+  stage and revert with confirm (and a stash backup), "diff since session start" (HEAD recorded at spawn), buttons that
+  paste "write a commit message / PR description" prompts. Windows: detect `git.exe`.
+- **Owns:** `electron/git.ts`, `src/widgets/changes-panel/`, `src/entities/diff/`.
+
+### T11 · Session history (read-only)
+- [ ] **Goal:** find and resume any past session — the gap the CLI pickers leave. (#22)
+- **Spec:** ⌘Y panel: Claude `<configDir>/projects/*/*.jsonl` for each account, Codex jsonl rollouts **and** its SQLite
+  stores (read-only adapter). Group by the `cwd` field inside the transcript, not the encoded dir name. Row: custom name
+  (else first user message), last activity, branch/cwd, account, copy session id. Search name, first message and full
+  text. Resume always by id in a new tab (`claude --resume <id>` with the right account / `codex resume <id>`). Warn about
+  the 30-day `cleanupPeriodDays` deletion; export as Markdown. Names and favorites live in `~/.aquila/` (never in `~/.claude*`).
+  **Nothing is deleted or written in `~/.claude*` / `~/.codex`.**
+- **Owns:** `electron/history.ts` (+ tests with fixture files), `src/widgets/history-panel/`, `src/features/resume-session/`.
+
+### T26 · Project settings
+- [ ] **Goal:** per-project defaults instead of JSON. (#23 + T5 leftovers)
+- **Spec:** project settings dialog: path (changeable), run environment (native / WSL distro / SSH host, see T29),
+  default agent, default branch, setup script, port base, "Open in" editor; duplicate-folder warning; "Add project"
+  in the palette.
+- **Owns:** `src/features/manage-projects/`, `electron/config.ts`.
+
+### T28 · Terminal helpers
+- [ ] **Goal:** small host-side fixes for daily annoyances. (#27)
+- **Spec:** ⌘V with an image on the clipboard (and drag & drop of files) → temp file, path typed into the session;
+  "copy last response"; scrolling up pauses auto-scroll and shows a "jump to bottom" button; keyboard URL/path picker
+  (QuickSelect style).
+- **Owns:** `src/features/terminal-helpers/`, small changes in `TerminalView`.
+
+### T29 · Remote sessions (SSH) MVP
+- [ ] **Goal:** open a project on this Mac or on an SSH host. (#43, #44, owner)
+- **Spec:** `project.location = local | ssh { alias, path, claudeConfigDir }`. Run with
+  `ssh -t <alias> -- tmux -L aquila new-session -A -s aq-<id> -c <path> -e CLAUDE_CONFIG_DIR=… '<cmd>'` (own tmux server,
+  remote `~/.aquila/tmux.conf` with `allow-passthrough on`). Reconnect with 3→6→12→60 s backoff, `ServerAliveInterval=20`,
+  reattach on relaunch from `tmux -L aquila ls`. Status through the same OSC parser as T14 (verify 7501 round-trip through
+  tmux), output heuristic as fallback. First connect: check `uname`, `claude`/`codex`/`tmux`/`git` and login; only *show*
+  install commands. Uses the user's `~/.ssh/config` and ssh-agent; no secrets stored; nothing written outside remote
+  `~/.aquila/`. UI: host badge, connection dot (connected / reconnecting / lost), banner when lost; note about
+  `KillUserProcesses=yes`.
+- **Owns:** `electron/remote/`, `src/entities/project` (host badge), small changes in `sessions.ts`, `config.ts`.
+
+## Later
+
+### T27 · Release notes modal + pipeline
+- [ ] **Goal:** after an update, show once what changed. (#29, #30, owner)
+- **Spec:** compare `lastSeenVersion` in `~/.aquila/` with `app.getVersion()`; open only when higher (not on a fresh
+  install — record the version and offer the guide instead). Same modal as T23: 3–5 headlines with media, "How to use" →
+  guide item; "What's new" in the `?` menu lists past versions; skipped versions are combined. Notes bundled per version
+  (`release-notes/<version>.{ko,en}.md` or JSON with `guideId` + media), offline. Draft from Conventional Commits since
+  the last tag, edited by hand; packaging fails if the version's ko/en notes are missing.
+- **Owns:** `src/features/release-notes/`, `release-notes/`, `scripts/release-notes.ts`.
+
+### T30 · Usage gauge per account
+- [ ] **Goal:** see how much of the 5-hour and weekly limits is left, per account. (#33)
+- **Spec:** per account config dir (not per session — statusline mixes accounts), bars side by side with reset time,
+  labelled "estimated"; near the limit → notice + "open a new session with the other account".
+- **Owns:** `electron/usage.ts`, `src/widgets/usage-gauge/`.
+
+### T31 · Context gauge per tab
+- [ ] **Goal:** see context use before auto-compact surprises you. (#34)
+- **Spec:** the injected `--settings` gets a statusline command that writes `context_window` JSON to `~/.aquila/`; small
+  gauge per tab (hint at ~60%). If the user has their own `statusLine`, don't inject (ours would replace it).
+- **Owns:** `electron/hooks.ts` (settings file), `src/entities/session` gauge.
+
+### T32 · Figma MCP (opt-in)
+- [ ] **Goal:** one click to give a project's Claude the official Figma MCP. (#35, #36)
+- **Spec:** off by default, per-project toggle; Figma UI hidden when off. `~/.aquila/mcp/figma.json`
+  (`https://mcp.figma.com/mcp`) passed with `--mcp-config` (no `--strict-mcp-config`); auth stays in the CLI (`/mcp`).
+  Codex: verify `-c mcp_servers.figma.*`, else confirm-then-write repo `.codex/config.toml`. "Connect" runs a short
+  hidden `claude -p` that calls `whoami`, caches plan/seat in `~/.aquila/figma-profile.json` (parse defensively, unknown
+  → "unknown"); disabled reasons as tooltips ("needs a Dev seat", "may need Organization"); link to Figma's docs instead
+  of hard-coded limits.
+- **Owns:** `electron/figma.ts`, `src/features/figma/`.
+
+### T33 · In-app preview + pick element
+- [ ] **Goal:** point at the running app and tell the agent what to change — for Claude and Codex. (#37)
+- **Spec:** detect the dev server (`.claude/launch.json`, `localhost:\d+` in pty output); `WebContentsView` with device
+  presets 390/768/1440; Select mode collects selector, text, computed style, React component name if possible and a
+  `capturePage(rect)` crop, pasted into the focused session as text + image path. "Designer preset" layout: terminal +
+  preview + Figma panel.
+- **Owns:** `src/widgets/preview/`, `electron/preview.ts`.
+
+### T34 · Figma prompt chips + Design vs Build
+- [ ] **Goal:** better design-to-code results with less typing. (#38)
+- **Spec:** pasting a Figma link offers prompt chips ("implement this frame with our components and tokens" — tokens
+  first via `get_variable_defs`; assets via `download_assets`; `get_figjam` flows and `get_comments` → TODOs for backend);
+  overlay Figma `get_screenshot` on the preview capture; optional "design changed" check by polling REST
+  `/v1/files/:key` version (needs a REST token; advanced setting).
+- **Owns:** `src/features/figma/` (chips, overlay).
+
+### T35 · AI trends button
+- [ ] **Goal:** see what's new in my CLIs and in the field without leaving the app. (#39)
+- **Spec:** main fetches at startup and every 6 h into `~/.aquila/news-cache.json`, sent over a new IPC channel. Sources:
+  GitHub Releases (claude-code, codex; ETag, 60 req/h limit, skip prereleases), Claude Code CHANGELOG, OpenAI News RSS,
+  Cursor changelog RSS, Antigravity blog RSS, Simon Willison, Latent Space, HN Algolia (`points%3E100`). Tab 1 "My CLI
+  updates": 3–5 "Added" lines from releases newer than the local `claude --version` / `codex --version`. Tab 2 "Industry":
+  keyword groups (subagent, hook, agent view, ADE, harness). Button + unread badge in the sidebar top band; titles,
+  links and short excerpts only. LLM summary opt-in via `claude -p` (uses the user's quota). Modal shared with T23,
+  different title/icon ("AI trends" vs "What's new").
+- **Owns:** `electron/news.ts` (+ tests for feed parsing), `src/widgets/trends/`.
+
+### T36 · Remote panels
+- [ ] **Goal:** changes panel and history for remote projects. (#45)
+- **Spec:** run `git` / history reads over the same SSH connection (ControlMaster); measure latency; Windows OpenSSH needs
+  its own control channel.
+- **Owns:** `electron/remote/`, remote adapters for `git.ts` / `history.ts`.
+
+### T10 · Light theme
+- [ ] Add `[data-theme='light']` semantic remap in `tokens.css`, follow `nativeTheme`; terminal theme and Windows
+  `titleBarOverlay` colors follow. No component changes allowed. (#41)
