@@ -50,7 +50,8 @@ only with small additive edits. Merge order follows the numbering when two tasks
 - **Owns:** `electron/state.ts`, small additions in `sessions.ts`.
 
 ### T5 · Projects UI (no JSON editing)
-- [ ] **Goal:** add/rename/remove/reorder projects and groups in the app.
+- [x] **Goal:** add/rename/remove/reorder projects and groups in the app.
+  _Left over: groups reorder by menu (Move up/down), not drag; a project's path can't be changed in the app; no duplicate-folder warning._
 - **UX:** "+" at the bottom of the sidebar → folder picker (`dialog.showOpenDialog`), name = folder name,
   pick group + account. Right-click row → rename / change group / remove. Drag to reorder.
 - **Owns:** `src/features/manage-projects/`, `electron/config.ts` (add save helpers).

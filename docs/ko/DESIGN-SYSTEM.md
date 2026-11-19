@@ -104,6 +104,7 @@
 | `.c-label` | 섹션 라벨 |
 | `.c-sidebar` `__drag` `__body` `__group` `__foot` `__lang` | 사이드바 |
 | `.c-row[aria-current]` `__name` `__meta` | 프로젝트 행 |
+| `.c-row[data-drop=before\|after]` `[data-dragging]`, `.c-sidebar__group[data-drop]`, `.c-sidebar__empty` | 끌어서 순서 변경: 놓일 위치 선, 끄는 행은 흐리게, 빈 그룹도 놓을 수 있음 |
 | `.c-tabbar` `__add` `__trailing`, `.c-tab[aria-selected]` `__title` `__close` | 탭 |
 | `.c-split`, `.c-pane[data-focused]` `__head` `__term` | 화면 분할 |
 | `.c-split--free`, `.c-split__drop`, `.c-pane__title` `__close` | 앱의 화면 분할: 절대 배치 패널, 드롭 표시(영역 사이를 미끄러지듯 이동), 패널 헤더 제목 + 닫기 |
@@ -112,7 +113,8 @@
 | `.c-change`, `__status[data-status]` `__path` `__dir` | 변경 파일 행: 색이 있는 git 상태 글자, 이름, 흐린 폴더 |
 | `.c-btn--ghost[aria-pressed]` | 켜진 토글 버튼 |
 | `.c-empty` `__title` `__path` `__actions` | 빈 화면 |
-| `.c-dialog` `__title` `__body` `__actions` `__check` `__code` | 모달 다이얼로그 (네이티브 `<dialog>`, 아래에서 떠오름) |
+| `.c-dialog` `__title` `__body` `__actions` `__check` `__code` `__form` | 모달 다이얼로그 (네이티브 `<dialog>`, 아래에서 떠오름) |
+| `.c-field` `__label` `__hint`, `.c-input`, `.c-select` `__control` | 폼 필드: 라벨, 텍스트 입력 / 선택 (포커스 = 파란 테두리), 모노스페이스 힌트 |
 
 ## React 컴포넌트 (`design-system/react/`)
 
@@ -128,7 +130,8 @@
 | `Kbd`, `Label` | `.c-kbd`, `.c-label` |
 | `Segment` `options` `value` `onChange` | `.c-segment` |
 | `EmptyState` `title` `path` `actions` | `.c-empty` |
-| `Dialog` `open` `title` `onClose` `actions`, `DialogCheck`, `DialogCode` | `.c-dialog` |
+| `Dialog` `open` `title` `onClose` `actions`, `DialogCheck`, `DialogCode`, `DialogForm` `id` `onSubmit` | `.c-dialog` |
+| `Field` `label` `hint`, `Input`, `Select` `options` `onChange(value)` | `.c-field`, `.c-input`, `.c-select` |
 | `ChangeRow` `status` `path` | `.c-change` |
 
 ## 문구

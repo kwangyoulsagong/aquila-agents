@@ -39,6 +39,9 @@ export default function WorkspacePage() {
           sessions={ws.sessions}
           activeProjectId={ws.activeProjectId}
           onSelect={ws.selectProject}
+          onConfigChanged={ws.setConfig}
+          onProjectRemoved={ws.forgetProject}
+          onError={ws.showError}
           footer={<LanguageToggle config={config} onChanged={ws.setConfig} />}
         />
         <main className="app__main">

@@ -70,6 +70,34 @@
   </section>
 
   <section>
+    <h2>Form dialog · reorder</h2>
+    <div class="line" style="align-items:flex-start">
+      <div class="c-dialog" style="position:static;display:block">
+        <h2 class="c-dialog__title">프로젝트 추가</h2>
+        <div class="c-dialog__body">
+          <form class="c-dialog__form">
+            <label class="c-field"><span class="c-field__label">이름</span><input class="c-input" value="aquila-agents"><span class="c-field__hint">/Users/me/Desktop/aquila-agents</span></label>
+            <label class="c-field"><span class="c-field__label">그룹</span><span class="c-select"><select class="c-select__control"><option>개인</option><option>회사</option></select></span></label>
+            <label class="c-field"><span class="c-field__label">Claude 계정</span><span class="c-select"><select class="c-select__control"><option>공용</option><option>개인</option></select></span></label>
+          </form>
+        </div>
+        <div class="c-dialog__actions"><button class="c-btn c-btn--ghost">취소</button><button class="c-btn c-btn--primary">추가</button></div>
+      </div>
+      <div class="c-sidebar" style="height:auto;padding:8px">
+        <div class="c-sidebar__group">
+          <div class="c-label">개인</div>
+          <div class="c-row" data-dragging="true"><i class="c-dot"></i><span class="c-row__name">SALT (dragging)</span></div>
+          <div class="c-row" data-drop="after"><i class="c-dot"></i><span class="c-row__name">Road-To-PRO (drop after)</span></div>
+        </div>
+        <div class="c-sidebar__group" data-drop="true" style="margin-top:16px">
+          <div class="c-label">사이드</div>
+          <div class="c-sidebar__empty">비어 있음 · 프로젝트를 끌어다 놓으세요</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
     <h2>App</h2>
     <div class="mock">
       <aside class="c-sidebar">

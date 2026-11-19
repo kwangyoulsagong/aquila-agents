@@ -2,7 +2,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { migrateLegacyDir } from './config';
+import type { Config } from '../src/shared/api/types';
+import { applyProjectEdit, migrateLegacyDir, slugify, tildify } from './config';
 
 const tmp: string[] = [];
 const dir = () => {
@@ -35,5 +36,98 @@ describe('migrateLegacyDir', () => {
     expect(migrateLegacyDir(from, to)).toBe(false);
     expect(fs.readFileSync(path.join(to, 'config.json'), 'utf8')).toBe('{"language":"ko"}');
     expect(migrateLegacyDir(dir(), path.join(dir(), 'x'))).toBe(false);
+  });
+});
+
+const base = (): Config => ({
+  language: 'en',
+  accounts: { shared: { claudeConfigDir: null }, personal: { claudeConfigDir: '~/.claude-personal' } },
+  groups: [{ id: 'work' }, { id: 'personal' }],
+  projects: [
+    { id: 'a', name: 'A', group: 'work', account: 'shared', path: '~/a' },
+    { id: 'b', name: 'B', group: 'personal', account: 'shared', path: '~/b' },
+    { id: 'c', name: 'C', group: 'work', account: 'shared', path: '~/c' },
+  ],
+});
+const ids = (c: Config, group?: string) =>
+  c.projects.filter((p) => !group || p.group === group).map((p) => p.id);
+
+describe('applyProjectEdit', () => {
+  it('adds a project at the end of its group with a unique id and a ~ path', () => {
+    const c = applyProjectEdit(
+      base(),
+      { op: 'addProject', path: '/home/me/code/A', name: '', group: 'work', account: 'personal' },
+      '/home/me',
+    );
+    const added = c.projects.find((p) => p.path === '~/code/A')!;
+    expect(added).toMatchObject({ id: 'a-2', name: 'A', group: 'work', account: 'personal' });
+    expect(ids(c)).toEqual(['a', 'b', 'c', 'a-2']);
+  });
+
+  it('falls back to a known group/account and keeps paths outside home as they are', () => {
+    const c = applyProjectEdit(
+      base(),
+      { op: 'addProject', path: '/srv/x', name: ' 사이드 ', group: 'nope', account: 'nope' },
+      '/home/me',
+    );
+    expect(c.projects.at(-1)).toMatchObject({
+      id: 'project',
+      name: '사이드',
+      group: 'work',
+      account: 'shared',
+      path: '/srv/x',
+    });
+  });
+
+  it('renames, regroups and switches account, ignoring blanks and unknown values', () => {
+    let c = applyProjectEdit(base(), { op: 'updateProject', id: 'a', name: '  New  ', group: 'personal' });
+    expect(c.projects[0]).toMatchObject({ name: 'New', group: 'personal' });
+    c = applyProjectEdit(c, { op: 'updateProject', id: 'a', name: ' ', group: 'nope', account: 'nope' });
+    expect(c.projects[0]).toMatchObject({ name: 'New', group: 'personal', account: 'shared' });
+  });
+
+  it('moves a project within and across groups', () => {
+    let c = applyProjectEdit(base(), { op: 'moveProject', id: 'c', group: 'work', index: 0 });
+    expect(ids(c, 'work')).toEqual(['c', 'a']);
+    c = applyProjectEdit(c, { op: 'moveProject', id: 'a', group: 'personal', index: 0 });
+    expect(ids(c, 'personal')).toEqual(['a', 'b']);
+    c = applyProjectEdit(c, { op: 'moveProject', id: 'c', group: 'personal', index: 99 });
+    expect(ids(c, 'personal')).toEqual(['a', 'b', 'c']);
+    expect(ids(c, 'work')).toEqual([]);
+    expect(applyProjectEdit(c, { op: 'moveProject', id: 'c', group: 'nope', index: 0 })).toBe(c);
+  });
+
+  it('removes a project', () => {
+    expect(ids(applyProjectEdit(base(), { op: 'removeProject', id: 'b' }))).toEqual(['a', 'c']);
+  });
+
+  it('adds, renames, reorders and removes groups', () => {
+    let c = applyProjectEdit(base(), { op: 'addGroup', label: 'Side Projects' });
+    expect(c.groups.at(-1)).toEqual({ id: 'side-projects', label: 'Side Projects' });
+    c = applyProjectEdit(c, { op: 'addGroup', label: 'Side projects' });
+    expect(c.groups.at(-1)?.id).toBe('side-projects-2');
+    expect(applyProjectEdit(c, { op: 'addGroup', label: '  ' })).toBe(c);
+
+    c = applyProjectEdit(c, { op: 'renameGroup', id: 'work', label: 'Day job' });
+    expect(c.groups[0]).toEqual({ id: 'work', label: 'Day job' });
+    c = applyProjectEdit(c, { op: 'renameGroup', id: 'work', label: '' });
+    expect(c.groups[0]).toEqual({ id: 'work' });
+
+    c = applyProjectEdit(c, { op: 'moveGroup', id: 'side-projects', index: 0 });
+    expect(c.groups.map((g) => g.id)).toEqual(['side-projects', 'work', 'personal', 'side-projects-2']);
+
+    expect(applyProjectEdit(c, { op: 'removeGroup', id: 'work' })).toBe(c); // not empty
+    c = applyProjectEdit(c, { op: 'removeGroup', id: 'side-projects' });
+    expect(c.groups.map((g) => g.id)).toEqual(['work', 'personal', 'side-projects-2']);
+  });
+});
+
+describe('helpers', () => {
+  it('tildify / slugify', () => {
+    expect(tildify('/home/me', '/home/me')).toBe('~');
+    expect(tildify('/home/me/x', '/home/me')).toBe('~/x');
+    expect(tildify('/home/meow', '/home/me')).toBe('/home/meow');
+    expect(slugify('Road-To-PRO!', 'p')).toBe('road-to-pro');
+    expect(slugify('한글', 'p')).toBe('p');
   });
 });

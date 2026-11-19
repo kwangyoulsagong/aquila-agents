@@ -56,6 +56,31 @@ export interface Config {
   error?: string;
 }
 
+/** One change to the project list, made from the sidebar. Main applies it to ~/.aquila/config.json. */
+export type ProjectEdit =
+  /** `path` is absolute (folder picker); stored as `~/…` when under home. Empty name = folder name. */
+  | { op: 'addProject'; path: string; name: string; group: string; account: string }
+  | { op: 'updateProject'; id: string; name?: string; group?: string; account?: string }
+  | { op: 'removeProject'; id: string }
+  /** `index` = position among the target group's other projects (past the end = last). */
+  | { op: 'moveProject'; id: string; group: string; index: number }
+  | { op: 'addGroup'; label: string }
+  /** Empty label = back to the translated name (work/personal) or the id. */
+  | { op: 'renameGroup'; id: string; label: string }
+  /** Only an empty group is removed. */
+  | { op: 'removeGroup'; id: string }
+  | { op: 'moveGroup'; id: string; index: number };
+
+/** A native context-menu item. Clicking one resolves `showContextMenu` with its `id`. */
+export interface ContextMenuItem {
+  id?: string;
+  label?: string;
+  enabled?: boolean;
+  checked?: boolean;
+  separator?: boolean;
+  submenu?: ContextMenuItem[];
+}
+
 export interface SessionInfo {
   id: string;
   projectId: string;
@@ -101,6 +126,12 @@ export interface AquilaApi {
   openConfig(): Promise<string>;
   setLanguage(language: Language): Promise<Config>;
   setProjectAccount(projectId: string, account: string): Promise<Config>;
+  /** Add/rename/move/remove projects and groups; returns the saved config. */
+  editProjects(edit: ProjectEdit): Promise<Config>;
+  /** Native folder picker; null when cancelled. */
+  pickFolder(): Promise<string | null>;
+  /** Native context menu at the cursor; resolves with the clicked item's id, or null. */
+  showContextMenu(items: ContextMenuItem[]): Promise<string | null>;
   /** `account` overrides the project's account for this one session (setup opens a Claude login with it). */
   createSession(projectId: string, kind: SessionKind, account?: string): Promise<SessionInfo>;
   /** Reopens the tabs saved at the last quit (~/.aquila/state.json), once per launch; later calls return the live ones. */
@@ -130,6 +161,9 @@ export const IPC = {
   configOpen: 'config:open',
   configSetLanguage: 'config:set-language',
   configSetProjectAccount: 'config:set-project-account',
+  configEditProjects: 'config:edit-projects',
+  dialogPickFolder: 'dialog:pick-folder',
+  uiContextMenu: 'ui:context-menu',
   sessionCreate: 'session:create',
   sessionRestore: 'session:restore',
   accountsStatus: 'accounts:status',
