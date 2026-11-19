@@ -6,6 +6,7 @@ import { accountsStatus, installShellFunction, prepareAccount, shellFunctionPrev
 import {
   CONFIG_PATH,
   editProjects,
+  expand,
   loadConfig,
   openProjectIn,
   projectForPath,
@@ -30,6 +31,7 @@ import { refreshDue, UsageTracker } from './usage';
 import { ContextWatcher, statusLineSources, userHasStatusLine } from './context';
 import { connect as figmaConnect, FIGMA_DOCS_URL, readProfiles as figmaProfiles } from './figma';
 import { PowerWatcher, type PowerSource } from './power';
+import { DevUrlTracker, mergeTargets, PreviewViews, readLaunchJson } from './preview';
 import { SessionManager } from './sessions';
 import { checkRemote } from './remote/check';
 import { sshHosts } from './remote/hosts';
@@ -60,6 +62,9 @@ import {
   type GitTarget,
   type HistoryRef,
   type Language,
+  type PreviewCommand,
+  type PreviewSlot,
+  type PreviewState,
   type ProjectEdit,
   type RemoteHost,
   type RestoreResult,
@@ -72,6 +77,7 @@ import {
 const isDev = process.env.AQUILA_DEV === '1';
 let win: BrowserWindow | null = null;
 let sessions: SessionManager | null = null;
+let previews: PreviewViews | null = null;
 
 function createWindow(): void {
   win = new BrowserWindow({
@@ -92,7 +98,11 @@ function createWindow(): void {
   if (isDev) win.loadURL('http://localhost:5199');
   else win.loadFile(path.join(__dirname, '..', '..', 'dist', 'index.html'));
   // A reload (dev, crash recovery) loses the renderer's pending acks: don't leave ptys paused.
-  win.webContents.on('did-start-loading', () => sessions?.resetFlow());
+  win.webContents.on('did-start-loading', () => {
+    sessions?.resetFlow();
+    // The new page has no preview panel yet: don't leave native views over it.
+    previews?.destroyAll();
+  });
   win.on('closed', () => (win = null));
 }
 
@@ -137,6 +147,33 @@ app.whenReady().then(async () => {
     return figmaConnect(account, a.claudeConfigDir ? claudeConfigDir(config, account) : undefined);
   });
   ipcMain.handle(IPC.figmaOpenDocs, () => shell.openExternal(FIGMA_DOCS_URL));
+  // In-app preview (T33): dev server addresses from launch.json + the project's terminals; one native view per slot.
+  const localDir = (projectId: string) => {
+    const p = loadConfig().projects.find((x) => x.id === projectId);
+    return p && !p.remote ? expand(p.path) : null;
+  };
+  const targetsOf = (projectId: string) => {
+    const dir = localDir(projectId);
+    return { projectId, urls: dir ? mergeTargets(readLaunchJson(dir), devUrls.urls(projectId)) : [] };
+  };
+  const devUrls = new DevUrlTracker(
+    (projectId) => win?.webContents.send(IPC.previewTargetsChanged, targetsOf(projectId)),
+    [hookPort],
+  );
+  previews = new PreviewViews(
+    () => win,
+    (nav) => win?.webContents.send(IPC.previewNav, nav),
+    (url) => void shell.openExternal(url),
+  );
+  ipcMain.handle(IPC.previewTargets, (_e, projectId: string) => targetsOf(projectId));
+  ipcMain.on(IPC.previewSet, (_e, { slot, state }: { slot: PreviewSlot; state: PreviewState | null }) =>
+    previews?.set(slot, state),
+  );
+  ipcMain.on(IPC.previewCommand, (_e, { slot, command }: { slot: PreviewSlot; command: PreviewCommand }) =>
+    previews?.command(slot, command),
+  );
+  ipcMain.handle(IPC.previewPick, (_e, slot: PreviewSlot) => previews?.pick(slot) ?? null);
+  ipcMain.on(IPC.previewPickCancel, (_e, slot: PreviewSlot) => previews?.cancelPick(slot));
   // http hooks unless `claude --version` says it's older than they need (then command + curl).
   let httpHooks = true;
   const detectHooks = () =>
@@ -161,7 +198,11 @@ app.whenReady().then(async () => {
       if (httpHooks) return status ? hookFiles.httpStatus : hookFiles.http;
       return status ? hookFiles.legacyStatus : hookFiles.legacy;
     },
-    onEnded: (id) => context.remove(id),
+    onEnded: (id) => {
+      context.remove(id);
+      devUrls.forgetSession(id);
+    },
+    onOutput: (projectId, id, data) => devUrls.feed(projectId, id, data),
     onTabsChanged: isSmoke ? undefined : saveTabs,
     scrollback: isSmoke
       ? undefined
@@ -498,7 +539,7 @@ app.whenReady().then(async () => {
   createWindow();
   if (isSmoke && win) {
     const w = win;
-    w.webContents.once('did-finish-load', () => runSmoke(w, s, loadConfig(), smokeOutput));
+    w.webContents.once('did-finish-load', () => runSmoke(w, s, loadConfig(), smokeOutput, previews));
   }
   app.on('activate', () => BrowserWindow.getAllWindows().length === 0 && createWindow());
 });

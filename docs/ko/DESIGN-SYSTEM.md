@@ -127,6 +127,7 @@
 | `.c-split--free`, `.c-split__drop`, `.c-pane__title` `__close` | 앱의 화면 분할: 절대 배치 패널, 드롭 표시(영역 사이를 미끄러지듯 이동), 패널 헤더 제목 + 닫기 |
 | `.c-split__divider[data-dir][data-active]`, `.c-split[data-resizing]`, `.c-pane__zoom[aria-pressed]` | 드래그 구분선(호버/드래그 시 강조선), 드래그 중 화면 전체 리사이즈 커서, 패널 헤더의 확대 토글 |
 | `.c-panel` `__head` `__body` `__actions` `__section` `__note` `__bar` `__bar-end`, `.c-panel--wide` | 오른쪽 패널 (밀려 들어옴, 헤더는 탭 바처럼 창 드래그 영역); `__bar` = 헤더 아래 줄바꿈되는 컨트롤 띠; `--wide`는 나란히 보기용(창의 절반까지) |
+| `.c-preview` `__body` `__stage` | 프리뷰 패널 (T33, `.c-panel--wide` 위): stage 위치에 main이 네이티브 페이지 뷰를 올림. stage 자체 내용(빈 상태, 로드 오류)은 그 뷰가 숨었을 때만 보임 |
 | `.c-diff` `__line--add/del/hunk/file/meta`, `__file[aria-current]`, `__num`, `__actions`, `__line[data-commentable][data-commented]`, `.c-diff--split` `__row` `__line--empty`, `__comment` `__comment-actions` | diff (한 줄: 가장 긴 줄만큼 넓어짐, 나란히: 줄바꿈되는 두 칸). 줄 번호 칸, 파일/hunk 줄의 작은 버튼, 코멘트 가능/있음 표시, 줄 아래 코멘트 상자 |
 | `.c-change`, `__status[data-status]` `__path` `__dir` | 변경 파일 행: 색이 있는 git 상태 글자, 이름, 흐린 폴더 |
 | `.c-btn--ghost[aria-pressed]` | 켜진 토글 버튼 |

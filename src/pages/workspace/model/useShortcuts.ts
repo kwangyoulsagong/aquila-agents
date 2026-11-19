@@ -17,6 +17,7 @@ interface Deps {
   /** Close the focused pane (close-session shortcut on an empty pane). */
   closePane: () => void;
   toggleChanges: () => void;
+  togglePreview: () => void;
   togglePalette: () => void;
   toggleGuide: () => void;
   toggleHistory: () => void;
@@ -40,6 +41,7 @@ export function useShortcuts({
   nudgePane,
   closePane,
   toggleChanges,
+  togglePreview,
   togglePalette,
   toggleGuide,
   toggleHistory,
@@ -75,6 +77,8 @@ export function useShortcuts({
           return activeSessionId ? closeSession(activeSessionId) : closePane();
         case 'toggleChanges':
           return toggleChanges();
+        case 'togglePreview':
+          return togglePreview();
         case 'history':
           return toggleHistory();
         case 'nextWaiting':
@@ -121,6 +125,7 @@ export function useShortcuts({
     nudgePane,
     closePane,
     toggleChanges,
+    togglePreview,
     togglePalette,
     toggleGuide,
     toggleHistory,

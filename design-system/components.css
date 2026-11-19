@@ -311,6 +311,18 @@ body {
 }
 .c-panel__bar-end { margin-left: auto; display: flex; align-items: center; gap: var(--space-inline-xs); }
 
+/* ── Preview (T33) ──────────────────────────────────────────
+ * The page itself is a native view main lays over `.c-preview__stage`; the stage's own content (empty state, load
+ * error) shows only while main hides that view. Designer layout: a second bar + stage (Figma) under the first. */
+.c-preview__body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.c-preview__body > .c-panel__bar { border-top: 1px solid var(--color-border-subtle); }
+.c-preview__stage {
+  flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center;
+  background: var(--color-bg-canvas);
+}
+.c-preview .c-panel__bar { flex-wrap: nowrap; }
+.c-preview .c-panel__bar > .c-input { flex: 1; min-width: 0; }
+
 /* ── Changed file row ─────────────────────────────────────── */
 .c-change {
   display: flex; align-items: center; gap: var(--space-inline-sm); width: 100%;

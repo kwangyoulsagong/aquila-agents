@@ -73,6 +73,11 @@ demo_history() { # demo_history <home> <lang>
   fi
 }
 
+SHOP_PORT=47173
+python3 -m http.server "$SHOP_PORT" --bind 127.0.0.1 --directory "$FIX/shop" >/dev/null 2>&1 &
+SHOP_PID=$!
+trap 'kill "$SHOP_PID" 2>/dev/null || true' EXIT
+
 for lang in ${CAPTURE_LANGS:-ko en}; do
   # A short fixed path: it shows up in some screens (checklist, worktree hint).
   home=/tmp/aquila-demo
@@ -85,6 +90,9 @@ for lang in ${CAPTURE_LANGS:-ko en}; do
   echo "$login" > "$home/.claude-personal/.claude.json"
   sed "s/__LANG__/$lang/" "$FIX/config.json" > "$home/.aquila/config.json"
   P="$home/projects"
+  # In-app preview (T33): web-shop's launch.json points at the demo shop page served below.
+  mkdir -p "$P/web-shop/.claude"
+  printf '{ "version": "0.0.1", "configurations": [{ "name": "web", "port": %s }] }\n' "$SHOP_PORT" > "$P/web-shop/.claude/launch.json"
   demo_repo "$P/web-shop" \
     "src/cart.ts:export function total(items: { price: number }[]) {\n  return items.reduce((sum, i) => sum + i.price, 0);\n}\n" \
     "src/checkout.ts:import { total } from './cart';\n\nexport const pay = (items: { price: number }[]) => total(items);\n" \

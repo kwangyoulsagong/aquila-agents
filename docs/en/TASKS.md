@@ -260,7 +260,8 @@ Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-1
 - **Owns:** `electron/figma.ts`, `src/features/figma/`.
 
 ### T33 · In-app preview + pick element
-- [ ] **Goal:** point at the running app and tell the agent what to change — for Claude and Codex. (#37)
+- [x] **Goal:** point at the running app and tell the agent what to change — for Claude and Codex. (#37)
+  _Left over: the preview is width-only (no mobile user agent / touch emulation) and local projects only. Component names need a dev build (React 19 dropped `_debugSource`, so no file:line there). Designer layout and pasting into a real Claude/Codex tab were not watched live in `npm run dev` (smoke checks the pick, capture shows Select mode); the Figma view needs a Figma login inside the preview. App shortcuts don't fire while the previewed page has keyboard focus._
 - **Spec:** detect the dev server (`.claude/launch.json`, `localhost:\d+` in pty output); `WebContentsView` with device
   presets 390/768/1440; Select mode collects selector, text, computed style, React component name if possible and a
   `capturePage(rect)` crop, pasted into the focused session as text + image path. "Designer preset" layout: terminal +

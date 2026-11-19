@@ -560,6 +560,73 @@ export interface AquilaApi {
   figmaConnect(account: string): Promise<FigmaProfile>;
   /** Opens Figma's MCP docs in the browser. */
   figmaOpenDocs(): Promise<void>;
+  /** Dev server addresses for a local project (T33): `.claude/launch.json` and `localhost:<port>` seen in its tabs. */
+  previewTargets(projectId: string): Promise<PreviewTargets>;
+  onPreviewTargets(cb: (t: PreviewTargets) => void): Unsubscribe;
+  /** Shows / moves / navigates the native preview view of a slot; null closes it. */
+  previewSet(slot: PreviewSlot, state: PreviewState | null): void;
+  previewCommand(slot: PreviewSlot, command: PreviewCommand): void;
+  onPreviewNav(cb: (n: PreviewNav) => void): Unsubscribe;
+  /** Select mode: resolves with the element the user clicked in the preview (null on Esc / cancel). */
+  previewPick(slot: PreviewSlot): Promise<PickResult | null>;
+  previewPickCancel(slot: PreviewSlot): void;
+}
+
+/** In-app preview (T33): the app, or Figma under it in the Designer layout. */
+export type PreviewSlot = 'app' | 'figma';
+export type PreviewCommand = 'reload' | 'back' | 'devtools';
+
+export interface PreviewRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface PreviewState {
+  url: string;
+  /** The stage's rect in the window (CSS px of the main renderer). */
+  bounds: PreviewRect;
+  /** CSS width the page gets (device preset 390 / 768 / 1440); 0 = the stage's width. Wider → zoomed out. */
+  width: number;
+  /** Kept loaded but not drawn (a dialog is open: the native view would cover it). */
+  hidden?: boolean;
+}
+
+export interface PreviewTargets {
+  projectId: string;
+  /** Most recent first: launch.json entries, then addresses seen in the project's terminals. */
+  urls: string[];
+}
+
+export interface PreviewNav {
+  slot: PreviewSlot;
+  url: string;
+  title: string;
+  loading: boolean;
+  /** The last load failed (server down): the renderer hides the view and offers a retry. */
+  error?: string;
+  canGoBack: boolean;
+}
+
+/** The element picked in the preview (T33), pasted into the focused session as a prompt + screenshot path. */
+export interface PickResult {
+  url: string;
+  selector: string;
+  tag: string;
+  text: string;
+  /** Useful attributes: role, aria-label, data-testid, href, alt, placeholder, … */
+  attrs: Record<string, string>;
+  /** React / Vue component names, nearest first (dev builds only). */
+  components: string[];
+  /** `file:line` of the nearest component when the framework exposes it (React ≤18 dev, Vue `__file`). */
+  source?: string;
+  /** Computed style, defaults left out. */
+  styles: Record<string, string>;
+  /** CSS px in the page's viewport. */
+  rect: PreviewRect;
+  /** PNG crop of the element (with a margin), in the paste temp folder. */
+  imagePath?: string;
 }
 
 /** One Figma team/org from `whoami` (T32). Fields the tool didn't give are 'unknown'. */
@@ -645,4 +712,11 @@ export const IPC = {
   figmaProfiles: 'figma:profiles',
   figmaConnect: 'figma:connect',
   figmaOpenDocs: 'figma:open-docs',
+  previewTargets: 'preview:targets',
+  previewTargetsChanged: 'preview:targets-changed',
+  previewSet: 'preview:set',
+  previewCommand: 'preview:command',
+  previewNav: 'preview:nav',
+  previewPick: 'preview:pick',
+  previewPickCancel: 'preview:pick-cancel',
 } as const;

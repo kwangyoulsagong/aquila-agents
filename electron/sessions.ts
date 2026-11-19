@@ -109,6 +109,8 @@ interface Deps {
   hookSettingsPath: (at: { cwd: string; configDir?: string }) => string;
   /** A tab is gone (closed or exited). */
   onEnded?: (id: string) => void;
+  /** Raw output of a local tab (T33 looks for dev server addresses in it). */
+  onOutput?: (projectId: string, id: string, data: string) => void;
   /** Open tabs changed (created, closed, Claude session id moved) — persisted by state.ts. */
   onTabsChanged?: (tabs: SavedTab[]) => void;
   scrollback?: ScrollbackStore;
@@ -349,6 +351,7 @@ export class SessionManager {
       for (const payload of s.osc.feed(data)) this.onOsc(s, payload);
       s.output.push(data);
       s.tracker.output(Date.now());
+      if (!s.remote) this.deps.onOutput?.(s.projectId, s.id, data);
     });
     proc.onExit(({ exitCode, signal }) => {
       if (s.proc !== proc) return;

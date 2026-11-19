@@ -25,6 +25,7 @@
 │           usage-gauge                     │        │ usage.ts      계정별 5시간·주간 사용량 (T30)     │
 │                                           │        │ context.ts    탭별 컨텍스트 사용량 (T31)         │
 │                                           │        │ figma.ts      Figma MCP 인자 + whoami (T32)      │
+│           preview                         │        │ preview.ts    dev server, 프리뷰 뷰, 선택 (T33)  │
 │                                           │        │ detect.ts     CLI 점검, 첫 실행 상태 (T17)       │
 │                                           │        │ guide.ts      둘러보기 제안 한 번만 (T23)        │
 │                                           │        │ history.ts    지난 세션, 읽기 전용 (T11)         │
@@ -302,6 +303,36 @@ import하지 않음).
 - **제한이 아니라 힌트:** "디자인 → 코드"는 Dev·Full 시트 필요, "Code Connect"는 Organization이 필요할 수 있음 —
   캐시된 플랜으로 툴팁 표시, 모르면 "Figma 문서 확인"(`figma:open-docs`가 Figma MCP 문서 열기). 사용량 제한은
   하드코딩하지 않음.
+
+## 앱 내 프리뷰 (T33)
+
+`electron/preview.ts` + `widgets/preview`(`PreviewPanel`, ⌘⇧P 또는 탭 바의 ◫ 버튼, 로컬 프로젝트만).
+
+- **Dev server:** `.claude/launch.json`(`configurations[].port` / `.url`, 방어적으로 파싱) + 프로젝트 터미널에 나온
+  `localhost:<port>` 주소. `SessionManager`가 로컬 출력 원본을 `DevUrlTracker`에 넘기고(`onOutput`), 탭마다 256자 꼬리를
+  남겨(조각에 걸친 주소도 찾음) ANSI를 지우고(Vite는 포트를 굵게 칠함) `0.0.0.0` / `127.0.0.1` / `[::1]`을 `localhost`로
+  맞추고, 훅 포트는 빼고, 프로젝트마다 최근 5개를 최신순으로 둡니다. `://`가 없는 조각은 `includes` 한 번으로 끝.
+  `preview:targets` / `preview:targets-changed`.
+- **뷰:** 슬롯(`app`, `figma`)마다 `WebContentsView` 하나를 창의 `contentView`에 붙임. 파티션
+  `persist:aquila-preview`(샌드박스, preload 없음, `window.open` → 브라우저). 패널의 stage div가 자기 위치를
+  `preview:set`으로 알림(ResizeObserver + 창 resize, 패널이 마지막 열이라 자기 크기가 바뀔 때만 움직임). null이면 뷰를
+  닫음. 너비 390 / 768 / 1440: stage보다 좁으면 1×로 가운데, 넓으면 `setZoomFactor(stage / 너비)`로 미디어 쿼리가 그
+  너비를 보게 함(줌은 origin별이라 이동할 때마다 다시 적용). 너비만 — 모바일 UA나 터치 에뮬레이션은 없음.
+- **네이티브 뷰 vs DOM:** 뷰가 페이지 위에 그려지므로 `dialog[open]`이 있는 동안(팔레트, 모달, 대화상자)과 마지막
+  로드가 실패했을 때는 패널이 숨김(`hidden`) — 실패하면 stage에 오류 + 다시 시도. 렌더러가 새로고침되면 뷰를 모두 닫음.
+- **요소 선택:** `preview:pick`이 페이지에서 `PICK_SCRIPT`를 실행(`executeJavaScript`, user gesture). 하이라이트와
+  `tag.class W×H` 라벨이 포인터를 따라가고, 클릭은 삼킴(캡처 리스너), Esc / `preview:pick-cancel`은 null. 결과: 짧은
+  고유 selector(id, `data-testid`, 해시 없는 클래스, `:nth-of-type`, 최대 6단계), 텍스트(200자), 쓸모 있는 속성, 기본값을
+  뺀 computed style, `__reactFiber$` 체인의 React 컴포넌트명(+ React ≤ 18 dev의 `_debugSource`) 또는 Vue
+  `__vueParentComponent`(+ `__file`), rect. main이 `capturePage(rect × zoom + 8px)`를 잘라
+  `$TMPDIR/aquila-paste/pick-*.png`에 저장(하루 뒤 정리).
+- **붙여넣기:** 프롬프트(`buildPickPrompt`, 라벨은 번역)를 포커스된 Claude/Codex 탭에 붙이고, 이미지 경로를 두 번째
+  붙여넣기로(경로만 있는 붙여넣기를 CLI가 이미지로 첨부), 터미널에 포커스. 전송은 안 함. 에이전트 탭이 아니면 텍스트 +
+  경로를 클립보드로.
+- **디자이너:** Figma를 켠 프로젝트는 디자이너 토글: Figma 링크 칸과 앱 아래 두 번째 뷰(그 안에서 Figma에 한 번
+  로그인하면 파티션이 유지).
+- smoke는 가짜 React fiber가 있는 페이지로 selector, 컴포넌트 체인, 스타일, 스크린샷, 취소를 확인. capture는 네이티브 뷰를
+  프레임에 합성(`withViews`)하고 web-shop의 launch.json이 가리키는 데모 쇼핑 페이지를 띄움.
 
 ## 단축키
 

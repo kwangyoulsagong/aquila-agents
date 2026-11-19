@@ -73,6 +73,11 @@ export function getTerminal(id: string): Terminal | null {
   return terminals.get(id) ?? null;
 }
 
+/** Gives the session's terminal the keyboard (after a paste from a panel). */
+export function focusSession(id: string): void {
+  terminals.get(id)?.focus();
+}
+
 export function subscribeTerminals(cb: () => void): () => void {
   terminalListeners.add(cb);
   return () => {
