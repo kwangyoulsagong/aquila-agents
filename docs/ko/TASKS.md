@@ -76,9 +76,8 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
 
 ## v0.1 이후 로드맵
 
-근거: [`docs/research/`](../research/README.md) (사용 편의성 조사, 2026-11-19, 로드맵 항목 `#n`). 순서: **Now** →
-**Next** → **Later**. 플랫폼 계층(T13)과 상태 엔진(T14)이 맨 앞인 이유는 나머지 거의 전부(그리고 Windows)가 그 위에
-올라가기 때문이에요.
+근거: [`docs/research/`](../research/README.md) (사용 편의성 조사, 2026-11-19, 로드맵 항목 `#n`). 배포를 뺀 전부가 **Now**이고, 배포는 맨 마지막(**배포**)이에요. Now 안에서는 플랫폼 계층(T13)과 상태 엔진(T14)이
+먼저예요. 나머지 거의 전부(그리고 Windows)가 그 위에 올라가기 때문이에요.
 
 ## Now
 
@@ -147,8 +146,6 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
   `thermal-state-change`)로 절전 프로필: 폴링 간격 늘리기, 커서 깜빡임·반복 애니메이션 끄기. Windows 측정 도구는 미정.
 - **담당:** `scripts/`, `electron/power.ts`, 위 두 문서.
 
-## Next
-
 ### T19 · Windows 런타임
 - [ ] **목표:** Windows 10 1809+ / 11, x64 + arm64, 네이티브와 WSL에서 제대로 동작. (#9–#13)
 - **명세:**
@@ -163,13 +160,6 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
     hook이 필요하면 수신기 주소(호스트 IP + 토큰).
   - 알림: `app.setAppUserModelId()`, AUMID가 있는 시작 메뉴 바로가기.
 - **담당:** `electron/platform/win32.ts`, `sessions.ts`의 Windows 부분, `main.ts` 창 옵션, CI 워크플로.
-
-### T20 · Windows 패키징 + 서명
-- [ ] **목표:** 사람들이 실행할 수 있는 Windows 설치 파일. (#28)
-- **명세:** 서명 경로부터 결정(한국 개인: Azure Artifact Signing 불가, 한국 법인: 가능 → 법인 + Artifact Signing /
-  미서명 + winget/scoop + SmartScreen 안내 / MSIX — MSIX 파일시스템 제약 확인). NSIS x64 + arm64, electron-updater
-  (macOS도).
-- **담당:** `electron-builder.yml`, `build/`, `electron/updater.ts`.
 
 ### T21 · 복원 v2
 - [ ] **목표:** 다시 열면 내용까지, 빠르게. (#14 + T4 남은 것)
@@ -238,16 +228,6 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
   끊김), 끊기면 배너, `KillUserProcesses=yes` 안내.
 - **담당:** `electron/remote/`, `src/entities/project`(호스트 배지), `sessions.ts`·`config.ts` 소폭 수정.
 
-## Later
-
-### T27 · 릴리즈 노트 모달 + 파이프라인
-- [ ] **목표:** 업데이트 뒤 무엇이 바뀌었는지 한 번 보여주기. (#29, #30, 오너)
-- **명세:** `~/.aquila/`의 `lastSeenVersion`과 `app.getVersion()` 비교, 높을 때만 열기(새 설치면 안 띄우고 버전만 기록,
-  대신 가이드 제안). T23과 같은 모달: 미디어 있는 헤드라인 3~5개, "사용법 보기" → 가이드 항목. `?` 메뉴 "새로운 기능"에서
-  지난 버전 목록, 건너뛴 버전은 묶어서. 버전별로 번들(`release-notes/<version>.{ko,en}.md` 또는 `guideId`·미디어가 있는
-  JSON), 오프라인. 초안은 지난 태그 이후 Conventional Commits에서 만들고 사람이 다듬음. 해당 버전 ko/en 노트가 없으면 패키징 실패.
-- **담당:** `src/features/release-notes/`, `release-notes/`, `scripts/release-notes.ts`.
-
 ### T30 · 계정별 사용량 게이지
 - [ ] **목표:** 5시간·주간 한도가 계정별로 얼마나 남았는지. (#33)
 - **명세:** 세션별이 아니라 계정 config 폴더별로(statusline은 계정이 섞임), 리셋 시각과 함께 나란히, "추정" 표기.
@@ -301,3 +281,20 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
 ### T10 · 라이트 테마
 - [ ] `tokens.css`에 `[data-theme='light']` 시맨틱 재매핑, `nativeTheme` 추종. 터미널 테마와 Windows `titleBarOverlay` 색도
   따라감. 컴포넌트 수정 금지. (#41)
+
+## 배포 (맨 마지막)
+
+### T20 · Windows 패키징 + 서명
+- [ ] **목표:** 사람들이 실행할 수 있는 Windows 설치 파일. (#28)
+- **명세:** 서명 경로부터 결정(한국 개인: Azure Artifact Signing 불가, 한국 법인: 가능 → 법인 + Artifact Signing /
+  미서명 + winget/scoop + SmartScreen 안내 / MSIX — MSIX 파일시스템 제약 확인). NSIS x64 + arm64, electron-updater
+  (macOS도).
+- **담당:** `electron-builder.yml`, `build/`, `electron/updater.ts`.
+
+### T27 · 릴리즈 노트 모달 + 파이프라인
+- [ ] **목표:** 업데이트 뒤 무엇이 바뀌었는지 한 번 보여주기. (#29, #30, 오너)
+- **명세:** `~/.aquila/`의 `lastSeenVersion`과 `app.getVersion()` 비교, 높을 때만 열기(새 설치면 안 띄우고 버전만 기록,
+  대신 가이드 제안). T23과 같은 모달: 미디어 있는 헤드라인 3~5개, "사용법 보기" → 가이드 항목. `?` 메뉴 "새로운 기능"에서
+  지난 버전 목록, 건너뛴 버전은 묶어서. 버전별로 번들(`release-notes/<version>.{ko,en}.md` 또는 `guideId`·미디어가 있는
+  JSON), 오프라인. 초안은 지난 태그 이후 Conventional Commits에서 만들고 사람이 다듬음. 해당 버전 ko/en 노트가 없으면 패키징 실패.
+- **담당:** `src/features/release-notes/`, `release-notes/`, `scripts/release-notes.ts`.

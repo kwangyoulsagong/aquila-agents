@@ -76,9 +76,8 @@ only with small additive edits. Merge order follows the numbering when two tasks
 
 ## Roadmap after v0.1
 
-Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-19, roadmap items `#n`). Order: **Now** →
-**Next** → **Later**. The platform layer (T13) and the status engine (T14) come first because almost everything else
-builds on them (and on Windows).
+Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-19, roadmap items `#n`). Everything is **Now**, except distribution, which goes last (**Release**). Within Now, the platform layer (T13)
+and the status engine (T14) come first because almost everything else builds on them (and on Windows).
 
 ## Now
 
@@ -150,8 +149,6 @@ builds on them (and on Windows).
   Windows measurement: tool to be decided.
 - **Owns:** `scripts/`, `electron/power.ts`, those two docs.
 
-## Next
-
 ### T19 · Windows runtime
 - [ ] **Goal:** the app runs properly on Windows 10 1809+ / 11, x64 + arm64, native and WSL. (#9–#13)
 - **Spec:**
@@ -166,13 +163,6 @@ builds on them (and on Windows).
     receiver address for NAT mode (host IP + token) if hooks are still needed there.
   - Notifications: `app.setAppUserModelId()`, Start Menu shortcut with AUMID.
 - **Owns:** `electron/platform/win32.ts`, Windows parts of `sessions.ts`, `main.ts` window options, CI workflow.
-
-### T20 · Windows packaging + signing
-- [ ] **Goal:** a Windows installer people can run. (#28)
-- **Spec:** decide the signing path first (Korean individual: no Azure Artifact Signing; Korean company: eligible →
-  company + Artifact Signing / unsigned + winget/scoop + SmartScreen note / MSIX — check MSIX file-system limits).
-  NSIS x64 + arm64, electron-updater (also for macOS).
-- **Owns:** `electron-builder.yml`, `build/`, update code in `electron/updater.ts`.
 
 ### T21 · Restore v2
 - [ ] **Goal:** relaunch brings back content too, fast. (#14 + T4 leftovers)
@@ -248,17 +238,6 @@ builds on them (and on Windows).
   `KillUserProcesses=yes`.
 - **Owns:** `electron/remote/`, `src/entities/project` (host badge), small changes in `sessions.ts`, `config.ts`.
 
-## Later
-
-### T27 · Release notes modal + pipeline
-- [ ] **Goal:** after an update, show once what changed. (#29, #30, owner)
-- **Spec:** compare `lastSeenVersion` in `~/.aquila/` with `app.getVersion()`; open only when higher (not on a fresh
-  install — record the version and offer the guide instead). Same modal as T23: 3–5 headlines with media, "How to use" →
-  guide item; "What's new" in the `?` menu lists past versions; skipped versions are combined. Notes bundled per version
-  (`release-notes/<version>.{ko,en}.md` or JSON with `guideId` + media), offline. Draft from Conventional Commits since
-  the last tag, edited by hand; packaging fails if the version's ko/en notes are missing.
-- **Owns:** `src/features/release-notes/`, `release-notes/`, `scripts/release-notes.ts`.
-
 ### T30 · Usage gauge per account
 - [ ] **Goal:** see how much of the 5-hour and weekly limits is left, per account. (#33)
 - **Spec:** per account config dir (not per session — statusline mixes accounts), bars side by side with reset time,
@@ -317,3 +296,21 @@ builds on them (and on Windows).
 ### T10 · Light theme
 - [ ] Add `[data-theme='light']` semantic remap in `tokens.css`, follow `nativeTheme`; terminal theme and Windows
   `titleBarOverlay` colors follow. No component changes allowed. (#41)
+
+## Release (last)
+
+### T20 · Windows packaging + signing
+- [ ] **Goal:** a Windows installer people can run. (#28)
+- **Spec:** decide the signing path first (Korean individual: no Azure Artifact Signing; Korean company: eligible →
+  company + Artifact Signing / unsigned + winget/scoop + SmartScreen note / MSIX — check MSIX file-system limits).
+  NSIS x64 + arm64, electron-updater (also for macOS).
+- **Owns:** `electron-builder.yml`, `build/`, update code in `electron/updater.ts`.
+
+### T27 · Release notes modal + pipeline
+- [ ] **Goal:** after an update, show once what changed. (#29, #30, owner)
+- **Spec:** compare `lastSeenVersion` in `~/.aquila/` with `app.getVersion()`; open only when higher (not on a fresh
+  install — record the version and offer the guide instead). Same modal as T23: 3–5 headlines with media, "How to use" →
+  guide item; "What's new" in the `?` menu lists past versions; skipped versions are combined. Notes bundled per version
+  (`release-notes/<version>.{ko,en}.md` or JSON with `guideId` + media), offline. Draft from Conventional Commits since
+  the last tag, edited by hand; packaging fails if the version's ko/en notes are missing.
+- **Owns:** `src/features/release-notes/`, `release-notes/`, `scripts/release-notes.ts`.
