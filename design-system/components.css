@@ -204,11 +204,24 @@ body {
 .c-split--free { display: block; position: relative; }
 .c-split--free > .c-pane { position: absolute; }
 .c-pane__title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.c-pane__close {
+.c-pane__close, .c-pane__zoom {
   width: var(--size-badge); height: var(--size-badge); border: 0; border-radius: var(--radius-badge);
   background: none; color: var(--color-text-tertiary); cursor: pointer;
 }
-.c-pane__close:hover { background: var(--color-bg-pressed); color: var(--color-text-primary); }
+.c-pane__close:hover, .c-pane__zoom:hover { background: var(--color-bg-pressed); color: var(--color-text-primary); }
+.c-pane__zoom[aria-pressed='true'] { color: var(--color-text-primary); }
+/* Divider between the two sides of a split: an invisible grab area over the 1px gap; the hairline turns accent on
+ * hover and while dragging. While dragging, the whole stage keeps the resize cursor and terminals ignore the pointer. */
+.c-split__divider { position: absolute; z-index: 2; touch-action: none; }
+.c-split__divider[data-dir='row'] { width: var(--size-split-handle); cursor: col-resize; }
+.c-split__divider[data-dir='column'] { height: var(--size-split-handle); cursor: row-resize; }
+.c-split__divider::after { content: ''; position: absolute; background: transparent; }
+.c-split__divider[data-dir='row']::after { top: 0; bottom: 0; left: calc(50% - var(--size-focus-line) / 2); width: var(--size-focus-line); }
+.c-split__divider[data-dir='column']::after { left: 0; right: 0; top: calc(50% - var(--size-focus-line) / 2); height: var(--size-focus-line); }
+.c-split__divider:hover::after, .c-split__divider[data-active]::after { background: var(--color-border-focus); }
+.c-split[data-resizing='row'] { cursor: col-resize; }
+.c-split[data-resizing='column'] { cursor: row-resize; }
+.c-split[data-resizing] > :not(.c-split__divider) { pointer-events: none; user-select: none; }
 /* Where a dragged tab will land: half a pane (split) or the whole pane (replace). */
 .c-split__drop {
   position: absolute; z-index: 1; pointer-events: none; border-radius: var(--radius-control);
@@ -428,7 +441,8 @@ body {
   animation: c-fade-in var(--motion-fast) var(--motion-ease) both;
 }
 @keyframes c-fade-in { from { opacity: 0; } }
-.c-pane__close:active { transform: scale(var(--motion-press-scale)); }
+.c-pane__close:active, .c-pane__zoom:active { transform: scale(var(--motion-press-scale)); }
+.c-split__divider::after { transition: background var(--motion-fast) var(--motion-ease); }
 
 /* Dialog rises in. */
 .c-dialog[open] { animation: c-fade-up var(--motion-medium) var(--motion-ease) both; }

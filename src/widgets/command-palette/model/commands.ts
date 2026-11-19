@@ -10,6 +10,7 @@ export type ActionId =
   | 'openWorktree'
   | 'splitRight'
   | 'splitDown'
+  | 'zoomPane'
   | 'toggleChanges'
   | 'nextWaiting'
   | 'closeSession'
@@ -47,6 +48,7 @@ const ACTIONS: { action: ActionId; label: (t: Translate) => string; shortcut?: S
   { action: 'openWorktree', label: (t) => t('worktree.title') },
   { action: 'splitRight', label: (t) => t('palette.splitRight'), shortcut: 'splitRight' },
   { action: 'splitDown', label: (t) => t('palette.splitDown'), shortcut: 'splitDown' },
+  { action: 'zoomPane', label: (t) => t('action.zoomPane'), shortcut: 'zoomPane' },
   { action: 'toggleChanges', label: (t) => t('changes.toggle'), shortcut: 'toggleChanges' },
   { action: 'nextWaiting', label: (t) => t('attention.next'), shortcut: 'nextWaiting' },
   { action: 'closeSession', label: (t) => t('action.closeSession'), shortcut: 'closeSession' },

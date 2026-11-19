@@ -40,6 +40,8 @@ export default function WorkspacePage() {
     selectProject: ws.selectProject,
     splitFocused: ws.split.splitFocused,
     moveFocus: ws.split.moveFocus,
+    toggleZoom: ws.split.toggleZoom,
+    nudgePane: ws.split.nudgeFocused,
     closePane: ws.split.closePane,
     toggleChanges,
     togglePalette,
@@ -47,12 +49,13 @@ export default function WorkspacePage() {
   });
 
   const { config, project, activeSessionId, openSession, closeSession, setConfig, showError } = ws;
-  const { splitFocused } = ws.split;
+  const { splitFocused, toggleZoom, paneCount } = ws.split;
   const paletteActions = useMemo(() => {
     const a: Partial<Record<ActionId, () => void>> = {
       splitRight: () => splitFocused('row'),
       splitDown: () => splitFocused('column'),
     };
+    if (paneCount > 1) a.zoomPane = toggleZoom;
     if (project) {
       a.openClaude = () => openSession('claude');
       a.openCodex = () => openSession('codex');
@@ -78,6 +81,8 @@ export default function WorkspacePage() {
     openSession,
     closeSession,
     splitFocused,
+    toggleZoom,
+    paneCount,
     toggleChanges,
     openWorktreeDialog,
     setConfig,
@@ -148,6 +153,8 @@ export default function WorkspacePage() {
             onFocusPane={ws.split.focusPane}
             onClosePane={ws.split.closePane}
             onDropSession={ws.split.dropSession}
+            onToggleZoom={ws.split.toggleZoom}
+            onResize={ws.split.resizeSplit}
           />
         </main>
         {worktreeOpen && project && (

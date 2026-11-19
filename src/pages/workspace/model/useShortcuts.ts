@@ -11,6 +11,9 @@ interface Deps {
   selectProject: (id: string) => void;
   splitFocused: (dir: SplitDir) => void;
   moveFocus: (edge: Edge) => void;
+  toggleZoom: () => void;
+  /** Keyboard resize of the focused pane's divider. */
+  nudgePane: (edge: Edge) => void;
   /** Close the focused pane (close-session shortcut on an empty pane). */
   closePane: () => void;
   toggleChanges: () => void;
@@ -28,6 +31,8 @@ export function useShortcuts({
   selectProject,
   splitFocused,
   moveFocus,
+  toggleZoom,
+  nudgePane,
   closePane,
   toggleChanges,
   togglePalette,
@@ -73,6 +78,16 @@ export function useShortcuts({
           return moveFocus('top');
         case 'focusDown':
           return moveFocus('bottom');
+        case 'zoomPane':
+          return toggleZoom();
+        case 'resizeLeft':
+          return nudgePane('left');
+        case 'resizeRight':
+          return nudgePane('right');
+        case 'resizeUp':
+          return nudgePane('top');
+        case 'resizeDown':
+          return nudgePane('bottom');
       }
     };
     window.addEventListener('keydown', onKey, true);
@@ -85,6 +100,8 @@ export function useShortcuts({
     selectProject,
     splitFocused,
     moveFocus,
+    toggleZoom,
+    nudgePane,
     closePane,
     toggleChanges,
     togglePalette,

@@ -91,6 +91,7 @@
 | `--size-control` | 28 | 버튼, 세그먼트 컨트롤 |
 | `--size-pane-head` | 28 | 분할 패널 헤더 |
 | `--size-focus-line` | 2 | 포커스된 패널 헤더 아래 강조선 (패널의 유일한 포커스 표시) |
+| `--size-split-handle` | 8 | 분할 구분선을 잡는 영역, 1px 선 가운데 |
 | `--size-badge` / `--size-dot` | 16 / 8 | |
 | `--size-sidebar` / `--size-panel` | 248 / 416 | |
 | `--size-dialog` / `--size-dialog-wide` | 440 / 560 | 다이얼로그 너비 / 체크리스트가 있는 다이얼로그(첫 실행) |
@@ -113,6 +114,7 @@
 | `.c-tabbar` `__add` `__trailing`, `.c-tab[aria-selected]` `__title` `__branch` `__close` | 탭 (`__branch` = 워크트리 브랜치, mono, 먼저 잘림) |
 | `.c-split`, `.c-pane[data-focused]` `__head` `__term` | 화면 분할 |
 | `.c-split--free`, `.c-split__drop`, `.c-pane__title` `__close` | 앱의 화면 분할: 절대 배치 패널, 드롭 표시(영역 사이를 미끄러지듯 이동), 패널 헤더 제목 + 닫기 |
+| `.c-split__divider[data-dir][data-active]`, `.c-split[data-resizing]`, `.c-pane__zoom[aria-pressed]` | 드래그 구분선(호버/드래그 시 강조선), 드래그 중 화면 전체 리사이즈 커서, 패널 헤더의 확대 토글 |
 | `.c-panel` `__head` `__body` `__actions` `__section` `__note` | 오른쪽 패널 (밀려 들어옴, 헤더는 탭 바처럼 창 드래그 영역) |
 | `.c-diff` `__line--add/del/hunk/file/meta` | diff (가장 긴 줄만큼 넓어짐) |
 | `.c-change`, `__status[data-status]` `__path` `__dir` | 변경 파일 행: 색이 있는 git 상태 글자, 이름, 흐린 폴더 |

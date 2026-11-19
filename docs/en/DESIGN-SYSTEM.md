@@ -92,6 +92,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `--size-control` | 28 | Buttons, segmented control |
 | `--size-pane-head` | 28 | Split pane header |
 | `--size-focus-line` | 2 | Accent line under the focused pane's header (the only focus mark on a pane) |
+| `--size-split-handle` | 8 | Grab area of a split divider, centred on the 1px hairline |
 | `--size-badge` / `--size-dot` | 16 / 8 | |
 | `--size-sidebar` / `--size-panel` | 248 / 416 | |
 | `--size-dialog` / `--size-dialog-wide` | 440 / 560 | Dialog width / with a checklist (first run) |
@@ -114,6 +115,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `.c-tabbar` `__add` `__trailing`, `.c-tab[aria-selected]` `__title` `__branch` `__close` | Tabs (`__branch` = worktree branch, mono, truncates first) |
 | `.c-split`, `.c-pane[data-focused]` `__head` `__term` | Split view |
 | `.c-split--free`, `.c-split__drop`, `.c-pane__title` `__close` | Split view in the app: absolutely placed panes, drop indicator (glides between zones), pane head title + close |
+| `.c-split__divider[data-dir][data-active]`, `.c-split[data-resizing]`, `.c-pane__zoom[aria-pressed]` | Draggable divider (accent line on hover/drag), resize cursor over the stage while dragging, zoom toggle in the pane head |
 | `.c-panel` `__head` `__body` `__actions` `__section` `__note` | Right panel (slides in; head is a drag region like the tab bar) |
 | `.c-diff` `__line--add/del/hunk/file/meta` | Diff (as wide as its longest line) |
 | `.c-change`, `__status[data-status]` `__path` `__dir` | Changed file row: colored git status letter, name, dimmed dir |
