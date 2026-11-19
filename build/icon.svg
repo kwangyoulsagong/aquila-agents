@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Aquila Agents app icon. Built from design-system primitives: slate-950/900/850 tile, slate-750 edge, blue-300/400 mark. -->
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1d2331"/>
+      <stop offset="0.55" stop-color="#12151c"/>
+      <stop offset="1" stop-color="#0a0c10"/>
+    </linearGradient>
+    <radialGradient id="sky" cx="0.5" cy="0.18" r="0.75">
+      <stop offset="0" stop-color="#3a4f86" stop-opacity="0.55"/>
+      <stop offset="0.6" stop-color="#1b2338" stop-opacity="0.15"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.22"/>
+      <stop offset="0.35" stop-color="#ffffff" stop-opacity="0.04"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.3"/>
+    </linearGradient>
+    <linearGradient id="wing" x1="0" y1="0.28" x2="0" y2="0.7">
+      <stop offset="0" stop-color="#c4d5fd"/>
+      <stop offset="0.45" stop-color="#7aa2f7"/>
+      <stop offset="1" stop-color="#4a6fd6"/>
+    </linearGradient>
+    <linearGradient id="wingShine" x1="0" y1="0.3" x2="0" y2="0.7">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.7"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="altair" cx="0.42" cy="0.38" r="0.65">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.6" stop-color="#e8eefc"/>
+      <stop offset="1" stop-color="#b8cbf8"/>
+    </radialGradient>
+    <radialGradient id="halo" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#93b4f9" stop-opacity="0.5"/>
+      <stop offset="0.5" stop-color="#7aa2f7" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#7aa2f7" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="flareH" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#e8eefc" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#e8eefc" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#e8eefc" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="flareV" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e8eefc" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#e8eefc" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#e8eefc" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="tileShadow" x="-15%" y="-15%" width="130%" height="135%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="18"/>
+      <feOffset dy="16"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.45"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="markShadow" x="-30%" y="-30%" width="160%" height="170%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="14"/>
+      <feOffset dy="18"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.6"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="16" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <clipPath id="tileClip"><rect x="100" y="100" width="824" height="824" rx="185"/></clipPath>
+  </defs>
+
+  <!-- Tile with a soft drop shadow (macOS grid: 824px tile on a 1024 canvas) -->
+  <g filter="url(#tileShadow)">
+    <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#tile)"/>
+  </g>
+  <g clip-path="url(#tileClip)">
+    <rect x="100" y="100" width="824" height="824" fill="url(#sky)"/>
+    <!-- faint star field -->
+    <g fill="#e8eefc">
+      <circle cx="232" cy="236" r="4" opacity="0.5"/>
+      <circle cx="318" cy="182" r="2.5" opacity="0.35"/>
+      <circle cx="770" cy="214" r="3.5" opacity="0.45"/>
+      <circle cx="842" cy="330" r="2.5" opacity="0.3"/>
+      <circle cx="196" cy="420" r="2.5" opacity="0.3"/>
+      <circle cx="690" cy="160" r="2" opacity="0.3"/>
+      <circle cx="860" cy="520" r="3" opacity="0.25"/>
+      <circle cx="170" cy="640" r="3" opacity="0.2"/>
+    </g>
+  </g>
+  <!-- Rim light: bright top edge fading to a dark bottom edge -->
+  <rect x="102" y="102" width="820" height="820" rx="183" fill="none" stroke="url(#rim)" stroke-width="4"/>
+
+  <!-- Mark: wings (open A) + the three stars of Aquila, lifted off the tile with a shadow -->
+  <g filter="url(#markShadow)">
+    <path d="M300 700 L512 330 L724 700" fill="none" stroke="url(#wing)" stroke-width="64" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <!-- Specular highlight along the top of each wing -->
+  <path d="M318 676 L512 352 L706 676" fill="none" stroke="url(#wingShine)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" opacity="0.55"/>
+
+  <!-- Altair halo, ring and flare -->
+  <circle cx="512" cy="566" r="150" fill="url(#halo)"/>
+  <circle cx="512" cy="566" r="70" fill="none" stroke="#93b4f9" stroke-opacity="0.45" stroke-width="8"/>
+  <rect x="392" y="563" width="240" height="6" rx="3" fill="url(#flareH)" opacity="0.8"/>
+  <rect x="509" y="446" width="6" height="240" rx="3" fill="url(#flareV)" opacity="0.8"/>
+
+  <!-- Tarazed and Alshain -->
+  <g filter="url(#glow)">
+    <circle cx="414" cy="566" r="22" fill="#a9c2fb"/>
+    <circle cx="610" cy="566" r="22" fill="#a9c2fb"/>
+  </g>
+  <!-- Altair -->
+  <g filter="url(#glow)">
+    <circle cx="512" cy="566" r="42" fill="url(#altair)"/>
+  </g>
+</svg>
