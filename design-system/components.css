@@ -192,9 +192,12 @@ body {
   color: var(--color-text-primary); border-bottom-color: var(--color-border-focus);
   box-shadow: inset 0 calc(1px - var(--size-focus-line)) 0 var(--color-border-focus);
 }
-.c-pane__term { flex: 1; min-height: 0; padding: var(--space-inset-sm) 0 0 var(--space-inset-md); }
-/* xterm's stylesheet paints the viewport #000, and it runs 2px past the last row. */
-.c-pane__term .xterm .xterm-viewport { background-color: var(--color-terminal-bg); }
+/* content-box: xterm's FitAddon sizes rows/cols from this element's computed height/width, which under border-box
+ * includes the padding — the last row then ran 8px past the pane and was cut off. */
+.c-pane__term { flex: 1; min-height: 0; box-sizing: content-box; padding: var(--space-inset-sm) 0 0 var(--space-inset-md); }
+/* xterm's stylesheet paints the viewport #000, and it runs 2px past the last row. xterm 6 draws its own scrollbar;
+ * the viewport's native one would show as a small block in the corner below the last row. */
+.c-pane__term .xterm .xterm-viewport { background-color: var(--color-terminal-bg); scrollbar-width: none; }
 /* xterm 6 draws a full-height slider when there is nothing to scroll: show it only with scrollback. */
 .c-pane__term:not([data-scrollable]) .xterm-scrollable-element > .scrollbar { display: none; }
 /* Free layout: panes and terminals are absolutely placed from the split tree (terminals never remount). */
