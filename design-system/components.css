@@ -71,6 +71,13 @@ body {
   padding: 1px var(--space-inline-xs); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-badge);
 }
 
+/* ── Elapsed ──────────────────────────────────────────────── */
+/* How long a session has been waiting for the user ("12m"), next to its tab title or project row. */
+.c-elapsed {
+  flex: none; font: var(--font-size-caption) var(--font-family-mono); color: var(--color-status-waiting);
+  white-space: nowrap;
+}
+
 /* ── Badge ────────────────────────────────────────────────── */
 .c-badge {
   display: inline-flex; align-items: center; height: var(--size-badge);

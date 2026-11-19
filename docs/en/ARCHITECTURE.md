@@ -11,10 +11,11 @@
 │           command-palette                 │  .ts   │               zsh function (explicit click)      │
 │ features/ switch-account, switch-language,│        │ hooks.ts      127.0.0.1:<port> hook receiver     │
 │           open-session, setup-account,    │        │               + ~/.aquila/claude-hooks.json       │
-│           manage-projects,                │        │ git.ts        git status + diff (read-only)      │
+│           manage-projects, next-waiting,  │        │ git.ts        git status + diff (read-only)      │
 │ entities/ session (xterm, status), project│        │ state.ts      ~/.aquila/state.json (open tabs)   │
 │           diff                            │        │ worktrees.ts  git worktree add / reuse (T7)      │
 │           open-in-worktree                │        │ menu.ts       native context menus               │
+│                                           │        │ notify.ts     notifications, reminder, Dock badge│
 │                                           │        │ status/       OSC 7501 parser + status tracker   │
 │                                           │        │ smoke.ts      npm run smoke self-check           │
 │ shared/   api (types · IPC · bridge), i18n│        │                                                 │
@@ -114,7 +115,7 @@
 ## Status
 
 Main decides every session's status (`electron/status/`: `osc.ts` parser, `tracker.ts` per-session state machine)
-and sends `session:status` `{ id, status, estimated?, reason? }`. Sources, most trusted first:
+and sends `session:status` `{ id, status, estimated?, reason?, since? }` (`since` = when this status started). Sources, most trusted first:
 
 | Source | Sessions | How |
 |---|---|---|
@@ -131,9 +132,23 @@ command + `curl`; Claude older than 2.1.295 (`claude --version` at startup) gets
 command + `curl` posting the same JSON. Raw 7501 reports and hook event names go to `~/.aquila/status.log`
 (rotated at 512 KB).
 
-`done` turns `idle` once the session is on screen. Notifications fire for done / waiting / error (not exit errors)
-when the window isn't focused or the session isn't the active one. Project row = most urgent of its sessions
+`done` turns `idle` once the session is on screen. Project row = most urgent of its sessions
 (`waiting > error > working > done > stopped > idle`).
+
+### Attention (`electron/notify.ts`, `features/next-waiting`)
+
+- **Notifications** for done / waiting / error (not exit errors) when the window isn't focused or the session isn't
+  the active one. Title = project (· worktree branch), body = `Claude · Needs input — Bash: npm install`. The detail
+  is the `PermissionRequest` tool summary (or the 7501 `msg`, or the `Notification` message) for waiting, and the
+  first line of `Stop`'s `last_assistant_message` (or the 7501 `msg`) for done; it is dropped when a new turn starts.
+  A notification waits 400 ms to settle (a late hook detail joins it, a waiting → working flap is dropped), and the
+  same status for the same session isn't notified twice within 30 s. Click → window up + that exact session.
+- **Reminder:** one more notification after 10 min of waiting off screen ("Still waiting after 10 min").
+- **Dock badge** = number of sessions in `waiting` (empty at zero).
+- **Waiting time:** tabs and project rows show how long a session has waited (`12m`, from `since`, ≥1 min) with
+  `.c-elapsed`; the row shows its longest wait.
+- **Next waiting session** (⌘J, also in the palette): cycles waiting > error > done across projects, longest wait
+  first within a tier; from a session outside that list it jumps to the head.
 
 ## Config (`~/.aquila/config.json`)
 

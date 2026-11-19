@@ -7,6 +7,7 @@ import { AccountSwitch } from '@/features/switch-account';
 import { SetupAccount } from '@/features/setup-account';
 import { OpenInWorktreeDialog } from '@/features/open-in-worktree';
 import { LanguageToggle } from '@/features/switch-language';
+import { nextWaiting } from '@/features/next-waiting';
 import { Sidebar } from '@/widgets/sidebar';
 import { SessionTabs } from '@/widgets/session-tabs';
 import { SplitView } from '@/widgets/split-view';
@@ -23,6 +24,11 @@ export default function WorkspacePage() {
   const togglePalette = useCallback(() => setPaletteOpen((o) => !o), []);
   const [worktreeOpen, setWorktreeOpen] = useState(false);
   const openWorktreeDialog = useCallback(() => setWorktreeOpen(true), []);
+  const { sessions, activeSessionId: focusedId, selectSession } = ws;
+  const waitingNext = nextWaiting(sessions, focusedId);
+  const goNextWaiting = useCallback(() => {
+    if (waitingNext) selectSession(waitingNext);
+  }, [waitingNext, selectSession]);
   useShortcuts({
     config: ws.config,
     activeSessionId: ws.activeSessionId,
@@ -34,6 +40,7 @@ export default function WorkspacePage() {
     closePane: ws.split.closePane,
     toggleChanges,
     togglePalette,
+    nextWaiting: goNextWaiting,
   });
 
   const { config, project, activeSessionId, openSession, closeSession, setConfig, showError } = ws;
@@ -51,6 +58,7 @@ export default function WorkspacePage() {
       a.toggleChanges = toggleChanges;
     }
     if (activeSessionId) a.closeSession = () => closeSession(activeSessionId);
+    if (waitingNext) a.nextWaiting = goNextWaiting;
     if (config) {
       a.switchLanguage = () =>
         api
@@ -70,6 +78,8 @@ export default function WorkspacePage() {
     openWorktreeDialog,
     setConfig,
     showError,
+    waitingNext,
+    goNextWaiting,
   ]);
 
   if (!config) return null;

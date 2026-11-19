@@ -107,7 +107,8 @@ Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-1
 - **Owns:** `electron/hooks.ts`, `electron/status/` (osc parser + tests), status parts of `sessions.ts`, `entities/session` status.
 
 ### T15 · Attention: badge, next waiting, notifications with context
-- [ ] **Goal:** never hunt for the tab that needs you. (#5, #6)
+- [x] **Goal:** never hunt for the tab that needs you. (#5, #6)
+  _Left over: the waiting time / detail with real Claude prompts wasn't exercised live (smoke can't stage a permission prompt); "on screen" still means the focused session only, not every visible split pane; reminder is fixed at 10 min (no setting)._
 - **Spec:** waiting count on the Dock badge (macOS) . Shortcut
   "next waiting session" across projects (cycles waiting > error > done), plus "waiting for 12 min" elapsed time on the
   tab/row and one reminder. Notification body: project · tab · first line of `last_assistant_message` (Stop), or the

@@ -103,6 +103,7 @@
 | `.c-btn` `--primary` `--ghost` `--icon` | 버튼 |
 | `.c-segment`, `__item[aria-checked]` | 세그먼트 컨트롤 (계정 전환) |
 | `.c-kbd` | 단축키 표시 |
+| `.c-elapsed` | 세션이 기다린 시간("12분", 고정폭, 대기 색) — 탭·프로젝트 행 |
 | `.c-badge` `--claude` `--codex` `--shell` `--account-shared` `--account-personal` | 태그 |
 | `.c-label` | 섹션 라벨 |
 | `.c-sidebar` `__drag` `__body` `__group` `__foot` `__lang` | 사이드바 |
@@ -132,6 +133,7 @@
 | `Dot` `status` `estimated?` `label?` | `.c-dot` |
 | `Badge` `tone` | `.c-badge--<tone>` |
 | `Kbd`, `Label` | `.c-kbd`, `.c-label` |
+| `Elapsed` `title?` | `.c-elapsed` |
 | `Segment` `options` `value` `onChange` | `.c-segment` |
 | `EmptyState` `title` `path` `actions` | `.c-empty` |
 | `Dialog` `open` `title` `onClose` `actions`, `DialogCheck`, `DialogCode`, `DialogForm` `id` `onSubmit` | `.c-dialog` |

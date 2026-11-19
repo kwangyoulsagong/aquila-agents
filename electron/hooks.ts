@@ -9,6 +9,7 @@ import http from 'node:http';
 import path from 'node:path';
 import type { AddressInfo } from 'node:net';
 import { APP_DIR } from './config';
+import { firstLine, toolSummary } from './notify';
 import { isSessionId } from './state';
 import { WAITING_NOTIFICATIONS, type HookSignal } from './status/tracker';
 
@@ -72,10 +73,7 @@ export function hookSettings(handler: HookHandler): { hooks: Record<string, unkn
 export function writeClaudeHookSettings(port: number): { http: string; legacy: string } {
   fs.mkdirSync(APP_DIR, { recursive: true });
   fs.writeFileSync(HOOK_SETTINGS_PATH, JSON.stringify(hookSettings(httpHook(port)), null, 2));
-  fs.writeFileSync(
-    LEGACY_HOOK_SETTINGS_PATH,
-    JSON.stringify(hookSettings(COMMAND_HOOK), null, 2),
-  );
+  fs.writeFileSync(LEGACY_HOOK_SETTINGS_PATH, JSON.stringify(hookSettings(COMMAND_HOOK), null, 2));
   return { http: HOOK_SETTINGS_PATH, legacy: LEGACY_HOOK_SETTINGS_PATH };
 }
 
@@ -102,8 +100,29 @@ export function detectClaudeVersion(env: NodeJS.ProcessEnv): Promise<[number, nu
   });
 }
 
+/** A hook as SessionManager gets it: the status signal plus the Claude session id and notification context. */
+export type HookEvent = HookSignal & {
+  sessionId?: string;
+  /** PermissionRequest: `Bash: npm install`; Stop: first line of `last_assistant_message`; Notification: its message. */
+  detail?: string;
+};
+
+/** Notification context for the events that have some. */
+function hookDetail(event: string, json: Record<string, unknown>): string {
+  const str = (k: string) => (typeof json[k] === 'string' ? (json[k] as string) : undefined);
+  switch (event) {
+    case 'PermissionRequest':
+      return toolSummary(str('tool_name'), json.tool_input);
+    case 'Stop':
+      return firstLine(str('last_assistant_message'));
+    case 'Notification':
+      return firstLine(str('message'));
+  }
+  return '';
+}
+
 /** Pulls what we use out of a hook's JSON. Large bodies past the cap still give us the event name. */
-export function readHookBody(body: string): (HookSignal & { sessionId?: string }) | null {
+export function readHookBody(body: string): HookEvent | null {
   let json: Record<string, unknown> | null = null;
   try {
     const parsed: unknown = JSON.parse(body);
@@ -116,17 +135,19 @@ export function readHookBody(body: string): (HookSignal & { sessionId?: string }
   const event = str('hook_event_name');
   if (!event) return null;
   const sessionId = str('session_id');
+  const detail = hookDetail(event, json ?? {});
   return {
     event,
     notificationType: str('notification_type'),
     reason: str('reason'),
     error: str('error'),
     ...(isSessionId(sessionId) ? { sessionId } : {}),
+    ...(detail ? { detail } : {}),
   };
 }
 
 export interface HookEventHandler {
-  (tabId: string, hook: HookSignal & { sessionId?: string }): void;
+  (tabId: string, hook: HookEvent): void;
 }
 
 /** Local receiver for `POST /hook` with the tab id in `X-Aquila-Session`. Always answers at once with no body. */

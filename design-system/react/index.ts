@@ -5,6 +5,7 @@ export { Button, type ButtonProps } from './Button';
 export { Dot, type DotStatus } from './Dot';
 export { Badge } from './Badge';
 export { Kbd } from './Kbd';
+export { Elapsed } from './Elapsed';
 export { Label } from './Label';
 export { Segment, type SegmentOption } from './Segment';
 export { EmptyState } from './EmptyState';

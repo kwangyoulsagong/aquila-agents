@@ -5,7 +5,7 @@ import { kindLabel, useT } from '@/shared/i18n';
 import { endSessionDrag, startSessionDrag } from '@/shared/lib/sessionDrag';
 import { SHORTCUTS, withShortcut } from '@/shared/lib/shortcuts';
 import { AccountBadge } from '@/entities/project';
-import { StatusDot } from '@/entities/session';
+import { StatusDot, WaitingTime } from '@/entities/session';
 
 interface Props {
   config: Config;
@@ -63,6 +63,7 @@ export default function SessionTabs({
               {s.worktree.branch}
             </span>
           )}
+          {s.status === 'waiting' && <WaitingTime since={s.since} />}
           {s.account && <AccountBadge config={config} account={s.account} />}
           <button
             className="c-tab__close"
