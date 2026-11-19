@@ -1,0 +1,53 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(npm test*)",
+      "Bash(npm install*)",
+      "Bash(npx tsc *)",
+      "Bash(npx vitest *)",
+      "Bash(npx eslint *)",
+      "Bash(npx prettier *)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git show*)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git switch *)",
+      "Bash(git branch*)",
+      "Bash(git worktree *)",
+      "Bash(open design-system/preview.html)"
+    ],
+    "deny": [
+      "Bash(git push --force*)",
+      "Bash(git reset --hard*)",
+      "Edit(~/.claude/**)",
+      "Edit(~/.claude-personal/**)",
+      "Edit(~/.codex/**)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=$(jq -r '.tool_input.file_path // empty'); case \"$f\" in *.ts|*.tsx|*.css|*.json|*.md) npx --no-install prettier --write \"$f\" >/dev/null 2>&1 ;; esac; true"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && git diff --quiet HEAD -- '*.ts' '*.tsx' 2>/dev/null && exit 0; out=$(npm run -s typecheck 2>&1) || { echo \"typecheck failed — fix before finishing:\" >&2; echo \"$out\" | tail -40 >&2; exit 2; }"
+          }
+        ]
+      }
+    ]
+  }
+}
