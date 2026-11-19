@@ -322,6 +322,21 @@ features don't import each other).
   tooltips from the cached plan; unknown → "see Figma docs" (`figma:open-docs` opens Figma's MCP docs). No hard-coded
   rate limits.
 
+## Figma prompt chips (T34)
+
+`features/figma` (`FigmaChips`, `model/link.ts`), rendered by `widgets/split-view` over every Claude/Codex terminal of
+a project with Figma on — renderer only, no IPC.
+
+- **Trigger:** a capture `paste` listener on the xterm element (never `preventDefault`, so xterm still pastes the link)
+  runs `parseFigmaLink`: `figma.com/{design,file,proto,make}/KEY` → design file, `/board/KEY` → FigJam; `node-id` kept.
+- **Chips, Design vs Build:** design files get Design = "Compare with app" (`get_screenshot`), "Comments → TODOs"
+  (`get_comments`), Build = "Build with our components" (`get_variable_defs` first → our tokens, then
+  `get_design_context`), "Get assets" (`download_assets`, else the asset URLs). FigJam boards get "Flow → screens"
+  (`get_figjam`, screens + backend TODOs) and comments. A chip `term.paste`s ` <prompt>` (one line) after the link,
+  no Enter. Enter in the terminal, a chip or × puts them away. Prompts live in the dictionary (ko / en).
+- **Preview:** a pick (T33) in the Designer layout with a Figma link open gets one more line: the frame URL and
+  "`get_screenshot` it and compare with the picked element's screenshot" — the agent does the overlay.
+
 ## In-app preview (T33)
 
 `electron/preview.ts` + `widgets/preview` (`PreviewPanel`, ⌘⇧P or the ◫ button in the tab bar; local projects only).

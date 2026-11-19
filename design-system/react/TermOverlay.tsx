@@ -46,6 +46,47 @@ export function TermBanner({
   );
 }
 
+/** `.c-term-overlay__chips` — a bar across the bottom with groups of prompt chips and a close button (T34). */
+export function TermChips({
+  label,
+  closeLabel,
+  onClose,
+  children,
+}: {
+  /** What the chips are for, read by screen readers. */
+  label: string;
+  closeLabel: string;
+  onClose: () => void;
+  /** `TermChipGroup`s. */
+  children: ReactNode;
+}) {
+  return (
+    <div role="toolbar" aria-label={label} className="c-term-overlay__chips">
+      {children}
+      <Button
+        variant="ghost"
+        icon
+        className="c-term-overlay__chips-close"
+        onClick={onClose}
+        title={closeLabel}
+        aria-label={closeLabel}
+      >
+        ×
+      </Button>
+    </div>
+  );
+}
+
+/** `.c-term-overlay__chips-group` — a labelled group of chips (Buttons) inside `TermChips`. */
+export function TermChipGroup({ label, children }: { label: ReactNode; children: ReactNode }) {
+  return (
+    <div role="group" className="c-term-overlay__chips-group">
+      <span className="c-term-overlay__chips-label">{label}</span>
+      {children}
+    </div>
+  );
+}
+
 interface HintProps {
   /** Box of the tinted match in px, relative to the overlay (one per screen row the match spans). */
   box: { left: number; top: number; width: number; height: number };

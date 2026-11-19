@@ -257,7 +257,8 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
 - **담당:** `src/widgets/preview/`, `electron/preview.ts`.
 
 ### T34 · Figma 프롬프트 칩 + Design vs Build
-- [ ] **목표:** 덜 타이핑하고 디자인→코드 결과는 더 좋게. (#38)
+- [x] **목표:** 덜 타이핑하고 디자인→코드 결과는 더 좋게. (#38)
+  _남은 것: "디자인 바뀜" 확인(토큰으로 REST `/v1/files/:key` 버전 폴링)은 안 만듦. 프리뷰 겹쳐 보기는 패널에 어니언 스킨으로 그리지 않고 에이전트가 함(`get_screenshot` + 선택 스크린샷). `download_assets` / `get_comments`는 Figma MCP 버전에 따라 없을 수 있어 프롬프트에 대안을 적어 둠. 칩은 테스트와 `preview.html`로만 확인했고 실제 Claude·Codex 탭에서는 아직; 앱 내 가이드 항목 없음(캡처 미디어 필요)._
 - **명세:** Figma 링크를 붙이면 프롬프트 칩 제안("기존 컴포넌트와 토큰으로 이 프레임 구현" — `get_variable_defs`로 토큰 먼저,
   프론트엔드는 `download_assets` 에셋, 백엔드는 `get_figjam` 플로우와 `get_comments` → TODO). 프리뷰 캡처 위에 Figma
   `get_screenshot` 겹쳐 보기. 선택: REST `/v1/files/:key` 버전 폴링으로 "디자인이 바뀌었나" 확인(REST 토큰 필요, 고급 설정).

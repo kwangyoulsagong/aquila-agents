@@ -269,7 +269,8 @@ Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-1
 - **Owns:** `src/widgets/preview/`, `electron/preview.ts`.
 
 ### T34 · Figma prompt chips + Design vs Build
-- [ ] **Goal:** better design-to-code results with less typing. (#38)
+- [x] **Goal:** better design-to-code results with less typing. (#38)
+  _Left over: the "design changed" check (REST `/v1/files/:key` version polling with a token) is not built. The preview overlay is done by the agent (`get_screenshot` + the pick's screenshot), not drawn as an onion skin in the panel. `download_assets` / `get_comments` aren't in every Figma MCP version, so those prompts name a fallback. Chips checked in tests and `preview.html` only, not yet live with a real Claude/Codex tab; no in-app guide entry (needs captured media)._
 - **Spec:** pasting a Figma link offers prompt chips ("implement this frame with our components and tokens" — tokens
   first via `get_variable_defs`; assets via `download_assets`; `get_figjam` flows and `get_comments` → TODOs for backend);
   overlay Figma `get_screenshot` on the preview capture; optional "design changed" check by polling REST

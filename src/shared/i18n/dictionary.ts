@@ -82,6 +82,26 @@ const ko = {
   'figma.needsDevSeat': 'Dev 또는 Full 시트가 필요해요',
   'figma.mayNeedOrg': 'Organization 플랜이 필요할 수 있어요',
   'figma.limitsUnknown': '플랜을 몰라서 제한은 Figma 문서를 확인하세요',
+  'figma.chips': 'Figma 링크 프롬프트',
+  'figma.chips.close': '닫기',
+  'figma.chips.design': '디자인',
+  'figma.chips.build': '구현',
+  'figma.chip.compare': '앱과 비교',
+  'figma.chip.flow': '흐름 → 화면',
+  'figma.chip.comments': '코멘트 → TODO',
+  'figma.chip.implement': '컴포넌트·토큰으로 구현',
+  'figma.chip.assets': '에셋 받기',
+  'figma.prompt.compare':
+    '이 프레임을 get_screenshot으로 가져와서 실행 중인 앱과 비교해 주세요. 간격, 색, 글꼴, 크기 차이를 나열하고 고쳐 주세요.',
+  'figma.prompt.flow':
+    '이 FigJam 보드를 get_figjam으로 읽어 주세요. 흐름을 화면과 상태 목록으로 정리하고, 백엔드 TODO(엔드포인트, 데이터)도 따로 적어 주세요.',
+  'figma.prompt.comments':
+    '이 파일의 코멘트를 읽어서(get_comments가 있으면 사용) TODO 목록으로 만들어 주세요. 백엔드 작업이 필요한 항목은 표시해 주세요.',
+  'figma.prompt.implement':
+    '이 프레임을 우리 컴포넌트와 디자인 토큰으로 구현해 주세요. 먼저 get_variable_defs로 Figma 변수를 우리 토큰에 매핑하고(없는 건 토큰 파일에 추가, 값 하드코딩 금지), 그다음 get_design_context로 구조를 가져와 주세요. 새 마크업 대신 기존 컴포넌트를 재사용해 주세요.',
+  'figma.prompt.assets':
+    '이 프레임이 쓰는 이미지와 아이콘을 프로젝트의 에셋 폴더에 받아서(download_assets가 있으면 사용, 없으면 get_design_context가 주는 에셋 URL) 코드에서 참조해 주세요. SVG를 손으로 다시 그리지 마세요.',
+  'figma.prompt.pickDesign': 'Figma 디자인: {url} — get_screenshot으로 가져와서 선택한 요소의 스크린샷과 비교해 주세요.',
   'groups.new': '새 그룹…',
   'groups.newTitle': '새 그룹',
   'groups.renameTitle': '그룹 이름 바꾸기',
@@ -498,6 +518,26 @@ const en = {
   'figma.needsDevSeat': 'Needs a Dev or Full seat',
   'figma.mayNeedOrg': 'May need an Organization plan',
   'figma.limitsUnknown': 'Plan unknown — see Figma docs for limits',
+  'figma.chips': 'Figma link prompts',
+  'figma.chips.close': 'Close',
+  'figma.chips.design': 'Design',
+  'figma.chips.build': 'Build',
+  'figma.chip.compare': 'Compare with app',
+  'figma.chip.flow': 'Flow → screens',
+  'figma.chip.comments': 'Comments → TODOs',
+  'figma.chip.implement': 'Build with our components',
+  'figma.chip.assets': 'Get assets',
+  'figma.prompt.compare':
+    'Call get_screenshot for this frame and compare it with the running app. List the differences in spacing, color, type and size, then fix them.',
+  'figma.prompt.flow':
+    'Read this FigJam board with get_figjam. Turn the flow into a list of screens and states, plus a separate TODO list for the backend (endpoints, data).',
+  'figma.prompt.comments':
+    'Read the comments on this file (get_comments if available) and turn them into a TODO list. Mark the items that need backend work.',
+  'figma.prompt.implement':
+    'Implement this frame with our components and design tokens. First call get_variable_defs and map each Figma variable to one of our tokens (add missing ones to the token file, never hard-code values), then get_design_context for the structure. Reuse existing components instead of writing new markup.',
+  'figma.prompt.assets':
+    "Download the images and icons this frame uses into the project's assets folder (download_assets if available, otherwise the asset URLs from get_design_context) and reference them from code. Don't redraw SVGs by hand.",
+  'figma.prompt.pickDesign': "Figma design: {url} — call get_screenshot on it and compare it with the picked element's screenshot.",
   'groups.new': 'New group…',
   'groups.newTitle': 'New group',
   'groups.renameTitle': 'Rename group',
