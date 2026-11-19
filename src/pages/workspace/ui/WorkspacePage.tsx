@@ -17,6 +17,7 @@ import { Sidebar } from '@/widgets/sidebar';
 import { SessionTabs } from '@/widgets/session-tabs';
 import { SplitView } from '@/widgets/split-view';
 import { ChangesPanel } from '@/widgets/changes-panel';
+import { PreviewPanel } from '@/widgets/preview';
 import { HistoryPanel } from '@/widgets/history-panel';
 import { UsageGauge } from '@/widgets/usage-gauge';
 import { CommandPalette, type ActionId } from '@/widgets/command-palette';
@@ -27,6 +28,8 @@ export default function WorkspacePage() {
   const ws = useWorkspace();
   const [changesOpen, setChangesOpen] = useState(false);
   const toggleChanges = useCallback(() => setChangesOpen((o) => !o), []);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const togglePreview = useCallback(() => setPreviewOpen((o) => !o), []);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const togglePalette = useCallback(() => setPaletteOpen((o) => !o), []);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -62,6 +65,7 @@ export default function WorkspacePage() {
     nudgePane: ws.split.nudgeFocused,
     closePane: ws.split.closePane,
     toggleChanges,
+    togglePreview,
     togglePalette,
     toggleGuide,
     toggleHistory,
@@ -96,6 +100,7 @@ export default function WorkspacePage() {
       if (!project.remote) {
         a.openWorktree = openWorktreeDialog;
         a.toggleChanges = toggleChanges;
+        a.togglePreview = togglePreview;
         a.openProjectIn = () => void openIn(project);
       }
     }
@@ -125,6 +130,7 @@ export default function WorkspacePage() {
     toggleZoom,
     paneCount,
     toggleChanges,
+    togglePreview,
     openWorktreeDialog,
     setConfig,
     showError,
@@ -201,6 +207,18 @@ export default function WorkspacePage() {
                       ±
                     </Button>
                   )}
+                  {!project.remote && (
+                    <Button
+                      variant="ghost"
+                      icon
+                      aria-pressed={previewOpen}
+                      onClick={togglePreview}
+                      title={withShortcut(t('preview.toggle'), 'togglePreview')}
+                      aria-label={t('preview.toggle')}
+                    >
+                      ◫
+                    </Button>
+                  )}
                 </>
               )
             }
@@ -250,6 +268,15 @@ export default function WorkspacePage() {
             project={project}
             session={ws.sessions.find((x) => x.id === activeSessionId)}
             onClose={() => setChangesOpen(false)}
+          />
+        )}
+        {/* Last column: the native preview view only has to follow its own size and the window. */}
+        {previewOpen && project && !project.remote && (
+          <PreviewPanel
+            key={project.id}
+            project={project}
+            session={ws.sessions.find((x) => x.id === activeSessionId)}
+            onClose={() => setPreviewOpen(false)}
           />
         )}
         {firstRun.open && (

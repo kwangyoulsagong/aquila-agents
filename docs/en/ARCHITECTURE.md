@@ -25,6 +25,7 @@
 │           usage-gauge                     │        │ usage.ts      5h / weekly usage per account (T30)│
 │                                           │        │ context.ts    context use per tab (T31)          │
 │                                           │        │ figma.ts      Figma MCP args + whoami (T32)      │
+│           preview                         │        │ preview.ts    dev server, preview view, pick(T33)│
 │                                           │        │ detect.ts     CLI checks, first-run state (T17)  │
 │                                           │        │ guide.ts      tour offered once (T23)            │
 │                                           │        │ history.ts    past sessions, read-only (T11)     │
@@ -320,6 +321,38 @@ features don't import each other).
 - **Hints, not limits:** "Design to code" needs a Dev or Full seat, "Code Connect" may need Organization — shown as
   tooltips from the cached plan; unknown → "see Figma docs" (`figma:open-docs` opens Figma's MCP docs). No hard-coded
   rate limits.
+
+## In-app preview (T33)
+
+`electron/preview.ts` + `widgets/preview` (`PreviewPanel`, ⌘⇧P or the ◫ button in the tab bar; local projects only).
+
+- **Dev server:** `.claude/launch.json` (`configurations[].port` / `.url`, parsed defensively) plus `localhost:<port>`
+  addresses seen in the project's terminals: `SessionManager` hands raw local output to `DevUrlTracker` (`onOutput`),
+  which keeps a 256-char tail per tab (an address split across chunks still matches), strips ANSI (Vite bolds the
+  port), normalizes `0.0.0.0` / `127.0.0.1` / `[::1]` to `localhost`, skips our hook port and keeps the last 5 per
+  project, newest first. Chunks without `://` cost one `includes`. `preview:targets` / `preview:targets-changed`.
+- **View:** one `WebContentsView` per slot (`app`, `figma`) on the window's `contentView`, partition
+  `persist:aquila-preview` (sandboxed, no preload; `window.open` → the browser). The panel's stage div reports its
+  rect (ResizeObserver + window resize; the panel is the last column so it only moves with its own size) through
+  `preview:set`; null closes the view. Device widths 390 / 768 / 1440: narrower than the stage → centred at 1×, wider →
+  `setZoomFactor(stage / width)` so media queries see the preset width (zoom is per origin: reapplied on navigation).
+  Width only — no mobile user agent or touch emulation.
+- **Native view vs DOM:** the view draws above the page, so the panel hides it (`hidden`) while any `dialog[open]` exists
+  (palette, modals, dialogs) and while the last load failed (the stage then shows the error + Retry). A renderer reload
+  destroys all views.
+- **Select mode:** `preview:pick` runs `PICK_SCRIPT` in the page (`executeJavaScript`, user gesture): a highlight +
+  `tag.class W×H` label follow the pointer; the click is swallowed (capture listeners) and Esc / `preview:pick-cancel`
+  resolve null. It returns a short unique selector (id, `data-testid`, classes without hashes, `:nth-of-type`, up to 6
+  levels), text (200 chars), useful attributes, computed style minus defaults, React component names from the
+  `__reactFiber$` chain (+ `_debugSource` on React ≤ 18 dev) or Vue's `__vueParentComponent` (+ `__file`), and the rect.
+  Main crops `capturePage(rect × zoom + 8 px)` into `$TMPDIR/aquila-paste/pick-*.png` (pruned after a day).
+- **Paste:** the prompt (`buildPickPrompt`, localized labels) is pasted into the focused Claude/Codex tab, then the
+  image path as a second paste (a paste that is only an image path is what the CLIs attach), and the terminal gets
+  focus. Nothing is sent. No agent tab focused → the text + path go to the clipboard.
+- **Designer:** projects with Figma on get a Designer toggle: a Figma link field and a second view under the app
+  (log in to Figma inside it once; the partition keeps it).
+- Smoke loads a page with a fake React fiber and checks selector, component chain, style, screenshot and cancel;
+  capture composites the native views into its frames (`withViews`) and serves a demo shop from web-shop's launch.json.
 
 ## Shortcuts
 

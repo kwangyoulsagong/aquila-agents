@@ -6,8 +6,9 @@
 // canvas WebP, so no external encoder is needed.
 import fs from 'node:fs';
 import path from 'node:path';
-import { app, BrowserWindow, type Rectangle } from 'electron';
+import { app, BrowserWindow, nativeImage, type NativeImage, type Rectangle } from 'electron';
 import type { SessionManager } from './sessions';
+import type { PreviewViews } from './preview';
 import type { Config } from '../src/shared/api/types';
 import { translator } from '../src/shared/i18n/dictionary';
 
@@ -56,7 +57,12 @@ const TIMEOUT_MS = 240_000;
 // real app's Application Support folder. Must happen before `ready`, so at import time.
 if (process.env.AQUILA_CAPTURE) app.setPath('userData', path.join(app.getPath('home'), '.capture-profile'));
 
-export async function runCapture(win: BrowserWindow, sessions: SessionManager, config: Config) {
+export async function runCapture(
+  win: BrowserWindow,
+  sessions: SessionManager,
+  config: Config,
+  previews?: PreviewViews | null,
+) {
   const outDir = process.env.AQUILA_CAPTURE ?? '';
   const lang = config.language;
   const t = translator(lang);
@@ -121,6 +127,14 @@ export async function runCapture(win: BrowserWindow, sessions: SessionManager, c
     mouse('mouseUp', from.x + dx, false);
   };
   const openPalette = () => press('K', ['meta'], 400);
+  /** Wait up to 5 s for a renderer condition. */
+  const waitFor = async (condition: string) => {
+    for (let i = 0; i < 50; i++) {
+      if (await js<boolean>(condition)) return;
+      await wait(100);
+    }
+    throw new Error(`timed out waiting for ${condition}`);
+  };
 
   const scenarios: Scenario[] = [
     {
@@ -242,6 +256,25 @@ export async function runCapture(win: BrowserWindow, sessions: SessionManager, c
       },
     },
     {
+      // In-app preview (T33): the demo shop from web-shop's launch.json, in Select mode over its button.
+      id: 'preview',
+      rect: FULL,
+      stage: async () => {
+        await press('1', ['meta'], 300);
+        await press('P', ['meta', 'shift'], 300);
+        await waitFor(`!!document.querySelector('.c-preview .c-panel__head .c-row__meta')`);
+        await wait(500);
+        await click('.c-preview .c-btn', t('preview.pick'));
+        await wait(300);
+        if (!(await previews?.hover('app', '[data-testid="apply-coupon"]'))) throw new Error('no demo shop');
+        await wait(400);
+      },
+      after: async () => {
+        await click('.c-preview .c-btn', t('preview.pick.cancel'));
+        await press('P', ['meta', 'shift'], 400);
+      },
+    },
+    {
       // Terminal helpers (T28): quick select labels the paths on screen; typing one copies it.
       id: 'terminal',
       rect: FULL,
@@ -315,7 +348,9 @@ export async function runCapture(win: BrowserWindow, sessions: SessionManager, c
   ];
 
   const grab = async (rect: Rectangle) =>
-    (await win.webContents.capturePage(rect)).resize({ ...OUT, quality: 'best' }).toPNG();
+    (await withViews(await win.webContents.capturePage(rect), rect, previews))
+      .resize({ ...OUT, quality: 'best' })
+      .toPNG();
 
   const record = async (rect: Rectangle, ms: number, act: () => Promise<void>): Promise<Frame[]> => {
     const frames: Frame[] = [];
@@ -394,6 +429,36 @@ export async function runCapture(win: BrowserWindow, sessions: SessionManager, c
   console.log(`[capture] OK (${lang}): ${scenarios.length} items → ${outDir}`);
   sessions.killAll();
   app.exit(0);
+}
+
+/**
+ * Native preview views (T33) aren't part of the page `capturePage` sees: copy their pixels in at their bounds.
+ * Same display, so both images share one scale factor.
+ */
+async function withViews(base: NativeImage, rect: Rectangle, previews?: PreviewViews | null): Promise<NativeImage> {
+  const views = previews?.visible() ?? [];
+  if (!views.length) return base;
+  // capturePage images are in device pixels: the scale is pixels per DIP of what was captured.
+  const out = Buffer.from(base.toBitmap());
+  const { width: w, height: h } = base.getSize();
+  const sf = w / rect.width;
+  for (const v of views) {
+    const img = await v.capture();
+    const px = img.toBitmap();
+    const { width: vw, height: vh } = img.getSize();
+    if (Math.abs(vw / v.bounds.width - sf) > 0.05) continue;
+    const ox = Math.round((v.bounds.x - rect.x) * sf);
+    const oy = Math.round((v.bounds.y - rect.y) * sf);
+    const x0 = Math.max(0, ox);
+    const x1 = Math.min(w, ox + vw);
+    if (x1 <= x0) continue;
+    for (let row = 0; row < vh; row++) {
+      const y = oy + row;
+      if (y < 0 || y >= h) continue;
+      px.copy(out, (y * w + x0) * 4, (row * vw + (x0 - ox)) * 4, (row * vw + (x1 - ox)) * 4);
+    }
+  }
+  return nativeImage.createFromBitmap(out, { width: w, height: h });
 }
 
 /** PNG → WebP via the encoder window's canvas. */

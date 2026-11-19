@@ -260,7 +260,8 @@ Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-1
 - **Owns:** `electron/figma.ts`, `src/features/figma/`.
 
 ### T33 · In-app preview + pick element
-- [ ] **Goal:** point at the running app and tell the agent what to change — for Claude and Codex. (#37)
+- [x] **Goal:** point at the running app and tell the agent what to change — for Claude and Codex. (#37)
+  _Left over: the preview is width-only (no mobile user agent / touch emulation) and local projects only. Component names need a dev build (React 19 dropped `_debugSource`, so no file:line there). Checked live in the app: detection from terminal output, widths, hiding under the palette, Designer (Figma under the app) and a pick pasted into a real Claude tab (`[Pasted text][Image]`). Not checked with a real Codex: it stopped at its own "Trust this folder?" prompt first, and the panel says "pasted" even when the CLI is on such a prompt. The Figma view needs a Figma login inside the preview. App shortcuts don't fire while the previewed page has keyboard focus._
 - **Spec:** detect the dev server (`.claude/launch.json`, `localhost:\d+` in pty output); `WebContentsView` with device
   presets 390/768/1440; Select mode collects selector, text, computed style, React component name if possible and a
   `capturePage(rect)` crop, pasted into the focused session as text + image path. "Designer preset" layout: terminal +

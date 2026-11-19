@@ -15,6 +15,7 @@ export type ActionId =
   | 'splitDown'
   | 'zoomPane'
   | 'toggleChanges'
+  | 'togglePreview'
   | 'history'
   | 'nextWaiting'
   | 'copyLastReply'
@@ -65,6 +66,7 @@ const ACTIONS: {
   { action: 'splitDown', label: (t) => t('palette.splitDown'), shortcut: 'splitDown' },
   { action: 'zoomPane', label: (t) => t('action.zoomPane'), shortcut: 'zoomPane' },
   { action: 'toggleChanges', label: (t) => t('changes.toggle'), shortcut: 'toggleChanges' },
+  { action: 'togglePreview', label: (t) => t('preview.toggle'), shortcut: 'togglePreview' },
   { action: 'history', label: (t) => t('history.title'), shortcut: 'history' },
   { action: 'nextWaiting', label: (t) => t('attention.next'), shortcut: 'nextWaiting' },
   { action: 'copyLastReply', label: (t) => t('term.copyLastReply'), shortcut: 'copyLastReply' },

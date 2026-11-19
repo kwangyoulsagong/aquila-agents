@@ -128,6 +128,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `.c-split--free`, `.c-split__drop`, `.c-pane__title` `__close` | Split view in the app: absolutely placed panes, drop indicator (glides between zones), pane head title + close |
 | `.c-split__divider[data-dir][data-active]`, `.c-split[data-resizing]`, `.c-pane__zoom[aria-pressed]` | Draggable divider (accent line on hover/drag), resize cursor over the stage while dragging, zoom toggle in the pane head |
 | `.c-panel` `__head` `__body` `__actions` `__section` `__note` `__bar` `__bar-end`, `.c-panel--wide` | Right panel (slides in; head is a drag region like the tab bar); `__bar` = a wrapping band of controls under the head; `--wide` for side-by-side diffs (≤ half the window) |
+| `.c-preview` `__body` `__stage` | Preview panel (T33, on `.c-panel--wide`): the stage is where main lays the native page view; its own content (empty state, load error) shows only while that view is hidden |
 | `.c-diff` `__line--add/del/hunk/file/meta`, `__file[aria-current]`, `__num`, `__actions`, `__line[data-commentable][data-commented]`, `.c-diff--split` `__row` `__line--empty`, `__comment` `__comment-actions` | Diff (unified: as wide as its longest line; split: two wrapping halves). Line-number gutters, small actions on file/hunk lines, a marker on commentable/commented lines, a comment box under a line |
 | `.c-change`, `__status[data-status]` `__path` `__dir` | Changed file row: colored git status letter, name, dimmed dir |
 | `.c-btn--ghost[aria-pressed]` | Toggle button that's on |

@@ -81,6 +81,13 @@ const api: AquilaApi = {
   figmaProfiles: () => ipcRenderer.invoke(IPC.figmaProfiles),
   figmaConnect: (account) => ipcRenderer.invoke(IPC.figmaConnect, account),
   figmaOpenDocs: () => ipcRenderer.invoke(IPC.figmaOpenDocs),
+  previewTargets: (projectId) => ipcRenderer.invoke(IPC.previewTargets, projectId),
+  onPreviewTargets: on(IPC.previewTargetsChanged),
+  previewSet: (slot, state) => ipcRenderer.send(IPC.previewSet, { slot, state }),
+  previewCommand: (slot, command) => ipcRenderer.send(IPC.previewCommand, { slot, command }),
+  onPreviewNav: on(IPC.previewNav),
+  previewPick: (slot) => ipcRenderer.invoke(IPC.previewPick, slot),
+  previewPickCancel: (slot) => ipcRenderer.send(IPC.previewPickCancel, slot),
 };
 
 contextBridge.exposeInMainWorld('aquila', api);

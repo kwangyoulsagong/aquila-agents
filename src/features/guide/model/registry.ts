@@ -74,6 +74,12 @@ export const GUIDE_ITEMS: readonly GuideItem[] = [
     shortcuts: ['toggleChanges'],
   },
   {
+    id: 'preview',
+    titleKey: 'guide.preview.title',
+    bodyKey: 'guide.preview.body',
+    shortcuts: ['togglePreview'],
+  },
+  {
     id: 'terminal',
     titleKey: 'guide.terminal.title',
     bodyKey: 'guide.terminal.body',

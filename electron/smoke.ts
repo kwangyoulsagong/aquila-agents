@@ -8,6 +8,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { app, ipcMain, type BrowserWindow } from 'electron';
 import { runCapture } from './capture';
+import type { PreviewViews } from './preview';
 import { runPerf } from './perf';
 import type { SessionManager } from './sessions';
 import { checkRemoteSession } from './remote/smoke';
@@ -53,9 +54,10 @@ export async function runSmoke(
   sessions: SessionManager,
   config: Config,
   output: { buffer: string; statuses: string[]; connections: ConnectionUpdate[] },
+  previews?: PreviewViews | null,
 ) {
   if (process.env.AQUILA_PERF === '1') return runPerf(win, sessions);
-  if (process.env.AQUILA_CAPTURE) return runCapture(win, sessions, config);
+  if (process.env.AQUILA_CAPTURE) return runCapture(win, sessions, config, previews);
   const fail = (why: string) => {
     console.error(`[smoke] FAIL: ${why}`);
     app.exit(1);
@@ -118,10 +120,12 @@ export async function runSmoke(
     if (guideError) return fail(guideError);
     const imeError = await checkIme(win);
     if (imeError) return fail(imeError);
+    const previewError = previews ? await checkPreviewPick(previews) : 'no preview views';
+    if (previewError) return fail(previewError);
     const remoteError = await checkRemoteSession(sessions, config, output);
     if (remoteError) return fail(remoteError);
     console.log(
-      `[smoke] OK — pty round-trip, OSC 7501, Ctrl+C under load, Korean IME and remote reconnect work, screenshot: ${out}`,
+      `[smoke] OK — pty round-trip, OSC 7501, Ctrl+C under load, Korean IME, preview pick and remote reconnect work, screenshot: ${out}`,
     );
     sessions.killAll();
     app.exit(0);
@@ -129,6 +133,55 @@ export async function runSmoke(
 }
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** A page with a fake React fiber on its button, so the component lookup is exercised without React. */
+const PICK_PAGE = `data:text/html,${encodeURIComponent(`<!doctype html><title>pick</title>
+<body style="margin:0;font:14px sans-serif"><main class="shop"><button id="save" class="btn primary"
+style="margin:40px;padding:8px 16px;background:rgb(47,111,237);color:white;border:0">Save order</button></main>
+<script>
+function SaveButton() {}
+function Cart() {}
+document.getElementById('save')['__reactFiber$smoke'] = { type: 'button', return: { type: SaveButton,
+  _debugSource: { fileName: 'src/Save.tsx', lineNumber: 12 }, return: { type: Cart, return: null } } };
+</script>`)}`;
+
+/**
+ * In-app preview (T33): a native view loads a page, Select mode resolves with the clicked element (selector,
+ * component chain, computed style) and a cropped screenshot on disk; cancel resolves with null.
+ */
+async function checkPreviewPick(previews: PreviewViews): Promise<string | null> {
+  previews.set('app', { url: PICK_PAGE, bounds: { x: 600, y: 120, width: 480, height: 320 }, width: 0 });
+  try {
+    let ready = false;
+    for (let i = 0; i < 50 && !ready; i++) {
+      await wait(100);
+      ready = await previews.hover('app', '#save');
+    }
+    if (!ready) return 'preview: the page never loaded';
+    const picking = previews.pick('app');
+    await wait(300);
+    await previews.hover('app', '#save', true);
+    const pick = await Promise.race([picking, wait(3000).then(() => 'timeout' as const)]);
+    if (pick === 'timeout' || !pick) return `preview: pick did not resolve (${String(pick)})`;
+    console.log(`[smoke] preview pick: ${pick.selector} ${pick.components.join(' ← ')} (${pick.source ?? '-'})`);
+    if (pick.selector !== '#save') return `preview: selector ${pick.selector}`;
+    if (pick.text !== 'Save order') return `preview: text ${pick.text}`;
+    if (pick.components.join(',') !== 'SaveButton,Cart') return `preview: components ${pick.components.join(',')}`;
+    if (pick.source !== 'src/Save.tsx:12') return `preview: source ${pick.source}`;
+    if (pick.styles['background-color'] !== 'rgb(47, 111, 237)') return 'preview: computed style missing';
+    if (!pick.imagePath || !fs.existsSync(pick.imagePath) || fs.statSync(pick.imagePath).size < 100)
+      return 'preview: no screenshot';
+    fs.rmSync(pick.imagePath, { force: true });
+    const cancelled = previews.pick('app');
+    await wait(300);
+    previews.cancelPick('app');
+    const none = await Promise.race([cancelled, wait(3000).then(() => 'timeout' as const)]);
+    if (none !== null) return `preview: cancel resolved with ${JSON.stringify(none)}`;
+    return null;
+  } finally {
+    previews.set('app', null);
+  }
+}
 
 function press(win: BrowserWindow, keyCode: string, modifiers: Electron.InputEvent['modifiers']) {
   for (const type of ['keyDown', 'keyUp'] as const)
