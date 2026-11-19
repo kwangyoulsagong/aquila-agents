@@ -134,7 +134,8 @@ Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-1
 - **Owns:** `src/features/first-run/`, `electron/detect.ts` (+ tests).
 
 ### T18 · Korean IME
-- [ ] **Goal:** Hangul input never breaks in our host. (#8)
+- [x] **Goal:** Hangul input never breaks in our host. (#8)
+  _Left over: smoke drives composition through Chromium's IME path via CDP (`Input.imeSetComposition`), not the real macOS 2-Set input method — the event orderings it stages are the known Chromium ones, real typing wasn't recorded; Windows IME is still in T19. `D2Coding` was already in `--font-family-mono`._
 - **Spec:** regression checklist run by smoke: jamo split, duplicate input, composition shown while
   typing, Enter/Space during composition, Ctrl/⌘ shortcuts right after 한/영 switch. Fix in our input layer (follow VS
   Code's xterm integration).  Font fallback `"D2Coding"` in `--font-*` tokens.

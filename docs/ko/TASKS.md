@@ -132,7 +132,8 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
 - **담당:** `src/features/first-run/`, `electron/detect.ts`(+ 테스트).
 
 ### T18 · 한글 IME
-- [ ] **목표:** 우리 호스트에서 한글 입력이 깨지지 않게. (#8)
+- [x] **목표:** 우리 호스트에서 한글 입력이 깨지지 않게. (#8)
+  _남은 것: smoke는 CDP(`Input.imeSetComposition`)로 Chromium의 IME 경로를 태우며 실제 macOS 두벌식 입력기를 쓰지는 않음 — 알려진 Chromium 이벤트 순서를 재현한 것이고 실제 타이핑은 기록하지 않음. Windows IME는 T19에 남음. `D2Coding`은 이미 `--font-family-mono`에 있었음._
 - **명세:** smoke가 도는 회귀 체크리스트: 자모 분리, 중복 입력, 조합 중 표시, 조합 중 Enter/Space,
   한/영 전환 직후 Ctrl/⌘ 단축키. 우리 입력 계층에서 수정(VS Code의 xterm 통합 방식 기준). `--font-*` 토큰에
   `"D2Coding"` 폴백.

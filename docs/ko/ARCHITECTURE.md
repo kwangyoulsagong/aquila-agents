@@ -122,6 +122,17 @@
   `⇧⌘T`(Apple 순서 ⌃⌥⇧⌘), 그 외에서 `Ctrl+Shift+T`를 돌려줘 팔레트·버튼·툴팁이 씁니다. 네이티브 메뉴는
   `ContextMenuItem.accelerator`로 받습니다(표시만). 새 단축키는 맵에 추가하고 문자열로 직접 쓰지 않습니다.
 
+## 한글 IME
+
+- 한글 조합은 xterm의 `CompositionHelper`가 처리합니다(`.composition-view`에 조합 중 글자를 보여주고 확정 시 전송).
+  빈틈 하나: 조합 중에는 keyCode 229인 keydown을 전부 버리는데, Chromium은 Enter / Tab / Esc / Ctrl+<글자>를 그렇게
+  보낼 수 있어서 글자는 들어가고 Enter나 Ctrl+C가 사라졌습니다. `entities/session/lib/imeGuard.ts`가 xterm의 커스텀 키
+  핸들러로 이런 키를 받아 두었다가 확정 뒤에 보냅니다(xterm의 확정 타이머가 먼저 돌아서 순서는 `글` 다음 `\r`). 같은 키가
+  100 ms 안에 일반 keydown으로 한 번 더 오면(macOS Chromium) 두 번 보내지 않고 버립니다. 글자, 음절 안의 Backspace,
+  Space는 xterm에 맡깁니다.
+- `npm run smoke`가 자모, 받침 넘어감(한+ㅏ → 하나), 조합 중 표시, 세 가지 순서의 Enter, Space, 조합 중·한/영 전환 직후
+  Ctrl+C, `ㅏ`로 들어온 ⌘K를 세션에 실제로 보낸 바이트로 확인합니다.
+
 ## 상태
 
 모든 세션의 상태는 main이 정합니다 (`electron/status/`: `osc.ts` 파서, `tracker.ts` 세션별 상태 기계).

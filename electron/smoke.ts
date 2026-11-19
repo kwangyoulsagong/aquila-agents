@@ -1,13 +1,14 @@
 // `npm run smoke`: launch the built app, open a shell session, check the pty round-trips,
 // check OSC 7501 (main answers the query; a report becomes the session status), check Ctrl+C stops a `yes` flood fast, open shells from the UI and check terminals on screen render with WebGL, save a screenshot to dist/smoke.png,
-// open the first-run checklist from ⌘K (dist/smoke-first-run.png), then quit with exit code 0 (ok) or 1 (fail).
+// open the first-run checklist from ⌘K (dist/smoke-first-run.png), run the Korean IME scenarios (real composition
+// events through Chromium's IME path via CDP; checks the exact bytes the terminal sends), then quit with exit code 0 (ok) or 1 (fail).
 // Agents use this to verify their change actually runs.
 import fs from 'node:fs';
 import path from 'node:path';
-import { app, type BrowserWindow } from 'electron';
+import { app, ipcMain, type BrowserWindow } from 'electron';
 import { runPerf } from './perf';
 import type { SessionManager } from './sessions';
-import type { Config } from '../src/shared/api/types';
+import { IPC, type Config } from '../src/shared/api/types';
 import { translator } from '../src/shared/i18n/dictionary';
 
 const MARKER = 'AQUILA_SMOKE_OK';
@@ -23,7 +24,7 @@ const YES_FLOOD_MS = 1000;
 const YES_BUDGET_MS = 3000;
 /** Smoke keeps only the tail of the output (the `yes` flood would grow it without bound). */
 export const SMOKE_BUFFER_BYTES = 256 * 1024;
-const TIMEOUT_MS = 25000;
+const TIMEOUT_MS = 40000;
 /** = MAX_GPU in src/entities/session/lib/gpuPool.ts (main only compiles shared/ from the renderer). */
 const MAX_GPU = 12;
 
@@ -103,7 +104,11 @@ export async function runSmoke(
     console.log(`[smoke] PATH has claude: ${onPath('claude')}, codex: ${onPath('codex')}`);
     const firstRunError = await checkFirstRun(win, config, path.join(outDir, 'smoke-first-run.png'));
     if (firstRunError) return fail(firstRunError);
-    console.log(`[smoke] OK — pty round-trip, OSC 7501 and Ctrl+C under load work, screenshot: ${out}`);
+    const imeError = await checkIme(win);
+    if (imeError) return fail(imeError);
+    console.log(
+      `[smoke] OK — pty round-trip, OSC 7501, Ctrl+C under load and Korean IME work, screenshot: ${out}`,
+    );
     sessions.killAll();
     app.exit(0);
   }, 200);
@@ -112,7 +117,8 @@ export async function runSmoke(
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 function press(win: BrowserWindow, keyCode: string, modifiers: Electron.InputEvent['modifiers']) {
-  for (const type of ['keyDown', 'keyUp'] as const) win.webContents.sendInputEvent({ type, keyCode, modifiers });
+  for (const type of ['keyDown', 'keyUp'] as const)
+    win.webContents.sendInputEvent({ type, keyCode, modifiers });
 }
 
 /** Per mounted terminal: on screen, and rendering with WebGL (its canvas) or the DOM renderer (`.xterm-rows`). */
@@ -132,7 +138,8 @@ async function checkGpuFollowsScreen(win: BrowserWindow): Promise<string | null>
   const expect = async (step: string, visible: number) => {
     const ts = await terminals(win);
     console.log(`[smoke] ${step}: ${JSON.stringify(ts)}`);
-    if (ts.filter((t) => t.visible).length !== visible) return `${step}: expected ${visible} terminal(s) on screen`;
+    if (ts.filter((t) => t.visible).length !== visible)
+      return `${step}: expected ${visible} terminal(s) on screen`;
     if (ts.some((t) => t.visible && !t.webgl)) return `${step}: a terminal on screen has no WebGL`;
     if (ts.filter((t) => t.webgl).length > MAX_GPU) return `${step}: more than ${MAX_GPU} WebGL contexts`;
     return null;
@@ -195,6 +202,197 @@ async function checkFirstRun(win: BrowserWindow, config: Config, out: string): P
   console.log(`[smoke] first-run checklist: ${JSON.stringify(found.slice(1, 4))}, screenshot: ${out}`);
   press(win, 'Escape', []);
   await wait(400);
-  const stillOpen: boolean = await win.webContents.executeJavaScript(`!!document.querySelector('.c-dialog[open]')`);
+  const stillOpen: boolean = await win.webContents.executeJavaScript(
+    `!!document.querySelector('.c-dialog[open]')`,
+  );
   return stillOpen ? 'Esc did not close the first-run checklist' : null;
+}
+
+/** CDP modifier bits. */
+const CTRL = 2;
+const META = 4;
+
+/**
+ * Korean IME scenarios (T18). Composition goes through Chromium's real IME path (`Input.imeSetComposition` /
+ * `Input.insertText`, so xterm sees compositionstart/update/end and the textarea changes), keys through
+ * `Input.dispatchKeyEvent` with the keyCode 229 the IME gives them. Each scenario checks the exact bytes the
+ * terminal wrote to its session. Returns an error or null.
+ */
+async function checkIme(win: BrowserWindow): Promise<string | null> {
+  const dbg = win.webContents.debugger;
+  if (!dbg.isAttached()) dbg.attach('1.3');
+  const cdp = (method: string, params: object = {}) => dbg.sendCommand(method, params);
+  await cdp('Emulation.setFocusEmulationEnabled', { enabled: true });
+
+  let written = '';
+  const record = (_e: unknown, { data }: { id: string; data: string }) => (written += data);
+  ipcMain.on(IPC.sessionWrite, record);
+
+  const compose = async (...steps: string[]) => {
+    for (const text of steps)
+      await cdp('Input.imeSetComposition', { text, selectionStart: text.length, selectionEnd: text.length });
+  };
+  const commit = (text: string) => cdp('Input.insertText', { text });
+  const key = async (
+    o: { key: string; code: string; keyCode: number; modifiers?: number; text?: string },
+    phases: ('down' | 'up')[] = ['down', 'up'],
+  ) => {
+    const base = {
+      key: o.key,
+      code: o.code,
+      windowsVirtualKeyCode: o.keyCode,
+      nativeVirtualKeyCode: o.keyCode,
+      modifiers: o.modifiers ?? 0,
+    };
+    if (phases.includes('down')) {
+      await cdp('Input.dispatchKeyEvent', {
+        type: o.text ? 'keyDown' : 'rawKeyDown',
+        text: o.text,
+        unmodifiedText: o.text,
+        ...base,
+      });
+    }
+    if (phases.includes('up')) await cdp('Input.dispatchKeyEvent', { type: 'keyUp', ...base });
+  };
+  const ENTER = { key: 'Enter', code: 'Enter', keyCode: 13, text: '\r' };
+  const ENTER_229 = { key: 'Enter', code: 'Enter', keyCode: 229 };
+  const CTRL_C = { key: 'ㅊ', code: 'KeyC', keyCode: 67, modifiers: CTRL };
+  const CTRL_C_229 = { ...CTRL_C, keyCode: 229 };
+
+  const focusTerminal = () =>
+    win.webContents.executeJavaScript(`(() => {
+      const ta = [...document.querySelectorAll('.term-host:not([hidden]) .xterm-helper-textarea')].pop();
+      ta?.focus();
+      return document.activeElement === ta;
+    })()`);
+  const compositionView = (): Promise<{ active: boolean; text: string }> =>
+    win.webContents.executeJavaScript(`(() => {
+      const v = document.activeElement?.closest('.xterm')?.querySelector('.composition-view');
+      return { active: !!v?.classList.contains('active'), text: v?.textContent ?? '' };
+    })()`);
+
+  const scenarios: { name: string; expect: string; run: () => Promise<string | void> }[] = [
+    {
+      name: 'jamo: ㅎ→하→한, ㄱ→그→글 commits as 한글',
+      expect: '한글',
+      run: async () => {
+        await compose('ㅎ', '하', '한');
+        await commit('한');
+        await compose('ㄱ', '그', '글');
+        await commit('글');
+      },
+    },
+    {
+      name: 'final consonant moves on: 한 + ㅏ → 하나 (no duplicate 한)',
+      expect: '하나',
+      run: async () => {
+        await compose('ㅎ', '하', '한');
+        await commit('하');
+        await compose('나');
+        await commit('나');
+      },
+    },
+    {
+      name: 'composition shown while typing',
+      expect: '하',
+      run: async () => {
+        await compose('ㅎ', '하');
+        await wait(50);
+        const v = await compositionView();
+        await commit('하');
+        if (!v.active || v.text !== '하')
+          return `composition view ${JSON.stringify(v)}, expected active "하"`;
+      },
+    },
+    {
+      name: 'Enter during composition (keydown 229, commit, keydown 13 — macOS Chromium)',
+      expect: '글\r',
+      run: async () => {
+        await compose('ㄱ', '그', '글');
+        await key(ENTER_229, ['down']);
+        await commit('글');
+        await key(ENTER);
+        await key(ENTER_229, ['up']);
+      },
+    },
+    {
+      name: 'Enter during composition (only keydown 229, then commit)',
+      expect: '글\r',
+      run: async () => {
+        await compose('글');
+        await key(ENTER_229);
+        await commit('글');
+      },
+    },
+    {
+      name: 'Enter after commit',
+      expect: '글\r',
+      run: async () => {
+        await compose('글');
+        await commit('글');
+        await key(ENTER);
+      },
+    },
+    {
+      name: 'Space during composition',
+      expect: '글 ',
+      run: async () => {
+        await compose('글');
+        await commit('글');
+        await key({ key: ' ', code: 'Space', keyCode: 32, text: ' ' });
+      },
+    },
+    {
+      name: 'Ctrl+C during composition (keydown 229, commit, echo keydown 67)',
+      expect: '하\x03',
+      run: async () => {
+        await compose('하');
+        await key(CTRL_C_229, ['down']);
+        await commit('하');
+        await key(CTRL_C);
+        await key(CTRL_C_229, ['up']);
+      },
+    },
+    {
+      name: 'Ctrl+C right after 한/영 switch (key "ㅊ", keyCode 67)',
+      expect: '\x03',
+      run: () => key(CTRL_C),
+    },
+    {
+      name: 'Ctrl+C right after 한/영 switch (keyCode 229, not composing)',
+      expect: '\x03',
+      run: () => key(CTRL_C_229),
+    },
+  ];
+
+  try {
+    if (!(await focusTerminal())) return 'IME: could not focus a terminal';
+    // Start from a clean line in the shell; the scenarios' Enters run "글" as a (missing) command, harmless.
+    await key(CTRL_C);
+    await wait(300);
+    for (const s of scenarios) {
+      written = '';
+      const err = await s.run();
+      await wait(300); // xterm's 0 ms commit timers, our 150 ms fallback, IPC
+      if (err) return `IME "${s.name}": ${err}`;
+      if (written !== s.expect) {
+        return `IME "${s.name}": sent ${JSON.stringify(written)}, expected ${JSON.stringify(s.expect)}`;
+      }
+      console.log(`[smoke] IME ok: ${s.name}`);
+    }
+    // ⌘ shortcut with the Korean input source on: ⌘K arrives as key "ㅏ", code KeyK.
+    await key({ key: 'ㅏ', code: 'KeyK', keyCode: 75, modifiers: META });
+    await wait(400);
+    const palette: boolean = await win.webContents.executeJavaScript(
+      `!!document.querySelector('.c-palette__item')`,
+    );
+    if (!palette) return 'IME: ⌘K with the Korean input source ("ㅏ") did not open the palette';
+    press(win, 'Escape', []);
+    await wait(300);
+    console.log('[smoke] IME ok: ⌘K as "ㅏ" opens the palette');
+    return null;
+  } finally {
+    ipcMain.removeListener(IPC.sessionWrite, record);
+    dbg.detach();
+  }
 }

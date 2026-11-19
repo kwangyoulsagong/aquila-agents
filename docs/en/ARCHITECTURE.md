@@ -124,6 +124,17 @@
   `⇧⌘T` on macOS (Apple order ⌃⌥⇧⌘) and `Ctrl+Shift+T` elsewhere for the palette, buttons and tooltips; native menus
   get the accelerator via `ContextMenuItem.accelerator` (display only). New shortcut → add it to the map, never a literal.
 
+## Korean IME
+
+- xterm's `CompositionHelper` handles Hangul composition (it shows the syllable in `.composition-view` and sends it on
+  commit). One gap: while composing, it drops every keydown with keyCode 229, and Chromium can deliver Enter / Tab / Esc /
+  Ctrl+<letter> that way — the syllable arrived but Enter or Ctrl+C was lost. `entities/session/lib/imeGuard.ts` runs as
+  xterm's custom key handler: such a key is swallowed and its bytes are written after the commit (xterm's commit timer runs
+  first, so the order is `글` then `\r`); the same key arriving again as a normal keydown within 100 ms (macOS Chromium does
+  that) is dropped instead of sent twice. Text, Backspace inside a syllable and Space stay with xterm.
+- `npm run smoke` checks jamo, moving final consonant (한+ㅏ → 하나), composition shown, Enter in three orderings, Space,
+  Ctrl+C while composing and right after the 한/영 switch, and ⌘K as `ㅏ`, by comparing the exact bytes sent to the session.
+
 ## Status
 
 Main decides every session's status (`electron/status/`: `osc.ts` parser, `tracker.ts` per-session state machine)
