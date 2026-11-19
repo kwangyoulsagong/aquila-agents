@@ -49,6 +49,8 @@ const api: AquilaApi = {
   onStatus: on(IPC.sessionStatus),
   onExit: on(IPC.sessionExit),
   onFocusSession: on(IPC.uiFocusSession),
+  powerState: () => ipcRenderer.invoke(IPC.powerGet),
+  onPower: on(IPC.powerChanged),
 };
 
 contextBridge.exposeInMainWorld('aquila', api);

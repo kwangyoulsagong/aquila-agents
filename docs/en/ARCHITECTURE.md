@@ -19,6 +19,7 @@
 │                                           │        │ notify.ts     notifications, reminder, Dock badge│
 │                                           │        │ status/       OSC 7501 parser + status tracker   │
 │                                           │        │ output.ts     output batching + flow control     │
+│                                           │        │ power.ts      power profile: battery/heat (T9)   │
 │                                           │        │ detect.ts     CLI checks, first-run state (T17)  │
 │                                           │        │ smoke.ts      npm run smoke self-check           │
 │ shared/   api (types · IPC · bridge), i18n│        │                                                 │
@@ -45,7 +46,7 @@
    `CLAUDE_CONFIG_DIR=~/.claude-personal` (same as the `claude-personal` shell function). The **shared** account leaves
    it unset (plain `claude`): Claude keys its keychain entry off this variable, so it must not be set to `~/.claude`.
 4. pty output → `electron/output.ts` batches it (one message per 16 ms frame or 64 KB; 200 ms while the session is
-   off screen, from `session:visible`) → `session:data` → `terminalBus` → the xterm for that id (buffered until mounted).
+   off screen, from `session:visible`; 1 s off screen in power-saver mode — `electron/power.ts`, see `ENERGY.md`) → `session:data` → `terminalBus` → the xterm for that id (buffered until mounted).
    **Flow control:** the renderer sends `session:ack` once xterm has written a batch; main pauses the pty at 5
    unacknowledged batches and resumes at 2, so a flood (`yes`) never queues megabytes and Ctrl+C stays instant
    (smoke checks it). A renderer reload resets the counts. Output buffered before a terminal mounts is acked on arrival.

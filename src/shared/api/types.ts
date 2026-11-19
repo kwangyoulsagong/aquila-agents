@@ -188,6 +188,19 @@ export interface FirstRunReport {
   tools: ToolCheck[];
 }
 
+/** macOS thermal pressure (Electron `powerMonitor.getCurrentThermalState`). */
+export type ThermalState = 'unknown' | 'nominal' | 'fair' | 'serious' | 'critical';
+
+/** What `power:get` / `power:changed` report (T9). */
+export interface PowerState {
+  onBattery: boolean;
+  thermal: ThermalState;
+  /** CPU speed limit in percent (100 = not throttled). */
+  speedLimit: number;
+  /** Use less power: on battery, throttled, or hot. No cursor blink, no looping animations, slower polling. */
+  saver: boolean;
+}
+
 export type Unsubscribe = () => void;
 
 /** API exposed on window.aquila by electron/preload.ts. */
@@ -248,6 +261,9 @@ export interface AquilaApi {
   onStatus(cb: (p: StatusUpdate) => void): Unsubscribe;
   onExit(cb: (p: { id: string; exitCode: number }) => void): Unsubscribe;
   onFocusSession(cb: (p: { id: string }) => void): Unsubscribe;
+  /** Current power profile (battery / throttling / thermal). */
+  powerState(): Promise<PowerState>;
+  onPower(cb: (p: PowerState) => void): Unsubscribe;
 }
 
 /** IPC channel names — single source for main, preload and renderer. */
@@ -283,4 +299,6 @@ export const IPC = {
   sessionStatus: 'session:status',
   sessionExit: 'session:exit',
   uiFocusSession: 'ui:focus-session',
+  powerGet: 'power:get',
+  powerChanged: 'power:changed',
 } as const;

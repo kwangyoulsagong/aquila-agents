@@ -1,6 +1,6 @@
 // Main process: window, config, pty sessions, Claude hook receiver.
 import path from 'node:path';
-import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, powerMonitor, shell } from 'electron';
 import { restoreShellPath } from './env';
 import { accountsStatus, installShellFunction, prepareAccount, shellFunctionPreview } from './accounts';
 import { CONFIG_PATH, editProjects, loadConfig, setLanguage, setProjectAccount } from './config';
@@ -9,6 +9,7 @@ import { gitChanges } from './git';
 import { ensureWorktree, worktreeInfo } from './worktrees';
 import { binaryFor, finishFirstRun, firstRunReport, loadOverrides, setBinaryPath } from './detect';
 import { detectClaudeVersion, startHookServer, supportsHttpHooks, writeClaudeHookSettings } from './hooks';
+import { PowerWatcher, type PowerSource } from './power';
 import { SessionManager } from './sessions';
 import { planRestore, readState, writeState, type SavedTab } from './state';
 import { isSmoke, runSmoke, SMOKE_BUFFER_BYTES, watchOutput } from './smoke';
@@ -84,6 +85,16 @@ app.whenReady().then(async () => {
     onTabsChanged: isSmoke ? undefined : saveTabs,
   });
   const s = sessions;
+  // Power profile (T9). AQUILA_POWER_SAVER=1 forces saver mode (smoke, measuring).
+  const power = new PowerWatcher(powerMonitor as unknown as PowerSource); // Electron's typed overloads ⊂ PowerSource
+  const powerState = () =>
+    process.env.AQUILA_POWER_SAVER === '1' ? { ...power.current(), saver: true } : power.current();
+  s.setSaver(powerState().saver);
+  power.onChange(() => {
+    s.setSaver(powerState().saver);
+    send(IPC.powerChanged, powerState());
+  });
+  ipcMain.handle(IPC.powerGet, () => powerState());
 
   let restored: SessionInfo[] | null = null;
   const restoreSessions = (): SessionInfo[] => {

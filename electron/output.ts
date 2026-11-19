@@ -6,6 +6,8 @@
 export const VISIBLE_INTERVAL_MS = 16;
 /** Off screen nobody watches it paint: fewer, bigger messages. */
 export const HIDDEN_INTERVAL_MS = 200;
+/** Hidden, in power-saver mode (T9): wake up even less. On-screen output keeps one frame. */
+export const SAVER_HIDDEN_INTERVAL_MS = 1000;
 /** Flush at once when the buffer reaches this size. */
 export const MAX_BATCH_BYTES = 64 * 1024;
 /** Batches sent but not yet written by xterm: pause the pty at HIGH, resume at LOW. */
@@ -35,6 +37,7 @@ export class OutputBatcher {
   /** Batches the renderer hasn't acknowledged yet. */
   private inFlight = 0;
   private paused = false;
+  private saver = false;
 
   constructor(
     private sink: OutputSink,
@@ -47,7 +50,7 @@ export class OutputBatcher {
     else if (this.timer === null)
       this.timer = this.timers.set(
         () => this.flush(),
-        this.visible ? VISIBLE_INTERVAL_MS : HIDDEN_INTERVAL_MS,
+        this.visible ? VISIBLE_INTERVAL_MS : this.saver ? SAVER_HIDDEN_INTERVAL_MS : HIDDEN_INTERVAL_MS,
       );
   }
 
@@ -82,6 +85,11 @@ export class OutputBatcher {
     if (this.visible === visible) return;
     this.visible = visible;
     if (visible && this.timer !== null) this.flush();
+  }
+
+  /** Power-saver mode: hidden output is held longer (applies from the next batch). */
+  setSaver(saver: boolean): void {
+    this.saver = saver;
   }
 
   /** The renderer reloaded: its acks for what was in flight will never come. */

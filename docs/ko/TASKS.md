@@ -140,7 +140,8 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
 - **담당:** `electron/smoke.ts`(IME 시나리오), `TerminalView`의 IME 처리, 폰트 토큰.
 
 ### T9 · 배터리 측정 + 절전 프로필
-- [ ] **목표:** 추측 말고 숫자로 — 그리고 배터리에서는 덜 쓰게. (#26)
+- [x] **목표:** 추측 말고 숫자로 — 그리고 배터리에서는 덜 쓰게. (#26)
+  _남은 것: 실제 Claude 세션 5개로 Terminal.app / Ghostty / iTerm2와 비교하는 측정은 못 했습니다(여기엔 Ghostty·iTerm2가 없고, 실제 세션은 사람이 돌려야 함). 스크립트는 준비돼 있습니다 — [ENERGY.md](ENERGY.md) 참고. 대신 `npm run perf`로 쟀고, 절전 모드에서 스트리밍 CPU가 2.8 → 0.9 %로 줄었습니다. 이 환경에서 `top`은 Electron 프로세스의 idle wakeups를 0으로 보여서, wakeups는 `getAppMetrics`나 `POWERMETRICS=1`로 봅니다._
 - **명세:** `scripts/measure-energy.sh`: `top -l 6 -s 5 -o power`, `powermetrics --samplers tasks` idle wakeups/s,
   `yes` Ctrl-C 테스트. 같은 세션(Claude 5개, 1개 스트리밍)으로 Aquila Agents vs Terminal.app / Ghostty / iTerm2.
   결과는 `docs/en/ENERGY.md` + `docs/ko/ENERGY.md`. `powerMonitor`(`on-battery`, `speed-limit-change`, macOS

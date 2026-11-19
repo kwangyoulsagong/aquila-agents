@@ -439,3 +439,8 @@ body {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* Power-saver mode (T9, set by the app on battery / throttled / hot): no looping animations.
+ * One-shot micro-interactions stay; the waiting dot keeps its pop but drops the endless halo. */
+:root[data-power='saver'] .c-dot[data-status='working'] { animation: none; }
+:root[data-power='saver'] .c-dot[data-status='waiting'] { animation: c-pop var(--motion-slow) var(--motion-ease-spring); }

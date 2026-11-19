@@ -6,6 +6,7 @@ import { expand, loadConfig } from './config';
 import { commandName } from './detect';
 import type { HookEvent } from './hooks';
 import { OutputBatcher } from './output';
+import { SAVER_TICK_MS, TICK_MS } from './power';
 import { Attention, firstLine, setDockBadge, type AttentionSession } from './notify';
 import type { RestorePlan, SavedTab } from './state';
 import { logStatus } from './status/log';
@@ -69,9 +70,11 @@ export class SessionManager {
   private closing = false;
   private attention: Attention;
   private badge = 0;
+  /** Power-saver mode (T9): slower activity tick, hidden output held longer. */
+  private saver = false;
 
   constructor(private deps: Deps) {
-    this.timer = setInterval(() => this.tickActivity(), 1000);
+    this.timer = setInterval(() => this.tickActivity(), TICK_MS);
     this.attention = new Attention({
       get: (id) => {
         const s = this.sessions.get(id);
@@ -147,6 +150,7 @@ export class SessionManager {
       details: {},
     };
     this.sessions.set(id, s);
+    s.output.setSaver(this.saver);
 
     proc.onData((data) => {
       // OSC 7501 first: the query must be answered before the renderer's xterm answers DA1.
@@ -316,6 +320,15 @@ export class SessionManager {
   /** Whether the session's terminal is on screen (any split pane): on-screen output flushes every frame. */
   setVisible(id: string, visible: boolean): void {
     this.sessions.get(id)?.output.setVisible(visible);
+  }
+
+  /** Power profile changed: slower timers while saving. */
+  setSaver(saver: boolean): void {
+    if (this.saver === saver || this.closing) return;
+    this.saver = saver;
+    clearInterval(this.timer);
+    this.timer = setInterval(() => this.tickActivity(), saver ? SAVER_TICK_MS : TICK_MS);
+    for (const s of this.sessions.values()) s.output.setSaver(saver);
   }
 
   /** The renderer reloaded: forget unacknowledged batches so no pty stays paused. */

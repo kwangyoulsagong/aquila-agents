@@ -5,6 +5,7 @@ import {
   LOW_WATER,
   MAX_BATCH_BYTES,
   OutputBatcher,
+  SAVER_HIDDEN_INTERVAL_MS,
   VISIBLE_INTERVAL_MS,
 } from './output';
 
@@ -27,6 +28,20 @@ describe('OutputBatcher', () => {
     expect(sent).toEqual([]);
     vi.advanceTimersByTime(VISIBLE_INTERVAL_MS);
     expect(sent).toEqual(['ab']);
+  });
+
+  it('holds hidden output longer in saver mode, but not visible output', () => {
+    const { b, sent } = setup(false);
+    b.setSaver(true);
+    b.push('h');
+    vi.advanceTimersByTime(HIDDEN_INTERVAL_MS);
+    expect(sent).toEqual([]);
+    vi.advanceTimersByTime(SAVER_HIDDEN_INTERVAL_MS - HIDDEN_INTERVAL_MS);
+    expect(sent).toEqual(['h']);
+    b.setVisible(true);
+    b.push('v');
+    vi.advanceTimersByTime(VISIBLE_INTERVAL_MS);
+    expect(sent).toEqual(['h', 'v']);
   });
 
   it('waits longer while hidden, and flushes when it comes on screen', () => {

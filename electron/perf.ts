@@ -43,7 +43,9 @@ async function measure(win: BrowserWindow, ms = MEASURE_MS) {
   const cpu: Record<string, number> = {};
   let rendererMB = 0;
   let totalMB = 0;
+  let wakeups = 0;
   for (const m of metrics) {
+    wakeups += m.cpu.idleWakeupsPerSecond;
     cpu[m.type] = Math.round(((cpu[m.type] ?? 0) + m.cpu.percentCPUUsage) * 10) / 10;
     totalMB += m.memory.workingSetSize / 1024;
     if (m.type === 'Tab') rendererMB += m.memory.workingSetSize / 1024;
@@ -54,6 +56,8 @@ async function measure(win: BrowserWindow, ms = MEASURE_MS) {
     cpuTotal: Math.round(Object.values(cpu).reduce((a, b) => a + b, 0) * 10) / 10,
     rendererMB: Math.round(rendererMB),
     totalMB: Math.round(totalMB),
+    /** Idle wakeups/s summed over all app processes (T9). */
+    wakeupsPerSec: Math.round(wakeups),
     msgsPerSec: Math.round(r.msgs / secs),
     fps: Math.round(r.frames / secs),
     maxFrameGapMs: Math.round(r.maxGap),
