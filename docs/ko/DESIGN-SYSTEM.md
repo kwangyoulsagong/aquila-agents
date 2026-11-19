@@ -4,7 +4,8 @@
 
 창 하나, 에이전트 여러 개. UI는 터미널 뒤로 물러나 있다가 에이전트가 나를 필요로 할 때만 말을 겁니다.
 
-- 기준 파일: `design-system/tokens.css` (값), `design-system/components.css` (컴포넌트).
+- 기준 파일: `design-system/tokens.css` (값), `design-system/components.css` (컴포넌트 스타일),
+  `design-system/react/` (그 스타일을 그리는 React 컴포넌트).
 - 미리보기: `open design-system/preview.html`.
 - 규칙: **앱 코드에 hex/px 직접 쓰지 않기.** 새 값이 필요하면 원시 토큰 + 시맨틱 토큰부터 추가.
 
@@ -107,6 +108,21 @@
 | `.c-panel` `__head` `__body` | 오른쪽 패널 |
 | `.c-diff` `__line--add/del/hunk/file` | diff |
 | `.c-empty` `__title` `__path` `__actions` | 빈 화면 |
+
+## React 컴포넌트 (`design-system/react/`)
+
+`@design-system/react`에서 가져와 씁니다. 앱 코드는 `.c-*` 클래스를 직접 쓰지 않고 이 컴포넌트를 씁니다. 레이아웃 전용 블록
+(사이드바, 탭 바, 분할/패널, 오른쪽 패널, diff)은 각 위젯 안에서 클래스를 그대로 씁니다. 이 폴더는 `src/`를 import하면 안 됩니다
+(ESLint가 막음). 새 컴포넌트 → `components.css`에 클래스, 여기에 컴포넌트, 아래 표에 한 줄.
+
+| 컴포넌트 | 그리는 것 |
+|---|---|
+| `Button` `variant="primary\|ghost"` `icon` | `.c-btn` |
+| `Dot` `status` | `.c-dot` |
+| `Badge` `tone` | `.c-badge--<tone>` |
+| `Kbd`, `Label` | `.c-kbd`, `.c-label` |
+| `Segment` `options` `value` `onChange` | `.c-segment` |
+| `EmptyState` `title` `path` `actions` | `.c-empty` |
 
 ## 문구
 

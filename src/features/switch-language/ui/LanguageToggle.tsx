@@ -1,3 +1,4 @@
+import { Button } from '@design-system/react';
 import { api, type Config } from '@/shared/api';
 import { useT } from '@/shared/i18n';
 
@@ -10,11 +11,12 @@ export default function LanguageToggle({
 }) {
   const t = useT();
   return (
-    <button
-      className="c-btn c-btn--ghost c-sidebar__lang"
+    <Button
+      variant="ghost"
+      className="c-sidebar__lang"
       onClick={() => api.setLanguage(config.language === 'ko' ? 'en' : 'ko').then(onChanged)}
     >
       {t('action.switchLanguage')}
-    </button>
+    </Button>
   );
 }

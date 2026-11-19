@@ -4,7 +4,8 @@
 
 One window, many agents. The UI disappears behind the terminals and only speaks up when an agent needs you.
 
-- Source of truth: `design-system/tokens.css` (values) and `design-system/components.css` (components).
+- Source of truth: `design-system/tokens.css` (values), `design-system/components.css` (component styles) and
+  `design-system/react/` (React components that render them).
 - Preview: `open design-system/preview.html`.
 - Rule: **no raw hex/px in app code.** New value → primitive + semantic token first.
 
@@ -108,6 +109,21 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `.c-panel` `__head` `__body` | Right panel |
 | `.c-diff` `__line--add/del/hunk/file` | Diff |
 | `.c-empty` `__title` `__path` `__actions` | Empty state |
+
+## React components (`design-system/react/`)
+
+Import from `@design-system/react`. App code uses these instead of writing `.c-*` class names; layout-only blocks
+(sidebar, tab bar, split/pane, panel, diff) still use their classes inside their widget. The folder must not import
+from `src/` (ESLint enforces it). New primitive → add the class to `components.css`, the component here, and a row below.
+
+| Component | Renders |
+|---|---|
+| `Button` `variant="primary\|ghost"` `icon` | `.c-btn` |
+| `Dot` `status` | `.c-dot` |
+| `Badge` `tone` | `.c-badge--<tone>` |
+| `Kbd`, `Label` | `.c-kbd`, `.c-label` |
+| `Segment` `options` `value` `onChange` | `.c-segment` |
+| `EmptyState` `title` `path` `actions` | `.c-empty` |
 
 ## Copy
 
