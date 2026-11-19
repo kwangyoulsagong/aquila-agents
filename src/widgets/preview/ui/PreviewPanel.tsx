@@ -40,13 +40,7 @@ function Address({ value, label, onGo }: { value: string; label: string; onGo: (
     if (url) onGo(url);
   };
   return (
-    <Input
-      key={value}
-      defaultValue={value}
-      aria-label={label}
-      placeholder={label}
-      onKeyDown={onKeyDown}
-    />
+    <Input key={value} defaultValue={value} aria-label={label} placeholder={label} onKeyDown={onKeyDown} />
   );
 }
 
@@ -103,10 +97,12 @@ export default function PreviewPanel({ project, session, onClose }: Props) {
   const [picking, setPicking] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
-  // First dev server found becomes the address when there's none yet.
+  // First dev server found becomes the address when there's none yet — or when the remembered one no longer answers
+  // (a server restarted on another port) and a different one was found since.
+  const failed = !!nav?.error && !nav.loading;
   useEffect(() => {
-    if (!url && targets[0]) setUrl(targets[0]);
-  }, [url, targets, setUrl]);
+    if (targets[0] && (!url || (failed && targets[0] !== url))) setUrl(targets[0]);
+  }, [url, targets, failed, setUrl]);
 
   useEffect(() => {
     if (!notice) return;

@@ -250,7 +250,7 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
 
 ### T33 · 앱 내 프리뷰 + 요소 선택
 - [x] **목표:** 돌아가는 앱을 가리키며 에이전트에 고칠 것 말하기 — Claude와 Codex 둘 다. (#37)
-  _남은 것: 프리뷰는 너비만 바꿈(모바일 UA·터치 에뮬레이션 없음), 로컬 프로젝트만. 컴포넌트명은 dev 빌드에서만(React 19는 `_debugSource`가 없어 file:line 없음). 디자이너 레이아웃과 실제 Claude/Codex 탭에 붙여넣기는 `npm run dev`에서 직접 보진 못함(smoke가 선택을, capture가 요소 선택 화면을 확인). Figma 뷰는 프리뷰 안에서 Figma 로그인 필요. 프리뷰 페이지에 키보드 포커스가 있으면 앱 단축키가 안 먹음._
+  _남은 것: 프리뷰는 너비만 바꿈(모바일 UA·터치 에뮬레이션 없음), 로컬 프로젝트만. 컴포넌트명은 dev 빌드에서만(React 19는 `_debugSource`가 없어 file:line 없음). 앱에서 직접 확인: 터미널 출력으로 감지, 너비, 팔레트 아래에서 숨기기, 디자이너(앱 아래 Figma), 실제 Claude 탭에 붙여넣기(`[Pasted text][Image]`). 실제 Codex는 확인 못 함: 먼저 "Trust this folder?" 프롬프트에서 멈췄고, CLI가 그런 프롬프트에 있어도 패널은 "붙여 넣었어요"라고 표시. Figma 뷰는 프리뷰 안에서 Figma 로그인 필요. 프리뷰 페이지에 키보드 포커스가 있으면 앱 단축키가 안 먹음._
 - **명세:** dev server 감지(`.claude/launch.json`, pty 출력의 `localhost:\d+`). 디바이스 프리셋 390/768/1440의
   `WebContentsView`. Select 모드에서 selector, 텍스트, computed style, 가능하면 React 컴포넌트명, `capturePage(rect)` 크롭을
   모아 포커스된 세션에 텍스트 + 이미지 경로로 붙여넣기. "디자이너 프리셋" 레이아웃: 터미널 + 프리뷰 + Figma 패널.
