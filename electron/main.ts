@@ -1,6 +1,6 @@
 // Main process: window, config, pty sessions, Claude hook receiver.
 import path from 'node:path';
-import { app, BrowserWindow, dialog, ipcMain, powerMonitor, shell } from 'electron';
+import { app, BrowserWindow, clipboard, dialog, ipcMain, powerMonitor, shell } from 'electron';
 import { restoreShellPath } from './env';
 import { accountsStatus, installShellFunction, prepareAccount, shellFunctionPreview } from './accounts';
 import {
@@ -22,7 +22,10 @@ import { binaryFor, finishFirstRun, firstRunReport, loadOverrides, setBinaryPath
 import { detectClaudeVersion, startHookServer, supportsHttpHooks, writeClaudeHookSettings } from './hooks';
 import { PowerWatcher, type PowerSource } from './power';
 import { SessionManager } from './sessions';
+import { CODEX_SESSIONS_DIR } from './codex';
+import { clipboardPaths, findClaudeTranscript, findRollout, lastReply, readTail } from './terminalHelpers';
 import {
+  claudeConfigDir,
   mapLayout,
   planRestore,
   pruneScrollback,
@@ -189,6 +192,30 @@ app.whenReady().then(async () => {
   ipcMain.handle(IPC.uiContextMenu, (e, items: ContextMenuItem[]) =>
     showContextMenu(BrowserWindow.fromWebContents(e.sender), items),
   );
+  // Terminal helpers (T28): ⌘V with files/an image on the clipboard, "copy last response".
+  ipcMain.on(IPC.clipboardWrite, (_e, text: unknown) => {
+    if (typeof text === 'string') void clipboard.writeText(text);
+  });
+  ipcMain.handle(IPC.clipboardPaths, async () => {
+    const byType = new Map<string, Electron.ClipboardItem>();
+    for (const item of await clipboard.read()) for (const type of item.types) if (!byType.has(type)) byType.set(type, item);
+    return clipboardPaths({
+      types: [...byType.keys()],
+      get: async (type) => {
+        const blob = await byType.get(type)!.getType(type);
+        return blob instanceof Blob ? Buffer.from(await blob.arrayBuffer()) : Buffer.alloc(0);
+      },
+    });
+  });
+  ipcMain.handle(IPC.sessionLastReply, (_e, id: string) => {
+    const src = s.replySource(id);
+    if (!src) return null;
+    const file =
+      src.agent === 'claude'
+        ? findClaudeTranscript(claudeConfigDir(loadConfig(), src.account), src.sessionId)
+        : findRollout(CODEX_SESSIONS_DIR, src.sessionId);
+    return file ? lastReply(readTail(file), src.agent) : null;
+  });
   ipcMain.handle(
     IPC.sessionCreate,
     (_e, { projectId, kind, account }: { projectId: string; kind: SessionKind; account?: string }) =>

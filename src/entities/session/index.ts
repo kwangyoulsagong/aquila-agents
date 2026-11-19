@@ -4,3 +4,4 @@ export { default as StatusDot } from './ui/StatusDot';
 export { default as KindBadge } from './ui/KindBadge';
 export { default as WaitingTime } from './ui/WaitingTime';
 export { pasteIntoSession } from './lib/terminalBus';
+export { useTerminal } from './model/useTerminal';

@@ -231,6 +231,8 @@ const ko = {
   'guide.worktree.body': '탭 바의 +를 오른쪽 클릭하거나 {palette}에서 열어요. 브랜치마다 ../<저장소>-wt/<브랜치>에 따로 작업해요.',
   'guide.history.title': '세션 기록',
   'guide.history.body': '지난 Claude·Codex 세션을 폴더별로 찾아 새 탭에서 이어해요. 이름, 첫 메시지, 대화 내용으로 검색하고 Markdown으로 내보내요.',
+  'guide.terminal.title': '터미널 도우미',
+  'guide.terminal.body': '⌘V로 이미지나 복사한 파일을 붙이거나 파일을 끌어다 놓으면 경로가 입력돼요. 위로 스크롤하면 자동 스크롤이 멈추고 "맨 아래로" 버튼이 떠요. 마지막 응답을 복사하거나, 화면의 URL·경로·커밋을 라벨 키로 골라 복사해요. 터미널을 우클릭해도 돼요.',
   'guide.accounts.title': 'Claude 계정',
   'guide.accounts.body': '탭 바에서 공용(claude)과 개인(claude-personal) 계정을 골라요. 새 Claude 세션부터 적용돼요.',
   'guide.restore.title': '다시 열면 그대로',
@@ -289,6 +291,17 @@ const ko = {
   'history.error.noProject': '이 폴더의 프로젝트를 찾을 수 없어요',
   'error.projectNotFound': '프로젝트를 찾을 수 없어요: {id}',
   'error.configRead': 'config.json을 읽지 못했어요: {message}',
+  'term.copyLastReply': '마지막 응답 복사',
+  'term.quickSelect': 'URL·경로 고르기',
+  'term.copySelection': '선택 복사',
+  'term.jumpBottom': '맨 아래로',
+  'term.newOutput': '새 출력',
+  'term.drop': '놓으면 경로를 입력해요',
+  'term.flash.copied': '복사했어요',
+  'term.flash.pasted': '입력했어요',
+  'term.flash.noReply': '복사할 응답이 아직 없어요',
+  'term.flash.noTargets': '화면에 URL·경로가 없어요',
+  'term.pick.hint': '라벨 입력: 복사 · ⇧+라벨: 입력 · Esc: 닫기',
 } as const;
 
 type Key = keyof typeof ko;
@@ -522,6 +535,8 @@ const en = {
   'guide.worktree.body': 'Right-click + in the tab bar, or use {palette}. Each branch gets its own folder at ../<repo>-wt/<branch>.',
   'guide.history.title': 'Session history',
   'guide.history.body': 'Find past Claude and Codex sessions by folder and resume one in a new tab. Search names, first messages and the conversation; export as Markdown.',
+  'guide.terminal.title': 'Terminal helpers',
+  'guide.terminal.body': 'Paste an image or copied files with ⌘V, or drop files, and their paths are typed in. Scrolling up pauses auto-scroll and shows "Jump to bottom". Copy the last response, or pick a URL, path or commit on screen by its label. Right-click the terminal for these too.',
   'guide.accounts.title': 'Claude accounts',
   'guide.accounts.body': 'Pick shared (claude) or personal (claude-personal) in the tab bar. It applies to new Claude sessions.',
   'guide.restore.title': 'Back where you left',
@@ -580,6 +595,17 @@ const en = {
   'history.error.noProject': 'No project for this folder',
   'error.projectNotFound': 'Project not found: {id}',
   'error.configRead': "Couldn't read config.json: {message}",
+  'term.copyLastReply': 'Copy last response',
+  'term.quickSelect': 'Pick URL / path',
+  'term.copySelection': 'Copy selection',
+  'term.jumpBottom': 'Jump to bottom',
+  'term.newOutput': 'New output',
+  'term.drop': 'Drop to type the path',
+  'term.flash.copied': 'Copied',
+  'term.flash.pasted': 'Typed into the session',
+  'term.flash.noReply': 'No response to copy yet',
+  'term.flash.noTargets': 'No URLs or paths on screen',
+  'term.pick.hint': 'Type a label: copy · ⇧+label: type it in · Esc: close',
 } satisfies Record<Key, string>;
 
 const DICT: Record<Language, Record<Key, string>> = { ko, en };

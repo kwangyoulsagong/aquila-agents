@@ -13,6 +13,7 @@ export { Dialog, DialogCheck, DialogCode, DialogForm } from './Dialog';
 export { ChangeRow } from './ChangeRow';
 export { Checklist, ChecklistItem, ChecklistCommand } from './Checklist';
 export { Dropzone } from './Dropzone';
+export { TermOverlay, TermJump, TermNote, TermHint } from './TermOverlay';
 export { Field, FieldGrid, FieldRow, Input, Select, Textarea, type SelectOption } from './Field';
 export { Palette, PaletteList, PaletteItem, PaletteEmpty } from './Palette';
 export {

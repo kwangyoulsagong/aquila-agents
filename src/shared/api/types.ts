@@ -431,7 +431,15 @@ export interface AquilaApi {
   markGuideOffered(): Promise<void>;
   /** Absolute path of a dropped `File` (Electron's webUtils; typed loosely because main has no DOM types). */
   pathForFile(file: object): string;
+  /** Plain text to the clipboard (through main: Electron 45 has no clipboard module in the preload). */
   copyText(text: string): void;
+  /**
+   * Files on the clipboard as absolute paths (T28 ⌘V): copied Finder files as they are, an image saved as a temp PNG.
+   * Empty when the clipboard holds neither.
+   */
+  clipboardPaths(): Promise<string[]>;
+  /** Text of the last agent reply in a Claude/Codex tab, from its transcript (read-only). null when there is none. */
+  lastReply(sessionId: string): Promise<string | null>;
   write(id: string, data: string): void;
   resize(id: string, cols: number, rows: number): void;
   kill(id: string): void;
@@ -461,6 +469,9 @@ export const IPC = {
   configProjectForPath: 'config:project-for-path',
   projectOpenIn: 'project:open-in',
   uiContextMenu: 'ui:context-menu',
+  clipboardPaths: 'clipboard:paths',
+  clipboardWrite: 'clipboard:write',
+  sessionLastReply: 'session:last-reply',
   sessionCreate: 'session:create',
   sessionRestore: 'session:restore',
   sessionStart: 'session:start',

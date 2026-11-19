@@ -207,6 +207,24 @@
   </section>
 
   <section>
+    <h2>Terminal overlay · quick select, note, jump to bottom, drop (T28)</h2>
+    <div class="mock" style="position: relative; height: 200px; background: var(--color-terminal-bg); font: 13px/1.2 var(--font-family-mono); color: var(--color-terminal-fg); padding: 8px 12px;">
+      <div>● Reading src/cart.ts</div>
+      <div>● Docs: https://example.com/guide</div>
+      <div class="c-term-overlay">
+        <div class="c-term-hint" style="left: 100px; top: 8px; width: 88px; height: 16px;"><span class="c-term-hint__label">a</span></div>
+        <div class="c-term-hint" style="left: 76px; top: 24px; width: 208px; height: 16px;"><span class="c-term-hint__label">s</span></div>
+        <div class="c-term-overlay__note" role="status">복사했어요</div>
+        <div class="c-term-overlay__note c-term-overlay__note--bar" role="status" style="right: auto; left: 12px;">라벨 입력: 복사 · ⇧+라벨: 입력 · Esc: 닫기</div>
+        <button class="c-btn c-term-overlay__jump">↓ 새 출력</button>
+      </div>
+    </div>
+    <div class="mock" style="position: relative; height: 120px; margin-top: 8px; background: var(--color-terminal-bg);">
+      <div class="c-term-overlay"><div class="c-dropzone" data-over="true">놓으면 경로를 입력해요</div></div>
+    </div>
+  </section>
+
+  <section>
     <h2>App</h2>
     <div class="mock">
       <aside class="c-sidebar">
