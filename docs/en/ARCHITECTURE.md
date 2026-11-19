@@ -49,6 +49,8 @@
 3. Env per session: `AQUILA_TAB_ID`, `AQUILA_PORT`, and — for Claude sessions on the **personal** account —
    `CLAUDE_CONFIG_DIR=~/.claude-personal` (same as the `claude-personal` shell function). The **shared** account leaves
    it unset (plain `claude`): Claude keys its keychain entry off this variable, so it must not be set to `~/.claude`.
+   With a project **port base** (T26), also `PORT` and `AQUILA_PORT_BASE` = base + 10 × the worktree's position in
+   `git worktree list` (main = 0), so parallel dev servers in different worktrees don't collide.
 4. pty output → `electron/output.ts` batches it (one message per 16 ms frame or 64 KB; 200 ms while the session is
    off screen, from `session:visible`; 1 s off screen in power-saver mode — `electron/power.ts`, see `ENERGY.md`) → `session:data` → `terminalBus` → the xterm for that id (buffered until mounted).
    **Flow control:** the renderer sends `session:ack` once xterm has written a batch; main pauses the pty at 5
@@ -139,7 +141,9 @@
 - Main (`worktrees.ts`, `session:create-worktree`): validates the name with `git check-ref-format --branch`, then
   reuses the worktree that already has the branch checked out (`git worktree list --porcelain`, incl. the main one),
   otherwise `git worktree add <repo>-wt/<branch>` next to the main worktree — checking out the branch if it exists,
-  else `-b` from the project's current HEAD. Git's own error is shown in the dialog. Nothing is ever removed.
+  else `-b` from the project's **default branch** (T26; when it names a commit) or its current HEAD. Git's own error
+  is shown in the dialog. Nothing is ever removed. A worktree made by this call runs the project's **setup script**
+  once, visibly, in the session's login shell before the agent starts (the agent starts even if it fails).
 - The session (`SessionInfo.worktree = { path, branch }`) spawns with that cwd. The tab shows the branch
   (`.c-tab__branch`, path in the tooltip), as do the pane head, the palette label and the notification title.
 - The changes panel follows the focused session: for a worktree session it shows that worktree (main resolves the

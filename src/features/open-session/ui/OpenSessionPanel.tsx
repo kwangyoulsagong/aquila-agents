@@ -2,7 +2,7 @@ import { Button, EmptyState, Kbd } from '@design-system/react';
 import type { Project, SessionKind } from '@/shared/api';
 import { useT } from '@/shared/i18n';
 import { shortcutLabel } from '@/shared/lib/shortcuts';
-import { OPEN_ACTIONS } from '../model/actions';
+import { openActions } from '../model/actions';
 
 interface Props {
   project: Project | undefined;
@@ -17,7 +17,7 @@ export default function OpenSessionPanel({ project, onOpen }: Props) {
     <EmptyState
       title={project.name}
       path={project.path}
-      actions={OPEN_ACTIONS.map((a) => (
+      actions={openActions(project.defaultAgent).map((a) => (
         <Button key={a.kind} variant={a.primary ? 'primary' : 'default'} onClick={() => onOpen(a.kind)}>
           {t(a.key)}
           <Kbd>{shortcutLabel(a.shortcut)}</Kbd>

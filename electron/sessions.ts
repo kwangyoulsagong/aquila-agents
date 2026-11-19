@@ -11,6 +11,7 @@ import type { HookEvent } from './hooks';
 import { OutputBatcher } from './output';
 import { SAVER_TICK_MS, TICK_MS } from './power';
 import { Attention, firstLine, setDockBadge, type AttentionSession } from './notify';
+import { PORT_STEP, worktreeSlot } from './worktrees';
 import { formatRestored, newTabKey, type RestorePlan, type SavedTab } from './state';
 import { logStatus } from './status/log';
 import { OSC_7501_REPLY, OscScanner, parse7501 } from './status/osc';
@@ -27,6 +28,8 @@ import {
 } from '../src/shared/api/types';
 
 const SHELL = process.env.SHELL || '/bin/zsh';
+/** `'…'` for sh, with embedded quotes escaped. */
+const shellQuote = (s: string) => `'${s.replace(/'/g, `'\\''`)}'`;
 /** Printed by the session command when `claude --resume` / `codex resume` fails (OSC 7501 so the scanner sees it). */
 const RESUME_FAILED = 'aquila-resume-failed';
 /** A resume that fails does so right away; a non-zero exit later is the user's own session ending. */
@@ -139,6 +142,8 @@ export class SessionManager {
     accountOverride?: string,
     restore: RestoreOptions = {},
     worktree?: Worktree,
+    /** Run before the program (a new worktree's setup script). */
+    setup?: string,
   ): SessionInfo {
     return this.spawn(
       config,
@@ -148,6 +153,7 @@ export class SessionManager {
       accountOverride,
       restore,
       worktree,
+      setup,
     );
   }
 
@@ -194,6 +200,7 @@ export class SessionManager {
     accountOverride: string | undefined,
     restore: RestoreOptions,
     worktree: Worktree | undefined,
+    setup?: string,
   ): SessionInfo {
     const project = config.projects.find((p) => p.id === projectId);
     if (!project) throw new Error(translator(config.language)('error.projectNotFound', { id: projectId }));
@@ -208,6 +215,12 @@ export class SessionManager {
       AQUILA_PORT: String(this.deps.hookPort),
     };
     delete env.CLAUDE_CONFIG_DIR;
+    // Project port base (T26): each worktree gets its own range so parallel dev servers don't collide.
+    if (project.portBase) {
+      const port = String(project.portBase + (worktree ? PORT_STEP * worktreeSlot(worktree.path) : 0));
+      env.PORT = port;
+      env.AQUILA_PORT_BASE = port;
+    }
     // Account only matters for Claude; codex/shell keep the user's environment as-is.
     if (kind === 'claude' && account?.claudeConfigDir)
       env.CLAUDE_CONFIG_DIR = expand(account.claudeConfigDir);
@@ -217,7 +230,14 @@ export class SessionManager {
     let command = this.commandFor(kind, claudeSessionId, restore);
     // A failed resume prints our marker, then the tab drops to the shell as usual (cold restore).
     if (command && resuming) command = `${command} || printf '\\033]7501;${RESUME_FAILED}\\007'`;
-    const args = command ? ['-l', '-i', '-c', `${command}; exec ${SHELL} -l -i`] : ['-l', '-i'];
+    // The setup script runs in the same login shell (the user's PATH), visibly, once; the program starts either way.
+    const pre = setup?.trim()
+      ? `printf '\\033[2m%s\\033[0m\\n' ${shellQuote(translator(config.language)('settings.setupRunning'))}; ${setup.trim()}\n`
+      : '';
+    const args =
+      command || pre
+        ? ['-l', '-i', '-c', `${pre}${command ? `${command}; ` : ''}exec ${SHELL} -l -i`]
+        : ['-l', '-i'];
     const cwd = worktree?.path ?? expand(project.path);
     const proc = pty.spawn(SHELL, args, {
       name: 'xterm-256color',

@@ -3,7 +3,15 @@ import path from 'node:path';
 import { app, BrowserWindow, dialog, ipcMain, powerMonitor, shell } from 'electron';
 import { restoreShellPath } from './env';
 import { accountsStatus, installShellFunction, prepareAccount, shellFunctionPreview } from './accounts';
-import { CONFIG_PATH, editProjects, loadConfig, setLanguage, setProjectAccount } from './config';
+import {
+  CONFIG_PATH,
+  editProjects,
+  loadConfig,
+  openProjectIn,
+  projectForPath,
+  setLanguage,
+  setProjectAccount,
+} from './config';
 import fs from 'node:fs';
 import { showContextMenu } from './menu';
 import { gitAction, gitChanges, treeOf, TreeWatcher } from './git';
@@ -176,6 +184,8 @@ app.whenReady().then(async () => {
     const r = win ? await dialog.showOpenDialog(win, options) : await dialog.showOpenDialog(options);
     return r.canceled ? null : (r.filePaths[0] ?? null);
   });
+  ipcMain.handle(IPC.configProjectForPath, (_e, dir: string) => projectForPath(loadConfig(), dir));
+  ipcMain.handle(IPC.projectOpenIn, (_e, projectId: string) => openProjectIn(loadConfig(), projectId));
   ipcMain.handle(IPC.uiContextMenu, (e, items: ContextMenuItem[]) =>
     showContextMenu(BrowserWindow.fromWebContents(e.sender), items),
   );
@@ -188,8 +198,9 @@ app.whenReady().then(async () => {
     IPC.sessionCreateWorktree,
     async (_e, { projectId, branch, kind }: { projectId: string; branch: string; kind: SessionKind }) => {
       const config = loadConfig();
-      const worktree = await ensureWorktree(config, projectId, branch);
-      return s.create(config, projectId, kind, undefined, {}, worktree);
+      const { worktree, created } = await ensureWorktree(config, projectId, branch);
+      const setup = created ? config.projects.find((p) => p.id === projectId)?.setupScript : undefined;
+      return s.create(config, projectId, kind, undefined, {}, worktree, setup);
     },
   );
   ipcMain.handle(IPC.worktreeInfo, (_e, projectId: string) => worktreeInfo(loadConfig(), projectId));

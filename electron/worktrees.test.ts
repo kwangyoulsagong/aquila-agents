@@ -3,7 +3,14 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { ensureWorktree, parseWorktreeList, worktreeInfo, worktreePathFor, worktreeRoot } from './worktrees';
+import {
+  ensureWorktree,
+  parseWorktreeList,
+  worktreeInfo,
+  worktreePathFor,
+  worktreeRoot,
+  worktreeSlot,
+} from './worktrees';
 import type { Config } from '../src/shared/api/types';
 
 describe('parseWorktreeList', () => {
@@ -63,23 +70,52 @@ describe('ensureWorktree', () => {
 
   it('creates a new branch worktree, then reuses it', async () => {
     const { base, config, run } = setup();
-    const wt = await ensureWorktree(config, 'r', ' feat/new ');
-    expect(wt).toEqual({ path: path.join(base, 'repo-wt', 'feat', 'new'), branch: 'feat/new' });
+    const made = await ensureWorktree(config, 'r', ' feat/new ');
+    const wt = made.worktree;
+    expect(made).toEqual({
+      worktree: { path: path.join(base, 'repo-wt', 'feat', 'new'), branch: 'feat/new' },
+      created: true
+    });
     expect(fs.existsSync(path.join(wt.path, '.git'))).toBe(true);
     expect(run('branch', '--list', 'feat/new').trim()).toContain('feat/new');
-    expect(await ensureWorktree(config, 'r', 'feat/new')).toEqual(wt);
+    expect(await ensureWorktree(config, 'r', 'feat/new')).toEqual({ worktree: wt, created: false });
   });
 
   it('checks out an existing branch and reuses the main worktree for its own branch', async () => {
     const { base, repo, config } = setup();
-    const wt = await ensureWorktree(config, 'r', 'existing');
+    const { worktree: wt } = await ensureWorktree(config, 'r', 'existing');
     expect(wt.path).toBe(path.join(base, 'repo-wt', 'existing'));
-    expect(await ensureWorktree(config, 'r', 'main')).toEqual({ path: repo, branch: 'main' });
+    expect(await ensureWorktree(config, 'r', 'main')).toEqual({
+      worktree: { path: repo, branch: 'main' },
+      created: false
+    });
 
     const info = await worktreeInfo(config, 'r');
-    expect(info).toMatchObject({ isRepo: true, repoRoot: repo, root: path.join(base, 'repo-wt'), current: 'main' });
+    expect(info).toMatchObject({
+      isRepo: true,
+      repoRoot: repo,
+      root: path.join(base, 'repo-wt'),
+      current: 'main',
+      base: 'main',
+    });
     expect(info.branches.sort()).toEqual(['existing', 'main']);
     expect(info.worktrees.map((w) => w.branch)).toEqual(['main', 'existing']);
+    expect(worktreeSlot(repo)).toBe(0);
+    expect(worktreeSlot(wt.path)).toBe(1);
+  });
+
+  it("starts new branches from the project's default branch when it exists", async () => {
+    const { config, run } = setup();
+    run('checkout', '-q', '-b', 'develop');
+    run('-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '--allow-empty', '-m', 'dev');
+    const mainSha = run('rev-parse', 'main').trim();
+    const withBase: Config = { ...config, projects: [{ ...config.projects[0], defaultBranch: 'main' }] };
+    expect((await worktreeInfo(withBase, 'r')).base).toBe('main');
+    const { worktree } = await ensureWorktree(withBase, 'r', 'feat/from-main');
+    expect(execFileSync('git', ['rev-parse', 'HEAD'], { cwd: worktree.path }).toString().trim()).toBe(mainSha);
+    // A default branch that doesn't exist falls back to the current HEAD.
+    const missing: Config = { ...config, projects: [{ ...config.projects[0], defaultBranch: 'nope' }] };
+    expect((await worktreeInfo(missing, 'r')).base).toBe('develop');
   });
 
   it('rejects bad branch names and non-repos', async () => {

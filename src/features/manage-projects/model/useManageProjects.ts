@@ -1,18 +1,28 @@
 import { useCallback, useState, type DragEvent, type MouseEvent } from 'react';
-import { api, type Config, type Group, type Project, type ProjectEdit, type Session } from '@/shared/api';
+import {
+  api,
+  type Config,
+  type Group,
+  type Project,
+  type ProjectEdit,
+  type ProjectSettings,
+  type Session,
+} from '@/shared/api';
 import { accountLabel, groupLabel, useT } from '@/shared/i18n';
 import { draggedProject, dropPos, dropTarget, endProjectDrag, startProjectDrag, type DropPos } from './drag';
 
 export type ManageDialog =
   | { kind: 'add'; path: string }
   | { kind: 'renameProject'; project: Project }
+  | { kind: 'settings'; project: Project }
   | { kind: 'removeProject'; project: Project; sessions: number }
   /** `projectId`: move that project into the new group (from its "Group" menu). */
   | { kind: 'newGroup'; projectId?: string }
   | { kind: 'renameGroup'; group: Group };
 
 interface Options {
-  config: Config;
+  /** null until the config is loaded (the hook runs before the page can render). */
+  config: Config | null;
   sessions: Session[];
   onChanged: (config: Config) => void;
   onAdded: (projectId: string) => void;
@@ -23,9 +33,21 @@ interface Options {
 
 type Drop = { id: string; pos: DropPos } | { group: string } | null;
 
-/** Sidebar project management: "+" (folder picker), right-click menus, dialogs, drag to reorder. */
-export function useManageProjects({ config, sessions, onChanged, onAdded, onRemoved, onError }: Options) {
+export type ManageProjects = ReturnType<typeof useManageProjects>;
+
+/** Sidebar project management: "+" (folder picker), right-click menus, settings, dialogs, drag to reorder. */
+const NO_CONFIG: Config = { language: 'ko', accounts: {}, groups: [], projects: [] };
+
+export function useManageProjects({
+  config: loaded,
+  sessions,
+  onChanged,
+  onAdded,
+  onRemoved,
+  onError,
+}: Options) {
   const t = useT();
+  const config = loaded ?? NO_CONFIG;
   const [dialog, setDialog] = useState<ManageDialog | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [drop, setDrop] = useState<Drop>(null);
@@ -50,9 +72,15 @@ export function useManageProjects({ config, sessions, onChanged, onAdded, onRemo
     }
   };
 
+  const openIn = (project: Project) =>
+    api.openProjectIn(project.id).catch((err: unknown) => onError((err as Error).message));
+
   const projectMenu = async (project: Project, e: MouseEvent) => {
     e.preventDefault();
     const choice = await api.showContextMenu([
+      { id: 'settings', label: t('settings.action') },
+      { id: 'open-in', label: t('settings.openInAction', { app: project.openIn || 'Finder' }) },
+      { separator: true },
       { id: 'rename', label: t('action.rename') },
       {
         label: t('projects.group'),
@@ -79,6 +107,8 @@ export function useManageProjects({ config, sessions, onChanged, onAdded, onRemo
     ]);
     if (!choice) return;
     if (choice === 'rename') setDialog({ kind: 'renameProject', project });
+    else if (choice === 'settings') setDialog({ kind: 'settings', project });
+    else if (choice === 'open-in') void openIn(project);
     else if (choice === 'new-group') setDialog({ kind: 'newGroup', projectId: project.id });
     else if (choice === 'remove')
       setDialog({
@@ -131,6 +161,12 @@ export function useManageProjects({ config, sessions, onChanged, onAdded, onRemo
       if (group && dialog.projectId)
         await edit({ op: 'moveProject', id: dialog.projectId, group: group.id, index: Infinity });
     }
+    setDialog(null);
+  };
+
+  const submitSettings = async (settings: ProjectSettings) => {
+    if (dialog?.kind !== 'settings') return;
+    await edit({ op: 'updateProject', id: dialog.project.id, ...settings });
     setDialog(null);
   };
 
@@ -199,10 +235,13 @@ export function useManageProjects({ config, sessions, onChanged, onAdded, onRemo
     dialog,
     closeDialog: () => setDialog(null),
     addProject,
+    openSettings: (project: Project) => setDialog({ kind: 'settings', project }),
+    openIn,
     projectMenu,
     groupMenu,
     submitAdd,
     submitName,
+    submitSettings,
     submitRemove,
     rowDrag,
     groupDrop,

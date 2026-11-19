@@ -10,6 +10,7 @@ import { LanguageToggle } from '@/features/switch-language';
 import { nextWaiting } from '@/features/next-waiting';
 import { FirstRunChecklist, useFirstRun } from '@/features/first-run';
 import { GuideButton, GuideModal, GuideOffer, useGuide } from '@/features/guide';
+import { ManageProjectsDialog, useManageProjects } from '@/features/manage-projects';
 import { Sidebar } from '@/widgets/sidebar';
 import { SessionTabs } from '@/widgets/session-tabs';
 import { SplitView } from '@/widgets/split-view';
@@ -57,6 +58,15 @@ export default function WorkspacePage() {
   });
 
   const { config, project, activeSessionId, openSession, closeSession, setConfig, showError } = ws;
+  const manage = useManageProjects({
+    config,
+    sessions: ws.sessions,
+    onChanged: setConfig,
+    onAdded: ws.selectProject,
+    onRemoved: ws.forgetProject,
+    onError: showError,
+  });
+  const { addProject, openSettings, openIn } = manage;
   const { splitFocused, toggleZoom, paneCount } = ws.split;
   const paletteActions = useMemo(() => {
     const a: Partial<Record<ActionId, () => void>> = {
@@ -70,7 +80,10 @@ export default function WorkspacePage() {
       a.openShell = () => openSession('shell');
       a.openWorktree = openWorktreeDialog;
       a.toggleChanges = toggleChanges;
+      a.projectSettings = () => openSettings(project);
+      a.openProjectIn = () => void openIn(project);
     }
+    a.addProject = () => void addProject();
     a.history = toggleHistory;
     if (activeSessionId) a.closeSession = () => closeSession(activeSessionId);
     if (waitingNext) a.nextWaiting = goNextWaiting;
@@ -102,6 +115,9 @@ export default function WorkspacePage() {
     reopenFirstRun,
     showGuide,
     toggleHistory,
+    addProject,
+    openSettings,
+    openIn,
   ]);
 
   if (!config) return null;
@@ -115,9 +131,7 @@ export default function WorkspacePage() {
           sessions={ws.sessions}
           activeProjectId={ws.activeProjectId}
           onSelect={ws.selectProject}
-          onConfigChanged={ws.setConfig}
-          onProjectRemoved={ws.forgetProject}
-          onError={ws.showError}
+          manage={manage}
           footer={
             <>
               <LanguageToggle config={config} onChanged={ws.setConfig} />
@@ -133,6 +147,7 @@ export default function WorkspacePage() {
             onSelect={ws.selectSession}
             onClose={ws.closeSession}
             onNew={ws.openSession}
+            defaultKind={project?.defaultAgent}
             onNewInWorktree={project && openWorktreeDialog}
             trailing={
               project && (
@@ -174,6 +189,19 @@ export default function WorkspacePage() {
             onResize={ws.split.resizeSplit}
           />
         </main>
+        {manage.dialog && (
+          <ManageProjectsDialog
+            key={JSON.stringify(manage.dialog)}
+            dialog={manage.dialog}
+            config={config}
+            defaults={{ group: project?.group, account: project?.account }}
+            onClose={manage.closeDialog}
+            onAdd={manage.submitAdd}
+            onName={manage.submitName}
+            onRemove={manage.submitRemove}
+            onSettings={manage.submitSettings}
+          />
+        )}
         {worktreeOpen && project && (
           <OpenInWorktreeDialog
             key={project.id}

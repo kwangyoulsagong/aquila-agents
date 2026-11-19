@@ -1,23 +1,48 @@
-import type { InputHTMLAttributes, ReactNode, Ref, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
+import type {
+  InputHTMLAttributes,
+  ReactNode,
+  Ref,
+  SelectHTMLAttributes,
+  TextareaHTMLAttributes,
+} from 'react';
 import { cx } from './cx';
 
-/** `.c-field` — label above a control, optional monospace hint (a path) below. */
+/** `.c-field` — label above a control, optional monospace hint (a path) below; `warning` tints the hint. */
 export function Field({
   label,
   hint,
+  warning,
   children,
 }: {
   label: ReactNode;
   hint?: ReactNode;
+  /** Shown instead of the hint, in the warning color (e.g. a duplicate folder). */
+  warning?: ReactNode;
   children: ReactNode;
 }) {
   return (
     <label className="c-field">
       <span className="c-field__label">{label}</span>
       {children}
-      {hint && <span className="c-field__hint">{hint}</span>}
+      {warning ? (
+        <span className="c-field__hint" data-tone="warning" role="status">
+          {warning}
+        </span>
+      ) : (
+        hint && <span className="c-field__hint">{hint}</span>
+      )}
     </label>
   );
+}
+
+/** `.c-field__row` — a control with a button beside it, inside a `Field`. */
+export function FieldRow({ children }: { children: ReactNode }) {
+  return <span className="c-field__row">{children}</span>;
+}
+
+/** `.c-field-grid` — two short fields side by side. */
+export function FieldGrid({ children }: { children: ReactNode }) {
+  return <div className="c-field-grid">{children}</div>;
 }
 
 /** `.c-input` — single-line text input. */

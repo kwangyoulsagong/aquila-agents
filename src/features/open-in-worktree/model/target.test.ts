@@ -7,6 +7,7 @@ const info: WorktreeInfo = {
   repoRoot: '/a/repo',
   root: '/a/repo-wt',
   current: 'main',
+  base: 'main',
   branches: ['main', 'feat/x', 'old'],
   worktrees: [
     { path: '/a/repo', branch: 'main' },

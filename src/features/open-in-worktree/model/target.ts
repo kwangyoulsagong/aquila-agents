@@ -12,5 +12,5 @@ export function worktreeTarget(info: WorktreeInfo, input: string): WorktreeTarge
   const existing = info.worktrees.find((w) => w.branch === branch);
   if (existing) return { kind: 'reuse', path: existing.path };
   const path = `${info.root}/${branch}`;
-  return info.branches.includes(branch) ? { kind: 'checkout', path } : { kind: 'create', path, from: info.current };
+  return info.branches.includes(branch) ? { kind: 'checkout', path } : { kind: 'create', path, from: info.base };
 }

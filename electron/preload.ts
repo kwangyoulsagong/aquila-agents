@@ -20,6 +20,8 @@ const api: AquilaApi = {
     ipcRenderer.invoke(IPC.configSetProjectAccount, { projectId, account }),
   editProjects: (edit) => ipcRenderer.invoke(IPC.configEditProjects, edit),
   pickFolder: () => ipcRenderer.invoke(IPC.dialogPickFolder),
+  projectForPath: (path) => ipcRenderer.invoke(IPC.configProjectForPath, path),
+  openProjectIn: (projectId) => ipcRenderer.invoke(IPC.projectOpenIn, projectId),
   showContextMenu: (items) => ipcRenderer.invoke(IPC.uiContextMenu, items),
   createSession: (projectId, kind, account) =>
     ipcRenderer.invoke(IPC.sessionCreate, { projectId, kind, account }),

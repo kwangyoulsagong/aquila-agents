@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { Config } from '../src/shared/api/types';
-import { applyProjectEdit, migrateLegacyDir, slugify, tildify } from './config';
+import { applyProjectEdit, migrateLegacyDir, projectForPath, slugify, tildify } from './config';
 
 const tmp: string[] = [];
 const dir = () => {
@@ -84,6 +84,52 @@ describe('applyProjectEdit', () => {
     expect(c.projects[0]).toMatchObject({ name: 'New', group: 'personal' });
     c = applyProjectEdit(c, { op: 'updateProject', id: 'a', name: ' ', group: 'nope', account: 'nope' });
     expect(c.projects[0]).toMatchObject({ name: 'New', group: 'personal', account: 'shared' });
+  });
+
+  it('saves project settings and clears them with blanks', () => {
+    let c = applyProjectEdit(
+      base(),
+      {
+        op: 'updateProject',
+        id: 'a',
+        path: '/home/me/code/a2',
+        defaultAgent: 'codex',
+        defaultBranch: ' develop ',
+        setupScript: 'npm ci\ncp .env.example .env\n\n',
+        portBase: 3100,
+        openIn: 'Cursor',
+      },
+      '/home/me',
+    );
+    expect(c.projects[0]).toMatchObject({
+      path: '~/code/a2',
+      defaultAgent: 'codex',
+      defaultBranch: 'develop',
+      setupScript: 'npm ci\ncp .env.example .env',
+      portBase: 3100,
+      openIn: 'Cursor',
+    });
+    // Invalid values are ignored; blank / null / 'claude' clear.
+    c = applyProjectEdit(c, { op: 'updateProject', id: 'a', portBase: 80, defaultAgent: 'vim' as never });
+    expect(c.projects[0]).toMatchObject({ portBase: 3100, defaultAgent: 'codex' });
+    c = applyProjectEdit(c, {
+      op: 'updateProject',
+      id: 'a',
+      defaultAgent: 'claude',
+      defaultBranch: ' ',
+      setupScript: '',
+      portBase: null,
+      openIn: '',
+    });
+    for (const key of ['defaultAgent', 'defaultBranch', 'setupScript', 'portBase', 'openIn'])
+      expect(c.projects[0]).not.toHaveProperty(key);
+  });
+
+  it('finds the project of a folder, tilde or absolute', () => {
+    const c = applyProjectEdit(base(), { op: 'updateProject', id: 'a', path: '/home/me/x' }, '/home/me');
+    expect(projectForPath(c, '/home/me/x/', '/home/me')).toBe('a');
+    expect(projectForPath(c, '~/x', '/home/me')).toBe('a');
+    expect(projectForPath(c, '/home/me/x/sub', '/home/me')).toBeNull();
   });
 
   it('moves a project within and across groups', () => {
