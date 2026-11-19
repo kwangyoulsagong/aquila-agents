@@ -43,7 +43,8 @@ only with small additive edits. Merge order follows the numbering when two tasks
   `src/widgets/changes-panel/`, `src/entities/diff/` (parseDiff + test).
 
 ### T4 · Restore sessions on relaunch
-- [ ] **Goal:** reopening the app brings tabs back.
+- [x] **Goal:** reopening the app brings tabs back.
+  _Left over: split layout and which tab was focused aren't restored (opens the first project's tab); two codex tabs in one project both resume the same last session; shells don't keep cwd/scrollback._
 - **Spec:** save open tabs to `~/.aquila/state.json`. Claude: start with `--session-id <uuid>` we generate, restore with
   `claude --resume <uuid>`. Codex: `codex resume --last` in that dir. Shell: fresh shell.
 - **Owns:** `electron/state.ts`, small additions in `sessions.ts`.

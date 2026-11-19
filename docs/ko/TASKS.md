@@ -43,7 +43,8 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
   `src/widgets/changes-panel/`, `src/entities/diff/` (parseDiff + 테스트).
 
 ### T4 · 다시 열면 세션 복원
-- [ ] **목표:** 앱을 다시 켜면 탭이 돌아옴.
+- [x] **목표:** 앱을 다시 켜면 탭이 돌아옴.
+  _남은 것: 화면 분할과 포커스된 탭은 복원 안 됨(첫 프로젝트의 탭을 띄움); 한 프로젝트의 codex 탭 두 개는 같은 마지막 세션을 resume; 셸은 cwd/스크롤백 유지 안 함._
 - **스펙:** 열린 탭을 `~/.aquila/state.json`에 저장. Claude: 우리가 만든 `--session-id <uuid>`로 시작하고
   `claude --resume <uuid>`로 복원. Codex: 해당 폴더에서 `codex resume --last`. 셸: 새 셸.
 - **담당:** `electron/state.ts`, `sessions.ts`에 작은 추가.
