@@ -1,0 +1,35 @@
+/* App-level layout only. Component looks live in design-system/components.css. Semantic tokens only. */
+.app {
+  height: 100%;
+  display: flex;
+}
+.app__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.app__stage {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  display: flex;
+}
+.app__error {
+  padding: var(--space-inset-md);
+  color: var(--color-status-error);
+}
+
+/* Hidden sessions stay mounted so scrollback and the pty survive tab switches. */
+.term-host {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+.term-host[hidden] {
+  display: none;
+}
+.term-host .xterm {
+  height: 100%;
+}
