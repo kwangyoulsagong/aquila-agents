@@ -35,7 +35,8 @@ only with small additive edits. Merge order follows the numbering when two tasks
 - **Owns:** `electron/accounts.ts`, `src/features/setup-account/`, `src/features/switch-account/`.
 
 ### T3 · Changes panel
-- [ ] **Goal:** see what agents changed without leaving the app.
+- [x] **Goal:** see what agents changed without leaving the app.
+  _Left over: read-only (no stage/discard); untracked diffs limited to 20 files; panel width is fixed._
 - **UX:** ⌘⇧G toggles `.c-panel` on the right: branch, changed files (status letter + path), unified diff with
   `.c-diff__line--*`. Refresh on focus and every 5s while open.
 - **Owns:** `electron/git.ts` (`git status --porcelain=v1 -b`, `git diff --no-color`, 400 KB cap),

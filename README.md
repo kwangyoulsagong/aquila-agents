@@ -31,6 +31,7 @@ Projects live in `~/.aquila/config.json` (created on first run; "Open settings f
 | ⌘W | Close session (empty pane: close the pane) |
 | ⌘D / ⌘⇧D | Split right / down (up to 4 panes) |
 | ⌘⌥←→↑↓ | Move focus between panes |
+| ⌘⇧G | Show / hide the changes panel (git diff) |
 | ⌘1–9 | Jump to project |
 
 ## Docs

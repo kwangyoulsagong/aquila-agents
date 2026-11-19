@@ -5,13 +5,14 @@
 ```
 ┌──────── 렌더러 (src/, React, FSD) ────────┐        ┌──────────── Main (electron/, Node) ─────────────┐
 │ app/      진입점, 전역 스타일                │  IPC   │ main.ts       창 + IPC 핸들러                     │
-│ pages/    workspace (상태 훅, 단축키)        │◀──────▶│ config.ts     ~/.aquila/config.json           │
+│ pages/    workspace (상태 훅, 단축키)        │◀──────▶│ config.ts     ~/.aquila/config.json             │
 │ widgets/  sidebar, session-tabs,          │preload │ sessions.ts   세션마다 node-pty 하나              │
-│           split-view                      │        │ accounts.ts   계정 상태, ~/.claude-* 폴더,        │
+│           split-view, changes-panel       │        │ accounts.ts   계정 상태, ~/.claude-* 폴더,        │
 │ features/ switch-account, switch-language,│  .ts   │               zsh 함수 (명시적 클릭만)            │
 │           open-session, setup-account     │        │ hooks.ts      127.0.0.1:<port> hook 수신기       │
-│                                           │        │               + ~/.aquila/claude-hooks.json   │
-│ entities/ session (xterm, 상태), project    │        │ smoke.ts      npm run smoke 자동 점검            │
+│                                           │        │               + ~/.aquila/claude-hooks.json     │
+│ entities/ session (xterm, 상태), project    │        │ git.ts        git status + diff (읽기만)        │
+│           diff                            │        │ smoke.ts      npm run smoke 자동 점검            │
 │ shared/   api (타입·IPC·bridge), i18n       │        │                                                 │
 └───────────────────────────────────────────┘        └─────────────────────────────────────────────────┘
                                                               │ 실행 (로그인 + 인터랙티브 zsh)
@@ -47,6 +48,16 @@
 - 포커스된 패널의 세션이 활성 세션. 다른 프로젝트 패널에 포커스하면 사이드바/탭도 그 프로젝트로 바뀜.
   프로젝트를 고르면 그 프로젝트를 띄운 패널로 포커스, 없으면 포커스된 패널이 그 프로젝트의 마지막 세션을 띄움.
 - 탭은 드래그 가능(`shared/lib/sessionDrag.ts`). 패널 가장자리에 놓으면 분할, 가운데에 놓으면 교체.
+
+## 변경사항 패널
+
+- ⌘⇧G (또는 탭 바의 ± 버튼)로 선택한 프로젝트의 `widgets/changes-panel`을 오른쪽에 열고 닫습니다.
+- Main (`git.ts`, `git:changes`): `git status --porcelain=v1 -b -z` → 브랜치, ahead/behind, 파일(상태 글자
+  M A D R C U ?); `git diff --no-color HEAD` (첫 커밋 전에는 `git diff`) + 추적 안 된 파일 최대 20개를 새 파일 diff로
+  (`--no-index /dev/null`). 출력은 400KB에서 줄 끝 기준으로 자릅니다. 읽기만 하고, `GIT_OPTIONAL_LOCKS=0`이라
+  에이전트와 `index.lock`을 다투지 않습니다.
+- 렌더러: `entities/diff`가 diff를 파일/줄로 나누고(`parseDiff`, 테스트 있음) `.c-diff`로 그립니다.
+  파일을 누르면 그 위치로 스크롤. 앱에 포커스가 오면, 그리고 열려 있고 보이는 동안 5초마다 새로고침. 닫혀 있으면 아무것도 안 돌아요.
 
 ## 상태
 
