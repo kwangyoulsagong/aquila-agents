@@ -1,12 +1,13 @@
 // `npm run smoke`: launch the built app, open a shell session, check the pty round-trips,
 // check OSC 7501 (main answers the query; a report becomes the session status), check Ctrl+C stops a `yes` flood fast, open shells from the UI and check terminals on screen render with WebGL, save a screenshot to dist/smoke.png,
 // open the first-run checklist from ⌘K (dist/smoke-first-run.png), open the guide with ⌘/ (dist/smoke-guide.png,
-// dist/smoke-guide-shortcuts.png), run the Korean IME scenarios (real composition
+// dist/smoke-guide-shortcuts.png; every feature must show captured media), run the Korean IME scenarios (real composition
 // events through Chromium's IME path via CDP; checks the exact bytes the terminal sends), then quit with exit code 0 (ok) or 1 (fail).
 // Agents use this to verify their change actually runs.
 import fs from 'node:fs';
 import path from 'node:path';
 import { app, ipcMain, type BrowserWindow } from 'electron';
+import { runCapture } from './capture';
 import { runPerf } from './perf';
 import type { SessionManager } from './sessions';
 import { IPC, type Config } from '../src/shared/api/types';
@@ -51,6 +52,7 @@ export async function runSmoke(
   output: { buffer: string; statuses: string[] },
 ) {
   if (process.env.AQUILA_PERF === '1') return runPerf(win, sessions);
+  if (process.env.AQUILA_CAPTURE) return runCapture(win, sessions, config);
   const fail = (why: string) => {
     console.error(`[smoke] FAIL: ${why}`);
     app.exit(1);
@@ -296,6 +298,20 @@ async function checkGuide(win: BrowserWindow, outDir: string): Promise<string | 
   if (!heading) return 'guide shows no detail for the selected feature';
   await wait(300); // let the modal finish rising in
   fs.writeFileSync(path.join(outDir, 'smoke-guide.png'), (await win.webContents.capturePage()).toPNG());
+  // T24: every feature but the last (the shortcut sheet) shows its captured media, not the placeholder.
+  const noMedia: string[] = await win.webContents.executeJavaScript(`(async () => {
+    const all = [...document.querySelectorAll('.c-modal[open] .c-modal__item')].slice(0, -1);
+    const missing = [];
+    for (const item of all) {
+      item.click();
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      if (!document.querySelector('.c-modal[open] .c-media__frame')) missing.push(item.textContent.trim());
+    }
+    all[0]?.click();
+    return missing;
+  })()`);
+  if (noMedia.length)
+    return `guide items without media (run \`npm run capture\`): ${noMedia.join(', ')}`;
   const rows: number = await win.webContents.executeJavaScript(`(() => {
     const all = document.querySelectorAll('.c-modal[open] .c-modal__item');
     all[all.length - 1]?.click();

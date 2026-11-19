@@ -18,6 +18,7 @@
 npm install     # Electron용 node-pty 빌드까지
 npm run dev     # 핫 리로드로 앱 실행
 npm run smoke   # 빌드 → 실행 → 터미널 세션 동작 확인 → 스크린샷 dist/smoke.png
+npm run capture # 앱 가이드의 스크린샷·루프를 데모 픽스처로 다시 만들기 (ko + en)
 npm run check   # 타입 체크 + 린트(FSD 경계 포함) + 테스트
 npm run dist    # 패키징 → release/Aquila Agents-<버전>-arm64.dmg (+ .zip)
 ```

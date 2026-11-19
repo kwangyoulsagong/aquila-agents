@@ -1,0 +1,56 @@
+#!/bin/sh
+# Demo stand-in for `claude`, used only by `npm run capture`: prints a short fixed transcript and reports its
+# status with OSC 7501 like the real CLI would. What it does depends on the project folder it runs in.
+[ "$1" = "--version" ] && { echo "2.1.0 (Claude Code)"; exit 0; }
+osc() { printf '\033]7501;%s\007' "$1"; }
+say() { printf '%b\n' "$1"; }
+b64() { printf '%s' "$1" | base64 | tr -d '\n'; }
+project=$(basename "$PWD")
+say "\033[38;5;173m✻\033[0m Demo agent · $project"
+say "\033[2m  (fixture for the guide — not the real CLI)\033[0m"
+say ""
+case "$project" in
+  web-shop)
+    say "\033[1m>\033[0m Add a coupon field to the cart"
+    osc "state=working:app=claude-code"
+    sleep 1
+    say "  ● Reading src/cart.ts"
+    sleep 1
+    say "  ● Editing src/cart.ts  \033[32m+18\033[0m \033[31m-4\033[0m"
+    say ""
+    say "  \033[33mAllow edit to src/cart.ts?\033[0m  [y] yes  [n] no"
+    osc "state=blocked:app=claude-code:kind=permission:msg=$(b64 'Allow edit to src/cart.ts?')"
+    ;;
+  api-server)
+    say "\033[1m>\033[0m Fix the failing orders test"
+    osc "state=working:app=claude-code"
+    sleep 1
+    say "  ● Running npm test"
+    sleep 2
+    say "  ● Fixed rounding in orders/total.ts"
+    say "  \033[32m✓\033[0m 42 tests pass"
+    osc "state=done:app=claude-code"
+    ;;
+  docs-site)
+    say "\033[1m>\033[0m Publish the docs"
+    osc "state=working:app=claude-code"
+    sleep 2
+    say "  \033[31m✗ Build failed: missing page guide/intro.md\033[0m"
+    osc "state=error:app=claude-code"
+    ;;
+  *)
+    say "\033[1m>\033[0m Rename the settings screen"
+    osc "state=working:app=claude-code"
+    sleep 3
+    say "  ● Renamed 3 files"
+    osc "state=done:app=claude-code"
+    ;;
+esac
+while IFS= read -r line; do
+  [ -n "$line" ] || continue
+  osc "state=working:app=claude-code"
+  say "  ● $line"
+  sleep 1
+  say "  \033[32m✓\033[0m Done"
+  osc "state=done:app=claude-code"
+done

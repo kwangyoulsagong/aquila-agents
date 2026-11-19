@@ -10,8 +10,10 @@ import {
   ModalSearch,
   ShortcutSheet,
 } from '@design-system/react';
+import type { Language } from '@/shared/api';
 import { useT } from '@/shared/i18n';
 import { usePowerSaver } from '@/shared/lib/usePowerSaver';
+import { guideMedia } from '../model/media';
 import { GUIDE_ITEMS, SHORTCUTS_ITEM } from '../model/registry';
 import { guideEntries, searchGuide } from '../model/search';
 import { buildSheet } from '../model/sheet';
@@ -19,13 +21,15 @@ import { buildSheet } from '../model/sheet';
 interface Props {
   open: boolean;
   onClose: () => void;
+  /** Media are captured per language. */
+  language: Language;
 }
 
 /**
  * ? / ⌘/: every feature in a searchable list; the selected one shows its screenshot or loop, 1–2 lines and its
  * shortcuts. The last item is the full shortcut sheet. ↑↓ pick, Esc closes.
  */
-export default function GuideModal({ open, onClose }: Props) {
+export default function GuideModal({ open, onClose, language }: Props) {
   const t = useT();
   const saver = usePowerSaver();
   const baseId = useId();
@@ -46,6 +50,7 @@ export default function GuideModal({ open, onClose }: Props) {
   const sheet = useMemo(() => buildSheet(t), [t]);
   // The selection follows the results: the first match when the selected item was filtered out.
   const selected = results.find((e) => e.item.id === selectedId) ?? results[0];
+  const media = selected && guideMedia(selected.item.id, language);
   const optionId = (id: string) => `${baseId}-${id}`;
 
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -109,9 +114,9 @@ export default function GuideModal({ open, onClose }: Props) {
       {selected && selected.item.id !== SHORTCUTS_ITEM && (
         <>
           <Media
-            src={selected.item.media?.src}
-            kind={selected.item.media?.kind}
-            poster={selected.item.media?.poster}
+            src={media?.src}
+            kind={media?.kind}
+            poster={media?.poster}
             alt={selected.title}
             still={saver}
             placeholder={

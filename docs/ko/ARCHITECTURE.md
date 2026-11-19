@@ -274,7 +274,16 @@ Agentrix에서 이름이 바뀌었습니다: 처음 실행할 때 `~/.aquila/con
 - `node-pty`는 네이티브 모듈이라 `postinstall`에서 `electron-rebuild` 실행. Electron 버전을 바꾸면 `npm install` 다시.
 - `npm run smoke`: 빌드 후 앱을 띄워 셸 세션을 열고 pty 왕복을 확인, `dist/smoke.png` 스크린샷 저장 후 종료 (성공 0 / 실패 1).
   `claude`/`codex`가 PATH에 있는지도 로그로 남기고, ⌘K로 첫 실행 체크리스트를, ⌘/로 가이드를 열어 봅니다(`dist/smoke-first-run.png`,
-  `dist/smoke-guide.png`, `dist/smoke-guide-shortcuts.png`). 패키징된 앱은 스크린샷을 임시 폴더에 저장합니다.
+  `dist/smoke-guide.png`, `dist/smoke-guide-shortcuts.png`). 미디어가 없는 가이드 항목이 있으면 실패해요. 패키징된 앱은 스크린샷을 임시 폴더에 저장합니다.
+- `npm run capture` (T24, `scripts/capture/capture.sh` + `electron/capture.ts`): `src/features/guide/media/`의 가이드
+  미디어를 언어마다 다시 만들어요. 실행마다 버리는 `HOME`(`/tmp/aquila-demo`)을 쓰고, 그 안에 픽스처 zsh 프롬프트,
+  고정 대본을 출력하고 OSC 7501로 상태를 알리는 데모 `claude`/`codex` 스크립트, 로그인된 데모 계정, 데모 git
+  프로젝트가 있어서 실제 사용자 데이터는 화면에 나오지 않아요. 가이드 항목마다 시나리오가 상태를 연출하고
+  `capturePage(rect)`로 12fps 프레임을 잡고, 숨긴 창이 Chromium 자체 MediaRecorder(VP9 WebM, 실시간 재생으로
+  타이밍 유지)와 캔버스 WebP로 인코딩해요(ffmpeg 불필요). 결과: `<id>.<lang>.webp`(스틸 또는 루프의 포스터),
+  움직이는 항목은 `<id>.<lang>.webm`. 960×600, 루프 5초 이하, 루프 700KB·스틸 250KB 이하(넘으면 실패). 가이드는
+  `import.meta.glob`(`model/media.ts`)으로 파일을 찾고, 없는 항목이 있으면 테스트와 smoke가 실패해요. 가이드
+  항목을 추가하면 `electron/capture.ts`에 시나리오를 넣고 `npm run capture`.
 - Finder에서 연 앱은 launchd의 최소 PATH를 받습니다. `env.ts`가 시작할 때 한 번 로그인 + 인터랙티브 셸의 PATH를 읽어
   앞에 붙입니다 (세션은 원래 로그인 셸로 뜨므로, main이 직접 실행하는 `git` 등을 위한 것).
 - `npm run dist`: electron-builder(`electron-builder.yml`) → `release/*.dmg` + `.zip`, arm64, 서명 없음. 런타임 의존성은

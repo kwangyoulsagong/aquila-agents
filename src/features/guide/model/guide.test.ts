@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { translator } from '@/shared/i18n';
 import { SHORTCUT_IDS } from '@/shared/lib/shortcuts';
+import { guideMedia, mediaFrom } from './media';
 import { GUIDE_ITEMS, SHORTCUTS_ITEM } from './registry';
 import { guideEntries, searchGuide } from './search';
 import { SHEET, buildSheet, expandIds, shortcutKeys } from './sheet';
@@ -70,5 +71,21 @@ describe('searchGuide', () => {
   it('searches Korean text', () => {
     const koEntries = guideEntries(GUIDE_ITEMS, ko);
     expect(ids('워크트리', koEntries, ko)[0]).toBe('worktree');
+  });
+});
+
+describe('guide media', () => {
+  it('prefers the loop with its poster, else the still', () => {
+    const files = { '../media/a.en.webm': 'a.webm', '../media/a.en.webp': 'a.webp', '../media/b.ko.webp': 'b.webp' };
+    expect(mediaFrom(files, 'a', 'en')).toEqual({ src: 'a.webm', kind: 'video', poster: 'a.webp' });
+    expect(mediaFrom(files, 'b', 'ko')).toEqual({ src: 'b.webp', kind: 'image' });
+    expect(mediaFrom(files, 'b', 'en')).toBeUndefined();
+  });
+
+  it('every feature has captured media in ko and en (run `npm run capture`)', () => {
+    const missing = GUIDE_ITEMS.filter((i) => i.id !== SHORTCUTS_ITEM).flatMap((i) =>
+      (['ko', 'en'] as const).filter((lang) => !guideMedia(i.id, lang)).map((lang) => `${i.id}.${lang}`),
+    );
+    expect(missing).toEqual([]);
   });
 });

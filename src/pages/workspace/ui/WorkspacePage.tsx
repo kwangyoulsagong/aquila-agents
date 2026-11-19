@@ -200,7 +200,7 @@ export default function WorkspacePage() {
           />
         )}
         <GuideOffer open={guide.offer} onTake={showGuide} onSkip={guide.dismissOffer} />
-        <GuideModal open={guide.open} onClose={guide.close} />
+        <GuideModal open={guide.open} onClose={guide.close} language={config.language} />
         <CommandPalette
           open={paletteOpen}
           onClose={() => setPaletteOpen(false)}

@@ -281,7 +281,17 @@ Renderer: `useT()`; main (notifications): `translator(config.language)`.
 - `node-pty` is native: `postinstall` runs `electron-rebuild`. After changing Electron's version, rerun `npm install`.
 - `npm run smoke`: build, launch, open a shell session, verify the pty round-trip, save `dist/smoke.png`, quit (0 ok / 1 fail).
   It also logs whether `claude`/`codex` are on PATH, and opens the first-run checklist from ⌘K (`dist/smoke-first-run.png`) and the guide with ⌘/
-  (`dist/smoke-guide.png`, `dist/smoke-guide-shortcuts.png`). A packaged app saves the screenshot to the temp dir.
+  (`dist/smoke-guide.png`, `dist/smoke-guide-shortcuts.png`); it fails when a guide item shows no media. A packaged app saves the screenshot to the temp dir.
+- `npm run capture` (T24, `scripts/capture/capture.sh` + `electron/capture.ts`): rebuilds the guide media in
+  `src/features/guide/media/` once per language. Each run gets a throwaway `HOME` (`/tmp/aquila-demo`) with a fixture
+  zsh prompt, demo `claude`/`codex` scripts that print a fixed transcript and report status over OSC 7501, logged-in
+  demo accounts and demo git projects, so no real user data is ever on screen. A scenario per guide item stages
+  the state and grabs frames with `capturePage(rect)` at 12 fps; a hidden window encodes them with Chromium's own
+  MediaRecorder (VP9 WebM, real-time replay keeps the timing) and canvas WebP, so there's no ffmpeg dependency.
+  Output: `<id>.<lang>.webp` (still, or the loop's poster) and `<id>.<lang>.webm` for items that move; 960×600,
+  loops ≤ 5 s, ≤ 700 KB per loop and ≤ 250 KB per still (the run fails over budget). The guide finds files with
+  `import.meta.glob` (`model/media.ts`); a test and smoke fail when an item has none. New guide item → add a
+  scenario in `electron/capture.ts` and run `npm run capture`.
 - Finder launches get launchd's minimal PATH. `env.ts` reads the login + interactive shell's PATH once at startup and
   puts it in front (sessions already start a login shell; this is for what main runs directly, like `git`).
 - `npm run dist`: electron-builder (`electron-builder.yml`) → `release/*.dmg` + `.zip`, arm64, unsigned. Only `node-pty`

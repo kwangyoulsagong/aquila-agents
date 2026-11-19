@@ -20,6 +20,7 @@ Korean docs live in `docs/ko/` — **keep both languages in sync** when you chan
 | `npm run typecheck` | Both tsconfigs (renderer + electron) |
 | `npm test` | Vitest |
 | `npm run smoke` | Build + launch + open a real pty session + screenshot `dist/smoke.png` (exit 0/1) |
+| `npm run capture` | Rebuild the guide media (`src/features/guide/media/`) from fixtures, ko + en (~3 min) |
 | `npm run build` | Production build |
 | `npm run dist` | Package `release/*.dmg` + `.zip` (arm64, unsigned) |
 | `open design-system/preview.html` | See every token and component |
