@@ -27,6 +27,7 @@ import {
   type HookEvent,
 } from './hooks';
 import { refreshDue, UsageTracker } from './usage';
+import { ContextWatcher, statusLineSources, userHasStatusLine } from './context';
 import { PowerWatcher, type PowerSource } from './power';
 import { SessionManager } from './sessions';
 import { checkRemote } from './remote/check';
@@ -121,6 +122,10 @@ app.whenReady().then(async () => {
     onUsageHook?.(tabId, hook);
   });
   const hookFiles = writeClaudeHookSettings(hookPort);
+  // Context gauge (T31): our statusline drops Claude's statusline JSON per tab into ~/.aquila/context/.
+  const context = new ContextWatcher((u) => win?.webContents.send(IPC.contextChanged, u));
+  if (!isSmoke) safe('context watch', () => context.start());
+  ipcMain.handle(IPC.contextGet, () => context.all());
   // http hooks unless `claude --version` says it's older than they need (then command + curl).
   let httpHooks = true;
   const detectHooks = () =>
@@ -139,7 +144,13 @@ app.whenReady().then(async () => {
       : send,
     getWindow: () => win,
     hookPort,
-    hookSettingsPath: () => (httpHooks ? hookFiles.http : hookFiles.legacy),
+    hookSettingsPath: ({ cwd, configDir }) => {
+      // The user's own statusLine wins: ours (flag settings) would replace it.
+      const status = !isSmoke && !userHasStatusLine(statusLineSources(cwd, configDir));
+      if (httpHooks) return status ? hookFiles.httpStatus : hookFiles.http;
+      return status ? hookFiles.legacyStatus : hookFiles.legacy;
+    },
+    onEnded: (id) => context.remove(id),
     onTabsChanged: isSmoke ? undefined : saveTabs,
     scrollback: isSmoke
       ? undefined
@@ -187,6 +198,8 @@ app.whenReady().then(async () => {
   ipcMain.handle(IPC.usageGet, () => usage.refresh());
   let usageSoon: NodeJS.Timeout | undefined;
   onUsageHook = (tabId, hook) => {
+    // Claude quit in this tab (the shell stays): its gauge is stale. /clear keeps it (the statusline reports anew).
+    if (hook.event === 'SessionEnd' && hook.reason !== 'clear') context.remove(tabId);
     if (hook.event === 'StopFailure' && hook.error === 'rate_limit') {
       const account = s.claudeAccount(tabId);
       if (account) void pushUsage(usage.rateLimited(account));

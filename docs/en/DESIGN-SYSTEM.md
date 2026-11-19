@@ -95,6 +95,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `--size-split-handle` | 8 | Grab area of a split divider, centred on the 1px hairline |
 | `--size-badge` / `--size-dot` | 16 / 8 | |
 | `--size-meter` | 4 | Bar of a meter (usage gauge) |
+| `--size-ring` | 12 | Ring meter in a tab (context gauge) |
 | `--size-sidebar` / `--size-panel` | 248 / 416 | |
 | `--size-panel-wide` | 720 | Changes panel in side-by-side mode (capped at half the window) |
 | `--size-diff-gutter` / `--size-diff-comment` | 40 / 384 | One line-number column in a diff / a line-comment box |
@@ -119,6 +120,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `.c-sidebar` `__drag` `__body` `__group` `__foot` `__lang` | Sidebar |
 | `.c-meter[data-tone=warn\|danger][data-unknown]` `__head` `__value` `__track` `__fill` `__caption` | A share of a limit: label · value, 4px bar (grey → orange ≥ 75% → red ≥ 90%), caption; unknown limit = outlined empty bar (T30) |
 | `.c-usage` `__head` `__est` `__account` `__bars` | Usage band above the sidebar footer: one block per account, two meters side by side (T30) |
+| `.c-ring[data-tone=warn\|danger]` `__svg` `__track` `__fill` `__value` | 12px circular meter that fits in a tab, value text optional; grey → orange → red (context gauge, T31) |
 | `.c-row[aria-current]` `__name` `__meta` | Project row |
 | `.c-row[data-drop=before\|after]` `[data-dragging]`, `.c-sidebar__group[data-drop]`, `.c-sidebar__empty` | Drag to reorder: landing line, dimmed dragged row, empty group as a drop target |
 | `.c-tabbar` `__add` `__trailing`, `.c-tab[aria-selected]` `__title` `__branch` `__close` | Tabs (`__branch` = worktree branch, mono, truncates first) |
@@ -159,6 +161,7 @@ from `src/` (ESLint enforces it). New primitive → add the class to `components
 | `Kbd`, `Label` | `.c-kbd`, `.c-label` |
 | `Elapsed` `title?` | `.c-elapsed` |
 | `Meter` `label` `value` `fraction` (null = unknown) `tone?` `caption?` `title?` | `.c-meter` |
+| `Ring` `fraction` `label` `valueText` `showValue?` `tone?` `title?` | `.c-ring` |
 | `Segment` `options` `value` `onChange` | `.c-segment` |
 | `EmptyState` `title` `path` `actions` | `.c-empty` |
 | `Dialog` `open` `title` `onClose` `actions` `wide`, `DialogCheck`, `DialogCode`, `DialogForm` `id` `onSubmit` | `.c-dialog` |

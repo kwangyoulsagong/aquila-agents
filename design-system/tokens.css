@@ -157,6 +157,7 @@
   --size-dot: 8px;
   --size-dot-sm: 6px; /* per-session dots in a project row */
   --size-meter: var(--p-size-4); /* bar of a meter (usage gauge) */
+  --size-ring: var(--p-size-12); /* ring meter in a tab (context gauge) */
   --size-sidebar: 248px;
   --size-panel: 416px;
   --size-panel-wide: 720px;   /* changes panel in side-by-side mode (capped at half the window) */

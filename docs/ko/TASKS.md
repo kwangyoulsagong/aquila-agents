@@ -232,7 +232,8 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
 - **담당:** `electron/usage.ts`, `src/widgets/usage-gauge/`.
 
 ### T31 · 탭별 컨텍스트 게이지
-- [ ] **목표:** auto-compact에 놀라기 전에 컨텍스트 사용량 보기. (#34)
+- [x] **목표:** auto-compact에 놀라기 전에 컨텍스트 사용량 보기. (#34)
+  _남은 것: 자기 `statusLine`이 있는 사용자(계정·프로젝트·managed 설정)의 탭은 의도대로 게이지 없음, 원격 탭도 없음. 필드 이름은 Claude 2.1.328로 확인했지만 실제 긴 세션으로 앱에서 직접 본 적은 없음; 인앱 가이드 항목 없음(캡처 미디어 필요)._
 - **명세:** 주입하는 `--settings`에 statusline 명령을 넣어 `context_window` JSON을 `~/.aquila/`에 기록, 탭마다 작은 게이지
   (60% 근처 힌트). 사용자가 자기 `statusLine`을 쓰면 주입 안 함(우리 것이 대체해 버림).
 - **담당:** `electron/hooks.ts`(설정 파일), `src/entities/session` 게이지.

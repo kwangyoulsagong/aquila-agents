@@ -119,6 +119,18 @@ body {
   font-size: var(--font-size-caption); color: var(--color-text-tertiary);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+/* Ring meter: a 12px circle that fills clockwise (context use in a tab, T31). */
+.c-ring { display: inline-flex; align-items: center; gap: var(--space-inline-xs); flex: none; color: var(--color-text-tertiary); }
+.c-ring__svg { width: var(--size-ring); height: var(--size-ring); transform: rotate(-90deg); }
+.c-ring__track, .c-ring__fill { fill: none; stroke-width: 2.5; }
+.c-ring__track { stroke: var(--color-bg-pressed); }
+.c-ring__fill {
+  stroke: currentColor; stroke-linecap: round;
+  transition: stroke-dasharray var(--motion-slow) var(--motion-ease), color var(--motion-medium) var(--motion-ease);
+}
+.c-ring[data-tone='warn'] { color: var(--color-status-waiting); }
+.c-ring[data-tone='danger'] { color: var(--color-status-error); }
+.c-ring__value { font: var(--font-size-caption) var(--font-family-mono); }
 
 /* ── Section label ────────────────────────────────────────── */
 .c-label {

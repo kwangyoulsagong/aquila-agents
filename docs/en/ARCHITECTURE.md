@@ -23,6 +23,7 @@
 │                                           │        │ output.ts     output batching + flow control     │
 │                                           │        │ power.ts      power profile: battery/heat (T9)   │
 │           usage-gauge                     │        │ usage.ts      5h / weekly usage per account (T30)│
+│                                           │        │ context.ts    context use per tab (T31)          │
 │                                           │        │ detect.ts     CLI checks, first-run state (T17)  │
 │                                           │        │ guide.ts      tour offered once (T23)            │
 │                                           │        │ history.ts    past sessions, read-only (T11)     │
@@ -276,6 +277,26 @@ side: the 5-hour block (with its reset time) and the last 7 days. Labelled "Esti
 - **Refresh:** `usage:get` on mount, `usage:changed` pushes: 3 s after each `Stop` hook, every minute while focused,
   every 5 min otherwise, twice as long in power saver. First scan of a busy week ≈ 2 s (async), then ~25 ms.
 - Not counted: claude.ai, other machines, remote (SSH) sessions.
+
+## Context gauge (T31)
+
+`electron/context.ts` + `entities/session` `ContextGauge`, a 12px ring in each local Claude tab.
+
+- **Source:** Claude's own statusline JSON. The `--settings` file we pass gets a `statusLine` command that writes stdin
+  to `~/.aquila/context/$AQUILA_TAB_ID.json` (temp file + `mv`, prints nothing, no-op outside our tabs). Four settings
+  files now: http / legacy hooks, each with and without the statusline (`claude-hooks-status.json`,
+  `claude-hooks-legacy-status.json`).
+- **User's own status line wins:** before spawning, `statusLineSources` + `userHasStatusLine` read (never write)
+  `<configDir>/settings.json`, `<cwd>/.claude/settings.json`, `<cwd>/.claude/settings.local.json` and managed settings;
+  any `statusLine` there → the plain settings file (ours would replace theirs) and that tab has no gauge.
+- **Reading:** `ContextWatcher` clears the folder at launch, `fs.watch`es it, reads a tab's file 250 ms after a burst and
+  takes `context_window.used_percentage` (else `current_usage` input + cache tokens ÷ `context_window_size`). Before the
+  first message there is nothing to show. Pushes `context:changed` (`{ id, usage | null }`) only when the rounded
+  percent or tokens change; `context:get` for a reloaded renderer.
+- **Cleared:** tab closed (`SessionManager` `onEnded`) or `SessionEnd` other than `/clear` (Claude quit, the shell
+  stays) → file removed, `usage: null`. `/clear` just reports anew.
+- **UI:** grey ring; from 60% the number shows and it turns orange, from 85% red. Tooltip: percent, `used of size`
+  tokens, and from 60% a /compact hint. Not shown for remote tabs (no hooks there) or smoke.
 
 ## Shortcuts
 

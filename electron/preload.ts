@@ -76,6 +76,8 @@ const api: AquilaApi = {
   onPower: on(IPC.powerChanged),
   usage: () => ipcRenderer.invoke(IPC.usageGet),
   onUsage: on(IPC.usageChanged),
+  contextUsage: () => ipcRenderer.invoke(IPC.contextGet),
+  onContext: on(IPC.contextChanged),
 };
 
 contextBridge.exposeInMainWorld('aquila', api);

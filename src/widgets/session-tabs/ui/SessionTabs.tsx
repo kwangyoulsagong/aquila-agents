@@ -5,7 +5,7 @@ import { kindLabel, useT } from '@/shared/i18n';
 import { endSessionDrag, startSessionDrag } from '@/shared/lib/sessionDrag';
 import { SHORTCUTS, withShortcut } from '@/shared/lib/shortcuts';
 import { AccountBadge, HostBadge } from '@/entities/project';
-import { StatusDot, WaitingTime } from '@/entities/session';
+import { ContextGauge, StatusDot, WaitingTime } from '@/entities/session';
 
 interface Props {
   config: Config;
@@ -94,6 +94,7 @@ export default function SessionTabs({
             </span>
           )}
           {s.status === 'waiting' && <WaitingTime since={s.since} />}
+          {s.kind === 'claude' && !s.remote && <ContextGauge id={s.id} />}
           {s.account && <AccountBadge config={config} account={s.account} />}
           {s.remote && <HostBadge host={s.remote} conn={s.connection ?? 'connecting'} />}
           <button

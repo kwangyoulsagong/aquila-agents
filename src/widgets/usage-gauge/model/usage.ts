@@ -1,4 +1,7 @@
 import type { AccountUsage, UsageWindow } from '@/shared/api';
+import { formatTokens } from '@/shared/lib/tokens';
+
+export { formatTokens };
 
 /** Same threshold as main's notice (`electron/usage.ts` NEAR). */
 export const NEAR = 0.9;
@@ -10,22 +13,6 @@ export const fraction = (w: UsageWindow): number | null => (w.limit ? w.used / w
 export function tone(w: UsageWindow): 'default' | 'warn' | 'danger' {
   const f = fraction(w) ?? 0;
   return f >= NEAR ? 'danger' : f >= WARN ? 'warn' : 'default';
-}
-
-/** 980 · 12.3K · 1.2M · 3.4B */
-export function formatTokens(n: number): string {
-  const units: [number, string][] = [
-    [1e9, 'B'],
-    [1e6, 'M'],
-    [1e3, 'K'],
-  ];
-  for (const [size, unit] of units) {
-    if (n >= size) {
-      const v = n / size;
-      return `${v >= 100 ? Math.round(v) : Number(v.toFixed(1))}${unit}`;
-    }
-  }
-  return String(Math.round(n));
 }
 
 /** "72%" with a learned limit, else the token count. */

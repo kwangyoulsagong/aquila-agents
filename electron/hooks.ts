@@ -9,12 +9,16 @@ import http from 'node:http';
 import path from 'node:path';
 import type { AddressInfo } from 'node:net';
 import { APP_DIR } from './config';
+import { statusLineSettings } from './context';
 import { firstLine, toolSummary } from './notify';
 import { isSessionId } from './state';
 import { WAITING_NOTIFICATIONS, type HookSignal } from './status/tracker';
 
 export const HOOK_SETTINGS_PATH = path.join(APP_DIR, 'claude-hooks.json');
 export const LEGACY_HOOK_SETTINGS_PATH = path.join(APP_DIR, 'claude-hooks-legacy.json');
+/** The same two with our context statusline (T31), for sessions whose user has no `statusLine` of their own. */
+export const STATUS_HOOK_SETTINGS_PATH = path.join(APP_DIR, 'claude-hooks-status.json');
+export const STATUS_LEGACY_HOOK_SETTINGS_PATH = path.join(APP_DIR, 'claude-hooks-legacy-status.json');
 
 /** `onFailure` and the hook fields we rely on: Claude Code 2.1.295 (the same release as OSC 7501). */
 export const HTTP_HOOKS_SINCE: [number, number, number] = [2, 1, 295];
@@ -69,12 +73,30 @@ export function hookSettings(handler: HookHandler): { hooks: Record<string, unkn
   return { hooks };
 }
 
-/** Writes both settings files (the port is baked into the http one); returns their paths. */
-export function writeClaudeHookSettings(port: number): { http: string; legacy: string } {
+export interface HookSettingsFiles {
+  http: string;
+  legacy: string;
+  /** `http` / `legacy` plus the context statusline. */
+  httpStatus: string;
+  legacyStatus: string;
+}
+
+/** Writes the settings files (the port is baked into the http ones); returns their paths. */
+export function writeClaudeHookSettings(port: number): HookSettingsFiles {
   fs.mkdirSync(APP_DIR, { recursive: true });
-  fs.writeFileSync(HOOK_SETTINGS_PATH, JSON.stringify(hookSettings(httpHook(port)), null, 2));
-  fs.writeFileSync(LEGACY_HOOK_SETTINGS_PATH, JSON.stringify(hookSettings(COMMAND_HOOK), null, 2));
-  return { http: HOOK_SETTINGS_PATH, legacy: LEGACY_HOOK_SETTINGS_PATH };
+  const http = hookSettings(httpHook(port));
+  const legacy = hookSettings(COMMAND_HOOK);
+  const write = (file: string, v: unknown) => fs.writeFileSync(file, JSON.stringify(v, null, 2));
+  write(HOOK_SETTINGS_PATH, http);
+  write(LEGACY_HOOK_SETTINGS_PATH, legacy);
+  write(STATUS_HOOK_SETTINGS_PATH, { ...http, ...statusLineSettings() });
+  write(STATUS_LEGACY_HOOK_SETTINGS_PATH, { ...legacy, ...statusLineSettings() });
+  return {
+    http: HOOK_SETTINGS_PATH,
+    legacy: LEGACY_HOOK_SETTINGS_PATH,
+    httpStatus: STATUS_HOOK_SETTINGS_PATH,
+    legacyStatus: STATUS_LEGACY_HOOK_SETTINGS_PATH,
+  };
 }
 
 /** `2.1.328 (Claude Code)` → [2, 1, 328]; null when it doesn't look like a version. */

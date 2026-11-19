@@ -347,6 +347,21 @@ export interface AccountUsage {
   near: boolean;
 }
 
+/** Context window use of a Claude tab (T31), from the statusline JSON Claude hands our statusline command. */
+export interface ContextUsage {
+  /** 0–100. */
+  percent: number;
+  usedTokens: number;
+  /** 0 when Claude didn't say. */
+  windowTokens: number;
+}
+
+/** `context:changed`: a tab's latest context use; null = none any more (Claude ended in that tab). */
+export interface ContextUpdate {
+  id: string;
+  usage: ContextUsage | null;
+}
+
 /** Session history (T11): which CLI a past session belongs to. */
 export type HistoryAgent = 'claude' | 'codex';
 
@@ -529,6 +544,9 @@ export interface AquilaApi {
   /** Estimated 5-hour and weekly usage per account (T30). */
   usage(): Promise<AccountUsage[]>;
   onUsage(cb: (u: AccountUsage[]) => void): Unsubscribe;
+  /** Context use per Claude tab (T31); tabs whose user has their own statusline report nothing. */
+  contextUsage(): Promise<ContextUpdate[]>;
+  onContext(cb: (u: ContextUpdate) => void): Unsubscribe;
 }
 
 /** IPC channel names — single source for main, preload and renderer. */
@@ -591,4 +609,6 @@ export const IPC = {
   powerChanged: 'power:changed',
   usageGet: 'usage:get',
   usageChanged: 'usage:changed',
+  contextGet: 'context:get',
+  contextChanged: 'context:changed',
 } as const;

@@ -101,8 +101,13 @@ interface Deps {
   send: (channel: string, payload: unknown) => void;
   getWindow: () => BrowserWindow | null;
   hookPort: number;
-  /** `--settings` file for Claude: http hooks, or command hooks for old versions (read at spawn time). */
-  hookSettingsPath: () => string;
+  /**
+   * `--settings` file for Claude: http hooks, or command hooks for old versions (read at spawn time); with our context
+   * statusline unless the user has their own for this folder / config dir.
+   */
+  hookSettingsPath: (at: { cwd: string; configDir?: string }) => string;
+  /** A tab is gone (closed or exited). */
+  onEnded?: (id: string) => void;
   /** Open tabs changed (created, closed, Claude session id moved) — persisted by state.ts. */
   onTabsChanged?: (tabs: SavedTab[]) => void;
   scrollback?: ScrollbackStore;
@@ -242,7 +247,9 @@ export class SessionManager {
 
     const claudeSessionId = kind === 'claude' ? (restore.resumeClaude ?? crypto.randomUUID()) : undefined;
     const resuming = !!(restore.resumeClaude || restore.resumeCodexId);
-    let command = this.commandFor(kind, claudeSessionId, restore);
+    // Remote: ssh runs from home; the project folder is on the host (cd'd into by the remote script).
+    const cwd = remote ? os.homedir() : (worktree?.path ?? expand(project.path));
+    let command = this.commandFor(kind, claudeSessionId, restore, { cwd, configDir: env.CLAUDE_CONFIG_DIR });
     // A failed resume prints our marker, then the tab drops to the shell as usual (cold restore).
     if (command && resuming) command = `${command} || printf '\\033]7501;${RESUME_FAILED}\\007'`;
     // The setup script runs in the same login shell (the user's PATH), visibly, once; the program starts either way.
@@ -262,8 +269,6 @@ export class SessionManager {
       : command || pre
         ? ['-l', '-i', '-c', `${pre}${command ? `${command}; ` : ''}exec ${SHELL} -l -i`]
         : ['-l', '-i'];
-    // Remote: ssh runs from home; the project folder is on the host (cd'd into by the remote script).
-    const cwd = remote ? os.homedir() : (worktree?.path ?? expand(project.path));
     const spawnProc = (cols: number, rows: number) =>
       pty.spawn(remote ? 'ssh' : SHELL, args, { name: 'xterm-256color', cols, rows, cwd, env });
     const proc = spawnProc(120, 32);
@@ -359,6 +364,7 @@ export class SessionManager {
     // The tab is gone for good (not a quit): its saved output too.
     if (!this.closing) this.deps.scrollback?.remove(s.key);
     this.attention.forget(id);
+    this.deps.onEnded?.(id);
     this.updateBadge();
     this.tabsChanged();
   }
@@ -406,13 +412,14 @@ export class SessionManager {
     kind: SessionKind,
     claudeSessionId: string | undefined,
     restore: RestoreOptions,
+    at: { cwd: string; configDir?: string },
   ): string | null {
     if (kind === 'claude') {
       // Only uuids reach here (ours or validated from state/hook), so no shell quoting is needed for the id.
       const session = restore.resumeClaude
         ? `--resume ${claudeSessionId}`
         : `--session-id ${claudeSessionId}`;
-      return `${commandName('claude')} --settings ${JSON.stringify(this.deps.hookSettingsPath())} ${session}`;
+      return `${commandName('claude')} --settings ${JSON.stringify(this.deps.hookSettingsPath(at))} ${session}`;
     }
     if (kind === 'codex') {
       // Codex ids are validated uuids (state.ts), safe unquoted.
