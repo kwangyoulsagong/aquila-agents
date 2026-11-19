@@ -17,6 +17,7 @@
 │           open-in-worktree                │        │ menu.ts       native context menus               │
 │                                           │        │ notify.ts     notifications, reminder, Dock badge│
 │                                           │        │ status/       OSC 7501 parser + status tracker   │
+│                                           │        │ output.ts     output batching + flow control     │
 │                                           │        │ smoke.ts      npm run smoke self-check           │
 │ shared/   api (types · IPC · bridge), i18n│        │                                                 │
 └───────────────────────────────────────────┘        └─────────────────────────────────────────────────┘
@@ -41,8 +42,17 @@
 3. Env per session: `AQUILA_TAB_ID`, `AQUILA_PORT`, and — for Claude sessions on the **personal** account —
    `CLAUDE_CONFIG_DIR=~/.claude-personal` (same as the `claude-personal` shell function). The **shared** account leaves
    it unset (plain `claude`): Claude keys its keychain entry off this variable, so it must not be set to `~/.claude`.
-4. pty output → `session:data` → `terminalBus` → the xterm for that id (buffered until mounted).
-5. Hidden sessions stay mounted (`hidden`), so scrollback survives; xterm skips painting hidden ones.
+4. pty output → `electron/output.ts` batches it (one message per 16 ms frame or 64 KB; 200 ms while the session is
+   off screen, from `session:visible`) → `session:data` → `terminalBus` → the xterm for that id (buffered until mounted).
+   **Flow control:** the renderer sends `session:ack` once xterm has written a batch; main pauses the pty at 5
+   unacknowledged batches and resumes at 2, so a flood (`yes`) never queues megabytes and Ctrl+C stays instant
+   (smoke checks it). A renderer reload resets the counts. Output buffered before a terminal mounts is acked on arrival.
+5. Hidden sessions stay mounted (`hidden`), so scrollback survives; xterm skips painting hidden ones. WebGL
+   (`lib/gpuPool.ts`): terminals on screen always have it; hidden ones keep it up to 12 in all, the least recently seen
+   dropping to the DOM renderer first (Chromium keeps ~16 live contexts per page and drops the oldest, while the DOM
+   renderer costs more memory: dropping WebGL from every hidden terminal measured +125 MB with 15 sessions). A lost
+   context falls back to DOM (after 3 losses that terminal stays on DOM). The scrollbar shows only with scrollback. Resizes are coalesced per frame and refit only when
+   cols/rows change. Scrollback: 10,000 rows for shells, 5,000 for Claude/Codex (`model/terminal.ts`). xterm 6.x.
 
 ## Split view
 

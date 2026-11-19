@@ -40,7 +40,7 @@
 | `--color-agent-claude` / `-codex` / `-shell` | 세션 종류 |
 | `--color-account-shared` / `-personal` | Claude 계정 배지 (`claude` / `claude-personal`) |
 | `--color-diff-*` | diff 추가 / 삭제 / 헝크 |
-| `--color-terminal-*` | xterm 테마 (실행 중에 읽음) |
+| `--color-terminal-*` | xterm 테마 (실행 중에 읽음): 배경, 글자, 커서, 선택, 스크롤바(+ `-hover`) |
 
 ### 세션 상태 — 앱의 핵심 언어
 

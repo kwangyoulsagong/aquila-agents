@@ -4,6 +4,7 @@ import type { BrowserWindow } from 'electron';
 import * as pty from 'node-pty';
 import { expand, loadConfig } from './config';
 import type { HookEvent } from './hooks';
+import { OutputBatcher } from './output';
 import { Attention, firstLine, setDockBadge, type AttentionSession } from './notify';
 import type { RestorePlan, SavedTab } from './state';
 import { logStatus } from './status/log';
@@ -36,6 +37,8 @@ interface LiveSession {
   proc: pty.IPty;
   tracker: StatusTracker;
   osc: OscScanner;
+  /** pty output → batched `session:data`, paused while the renderer is behind. */
+  output: OutputBatcher;
   /** Last status sent, to tell a status change from an estimated/reason change. */
   sentStatus: SessionStatus;
   /** When the current status started (ms); sent with every status update. */
@@ -133,6 +136,11 @@ export class SessionManager {
       // Claude has hooks as its fallback; codex and shells fall back to output activity.
       tracker: new StatusTracker(kind !== 'claude'),
       osc: new OscScanner(),
+      output: new OutputBatcher({
+        send: (data) => this.deps.send(IPC.sessionData, { id, data }),
+        pause: () => proc.pause(),
+        resume: () => proc.resume(),
+      }),
       sentStatus: 'idle',
       since: Date.now(),
       details: {},
@@ -142,10 +150,12 @@ export class SessionManager {
     proc.onData((data) => {
       // OSC 7501 first: the query must be answered before the renderer's xterm answers DA1.
       for (const payload of s.osc.feed(data)) this.onOsc(s, payload);
-      this.deps.send(IPC.sessionData, { id, data });
+      s.output.push(data);
       s.tracker.output(Date.now());
     });
     proc.onExit(({ exitCode, signal }) => {
+      s.output.flush();
+      s.output.dispose();
       if (s.tracker.exit(exitCode, signal)) this.emitStatus(s);
       this.deps.send(IPC.sessionExit, { id, exitCode });
       this.sessions.delete(id);
@@ -295,6 +305,21 @@ export class SessionManager {
 
   setActive(id: string | null): void {
     this.activeId = id;
+  }
+
+  /** The renderer wrote one `session:data` batch into xterm. */
+  ack(id: string): void {
+    this.sessions.get(id)?.output.ack();
+  }
+
+  /** Whether the session's terminal is on screen (any split pane): on-screen output flushes every frame. */
+  setVisible(id: string, visible: boolean): void {
+    this.sessions.get(id)?.output.setVisible(visible);
+  }
+
+  /** The renderer reloaded: forget unacknowledged batches so no pty stays paused. */
+  resetFlow(): void {
+    for (const s of this.sessions.values()) s.output.resetFlow();
   }
 
   markSeen(id: string): void {

@@ -202,6 +202,10 @@ export interface AquilaApi {
   kill(id: string): void;
   markSeen(id: string): void;
   setActive(id: string | null): void;
+  /** xterm finished writing one `onData` batch (flow control: main pauses the pty while batches pile up). */
+  ackData(id: string): void;
+  /** The session's terminal came on / went off screen (output is batched less often while hidden). */
+  setVisible(id: string, visible: boolean): void;
   onData(cb: (p: { id: string; data: string }) => void): Unsubscribe;
   onStatus(cb: (p: StatusUpdate) => void): Unsubscribe;
   onExit(cb: (p: { id: string; exitCode: number }) => void): Unsubscribe;
@@ -231,6 +235,8 @@ export const IPC = {
   sessionKill: 'session:kill',
   sessionSeen: 'session:seen',
   uiActive: 'ui:active',
+  sessionAck: 'session:ack',
+  sessionVisible: 'session:visible',
   sessionData: 'session:data',
   sessionStatus: 'session:status',
   sessionExit: 'session:exit',

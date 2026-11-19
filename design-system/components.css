@@ -62,6 +62,7 @@ body {
   font: 500 var(--font-size-label) var(--font-family-ui); cursor: pointer;
   transition: color var(--motion-fast) var(--motion-ease);
 }
+.c-segment__item { white-space: nowrap; }
 .c-segment__item:hover { color: var(--color-text-primary); }
 .c-segment__item[aria-checked='true'] { color: var(--color-text-primary); }
 
@@ -152,6 +153,11 @@ body {
   padding: 0 var(--space-inset-sm) 0 var(--space-inset-md); border-radius: var(--radius-control) var(--radius-control) 0 0;
   font-size: var(--font-size-label); color: var(--color-text-secondary); cursor: pointer;
 }
+/* A full bar scrolls sideways (no visible scrollbar); tabs shrink to a minimum first and the trailing controls stay
+   pinned at the right edge, never squeezed. */
+.c-tabbar { overflow-x: auto; scrollbar-width: none; padding-right: 0; }
+.c-tabbar::-webkit-scrollbar { display: none; }
+.c-tab { flex: 0 1 auto; min-width: calc(var(--size-control) * 3); overflow: hidden; }
 .c-tab:hover { background: var(--color-bg-hover); }
 .c-tab[aria-selected='true'] { background: var(--color-bg-canvas); color: var(--color-text-primary); }
 .c-tab__title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -166,8 +172,8 @@ body {
   background: none; color: var(--color-text-tertiary); cursor: pointer;
 }
 .c-tab:hover .c-tab__close, .c-tab[aria-selected='true'] .c-tab__close { opacity: 1; }
-.c-tabbar__trailing { margin-left: auto; align-self: center; display: flex; align-items: center; gap: var(--space-inline-sm); }
-.c-tabbar__add { align-self: center; margin-left: var(--space-inline-xs); }
+.c-tabbar__trailing { flex: none; position: sticky; right: 0; margin-left: auto; padding: 0 var(--space-inset-sm); background: var(--color-bg-surface); align-self: stretch; display: flex; align-items: center; gap: var(--space-inline-sm); }
+.c-tabbar__add { flex: none; align-self: center; margin-left: var(--space-inline-xs); }
 .c-tab__close:hover { background: var(--color-bg-pressed); color: var(--color-text-primary); }
 
 /* ── Split + pane ─────────────────────────────────────────── */
@@ -180,6 +186,10 @@ body {
   background: var(--color-bg-surface); border-bottom: 1px solid var(--color-border-subtle);
 }
 .c-pane__term { flex: 1; min-height: 0; padding: var(--space-inset-sm) 0 0 var(--space-inset-md); }
+/* xterm's stylesheet paints the viewport #000, and it runs 2px past the last row. */
+.c-pane__term .xterm .xterm-viewport { background-color: var(--color-terminal-bg); }
+/* xterm 6 draws a full-height slider when there is nothing to scroll: show it only with scrollback. */
+.c-pane__term:not([data-scrollable]) .xterm-scrollable-element > .scrollbar { display: none; }
 /* Free layout: panes and terminals are absolutely placed from the split tree (terminals never remount). */
 .c-split--free { display: block; position: relative; }
 .c-split--free > .c-pane { position: absolute; }

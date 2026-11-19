@@ -41,7 +41,7 @@ Check: `grep -rn -- '--p-' src design-system/components.css` returns only the ru
 | `--color-agent-claude` / `-codex` / `-shell` | Session kind |
 | `--color-account-shared` / `-personal` | Claude account badge (`claude` / `claude-personal`) |
 | `--color-diff-*` | Diff add / del / hunk |
-| `--color-terminal-*` | xterm theme (read at runtime) |
+| `--color-terminal-*` | xterm theme (read at runtime): bg, fg, cursor, selection, scrollbar (+ `-hover`) |
 
 ### Session status — the core vocabulary
 

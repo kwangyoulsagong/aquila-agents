@@ -115,6 +115,8 @@
   --color-terminal-fg: var(--color-text-primary);
   --color-terminal-cursor: var(--p-blue-400);
   --color-terminal-selection: var(--p-blue-400-a14);
+  --color-terminal-scrollbar: var(--p-slate-700);        /* xterm scrollbar slider */
+  --color-terminal-scrollbar-hover: var(--p-slate-500);  /* hovered / dragged */
 
   /* Typography */
   --font-family-ui: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Apple SD Gothic Neo', system-ui, sans-serif;

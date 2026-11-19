@@ -1,5 +1,5 @@
 import { Button } from '@design-system/react';
-import type { ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { api, type Config, type Session, type SessionKind } from '@/shared/api';
 import { kindLabel, useT } from '@/shared/i18n';
 import { endSessionDrag, startSessionDrag } from '@/shared/lib/sessionDrag';
@@ -31,6 +31,25 @@ export default function SessionTabs({
   trailing,
 }: Props) {
   const t = useT();
+  const barRef = useRef<HTMLDivElement>(null);
+  // A full bar scrolls sideways: keep the selected tab in view, clear of the pinned trailing controls.
+  useEffect(() => {
+    const bar = barRef.current;
+    const tab = bar?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]');
+    if (!bar || !tab) return;
+    const trailing = bar.querySelector<HTMLElement>('.c-tabbar__trailing');
+    const right = trailing ? trailing.getBoundingClientRect().left : bar.getBoundingClientRect().right;
+    // The last tab brings the + button (right after it) into view too.
+    const next = tab.nextElementSibling;
+    const r = tab.getBoundingClientRect();
+    const end =
+      next instanceof HTMLElement && next.classList.contains('c-tabbar__add')
+        ? next.getBoundingClientRect().right
+        : r.right;
+    const left = bar.getBoundingClientRect().left;
+    if (end > right) bar.scrollLeft += end - right;
+    else if (r.left < left) bar.scrollLeft -= left - r.left;
+  }, [activeId, sessions.length]);
   const newMenu = async () => {
     const id = await api.showContextMenu([
       { id: 'claude', label: t('action.openClaude'), accelerator: SHORTCUTS.openClaude },
@@ -42,7 +61,7 @@ export default function SessionTabs({
     else if (id === 'claude' || id === 'codex' || id === 'shell') onNew(id);
   };
   return (
-    <div className="c-tabbar" role="tablist">
+    <div ref={barRef} className="c-tabbar" role="tablist">
       {sessions.map((s) => (
         <div
           key={s.id}

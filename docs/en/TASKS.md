@@ -117,7 +117,8 @@ Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-1
 - **Owns:** `electron/notify.ts`, `src/features/next-waiting/`, small changes in `sessions.ts`, `useShortcuts.ts`.
 
 ### T16 · Terminal performance
-- [ ] **Goal:** 15+ sessions stay smooth and light. (#4, #18, #19)
+- [x] **Goal:** 15+ sessions stay smooth and light. (#4, #18, #19)
+  _Measured (`npm run perf`, 15 shells, 2 on screen, before → after): streaming agent-like output 493 → 127 IPC msgs/s, CPU 3.6 → 2.8 %; `yes` flood 22,700 → 280 msgs/s, CPU 13 → 9 %, renderer 470 → 310 MB, Ctrl+C 14 ms / no answer within 10 s → 21 ms; 120 fps throughout. Changed from the spec: hidden terminals keep WebGL up to 12 (gpuPool), since dropping it on every hidden one cost +125 MB. Left over: real Claude/Codex sessions weren't used (shells streaming similar output)._
 - **Spec:** WebGL only on visible panes (≤4); hidden → dispose + `term.refresh(0, rows-1)`; context loss → DOM renderer.
   Upgrade `@xterm/xterm` 5.5 → 6.x with matching addons (webgl 0.19, fit 0.11, web-links 0.12 — today 5.5 is mixed
   with webgl 0.19); recheck scroll/viewport and smoke. Main batches pty output (16 ms or 64–100 KB; hidden sessions

@@ -162,7 +162,12 @@ export default function SplitView({
             onMouseDownCapture={() => r && onFocusPane(r.leaf.id)}
             onFocusCapture={() => r && onFocusPane(r.leaf.id)}
           >
-            <TerminalView id={s.id} visible={!!r} focused={r?.leaf.id === layout.focusedId} />
+            <TerminalView
+              id={s.id}
+              kind={s.kind}
+              visible={!!r}
+              focused={r?.leaf.id === layout.focusedId}
+            />
           </div>
         );
       })}
