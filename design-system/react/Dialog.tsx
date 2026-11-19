@@ -6,11 +6,13 @@ interface Props {
   onClose: () => void;
   /** Footer buttons, right-aligned. */
   actions?: ReactNode;
+  /** `.c-dialog--wide` (checklists). */
+  wide?: boolean;
   children?: ReactNode;
 }
 
 /** `.c-dialog` — modal on the native <dialog> (focus trap, Esc to close, backdrop click closes). */
-export function Dialog({ open, title, onClose, actions, children }: Props) {
+export function Dialog({ open, title, onClose, actions, wide, children }: Props) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
 
@@ -24,7 +26,7 @@ export function Dialog({ open, title, onClose, actions, children }: Props) {
   return (
     <dialog
       ref={ref}
-      className="c-dialog"
+      className={wide ? 'c-dialog c-dialog--wide' : 'c-dialog'}
       aria-labelledby={titleId}
       onClose={onClose}
       onClick={(e) => e.target === e.currentTarget && onClose()}

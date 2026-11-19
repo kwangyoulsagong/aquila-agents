@@ -11,13 +11,15 @@
 │           command-palette                 │  .ts   │               zsh 함수 (명시적 클릭만)            │
 │ features/ switch-account, switch-language,│        │ hooks.ts      127.0.0.1:<port> hook 수신기       │
 │           open-session, setup-account,    │        │               + ~/.aquila/claude-hooks.json     │
-│           manage-projects, next-waiting,  │        │ git.ts        git status + diff (읽기만)        │
+│           manage-projects, next-waiting,  │
+│           first-run                       │        │ git.ts        git status + diff (읽기만)        │
 │ entities/ session (xterm, 상태), project    │        │ state.ts      ~/.aquila/state.json (열린 탭)     │
 │           diff                            │        │ worktrees.ts  git worktree 만들기 / 재사용 (T7)  │
 │           open-in-worktree                │        │ menu.ts       네이티브 우클릭 메뉴               │
 │                                           │        │ notify.ts     알림, 리마인더, Dock 배지          │
 │                                           │        │ status/       OSC 7501 파서 + 상태 판정          │
 │                                           │        │ output.ts     출력 묶음 + 흐름 제어              │
+│                                           │        │ detect.ts     CLI 점검, 첫 실행 상태 (T17)       │
 │                                           │        │ smoke.ts      npm run smoke 자동 점검            │
 │ shared/   api (타입·IPC·bridge), i18n       │        │                                                 │
 └───────────────────────────────────────────┘        └─────────────────────────────────────────────────┘
@@ -196,6 +198,21 @@ Agentrix에서 이름이 바뀌었습니다: 처음 실행할 때 `~/.aquila/con
 그리고 로그인 안 된 계정이 있으면 창이 포커스된 동안 5초마다 다시 읽습니다. 같은 다이얼로그에서 미리보기 후
 **명시적으로 눌렀을 때만** `~/.zshrc`에 `claude-<id>() { … }`를 추가해요. `whence`나 rc에 이미 있으면 건너뜁니다.
 
+## 첫 실행 체크리스트
+
+- `features/first-run`: `useFirstRun`이 시작할 때 한 번 main에 묻고(`first-run:get`), `~/.aquila/first-run.json`에
+  `finished`가 없으면 체크리스트를 엽니다. 어떻게 닫든(시작하기 / 나중에 하기 / Esc) `finished`가 저장되므로 선택 항목은
+  기본 건너뛰기입니다. ⌘K → "시작 점검"으로 다시 열고 다시 점검합니다.
+- 항목: 로그인 셸의 PATH를 읽었는지(`restoreShellPath()` 결과) · `claude` / `codex`(선택) / `git`의 버전과 경로, 없으면
+  복사할 수 있는 설치 명령 · 프로젝트 폴더(드롭 영역에 폴더를 끌어 놓기 — preload의 `webUtils.getPathForFile` — 또는 폴더
+  선택; 첫 그룹에 공용 계정으로 추가) · "로그인은 CLI 안에서" 안내. 창으로 돌아올 때(터미널에서 설치한 뒤)와 "다시 확인"에서
+  다시 점검하고, 그때 셸 PATH도 다시 읽습니다.
+- Main (`detect.ts`): PATH에서 각 도구를 찾고(별칭 제외) `<bin> --version`(10초 제한)을 실행해 버전을 읽습니다.
+  `/usr/bin/git`은 `xcode-select -p`가 성공할 때만 실행합니다(아니면 설치 창을 띄우는 스텁). "경로 지정…"은 파일 선택을
+  열고, `--version`이 실행될 때만 `first-run.json` → `paths`에 저장합니다. 지정한 `claude` / `codex`는 세션 명령에서 이름
+  대신 (따옴표로 감싸) 쓰이고 hook 버전 확인에도 쓰입니다. 지정한 `git`은 main의 PATH 맨 앞에 들어갑니다.
+  smoke는 `first-run.json`을 읽거나 쓰지 않습니다.
+
 ## 다국어
 
 `src/shared/i18n/dictionary.ts`에 모든 문구가 `ko`/`en`으로 있습니다 (한쪽이라도 빠지면 타입 체크 실패).
@@ -206,7 +223,7 @@ Agentrix에서 이름이 바뀌었습니다: 처음 실행할 때 `~/.aquila/con
 - 렌더러: Vite → `dist/`. Main + preload: `tsc -p tsconfig.electron.json` → `dist-electron/` (CommonJS).
 - `node-pty`는 네이티브 모듈이라 `postinstall`에서 `electron-rebuild` 실행. Electron 버전을 바꾸면 `npm install` 다시.
 - `npm run smoke`: 빌드 후 앱을 띄워 셸 세션을 열고 pty 왕복을 확인, `dist/smoke.png` 스크린샷 저장 후 종료 (성공 0 / 실패 1).
-  `claude`/`codex`가 PATH에 있는지도 로그로 남깁니다. 패키징된 앱은 스크린샷을 임시 폴더에 저장합니다.
+  `claude`/`codex`가 PATH에 있는지도 로그로 남기고, ⌘K로 첫 실행 체크리스트를 열어 봅니다(`dist/smoke-first-run.png`). 패키징된 앱은 스크린샷을 임시 폴더에 저장합니다.
 - Finder에서 연 앱은 launchd의 최소 PATH를 받습니다. `env.ts`가 시작할 때 한 번 로그인 + 인터랙티브 셸의 PATH를 읽어
   앞에 붙입니다 (세션은 원래 로그인 셸로 뜨므로, main이 직접 실행하는 `git` 등을 위한 것).
 - `npm run dist`: electron-builder(`electron-builder.yml`) → `release/*.dmg` + `.zip`, arm64, 서명 없음. 런타임 의존성은

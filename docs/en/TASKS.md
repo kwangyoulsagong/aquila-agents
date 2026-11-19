@@ -127,7 +127,8 @@ Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-1
 - **Owns:** `src/entities/session/` (TerminalView, terminalBus), `electron/sessions.ts` output path, `package.json` xterm deps.
 
 ### T17 · First-run checklist
-- [ ] **Goal:** the first launch never fails silently. (#7)
+- [x] **Goal:** the first launch never fails silently. (#7)
+  _Left over: the "missing CLI" state was only checked in `design-system/preview.html` (this Mac has all three); existing users also see the checklist once after updating; dropping folders outside the checklist (e.g. on the sidebar) isn't supported; removing a picked `git` keeps its folder in PATH until relaunch; the default config's sample projects aren't flagged when their folders don't exist._
 - **Spec:** checklist screen: PATH restored (macOS, exists), `claude` / `codex` / `git` found  with versions; missing → copyable install command; manual binary path override; "Add folder" (drag & drop);
   "log in inside the CLI" hint. Optional things default to Skip. Shown once (state in `~/.aquila/`), reopenable.
 - **Owns:** `src/features/first-run/`, `electron/detect.ts` (+ tests).

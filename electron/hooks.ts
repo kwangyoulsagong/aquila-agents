@@ -92,9 +92,9 @@ export function supportsHttpHooks(version: [number, number, number] | null): boo
 }
 
 /** `claude --version` with the session environment (PATH restored); null if it can't be run. */
-export function detectClaudeVersion(env: NodeJS.ProcessEnv): Promise<[number, number, number] | null> {
+export function detectClaudeVersion(env: NodeJS.ProcessEnv, bin = 'claude'): Promise<[number, number, number] | null> {
   return new Promise((resolve) => {
-    execFile('claude', ['--version'], { env, timeout: 10_000 }, (err, stdout) =>
+    execFile(bin, ['--version'], { env, timeout: 10_000 }, (err, stdout) =>
       resolve(err ? null : parseClaudeVersion(stdout)),
     );
   });

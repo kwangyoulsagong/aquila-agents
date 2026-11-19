@@ -11,13 +11,15 @@
 │           command-palette                 │  .ts   │               zsh function (explicit click)      │
 │ features/ switch-account, switch-language,│        │ hooks.ts      127.0.0.1:<port> hook receiver     │
 │           open-session, setup-account,    │        │               + ~/.aquila/claude-hooks.json       │
-│           manage-projects, next-waiting,  │        │ git.ts        git status + diff (read-only)      │
+│           manage-projects, next-waiting,  │
+│           first-run                       │        │ git.ts        git status + diff (read-only)      │
 │ entities/ session (xterm, status), project│        │ state.ts      ~/.aquila/state.json (open tabs)   │
 │           diff                            │        │ worktrees.ts  git worktree add / reuse (T7)      │
 │           open-in-worktree                │        │ menu.ts       native context menus               │
 │                                           │        │ notify.ts     notifications, reminder, Dock badge│
 │                                           │        │ status/       OSC 7501 parser + status tracker   │
 │                                           │        │ output.ts     output batching + flow control     │
+│                                           │        │ detect.ts     CLI checks, first-run state (T17)  │
 │                                           │        │ smoke.ts      npm run smoke self-check           │
 │ shared/   api (types · IPC · bridge), i18n│        │                                                 │
 └───────────────────────────────────────────┘        └─────────────────────────────────────────────────┘
@@ -198,6 +200,22 @@ button next to the switch → dialog → create the dir (only `~/.claude-*`) and
 focus and every 5 s while the window is focused and an account is still logged out. The same dialog can preview and,
 on an explicit click, append `claude-<id>() { … }` to `~/.zshrc` — skipped if `whence` or the rc already defines it.
 
+## First-run checklist
+
+- `features/first-run`: `useFirstRun` asks main once at launch (`first-run:get`) and opens the checklist while
+  `~/.aquila/first-run.json` has no `finished`. Closing it any way (Start / Skip / Esc) sets `finished`, so optional
+  things default to skip. ⌘K → "Setup checklist" reopens it (and re-checks).
+- Rows: the login shell's PATH was read (`restoreShellPath()` result) · `claude` / `codex` (optional) / `git` with
+  version and path, or a copyable install command when missing · project folders (drop folders on the drop zone —
+  `webUtils.getPathForFile` in preload — or the folder picker; added to the first group with the shared account) ·
+  "log in inside the CLI" hint. Re-checks on window focus (after installing in a terminal) and on "Check again";
+  a re-check reads the shell's PATH again first.
+- Main (`detect.ts`): finds each tool in PATH (no aliases), runs `<bin> --version` (10 s timeout) and parses the
+  version. `/usr/bin/git` is only run when `xcode-select -p` succeeds (otherwise it's the stub that pops the
+  installer). "Choose…" opens a file picker; the file is saved in `first-run.json` → `paths` only if it runs
+  `--version`. A picked `claude` / `codex` is used (quoted) in the session command instead of the bare name, and for the
+  hook-version check; a picked `git` goes first in main's PATH. Smoke never reads or writes `first-run.json`.
+
 ## i18n
 
 `src/shared/i18n/dictionary.ts` holds every string in `ko` and `en` (typecheck fails if a key is missing in one).
@@ -208,7 +226,7 @@ Renderer: `useT()`; main (notifications): `translator(config.language)`.
 - Renderer: Vite → `dist/`. Main + preload: `tsc -p tsconfig.electron.json` → `dist-electron/` (CommonJS).
 - `node-pty` is native: `postinstall` runs `electron-rebuild`. After changing Electron's version, rerun `npm install`.
 - `npm run smoke`: build, launch, open a shell session, verify the pty round-trip, save `dist/smoke.png`, quit (0 ok / 1 fail).
-  It also logs whether `claude`/`codex` are on PATH. A packaged app saves the screenshot to the temp dir.
+  It also logs whether `claude`/`codex` are on PATH, and opens the first-run checklist from ⌘K (`dist/smoke-first-run.png`). A packaged app saves the screenshot to the temp dir.
 - Finder launches get launchd's minimal PATH. `env.ts` reads the login + interactive shell's PATH once at startup and
   puts it in front (sessions already start a login shell; this is for what main runs directly, like `git`).
 - `npm run dist`: electron-builder (`electron-builder.yml`) → `release/*.dmg` + `.zip`, arm64, unsigned. Only `node-pty`

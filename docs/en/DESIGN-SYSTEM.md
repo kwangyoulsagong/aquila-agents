@@ -93,7 +93,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `--size-pane-head` | 28 | Split pane header |
 | `--size-badge` / `--size-dot` | 16 / 8 | |
 | `--size-sidebar` / `--size-panel` | 248 / 416 | |
-| `--size-dialog` | 440 | Dialog width |
+| `--size-dialog` / `--size-dialog-wide` | 440 / 560 | Dialog width / with a checklist (first run) |
 | `--size-palette` / `--size-palette-list` | 560 / 352 | Command palette width / list height before it scrolls (11 rows) |
 
 ## Components (`components.css`)
@@ -120,6 +120,9 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `.c-empty` `__title` `__path` `__actions` | Empty state |
 | `.c-dialog` `__title` `__body` `__actions` `__check` `__code` `__form` | Modal dialog (native `<dialog>`, rises in) |
 | `.c-palette` `__input` `__list` `__item[aria-selected]` `__leading` `__label` `__mark` `__hint` `__empty` `__foot` | Command palette (native `<dialog>` near the top, rises in): input as tall as the title bar, 32px rows, matched letters bold |
+| `.c-dialog--wide` | Wider dialog for a checklist |
+| `.c-checklist` `__item` `__lead` `__main` `__title` `__meta` `__actions` `__detail` `__command` | Bordered list of checks: dot on the title line · title (+ badge) / mono meta · buttons, then a full-width detail (install command with Copy, drop zone) |
+| `.c-dropzone[data-over]` | Dashed drop area; accent border + selected background while dragging over |
 | `.c-field` `__label` `__hint`, `.c-input`, `.c-select` `__control` | Form field: label, text input / select (focus = blue border), monospace hint |
 
 ## React components (`design-system/react/`)
@@ -130,14 +133,16 @@ from `src/` (ESLint enforces it). New primitive → add the class to `components
 
 | Component | Renders |
 |---|---|
-| `Button` `variant="primary\|ghost"` `icon` | `.c-btn` |
+| `Button` `variant="primary\|ghost"` `icon` `ref?` | `.c-btn` |
 | `Dot` `status` `estimated?` `label?` | `.c-dot` |
 | `Badge` `tone` | `.c-badge--<tone>` |
 | `Kbd`, `Label` | `.c-kbd`, `.c-label` |
 | `Elapsed` `title?` | `.c-elapsed` |
 | `Segment` `options` `value` `onChange` | `.c-segment` |
 | `EmptyState` `title` `path` `actions` | `.c-empty` |
-| `Dialog` `open` `title` `onClose` `actions`, `DialogCheck`, `DialogCode`, `DialogForm` `id` `onSubmit` | `.c-dialog` |
+| `Dialog` `open` `title` `onClose` `actions` `wide`, `DialogCheck`, `DialogCode`, `DialogForm` `id` `onSubmit` | `.c-dialog` |
+| `Checklist` `label`, `ChecklistItem` `leading` `title` `tag` `meta` `actions`, `ChecklistCommand` `command` `action` | `.c-checklist` |
+| `Dropzone` `over` (+ div props) | `.c-dropzone` |
 | `Field` `label` `hint`, `Input`, `Select` `options` `onChange(value)` | `.c-field`, `.c-input`, `.c-select` |
 | `ChangeRow` `status` `path` | `.c-change` |
 | `Palette` `open` `onClose` `label` `query` `onQueryChange` `listId` `activeId`, `PaletteList`, `PaletteItem` `selected` `label` `marks` `leading` `hint` `kbd`, `PaletteEmpty` | `.c-palette` (combobox + listbox) |

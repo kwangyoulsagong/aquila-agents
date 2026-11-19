@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import type { BrowserWindow } from 'electron';
 import * as pty from 'node-pty';
 import { expand, loadConfig } from './config';
+import { commandName } from './detect';
 import type { HookEvent } from './hooks';
 import { OutputBatcher } from './output';
 import { Attention, firstLine, setDockBadge, type AttentionSession } from './notify';
@@ -184,9 +185,9 @@ export class SessionManager {
       const session = restore.resumeClaude
         ? `--resume ${claudeSessionId}`
         : `--session-id ${claudeSessionId}`;
-      return `claude --settings ${JSON.stringify(this.deps.hookSettingsPath())} ${session}`;
+      return `${commandName('claude')} --settings ${JSON.stringify(this.deps.hookSettingsPath())} ${session}`;
     }
-    if (kind === 'codex') return restore.resumeCodex ? 'codex resume --last' : 'codex';
+    if (kind === 'codex') return restore.resumeCodex ? `${commandName('codex')} resume --last` : commandName('codex');
     return null;
   }
 

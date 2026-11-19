@@ -27,9 +27,9 @@ export function mergePath(shellPath: string, current: string | undefined): strin
     .join(':');
 }
 
-/** Resolves when done; never rejects (keeps the current PATH on timeout or error). */
-export function restoreShellPath(timeoutMs = 5000): Promise<void> {
-  if (process.platform === 'win32') return Promise.resolve();
+/** Resolves with whether the shell's PATH was read; never rejects (keeps the current PATH on timeout or error). */
+export function restoreShellPath(timeoutMs = 5000): Promise<boolean> {
+  if (process.platform === 'win32') return Promise.resolve(true);
   const shell = userShell();
   process.env.SHELL ??= shell;
   return new Promise((resolve) => {
@@ -40,7 +40,7 @@ export function restoreShellPath(timeoutMs = 5000): Promise<void> {
       (_err, stdout) => {
         const shellPath = parseShellPath(String(stdout ?? ''));
         if (shellPath) process.env.PATH = mergePath(shellPath, process.env.PATH);
-        resolve();
+        resolve(shellPath !== null);
       },
     );
   });

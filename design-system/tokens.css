@@ -156,6 +156,7 @@
   --size-sidebar: 248px;
   --size-panel: 416px;
   --size-dialog: 440px;
+  --size-dialog-wide: 560px;  /* dialogs with a checklist (first run) */
   --size-palette: 560px;      /* command palette width */
   --size-palette-list: 352px; /* list height before it scrolls (11 rows) */
 

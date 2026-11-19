@@ -7,6 +7,7 @@ import { CONFIG_PATH, editProjects, loadConfig, setLanguage, setProjectAccount }
 import { showContextMenu } from './menu';
 import { gitChanges } from './git';
 import { ensureWorktree, worktreeInfo } from './worktrees';
+import { binaryFor, finishFirstRun, firstRunReport, loadOverrides, setBinaryPath } from './detect';
 import { detectClaudeVersion, startHookServer, supportsHttpHooks, writeClaudeHookSettings } from './hooks';
 import { SessionManager } from './sessions';
 import { planRestore, readState, writeState, type SavedTab } from './state';
@@ -18,6 +19,7 @@ import {
   type ProjectEdit,
   type SessionInfo,
   type SessionKind,
+  type ToolId,
 } from '../src/shared/api/types';
 
 const isDev = process.env.AQUILA_DEV === '1';
@@ -48,7 +50,8 @@ function createWindow(): void {
 }
 
 app.whenReady().then(async () => {
-  await restoreShellPath(); // Finder launches get a minimal PATH
+  let pathRestored = await restoreShellPath(); // Finder launches get a minimal PATH
+  loadOverrides(); // binaries picked in the first-run checklist
   // Read before any session exists: the first create/exit rewrites state.json. Smoke never touches it.
   const savedTabs = isSmoke ? [] : readState();
   const saveTabs = (tabs: SavedTab[]) => {
@@ -62,7 +65,9 @@ app.whenReady().then(async () => {
   const hookFiles = writeClaudeHookSettings(hookPort);
   // http hooks unless `claude --version` says it's older than they need (then command + curl).
   let httpHooks = true;
-  void detectClaudeVersion(process.env).then((v) => (httpHooks = supportsHttpHooks(v)));
+  const detectHooks = () =>
+    detectClaudeVersion(process.env, binaryFor('claude')).then((v) => (httpHooks = supportsHttpHooks(v)));
+  void detectHooks();
   const smokeOutput = { buffer: '', statuses: [] as string[] };
   const send = (channel: string, payload: unknown) => win?.webContents.send(channel, payload);
   sessions = new SessionManager({
@@ -141,6 +146,32 @@ app.whenReady().then(async () => {
     (_e, { projectId, sessionId }: { projectId: string; sessionId?: string }) =>
       gitChanges(loadConfig(), projectId, sessionId ? s.worktreeOf(sessionId, projectId) : undefined),
   );
+  // First-run checklist (T17). Smoke never reads or writes its state: it always reports "not pending".
+  ipcMain.handle(IPC.firstRunGet, async (_e, recheck: boolean) => {
+    if (recheck) pathRestored = (await restoreShellPath()) || pathRestored;
+    const report = await firstRunReport(pathRestored);
+    return isSmoke ? { ...report, pending: false } : report;
+  });
+  ipcMain.handle(IPC.firstRunFinish, () => {
+    if (!isSmoke) finishFirstRun();
+  });
+  ipcMain.handle(IPC.firstRunPickBinary, async (_e, tool: ToolId) => {
+    const options: Electron.OpenDialogOptions = {
+      properties: ['openFile', 'showHiddenFiles'],
+      defaultPath: process.env.HOME,
+    };
+    const r = win ? await dialog.showOpenDialog(win, options) : await dialog.showOpenDialog(options);
+    const file = r.canceled ? undefined : r.filePaths[0];
+    if (!file) return null;
+    const check = await setBinaryPath(tool, file);
+    if (tool === 'claude') void detectHooks();
+    return check;
+  });
+  ipcMain.handle(IPC.firstRunResetBinary, async (_e, tool: ToolId) => {
+    const check = await setBinaryPath(tool, null);
+    if (tool === 'claude') void detectHooks();
+    return check;
+  });
   ipcMain.on(IPC.sessionWrite, (_e, { id, data }: { id: string; data: string }) => s.write(id, data));
   ipcMain.on(IPC.sessionResize, (_e, { id, cols, rows }: { id: string; cols: number; rows: number }) =>
     s.resize(id, cols, rows),
