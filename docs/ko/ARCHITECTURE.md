@@ -22,6 +22,7 @@
 │                                           │        │ status/       OSC 7501 파서 + 상태 판정          │
 │                                           │        │ output.ts     출력 묶음 + 흐름 제어              │
 │                                           │        │ power.ts      절전 프로필: 배터리·발열 (T9)      │
+│           usage-gauge                     │        │ usage.ts      계정별 5시간·주간 사용량 (T30)     │
 │                                           │        │ detect.ts     CLI 점검, 첫 실행 상태 (T17)       │
 │                                           │        │ guide.ts      둘러보기 제안 한 번만 (T23)        │
 │                                           │        │ history.ts    지난 세션, 읽기 전용 (T11)         │
@@ -238,6 +239,28 @@ xterm 인스턴스는 `useTerminal(id)`(`entities/session`, `TerminalView`가 �
   숨김): 워크트리, 변경사항 패널, 세션 기록/이어하기, "열 앱", 마지막 응답 복사, 포트, 셋업 스크립트, 로컬 계정 전환.
 - **스모크** (`electron/remote/smoke.ts`): PATH의 가짜 `ssh` / `tmux`가 실제 스크립트를 로컬에서 실행: 첫 시도 거부 →
   다시 연결 중 → 연결됨, 입력한 표식이 돌아옴, 링크 끊김(exit 255) → 재연결 → 다시 출력, 탭 닫으면 `kill-session`.
+
+## 사용량 게이지 (T30)
+
+`electron/usage.ts` + `widgets/usage-gauge`. 사이드바 푸터 위의 띠. **로그인된 로컬 계정마다** 한 블록(세션이 아니라
+설정 폴더 단위 — Claude statusline의 `rate_limits`는 계정이 섞임), 미터 두 개를 나란히: 5시간 블록(리셋 시각 포함)과
+최근 7일. "추정"으로 표시.
+
+- **출처:** 그 계정의 트랜스크립트 `<configDir>/projects/*/*.jsonl`, `*/<session>/subagents/*.jsonl`. 파일마다 바이트
+  오프셋부터 이어 읽음(7일간 안 바뀐 파일은 건너뜀). `message.usage`가 있는 assistant 줄만, message id + request id로
+  중복 제거(Claude는 content block마다 한 줄씩 씀). 읽기 전용.
+- **가중치:** 가격 비율로 환산한 입력 토큰: 입력 ×1, 출력 ×5, 캐시 쓰기 ×1.25, 캐시 읽기 ×0.1.
+- **5시간 블록:** 이전 블록이 끝난 뒤 첫 메시지의 정각에서 시작해 5시간(ccusage 규칙). 진행 중인 블록이 없으면 비어
+  있고 "다음 메시지부터". 주간은 최근 7일 롤링(실제 리셋 시각은 알 수 없음).
+- **100% 기준:** 학습. 탭에서 `StopFailure`(`error: rate_limit`)가 오면(`SessionManager.claudeAccount`) 그 계정이 그때
+  쓴 양을 `~/.aquila/usage-limits.json`에 기록. 5시간 한도로 보되, 5시간 한도를 이미 알고 블록이 그 80% 미만이면 주간
+  한도로 봄. `.claude.json`의 `userRateLimitTier`(없으면 조직 것)와 함께 저장하고, 티어가 바뀌면(요금제 변경) 버림.
+  그 전까지는 토큰 수와 테두리만 있는 빈 막대, 비율 없음.
+- **임박(≥ 90%):** macOS 알림 1회(5시간은 블록마다, 주간은 하루마다)와 "<다른 계정> 계정으로 새 Claude" 버튼(여유가
+  가장 많은 다른 로그인 계정, 로컬 프로젝트만).
+- **갱신:** 마운트 때 `usage:get`, 이후 `usage:changed` 푸시: `Stop` 훅 3초 뒤, 포커스 중 1분마다, 아니면 5분마다,
+  절전 모드에선 두 배. 바쁜 한 주의 첫 스캔 ≈ 2초(비동기), 이후 ~25ms.
+- 빠지는 것: claude.ai, 다른 기기, 원격(SSH) 세션.
 
 ## 단축키
 

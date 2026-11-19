@@ -15,11 +15,21 @@ interface Props {
   manage: ManageProjects;
   /** Footer slot (language toggle, system meter…). */
   footer?: ReactNode;
+  /** Band above the footer (usage gauge). */
+  aboveFooter?: ReactNode;
 }
 
 const MAX_DOTS = 4;
 
-export default function Sidebar({ config, sessions, activeProjectId, onSelect, manage, footer }: Props) {
+export default function Sidebar({
+  config,
+  sessions,
+  activeProjectId,
+  onSelect,
+  manage,
+  footer,
+  aboveFooter,
+}: Props) {
   const t = useT();
 
   return (
@@ -84,6 +94,7 @@ export default function Sidebar({ config, sessions, activeProjectId, onSelect, m
           );
         })}
       </nav>
+      {aboveFooter}
       <div className="c-sidebar__foot">
         <Button variant="ghost" onClick={() => api.openConfig()}>
           {t('action.openConfig')}

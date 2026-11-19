@@ -93,6 +93,7 @@
 | `--size-focus-line` | 2 | 포커스된 패널 헤더 아래 강조선 (패널의 유일한 포커스 표시) |
 | `--size-split-handle` | 8 | 분할 구분선을 잡는 영역, 1px 선 가운데 |
 | `--size-badge` / `--size-dot` | 16 / 8 | |
+| `--size-meter` | 4 | 미터 막대 (사용량 게이지) |
 | `--size-sidebar` / `--size-panel` | 248 / 416 | |
 | `--size-panel-wide` | 720 | 나란히 보기 때 변경사항 패널(창의 절반까지) |
 | `--size-diff-gutter` / `--size-diff-comment` | 40 / 384 | diff의 줄 번호 칸 하나 / 줄 코멘트 상자 |
@@ -115,6 +116,8 @@
 | `.c-term-overlay__banner` `__banner-text` `__banner-meta` | 터미널 위쪽을 가로지르는 클릭 가능한 바, 빨간 테두리: 연결 끊김 + 카운트다운 + 동작 (T29) |
 | `.c-label` | 섹션 라벨 |
 | `.c-sidebar` `__drag` `__body` `__group` `__foot` `__lang` | 사이드바 |
+| `.c-meter[data-tone=warn\|danger][data-unknown]` `__head` `__value` `__track` `__fill` `__caption` | 한도 대비 비율: 라벨 · 값, 4px 막대(회색 → 75% 이상 주황 → 90% 이상 빨강), 캡션. 한도를 모르면 테두리만 있는 빈 막대 (T30) |
+| `.c-usage` `__head` `__est` `__account` `__bars` | 사이드바 푸터 위 사용량 띠: 계정마다 한 블록, 미터 두 개 나란히 (T30) |
 | `.c-row[aria-current]` `__name` `__meta` | 프로젝트 행 |
 | `.c-row[data-drop=before\|after]` `[data-dragging]`, `.c-sidebar__group[data-drop]`, `.c-sidebar__empty` | 끌어서 순서 변경: 놓일 위치 선, 끄는 행은 흐리게, 빈 그룹도 놓을 수 있음 |
 | `.c-tabbar` `__add` `__trailing`, `.c-tab[aria-selected]` `__title` `__branch` `__close` | 탭 (`__branch` = 워크트리 브랜치, mono, 먼저 잘림) |
@@ -154,6 +157,7 @@
 | `HostBadge` `host` `conn?` `label?` | `.c-badge--host` (+ `.c-badge__conn`) |
 | `Kbd`, `Label` | `.c-kbd`, `.c-label` |
 | `Elapsed` `title?` | `.c-elapsed` |
+| `Meter` `label` `value` `fraction` (null = 모름) `tone?` `caption?` `title?` | `.c-meter` |
 | `Segment` `options` `value` `onChange` | `.c-segment` |
 | `EmptyState` `title` `path` `actions` | `.c-empty` |
 | `Dialog` `open` `title` `onClose` `actions` `wide`, `DialogCheck`, `DialogCode`, `DialogForm` `id` `onSubmit` | `.c-dialog` |

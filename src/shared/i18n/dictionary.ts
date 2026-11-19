@@ -335,6 +335,20 @@ const ko = {
   'remote.retrying': '다시 시도 중…',
   'remote.keepsRunning': '에이전트는 호스트의 tmux에서 계속 돌아요',
   'remote.reconnectNow': '지금 다시 연결',
+  'usage.title': '사용량',
+  'usage.estimated': '추정',
+  'usage.hint': '이 Mac의 Claude 기록으로 추정한 값이에요. claude.ai나 다른 기기에서 쓴 양은 빠져요.',
+  'usage.fiveHour': '5시간',
+  'usage.weekly': '주간',
+  'usage.resetsAt': '{time} 리셋',
+  'usage.notStarted': '다음 메시지부터',
+  'usage.rolling': '최근 7일',
+  'usage.ofLimit': '{used} / {limit} 토큰',
+  'usage.tokens': '{used} 토큰 · 아직 한도에 닿은 적이 없어 비율은 몰라요. 처음 닿으면 그때 쓴 양을 100%로 잡아요.',
+  'usage.openOther': '{account} 계정으로 새 Claude',
+  'usage.nearTitle': '{account} 한도 임박',
+  'usage.nearBody5h': '5시간 한도의 {percent}%를 썼어요 (추정). {time}에 리셋돼요. 다른 계정으로 새 세션을 열 수 있어요.',
+  'usage.nearBodyWeek': '주간 한도의 {percent}%를 썼어요 (추정). 다른 계정으로 새 세션을 열 수 있어요.',
 } as const;
 
 type Key = keyof typeof ko;
@@ -672,6 +686,20 @@ const en = {
   'remote.retrying': 'Retrying…',
   'remote.keepsRunning': 'The agent keeps running in tmux on the host',
   'remote.reconnectNow': 'Reconnect now',
+  'usage.title': 'Usage',
+  'usage.estimated': 'Estimated',
+  'usage.hint': "Estimated from this Mac's Claude transcripts. Use on claude.ai or other machines isn't counted.",
+  'usage.fiveHour': '5 hours',
+  'usage.weekly': 'Weekly',
+  'usage.resetsAt': 'Resets {time}',
+  'usage.notStarted': 'Starts with next message',
+  'usage.rolling': 'Last 7 days',
+  'usage.ofLimit': '{used} of {limit} tokens',
+  'usage.tokens': '{used} tokens · no rate limit seen yet, so no percentage. The first hit makes that usage 100%.',
+  'usage.openOther': 'New Claude with {account}',
+  'usage.nearTitle': '{account} is near its limit',
+  'usage.nearBody5h': 'Used {percent}% of the 5-hour limit (estimated). Resets at {time}. You can open a new session with another account.',
+  'usage.nearBodyWeek': 'Used {percent}% of the weekly limit (estimated). You can open a new session with another account.',
 } satisfies Record<Key, string>;
 
 const DICT: Record<Language, Record<Key, string>> = { ko, en };
