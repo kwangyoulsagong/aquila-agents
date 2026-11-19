@@ -11,3 +11,4 @@ export { EmptyState } from './EmptyState';
 export { Dialog, DialogCheck, DialogCode, DialogForm } from './Dialog';
 export { ChangeRow } from './ChangeRow';
 export { Field, Input, Select, type SelectOption } from './Field';
+export { Palette, PaletteList, PaletteItem, PaletteEmpty } from './Palette';
