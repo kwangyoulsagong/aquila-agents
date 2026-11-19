@@ -85,6 +85,8 @@
   else `-b` from the project's current HEAD. Git's own error is shown in the dialog. Nothing is ever removed.
 - The session (`SessionInfo.worktree = { path, branch }`) spawns with that cwd. The tab shows the branch
   (`.c-tab__branch`, path in the tooltip), as do the pane head, the palette label and the notification title.
+- The changes panel follows the focused session: for a worktree session it shows that worktree (main resolves the
+  path from the live session id, never from a renderer-supplied path).
 - `worktree:info` gives the dialog the repo root, the current branch, local branches and existing worktrees (read-only).
 
 ## Restore on relaunch

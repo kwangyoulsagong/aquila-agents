@@ -142,7 +142,13 @@ export default function WorkspacePage() {
             onOpen={ws.openWorktreeSession}
           />
         )}
-        {changesOpen && <ChangesPanel project={project} onClose={() => setChangesOpen(false)} />}
+        {changesOpen && (
+          <ChangesPanel
+            project={project}
+            session={ws.sessions.find((x) => x.id === activeSessionId)}
+            onClose={() => setChangesOpen(false)}
+          />
+        )}
         <CommandPalette
           open={paletteOpen}
           onClose={() => setPaletteOpen(false)}

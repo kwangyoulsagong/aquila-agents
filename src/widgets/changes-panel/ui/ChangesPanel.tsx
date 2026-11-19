@@ -1,19 +1,22 @@
 import { useMemo, useRef } from 'react';
 import { Button, ChangeRow } from '@design-system/react';
-import type { Project } from '@/shared/api';
+import type { Project, Session } from '@/shared/api';
 import { useT } from '@/shared/i18n';
 import { DiffView, parseDiff } from '@/entities/diff';
 import { useChanges } from '../model/useChanges';
 
 interface Props {
   project: Project | undefined;
+  /** Focused session: when it runs in a worktree of this project, the panel shows that worktree. */
+  session?: Session;
   onClose: () => void;
 }
 
 /** Right panel: branch, changed files and the unified diff of the selected project (⌘⇧G). */
-export default function ChangesPanel({ project, onClose }: Props) {
+export default function ChangesPanel({ project, session, onClose }: Props) {
   const t = useT();
-  const { changes, error, refresh } = useChanges(project?.id ?? null);
+  const worktree = session?.projectId === project?.id ? session?.worktree : undefined;
+  const { changes, error, refresh } = useChanges(project?.id ?? null, worktree && session?.id);
   const files = useMemo(() => parseDiff(changes?.diff ?? ''), [changes?.diff]);
   const body = useRef<HTMLDivElement>(null);
 
@@ -32,7 +35,11 @@ export default function ChangesPanel({ project, onClose }: Props) {
     <aside className="c-panel" aria-label={t('changes.title')}>
       <div className="c-panel__head">
         <span>{t('changes.title')}</span>
-        {branch && <span className="c-row__meta">{branch}</span>}
+        {branch && (
+          <span className="c-row__meta" title={worktree?.path ?? project?.path}>
+            {branch}
+          </span>
+        )}
         {changes?.isRepo && changes.files.length > 0 && (
           <span className="c-row__meta">{t('changes.files', { count: String(changes.files.length) })}</span>
         )}

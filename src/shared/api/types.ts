@@ -173,8 +173,11 @@ export interface AquilaApi {
   shellFunctionPreview(account: string): Promise<ShellFunctionPreview>;
   /** Appends the previewed function to ~/.zshrc unless already defined. Explicit click only. */
   installShellFunction(account: string): Promise<ShellFunctionPreview>;
-  /** Branch, changed files and diff of the project's dir (read-only). */
-  gitChanges(projectId: string): Promise<GitChanges>;
+  /**
+   * Branch, changed files and diff of the project's dir (read-only). With `sessionId` of a worktree session in
+   * that project, of its worktree instead.
+   */
+  gitChanges(projectId: string, sessionId?: string): Promise<GitChanges>;
   write(id: string, data: string): void;
   resize(id: string, cols: number, rows: number): void;
   kill(id: string): void;

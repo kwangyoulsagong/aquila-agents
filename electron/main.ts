@@ -127,7 +127,11 @@ app.whenReady().then(async () => {
   ipcMain.handle(IPC.accountsShellInstall, (_e, account: string) =>
     installShellFunction(loadConfig(), account),
   );
-  ipcMain.handle(IPC.gitChanges, (_e, projectId: string) => gitChanges(loadConfig(), projectId));
+  ipcMain.handle(
+    IPC.gitChanges,
+    (_e, { projectId, sessionId }: { projectId: string; sessionId?: string }) =>
+      gitChanges(loadConfig(), projectId, sessionId ? s.worktreeOf(sessionId, projectId) : undefined),
+  );
   ipcMain.on(IPC.sessionWrite, (_e, { id, data }: { id: string; data: string }) => s.write(id, data));
   ipcMain.on(IPC.sessionResize, (_e, { id, cols, rows }: { id: string; cols: number; rows: number }) =>
     s.resize(id, cols, rows),

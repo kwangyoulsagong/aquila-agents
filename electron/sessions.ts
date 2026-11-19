@@ -220,6 +220,12 @@ export class SessionManager {
     if (s?.status === 'done') this.setStatus(s, 'idle');
   }
 
+  /** Worktree path of a live session in that project; undefined for any other session (never a renderer path). */
+  worktreeOf(id: string, projectId: string): string | undefined {
+    const s = this.sessions.get(id);
+    return s?.projectId === projectId ? s.worktree?.path : undefined;
+  }
+
   has(id: string): boolean {
     return this.sessions.has(id);
   }
