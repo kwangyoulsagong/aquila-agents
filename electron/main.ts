@@ -1,6 +1,7 @@
 // Main process: window, config, pty sessions, Claude hook receiver.
 import path from 'node:path';
 import { app, BrowserWindow, ipcMain, shell } from 'electron';
+import { restoreShellPath } from './env';
 import { accountsStatus, installShellFunction, prepareAccount, shellFunctionPreview } from './accounts';
 import { CONFIG_PATH, loadConfig, setLanguage, setProjectAccount } from './config';
 import { startHookServer, writeClaudeHookSettings } from './hooks';
@@ -34,6 +35,7 @@ function createWindow(): void {
 }
 
 app.whenReady().then(async () => {
+  await restoreShellPath(); // Finder launches get a minimal PATH
   const hookPort = await startHookServer((tabId, status) => sessions?.onHook(tabId, status));
   const smokeOutput = { buffer: '' };
   const send = (channel: string, payload: unknown) => win?.webContents.send(channel, payload);
