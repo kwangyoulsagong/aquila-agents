@@ -12,7 +12,8 @@
 │           open-session, setup-account     │        │ hooks.ts      127.0.0.1:<port> hook receiver     │
 │                                           │        │               + ~/.aquila/claude-hooks.json       │
 │ entities/ session (xterm, status), project│        │ git.ts        git status + diff (read-only)      │
-│           diff                            │        │ smoke.ts      npm run smoke self-check           │
+│           diff                            │        │ state.ts      ~/.aquila/state.json (open tabs)   │
+│                                           │        │ smoke.ts      npm run smoke self-check           │
 │ shared/   api (types · IPC · bridge), i18n│        │                                                 │
 └───────────────────────────────────────────┘        └─────────────────────────────────────────────────┘
                                                               │ spawns (login + interactive zsh)
@@ -58,6 +59,18 @@
   `GIT_OPTIONAL_LOCKS=0` so it never fights the agent for `index.lock`.
 - Renderer: `entities/diff` parses the diff into files/lines (`parseDiff`, tested) and renders `.c-diff`.
   Clicking a file scrolls to it. Refreshes on window focus and every 5 s while open and visible; nothing polls when closed.
+
+## Restore on relaunch
+
+- Main keeps `~/.aquila/state.json` = the open tabs in tab order (`{ projectId, kind, account?, claudeSessionId? }`),
+  rewritten on every create / exit / Claude session change (temp file + rename), so a crash keeps them too. It's read
+  once at startup, before any session exists; quitting kills the ptys without overwriting it. Smoke never reads or writes it.
+- Claude tabs start with `--session-id <uuid>` we generate. A `SessionStart` hook posts Claude's stdin JSON to
+  `/session/<tab>` on the hook receiver, so the saved id follows `/clear` and resumes.
+- After the config loads, the renderer calls `restoreSessions()` (once per launch): Claude → `claude --resume <id>`
+  if `<configDir>/projects/*/<id>.jsonl` exists (Claude writes it only after the first message), otherwise a new
+  session; codex → `codex resume --last` (codex filters by cwd); shell → fresh shell. Tabs of removed projects are
+  dropped; a removed account falls back to the project's account.
 
 ## Status
 

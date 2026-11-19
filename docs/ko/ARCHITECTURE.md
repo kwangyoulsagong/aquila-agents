@@ -12,7 +12,8 @@
 │           open-session, setup-account     │        │ hooks.ts      127.0.0.1:<port> hook 수신기       │
 │                                           │        │               + ~/.aquila/claude-hooks.json     │
 │ entities/ session (xterm, 상태), project    │        │ git.ts        git status + diff (읽기만)        │
-│           diff                            │        │ smoke.ts      npm run smoke 자동 점검            │
+│           diff                            │        │ state.ts      ~/.aquila/state.json (열린 탭)     │
+│                                           │        │ smoke.ts      npm run smoke 자동 점검            │
 │ shared/   api (타입·IPC·bridge), i18n       │        │                                                 │
 └───────────────────────────────────────────┘        └─────────────────────────────────────────────────┘
                                                               │ 실행 (로그인 + 인터랙티브 zsh)
@@ -58,6 +59,17 @@
   에이전트와 `index.lock`을 다투지 않습니다.
 - 렌더러: `entities/diff`가 diff를 파일/줄로 나누고(`parseDiff`, 테스트 있음) `.c-diff`로 그립니다.
   파일을 누르면 그 위치로 스크롤. 앱에 포커스가 오면, 그리고 열려 있고 보이는 동안 5초마다 새로고침. 닫혀 있으면 아무것도 안 돌아요.
+
+## 다시 열면 복원
+
+- Main이 `~/.aquila/state.json`에 열린 탭을 탭 순서대로 저장 (`{ projectId, kind, account?, claudeSessionId? }`).
+  세션 생성·종료·Claude 세션 변경 때마다 다시 씀(임시 파일 + rename)이라 앱이 죽어도 남아요. 시작할 때 세션이 생기기 전에
+  한 번 읽고, 종료할 때 pty를 끄면서 덮어쓰지 않아요. smoke는 읽지도 쓰지도 않아요.
+- Claude 탭은 우리가 만든 `--session-id <uuid>`로 시작. `SessionStart` hook이 Claude의 stdin JSON을 hook 수신기의
+  `/session/<tab>`으로 보내서, `/clear`나 resume 뒤에도 저장된 id가 따라가요.
+- 설정을 읽은 뒤 렌더러가 `restoreSessions()`를 실행 1회당 한 번 호출: Claude → `<configDir>/projects/*/<id>.jsonl`이
+  있으면 `claude --resume <id>`(Claude는 첫 메시지 뒤에야 이 파일을 씀), 없으면 새 세션. codex → `codex resume --last`
+  (codex가 cwd로 거름). 셸 → 새 셸. 없어진 프로젝트의 탭은 버리고, 없어진 계정은 프로젝트 계정으로 대체.
 
 ## 상태
 

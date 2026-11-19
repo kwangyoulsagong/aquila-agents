@@ -20,6 +20,7 @@ const api: AquilaApi = {
     ipcRenderer.invoke(IPC.configSetProjectAccount, { projectId, account }),
   createSession: (projectId, kind, account) =>
     ipcRenderer.invoke(IPC.sessionCreate, { projectId, kind, account }),
+  restoreSessions: () => ipcRenderer.invoke(IPC.sessionRestore),
   accountsStatus: () => ipcRenderer.invoke(IPC.accountsStatus),
   prepareAccount: (account) => ipcRenderer.invoke(IPC.accountsPrepare, account),
   shellFunctionPreview: (account) => ipcRenderer.invoke(IPC.accountsShellPreview, account),

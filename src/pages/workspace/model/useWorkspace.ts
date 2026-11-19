@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, type Config, type Session, type SessionKind } from '@/shared/api';
 import { useSplitLayout } from '@/widgets/split-view';
 
@@ -19,6 +19,27 @@ export function useWorkspace() {
 
   const split = useSplitLayout(sessions, activeProjectId, setActiveProjectId);
   const { showSession, placeInFocused, forgetSession } = split;
+
+  // Bring back the tabs from the last launch (main spawns them; Claude resumes, codex resumes --last).
+  const restoring = useRef(false);
+  useEffect(() => {
+    if (!config || restoring.current) return;
+    restoring.current = true;
+    const firstProjectId = config.projects[0]?.id;
+    api
+      .restoreSessions()
+      .then((restored) => {
+        if (!restored.length) return;
+        setSessions((list) => [
+          ...list,
+          ...restored
+            .filter((r) => !list.some((s) => s.id === r.id))
+            .map((r): Session => ({ ...r, status: 'idle' })),
+        ]);
+        placeInFocused((restored.find((r) => r.projectId === firstProjectId) ?? restored[0]).id);
+      })
+      .catch((e: unknown) => setError((e as Error).message));
+  }, [config, placeInFocused]);
 
   useEffect(() => {
     const offStatus = api.onStatus(({ id, status }) =>
