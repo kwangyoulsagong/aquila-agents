@@ -76,8 +76,9 @@ only with small additive edits. Merge order follows the numbering when two tasks
 
 ## Roadmap after v0.1
 
-Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-19, roadmap items `#n`). Everything is **Now**, except distribution, which goes last (**Release**). Within Now, the platform layer (T13)
-and the status engine (T14) come first because almost everything else builds on them (and on Windows).
+Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-19, roadmap items `#n`). Everything is **Now** (macOS), then distribution (**Release**). Windows support is pushed to after that (**Windows (later)**).
+Within Now, the platform layer (T13) and the status engine (T14) come first because almost everything else builds on them;
+T13 keeps the macOS/Windows split in one place so Windows can land later without rewrites.
 
 ## Now
 
@@ -148,21 +149,6 @@ and the status engine (T14) come first because almost everything else builds on 
   `speed-limit-change`, macOS `thermal-state-change`): longer poll intervals, no cursor blink / looping animations.
   Windows measurement: tool to be decided.
 - **Owns:** `scripts/`, `electron/power.ts`, those two docs.
-
-### T19 · Windows runtime
-- [ ] **Goal:** the app runs properly on Windows 10 1809+ / 11, x64 + arm64, native and WSL. (#9–#13)
-- **Spec:**
-  - node-pty: serialize kills in a short queue, never kill an exited pty, clean leftover conhost on quit, rebuild per
-    arch for Electron's ABI in CI, renderer `windowsPty: { backend: 'conpty', buildNumber }` (build number via IPC).
-  - Shortcuts from T13's map: Ctrl+Shift+T/W/K/G, Ctrl/Alt+1–9, Alt+arrows for focus; Ctrl+C copies when there's a
-    selection, else SIGINT; Ctrl+V goes to the pty (image paste — verify Ctrl+V vs Alt+V); no Ctrl+Alt (AltGr).
-  - Window: `titleBarStyle: 'hidden'` + `titleBarOverlay` (height = `--size-titlebar`, colors from tokens), avoid
-    `env(titlebar-area-*)`; window controls are on the right — recheck the tab bar's right end.
-  - Accounts: `CLAUDE_CONFIG_DIR` in the spawn env (shared stays unset); WSL sessions show "log in separately in this distro".
-  - WSL projects: run environment saved per project (native / distro), `wsl.exe -e git` for the changes panel, hook
-    receiver address for NAT mode (host IP + token) if hooks are still needed there.
-  - Notifications: `app.setAppUserModelId()`, Start Menu shortcut with AUMID.
-- **Owns:** `electron/platform/win32.ts`, Windows parts of `sessions.ts`, `main.ts` window options, CI workflow.
 
 ### T21 · Restore v2
 - [ ] **Goal:** relaunch brings back content too, fast. (#14 + T4 leftovers)
@@ -299,13 +285,6 @@ and the status engine (T14) come first because almost everything else builds on 
 
 ## Release (last)
 
-### T20 · Windows packaging + signing
-- [ ] **Goal:** a Windows installer people can run. (#28)
-- **Spec:** decide the signing path first (Korean individual: no Azure Artifact Signing; Korean company: eligible →
-  company + Artifact Signing / unsigned + winget/scoop + SmartScreen note / MSIX — check MSIX file-system limits).
-  NSIS x64 + arm64, electron-updater (also for macOS).
-- **Owns:** `electron-builder.yml`, `build/`, update code in `electron/updater.ts`.
-
 ### T27 · Release notes modal + pipeline
 - [ ] **Goal:** after an update, show once what changed. (#29, #30, owner)
 - **Spec:** compare `lastSeenVersion` in `~/.aquila/` with `app.getVersion()`; open only when higher (not on a fresh
@@ -313,4 +292,29 @@ and the status engine (T14) come first because almost everything else builds on 
   guide item; "What's new" in the `?` menu lists past versions; skipped versions are combined. Notes bundled per version
   (`release-notes/<version>.{ko,en}.md` or JSON with `guideId` + media), offline. Draft from Conventional Commits since
   the last tag, edited by hand; packaging fails if the version's ko/en notes are missing.
+- **Also:** electron-updater for macOS (Windows updates come with T20).
 - **Owns:** `src/features/release-notes/`, `release-notes/`, `scripts/release-notes.ts`.
+
+## Windows (later)
+
+### T19 · Windows runtime
+- [ ] **Goal:** the app runs properly on Windows 10 1809+ / 11, x64 + arm64, native and WSL. (#9–#13)
+- **Spec:**
+  - node-pty: serialize kills in a short queue, never kill an exited pty, clean leftover conhost on quit, rebuild per
+    arch for Electron's ABI in CI, renderer `windowsPty: { backend: 'conpty', buildNumber }` (build number via IPC).
+  - Shortcuts from T13's map: Ctrl+Shift+T/W/K/G, Ctrl/Alt+1–9, Alt+arrows for focus; Ctrl+C copies when there's a
+    selection, else SIGINT; Ctrl+V goes to the pty (image paste — verify Ctrl+V vs Alt+V); no Ctrl+Alt (AltGr).
+  - Window: `titleBarStyle: 'hidden'` + `titleBarOverlay` (height = `--size-titlebar`, colors from tokens), avoid
+    `env(titlebar-area-*)`; window controls are on the right — recheck the tab bar's right end.
+  - Accounts: `CLAUDE_CONFIG_DIR` in the spawn env (shared stays unset); WSL sessions show "log in separately in this distro".
+  - WSL projects: run environment saved per project (native / distro), `wsl.exe -e git` for the changes panel, hook
+    receiver address for NAT mode (host IP + token) if hooks are still needed there.
+  - Notifications: `app.setAppUserModelId()`, Start Menu shortcut with AUMID.
+- **Owns:** `electron/platform/win32.ts`, Windows parts of `sessions.ts`, `main.ts` window options, CI workflow.
+
+### T20 · Windows packaging + signing
+- [ ] **Goal:** a Windows installer people can run. (#28)
+- **Spec:** decide the signing path first (Korean individual: no Azure Artifact Signing; Korean company: eligible →
+  company + Artifact Signing / unsigned + winget/scoop + SmartScreen note / MSIX — check MSIX file-system limits).
+  NSIS x64 + arm64, electron-updater (also for macOS).
+- **Owns:** `electron-builder.yml`, `build/`, update code in `electron/updater.ts`.

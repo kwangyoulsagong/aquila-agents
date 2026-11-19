@@ -76,8 +76,9 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
 
 ## v0.1 이후 로드맵
 
-근거: [`docs/research/`](../research/README.md) (사용 편의성 조사, 2026-11-19, 로드맵 항목 `#n`). 배포를 뺀 전부가 **Now**이고, 배포는 맨 마지막(**배포**)이에요. Now 안에서는 플랫폼 계층(T13)과 상태 엔진(T14)이
-먼저예요. 나머지 거의 전부(그리고 Windows)가 그 위에 올라가기 때문이에요.
+근거: [`docs/research/`](../research/README.md) (사용 편의성 조사, 2026-11-19, 로드맵 항목 `#n`). 전부 **Now**(macOS)이고, 그다음 배포(**배포**)예요. Windows 지원은 그 뒤로 미뤘어요(**Windows (추후)**).
+Now 안에서는 플랫폼 계층(T13)과 상태 엔진(T14)이 먼저예요. 나머지 거의 전부가 그 위에 올라가기 때문이에요.
+T13이 macOS/Windows 차이를 한곳에 모아 두니까 Windows는 나중에 다시 짜지 않고 붙일 수 있어요.
 
 ## Now
 
@@ -145,21 +146,6 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
   결과는 `docs/en/ENERGY.md` + `docs/ko/ENERGY.md`. `powerMonitor`(`on-battery`, `speed-limit-change`, macOS
   `thermal-state-change`)로 절전 프로필: 폴링 간격 늘리기, 커서 깜빡임·반복 애니메이션 끄기. Windows 측정 도구는 미정.
 - **담당:** `scripts/`, `electron/power.ts`, 위 두 문서.
-
-### T19 · Windows 런타임
-- [ ] **목표:** Windows 10 1809+ / 11, x64 + arm64, 네이티브와 WSL에서 제대로 동작. (#9–#13)
-- **명세:**
-  - node-pty: kill을 짧은 큐로 직렬화, 이미 끝난 pty는 kill 금지, 종료 시 남은 conhost 정리, CI에서 아키텍처별로
-    Electron ABI에 맞춰 리빌드, 렌더러 `windowsPty: { backend: 'conpty', buildNumber }`(build number는 IPC로).
-  - T13 맵의 단축키: Ctrl+Shift+T/W/K/G, Ctrl/Alt+1–9, Alt+방향키 포커스. Ctrl+C는 선택 있으면 복사, 없으면 SIGINT.
-    Ctrl+V는 pty로(이미지 붙여넣기 — Ctrl+V vs Alt+V 실측). Ctrl+Alt 조합 금지(AltGr).
-  - 창: `titleBarStyle: 'hidden'` + `titleBarOverlay`(높이 = `--size-titlebar`, 색은 토큰), `env(titlebar-area-*)`
-    피하기. 창 컨트롤이 오른쪽이라 탭 바 오른쪽 끝 다시 보기.
-  - 계정: spawn env의 `CLAUDE_CONFIG_DIR`(shared는 비움). WSL 세션은 "이 배포판에서 따로 로그인" 표시.
-  - WSL 프로젝트: 프로젝트별 실행 환경(네이티브 / 배포판) 저장, 변경사항 패널은 `wsl.exe -e git`, NAT 모드에서
-    hook이 필요하면 수신기 주소(호스트 IP + 토큰).
-  - 알림: `app.setAppUserModelId()`, AUMID가 있는 시작 메뉴 바로가기.
-- **담당:** `electron/platform/win32.ts`, `sessions.ts`의 Windows 부분, `main.ts` 창 옵션, CI 워크플로.
 
 ### T21 · 복원 v2
 - [ ] **목표:** 다시 열면 내용까지, 빠르게. (#14 + T4 남은 것)
@@ -284,17 +270,35 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
 
 ## 배포 (맨 마지막)
 
-### T20 · Windows 패키징 + 서명
-- [ ] **목표:** 사람들이 실행할 수 있는 Windows 설치 파일. (#28)
-- **명세:** 서명 경로부터 결정(한국 개인: Azure Artifact Signing 불가, 한국 법인: 가능 → 법인 + Artifact Signing /
-  미서명 + winget/scoop + SmartScreen 안내 / MSIX — MSIX 파일시스템 제약 확인). NSIS x64 + arm64, electron-updater
-  (macOS도).
-- **담당:** `electron-builder.yml`, `build/`, `electron/updater.ts`.
-
 ### T27 · 릴리즈 노트 모달 + 파이프라인
 - [ ] **목표:** 업데이트 뒤 무엇이 바뀌었는지 한 번 보여주기. (#29, #30, 오너)
 - **명세:** `~/.aquila/`의 `lastSeenVersion`과 `app.getVersion()` 비교, 높을 때만 열기(새 설치면 안 띄우고 버전만 기록,
   대신 가이드 제안). T23과 같은 모달: 미디어 있는 헤드라인 3~5개, "사용법 보기" → 가이드 항목. `?` 메뉴 "새로운 기능"에서
   지난 버전 목록, 건너뛴 버전은 묶어서. 버전별로 번들(`release-notes/<version>.{ko,en}.md` 또는 `guideId`·미디어가 있는
   JSON), 오프라인. 초안은 지난 태그 이후 Conventional Commits에서 만들고 사람이 다듬음. 해당 버전 ko/en 노트가 없으면 패키징 실패.
+- **추가:** macOS용 electron-updater(Windows 업데이트는 T20에서).
 - **담당:** `src/features/release-notes/`, `release-notes/`, `scripts/release-notes.ts`.
+
+## Windows (추후)
+
+### T19 · Windows 런타임
+- [ ] **목표:** Windows 10 1809+ / 11, x64 + arm64, 네이티브와 WSL에서 제대로 동작. (#9–#13)
+- **명세:**
+  - node-pty: kill을 짧은 큐로 직렬화, 이미 끝난 pty는 kill 금지, 종료 시 남은 conhost 정리, CI에서 아키텍처별로
+    Electron ABI에 맞춰 리빌드, 렌더러 `windowsPty: { backend: 'conpty', buildNumber }`(build number는 IPC로).
+  - T13 맵의 단축키: Ctrl+Shift+T/W/K/G, Ctrl/Alt+1–9, Alt+방향키 포커스. Ctrl+C는 선택 있으면 복사, 없으면 SIGINT.
+    Ctrl+V는 pty로(이미지 붙여넣기 — Ctrl+V vs Alt+V 실측). Ctrl+Alt 조합 금지(AltGr).
+  - 창: `titleBarStyle: 'hidden'` + `titleBarOverlay`(높이 = `--size-titlebar`, 색은 토큰), `env(titlebar-area-*)`
+    피하기. 창 컨트롤이 오른쪽이라 탭 바 오른쪽 끝 다시 보기.
+  - 계정: spawn env의 `CLAUDE_CONFIG_DIR`(shared는 비움). WSL 세션은 "이 배포판에서 따로 로그인" 표시.
+  - WSL 프로젝트: 프로젝트별 실행 환경(네이티브 / 배포판) 저장, 변경사항 패널은 `wsl.exe -e git`, NAT 모드에서
+    hook이 필요하면 수신기 주소(호스트 IP + 토큰).
+  - 알림: `app.setAppUserModelId()`, AUMID가 있는 시작 메뉴 바로가기.
+- **담당:** `electron/platform/win32.ts`, `sessions.ts`의 Windows 부분, `main.ts` 창 옵션, CI 워크플로.
+
+### T20 · Windows 패키징 + 서명
+- [ ] **목표:** 사람들이 실행할 수 있는 Windows 설치 파일. (#28)
+- **명세:** 서명 경로부터 결정(한국 개인: Azure Artifact Signing 불가, 한국 법인: 가능 → 법인 + Artifact Signing /
+  미서명 + winget/scoop + SmartScreen 안내 / MSIX — MSIX 파일시스템 제약 확인). NSIS x64 + arm64, electron-updater
+  (macOS도).
+- **담당:** `electron-builder.yml`, `build/`, `electron/updater.ts`.
