@@ -15,6 +15,7 @@ import type { PreviewViews } from './preview';
 import { runPerf } from './perf';
 import type { SessionManager } from './sessions';
 import { checkRemoteSession } from './remote/smoke';
+import { readHookBody } from './hooks';
 import { IPC, type Config, type ConnectionUpdate, type ContextMenuItem } from '../src/shared/api/types';
 import { translator } from '../src/shared/i18n/dictionary';
 
@@ -129,6 +130,8 @@ export async function runSmoke(
     if (menuPasteError) return fail(menuPasteError);
     const renameError = await checkRename(win, sessions, outDir);
     if (renameError) return fail(renameError);
+    const promptError = await checkPromptTitle(win, sessions);
+    if (promptError) return fail(promptError);
     const onPath = (bin: string) =>
       (process.env.PATH ?? '').split(':').some((dir) => dir && fs.existsSync(path.join(dir, bin)));
     console.log(`[smoke] PATH has claude: ${onPath('claude')}, codex: ${onPath('codex')}`);
@@ -518,13 +521,17 @@ async function checkRename(win: BrowserWindow, s: SessionManager, outDir: string
     return true;
   })()`);
   await wait(250);
-  await js(`document.querySelector('[data-smoke-rename]')?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }))`);
+  await js(
+    `document.querySelector('[data-smoke-rename]')?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }))`,
+  );
   await wait(500);
   const otherEditing: boolean = await js(`document.activeElement?.matches('.c-tab input') ?? false`);
   press(win, 'Escape', []);
   await wait(300);
   const closed: boolean = await js(`!document.querySelector('.c-tab input')`);
-  console.log(`[smoke] rename: from ⌘K ${fromPalette}, other tab ${other && otherEditing}, Esc closes ${closed}`);
+  console.log(
+    `[smoke] rename: from ⌘K ${fromPalette}, other tab ${other && otherEditing}, Esc closes ${closed}`,
+  );
   if (!fromPalette) return 'rename: ⌘K "Rename session" did not leave the title input focused';
   if (other && !otherEditing) return 'rename: double-click on another tab did not keep its input focused';
   if (!closed) return 'rename: Esc did not close the input';
@@ -532,6 +539,60 @@ async function checkRename(win: BrowserWindow, s: SessionManager, outDir: string
   if (!shown.head.includes(name)) return `rename: the pane head reads "${shown.head}"`;
   if (!saved) return 'rename: the title is not in the saved tabs';
   if (!shown.terminal) return 'rename: Enter did not give the terminal its keyboard back';
+  return null;
+}
+
+/**
+ * T43: a UserPromptSubmit body as Claude 2.1.329 posts it names the focused tab; a later prompt or a slash command
+ * doesn't, a user title wins and clearing it goes back to the prompt.
+ */
+async function checkPromptTitle(win: BrowserWindow, s: SessionManager): Promise<string | null> {
+  const js = <T>(code: string): Promise<T> => win.webContents.executeJavaScript(code) as Promise<T>;
+  const id = s.active;
+  if (!id) return 'prompt title: no focused tab';
+  const body = (prompt: string) =>
+    JSON.stringify({
+      session_id: '0f8fad5b-d9cb-469f-a165-70867728950e',
+      transcript_path: '/tmp/t.jsonl',
+      cwd: '/tmp',
+      permission_mode: 'default',
+      hook_event_name: 'UserPromptSubmit',
+      prompt,
+      prompt_id: 'p1',
+    });
+  const post = (prompt: string) => {
+    const hook = readHookBody(body(prompt));
+    if (hook) s.onHook(id, hook);
+  };
+  const tab = () =>
+    js<string>(`document.querySelector('.c-tab[aria-selected="true"] .c-tab__title')?.textContent ?? ''`);
+  post('/model');
+  await wait(200);
+  const afterSlash = await tab();
+  post('로그인 버그 고쳐줘\n자세한 내용은 아래');
+  await wait(300);
+  const first = await tab();
+  post('Second prompt');
+  await wait(300);
+  const second = await tab();
+  s.rename(id, 'Mine');
+  await wait(300);
+  const renamed = await tab();
+  s.rename(id, '');
+  await wait(300);
+  const reset = await tab();
+  const saved = s.tabs().some((t) => t.prompt === '로그인 버그 고쳐줘');
+  console.log(
+    `[smoke] prompt title: after /model "${afterSlash}", first "${first}", second "${second}", renamed "${renamed}", reset "${reset}", saved ${saved}`,
+  );
+  if (afterSlash === '로그인 버그 고쳐줘') return 'prompt title: a slash command named the tab';
+  if (first !== '로그인 버그 고쳐줘')
+    return `prompt title: the first prompt did not name the tab ("${first}")`;
+  if (second !== first) return `prompt title: a later prompt renamed the tab ("${second}")`;
+  if (renamed !== 'Mine') return `prompt title: a user title did not win ("${renamed}")`;
+  if (reset !== first)
+    return `prompt title: clearing the user title did not go back to the prompt ("${reset}")`;
+  if (!saved) return 'prompt title: the prompt is not in the saved tabs';
   return null;
 }
 
