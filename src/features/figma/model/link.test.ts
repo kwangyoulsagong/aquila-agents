@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { chipInput, chipsFor, parseFigmaLink } from './link';
+import { chipInput, chipPrompt, chipsFor, parseFigmaLink } from './link';
 
 describe('parseFigmaLink', () => {
   it('reads a design link with a node', () => {
@@ -61,5 +61,18 @@ describe('chipsFor', () => {
 describe('chipInput', () => {
   it('one line after a space, so it follows the pasted link', () => {
     expect(chipInput('Do this.\n  Then that. ')).toBe(' Do this. Then that.');
+  });
+});
+
+describe('chipPrompt', () => {
+  const chips = chipsFor(parseFigmaLink('https://www.figma.com/design/K/x')!);
+  const byId = (id: string) => chips.find((c) => c.id === id)!;
+  it('Claude: compare and implement add the Chrome check', () => {
+    expect(chipPrompt(byId('compare'), 'claude', 'Compare.', 'Then Chrome.')).toBe(' Compare. Then Chrome.');
+    expect(chipPrompt(byId('implement'), 'claude', 'Build.', 'Then Chrome.')).toBe(' Build. Then Chrome.');
+  });
+  it('Codex and the other chips: MCP only', () => {
+    expect(chipPrompt(byId('compare'), 'codex', 'Compare.', 'Then Chrome.')).toBe(' Compare.');
+    expect(chipPrompt(byId('comments'), 'claude', 'Comments.', 'Then Chrome.')).toBe(' Comments.');
   });
 });

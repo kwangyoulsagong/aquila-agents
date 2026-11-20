@@ -258,7 +258,7 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
 
 ### T34 · Figma 프롬프트 칩 + Design vs Build
 - [x] **목표:** 덜 타이핑하고 디자인→코드 결과는 더 좋게. (#38)
-  _남은 것: "디자인 바뀜" 확인(토큰으로 REST `/v1/files/:key` 버전 폴링)은 안 만듦. 프리뷰 겹쳐 보기는 패널에 어니언 스킨으로 그리지 않고 에이전트가 함(`get_screenshot` + 선택 스크린샷). 앱에서 Claude 2.1.329로 실제 확인: 실제 Figma 링크에 칩, 칩 → 링크 뒤 프롬프트, Enter·×로 닫힘, FigJam 칩, Designer 선택의 Figma 줄, 실제 파일에서 "코멘트 → TODO" 끝까지 실행(사용자의 claude.ai Figma 커넥터로; 도구 이름 6개는 `/mcp`에서 확인). Codex는 미확인(자체 "Trust this folder?"에서 멈춤). 하다가 발견(T32): claude.ai Figma 커넥터가 이미 연결돼 있으면 우리가 넣는 `figma` 서버는 "needs sign-in"으로 남고 Claude가 "1 MCP server needs authentication" 경고를 띄움. 앱 내 가이드 항목 없음(캡처 미디어 필요)._
+  _남은 것: "디자인 바뀜" 확인(토큰으로 REST `/v1/files/:key` 버전 폴링)은 안 만듦. 프리뷰 겹쳐 보기는 패널에 어니언 스킨으로 그리지 않고 에이전트가 함(`get_screenshot` + 선택 스크린샷). 앱에서 Claude 2.1.329로 실제 확인: 실제 Figma 링크에 칩, 칩 → 링크 뒤 프롬프트, Enter·×로 닫힘, FigJam 칩, Designer 선택의 Figma 줄, 실제 파일에서 "코멘트 → TODO" 끝까지 실행(사용자의 claude.ai Figma 커넥터로; 도구 이름 6개는 `/mcp`에서 확인). Claude 탭: 비교·구현 칩은 Claude in Chrome 단계도 실행(Figma Dev Mode 속성 — 컴포넌트·variant, 크기, 간격… — ↔ 앱 컴포넌트·계산된 스타일, 화면 대조), 붙여 넣기까지 실제 확인; Codex는 MCP만 쓰는 프롬프트. Codex는 미확인(자체 "Trust this folder?"에서 멈춤). 하다가 발견(T32): claude.ai Figma 커넥터가 이미 연결돼 있으면 우리가 넣는 `figma` 서버는 "needs sign-in"으로 남고 Claude가 "1 MCP server needs authentication" 경고를 띄움. 앱 내 가이드 항목 없음(캡처 미디어 필요)._
 - **명세:** Figma 링크를 붙이면 프롬프트 칩 제안("기존 컴포넌트와 토큰으로 이 프레임 구현" — `get_variable_defs`로 토큰 먼저,
   프론트엔드는 `download_assets` 에셋, 백엔드는 `get_figjam` 플로우와 `get_comments` → TODO). 프리뷰 캡처 위에 Figma
   `get_screenshot` 겹쳐 보기. 선택: REST `/v1/files/:key` 버전 폴링으로 "디자인이 바뀌었나" 확인(REST 토큰 필요, 고급 설정).

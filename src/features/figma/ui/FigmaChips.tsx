@@ -2,15 +2,16 @@ import { useEffect, useState } from 'react';
 import { Button, TermChipGroup, TermChips, TermOverlay } from '@design-system/react';
 import { useTerminal } from '@/entities/session';
 import { useT } from '@/shared/i18n';
-import { chipInput, chipsFor, parseFigmaLink, type ChipGroup, type FigmaLink } from '../model/link';
+import { chipPrompt, chipsFor, parseFigmaLink, type ChipGroup, type FigmaLink } from '../model/link';
 
 const GROUPS: readonly ChipGroup[] = ['design', 'build'];
 
 /**
  * Over a Claude/Codex terminal of a Figma-enabled project (T34): pasting a Figma link offers prompt chips. A chip
- * types its prompt after the link (no Enter); sending the line, or ×, puts the chips away.
+ * types its prompt after the link (no Enter); sending the line, or ×, puts the chips away. In Claude tabs, compare and
+ * implement also ask for a Claude in Chrome pass over the frame and the running app.
  */
-export default function FigmaChips({ sessionId }: { sessionId: string }) {
+export default function FigmaChips({ sessionId, kind }: { sessionId: string; kind: 'claude' | 'codex' }) {
   const t = useT();
   const term = useTerminal(sessionId);
   const [link, setLink] = useState<FigmaLink | null>(null);
@@ -57,7 +58,7 @@ export default function FigmaChips({ sessionId }: { sessionId: string }) {
                   key={chip.id}
                   title={t(`figma.prompt.${chip.id}`)}
                   onClick={() => {
-                    term.paste(chipInput(t(`figma.prompt.${chip.id}`)));
+                    term.paste(chipPrompt(chip, kind, t(`figma.prompt.${chip.id}`), t('figma.prompt.chromeCheck')));
                     term.focus();
                     setLink(null);
                   }}

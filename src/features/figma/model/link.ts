@@ -34,6 +34,8 @@ export type ChipId = 'compare' | 'flow' | 'comments' | 'implement' | 'assets';
 export interface Chip {
   id: ChipId;
   group: ChipGroup;
+  /** Claude tabs: after the MCP pass, check the frame and the running app side by side in Claude in Chrome. */
+  chrome?: boolean;
 }
 
 /** Chips for a link, Design group first. FigJam boards have flows and comments, no frames to build. */
@@ -44,9 +46,9 @@ export function chipsFor(link: FigmaLink): Chip[] {
       { id: 'comments', group: 'design' },
     ];
   return [
-    { id: 'compare', group: 'design' },
+    { id: 'compare', group: 'design', chrome: true },
     { id: 'comments', group: 'design' },
-    { id: 'implement', group: 'build' },
+    { id: 'implement', group: 'build', chrome: true },
     { id: 'assets', group: 'build' },
   ];
 }
@@ -56,3 +58,11 @@ export function chipsFor(link: FigmaLink): Chip[] {
  * it, adds to it and sends.
  */
 export const chipInput = (prompt: string): string => ` ${prompt.replace(/\s*\n\s*/g, ' ').trim()}`;
+
+/**
+ * The prompt a chip types. Claude has Claude in Chrome built in; Codex doesn't, so it gets the MCP-only prompt.
+ * The Chrome pass catches what the MCP data misses (states, real fonts, images, overflow, widths).
+ */
+export function chipPrompt(chip: Chip, kind: 'claude' | 'codex', prompt: string, chromeCheck: string): string {
+  return chipInput(chip.chrome && kind === 'claude' ? `${prompt} ${chromeCheck}` : prompt);
+}

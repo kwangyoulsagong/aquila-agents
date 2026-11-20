@@ -101,6 +101,8 @@ const ko = {
     '이 프레임을 우리 컴포넌트와 디자인 토큰으로 구현해 주세요. 먼저 get_variable_defs로 Figma 변수를 우리 토큰에 매핑하고(없는 건 토큰 파일에 추가, 값 하드코딩 금지), 그다음 get_design_context로 구조를 가져와 주세요. 새 마크업 대신 기존 컴포넌트를 재사용해 주세요.',
   'figma.prompt.assets':
     '이 프레임이 쓰는 이미지와 아이콘을 download_assets로 프로젝트의 에셋 폴더에 받아서 코드에서 참조해 주세요. SVG를 손으로 다시 그리지 마세요.',
+  'figma.prompt.chromeCheck':
+    '그다음 Claude in Chrome으로 Figma 프레임(Dev Mode)과 실행 중인 앱(안 떠 있으면 dev 서버 실행)을 둘 다 열어 주세요. Figma에서는 레이어를 하나씩 선택해 속성 패널(어떤 디자인 시스템 컴포넌트·variant인지, 크기, 오토 레이아웃, 패딩·간격, 글꼴, 색·변수, 효과)을 읽고, 앱에서는 같은 요소가 쓰는 컴포넌트와 계산된 스타일을 읽어 하나하나 대조해 주세요. 컴포넌트가 다르면 우리 디자인 시스템의 맞는 컴포넌트로 바꿔 주세요. 화면으로도 비교해서 Figma MCP 데이터가 놓친 것(호버·포커스 상태, 실제 글꼴, 이미지, 넘침, 반응형 폭)까지 고치고, 둘이 맞을 때까지 반복해 주세요.',
   'figma.prompt.pickDesign': 'Figma 디자인: {url} — get_screenshot으로 가져와서 선택한 요소의 스크린샷과 비교해 주세요.',
   'groups.new': '새 그룹…',
   'groups.newTitle': '새 그룹',
@@ -537,6 +539,8 @@ const en = {
     'Implement this frame with our components and design tokens. First call get_variable_defs and map each Figma variable to one of our tokens (add missing ones to the token file, never hard-code values), then get_design_context for the structure. Reuse existing components instead of writing new markup.',
   'figma.prompt.assets':
     "Download the images and icons this frame uses into the project's assets folder with download_assets and reference them from code. Don't redraw SVGs by hand.",
+  'figma.prompt.chromeCheck':
+    "Then use Claude in Chrome: open the Figma frame (Dev Mode) and the running app (start the dev server if it isn't up). In Figma, select the layers one by one and read the properties panel (which design-system component and variant, size, auto layout, padding and gap, typography, color and variables, effects); in the app, read which component the matching element uses and its computed styles; compare one by one. If the component differs, switch to the matching component from our design system. Compare on screen too, fix what the Figma MCP data missed (hover and focus states, real fonts, images, overflow, responsive widths), and repeat until they match.",
   'figma.prompt.pickDesign': "Figma design: {url} — call get_screenshot on it and compare it with the picked element's screenshot.",
   'groups.new': 'New group…',
   'groups.newTitle': 'New group',

@@ -248,7 +248,7 @@ export default function SplitView({
             <TerminalView id={s.id} kind={s.kind} visible={!!r} focused={r?.leaf.id === layout.focusedId} />
             <TerminalHelpers sessionId={s.id} kind={s.kind} />
             {s.kind !== 'shell' && config.projects.find((p) => p.id === s.projectId)?.figma && (
-              <FigmaChips sessionId={s.id} />
+              <FigmaChips sessionId={s.id} kind={s.kind} />
             )}
             {s.remote && <ConnectionBanner session={s} />}
           </div>
