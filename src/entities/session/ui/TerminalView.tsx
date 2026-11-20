@@ -4,6 +4,7 @@ import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import { WebglAddon } from '@xterm/addon-webgl';
 import { api, type SessionKind } from '@/shared/api';
+import { currentTheme, onThemeChange } from '@/shared/lib/theme';
 import { usePowerSaver } from '@/shared/lib/usePowerSaver';
 import { gpuPool } from '../lib/gpuPool';
 import { createImeGuard } from '../lib/imeGuard';
@@ -12,6 +13,23 @@ import { attach, registerPaste, registerTerminal } from '../lib/terminalBus';
 import { SCROLLBACK, sizeChanged } from '../model/terminal';
 
 const token = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+/** xterm colors from the current tokens (re-read when the OS appearance changes). */
+const terminalTheme = () => ({
+  background: token('--color-terminal-bg'),
+  foreground: token('--color-terminal-fg'),
+  cursor: token('--color-terminal-cursor'),
+  selectionBackground: token('--color-terminal-selection'),
+  scrollbarSliderBackground: token('--color-terminal-scrollbar'),
+  scrollbarSliderHoverBackground: token('--color-terminal-scrollbar-hover'),
+  scrollbarSliderActiveBackground: token('--color-terminal-scrollbar-hover'),
+});
+
+/**
+ * CLIs pick their output colors for a dark background (Claude's default theme, ANSI white/yellow).
+ * On light, xterm darkens any foreground below WCAG AA against its cell background.
+ */
+const minimumContrast = () => (currentTheme() === 'light' ? 4.5 : 1);
 
 /** After this many lost WebGL contexts a terminal stays on the DOM renderer. */
 const MAX_CONTEXT_LOSSES = 3;
@@ -51,15 +69,12 @@ export default function TerminalView({ id, kind, visible, focused = visible }: P
       allowProposedApi: true,
       macOptionIsMeta: true,
       scrollback: SCROLLBACK[kind],
-      theme: {
-        background: token('--color-terminal-bg'),
-        foreground: token('--color-terminal-fg'),
-        cursor: token('--color-terminal-cursor'),
-        selectionBackground: token('--color-terminal-selection'),
-        scrollbarSliderBackground: token('--color-terminal-scrollbar'),
-        scrollbarSliderHoverBackground: token('--color-terminal-scrollbar-hover'),
-        scrollbarSliderActiveBackground: token('--color-terminal-scrollbar-hover'),
-      },
+      theme: terminalTheme(),
+      minimumContrastRatio: minimumContrast(),
+    });
+    const unTheme = onThemeChange(() => {
+      term.options.theme = terminalTheme();
+      term.options.minimumContrastRatio = minimumContrast();
     });
     const fit = new FitAddon();
     term.loadAddon(fit);
@@ -152,6 +167,7 @@ export default function TerminalView({ id, kind, visible, focused = visible }: P
       clearInterval(snapTimer);
       window.removeEventListener('beforeunload', snapshot);
       written.dispose();
+      unTheme();
       snapshotRef.current = null;
       ro.disconnect();
       document.fonts.removeEventListener('loadingdone', scheduleFit);

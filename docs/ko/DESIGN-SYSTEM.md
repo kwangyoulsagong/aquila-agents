@@ -6,15 +6,19 @@
 
 - 기준 파일: `design-system/tokens.css` (값), `design-system/components.css` (컴포넌트 스타일),
   `design-system/react/` (그 스타일을 그리는 React 컴포넌트).
-- 미리보기: `open design-system/preview.html`.
+- 미리보기: `open design-system/preview.html` (`?theme=light` 또는 `?theme=dark`로 강제).
 - 규칙: **앱 코드에 hex/px 직접 쓰지 않기.** 새 값이 필요하면 원시 토큰 + 시맨틱 토큰부터 추가.
 
 ## 원칙
 
-1. **터미널이 주인공.** 사이드바·탭은 어둡고 조용하게. `--color-bg-canvas`가 가장 어두운 면.
+1. **터미널이 주인공.** 사이드바·탭은 조용하게. `--color-bg-canvas`(창 + 터미널)는 다크에선 가장 어두운 면,
+   라이트에선 가장 밝은 면이라 터미널이 항상 크롬과 구분돼요.
 2. **크게 말하는 색은 상태뿐.** 파랑 = 선택/포커스. 주황(`--color-status-waiting`)은 "내가 뭔가 해야 함" 전용, 장식 금지.
 3. **하나의 그리드.** 모든 값은 4px 배수, 영역 사이 가장자리 정렬 (아래 레이아웃 참고).
-4. **v0.1은 다크 전용.** 라이트 테마는 시맨틱 토큰 재매핑만으로.
+4. **다크와 라이트는 macOS를 따라감.** `src/shared/lib/theme.ts`가 `prefers-color-scheme`(Electron이 `nativeTheme`을
+   연결)로 `<html data-theme>`를 정해요. `tokens.css`는 `[data-theme='light']`에서 **`--color-*`만** 재매핑해요.
+   컴포넌트는 테마로 분기하지 않아요. 새 색 토큰은 두 블록 모두에 값이 있어야 해요. `AQUILA_THEME=light|dark`로
+   강제할 수 있어요(스모크, 캡처, 확인용).
 
 ## 토큰 2단 구조
 
@@ -40,7 +44,7 @@
 | `--color-agent-claude` / `-codex` / `-shell` | 세션 종류 |
 | `--color-account-shared` / `-personal` | Claude 계정 배지 (`claude` / `claude-personal`) |
 | `--color-diff-*` | diff 추가 / 삭제 / 헝크 |
-| `--color-terminal-*` | xterm 테마 (실행 중에 읽음): 배경, 글자, 커서, 선택, 스크롤바(+ `-hover`) |
+| `--color-terminal-*` | xterm 테마 (실행 중에 읽고, 테마가 바뀌면 다시 읽음): 배경, 글자, 커서, 선택, 스크롤바(+ `-hover`). 라이트에선 xterm `minimumContrastRatio`를 4.5로 둬서 다크 배경용으로 고른 CLI 색도 읽혀요 |
 
 ### 세션 상태 — 앱의 핵심 언어
 
