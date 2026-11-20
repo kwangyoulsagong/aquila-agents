@@ -505,13 +505,18 @@ command + `curl` posting the same JSON. Raw 7501 reports and hook event names go
 
 ### Attention (`electron/notify.ts`, `features/next-waiting`)
 
-- **Notifications** for done / waiting / error (not exit errors) when the window isn't focused or the session isn't
-  the active one. Title = project (· worktree branch), body = `Claude · Needs input — Bash: npm install`. The detail
+- **Notifications** for waiting / error (not exit errors) when the session isn't on screen: the window isn't focused,
+  or the session is neither the active tab nor in any visible split pane (`SessionManager.onScreen`, fed by
+  `session:visible`). `done` stays a quiet dot unless ⚙ Settings ▸ Notify when done (`config.notifyDone`) is on (T45).
+  Title = project (· worktree branch), body = `Claude · Needs input — Bash: npm install`. The detail
   is the `PermissionRequest` tool summary (or the 7501 `msg`, or the `Notification` message) for waiting, and the
   first line of `Stop`'s `last_assistant_message` (or the 7501 `msg`) for done; it is dropped when a new turn starts.
   A notification waits 400 ms to settle (a late hook detail joins it, a waiting → working flap is dropped), and the
   same status for the same session isn't notified twice within 30 s. Click → window up + that exact session.
 - **Reminder:** one more notification after 10 min of waiting off screen ("Still waiting after 10 min").
+- **Withdrawn:** `Attention` keeps the delivered `Notification` per session and `close()`s it (gone from
+  Notification Center) when the session is viewed (tab focused, pane shown, window focused), changes status, is
+  closed, or gets its reminder (one banner per session).
 - **Dock badge** = number of sessions in `waiting` (empty at zero).
 - **Waiting time:** tabs and project rows show how long a session has waited (`12m`, from `since`, ≥1 min) with
   `.c-elapsed`; the row shows its longest wait.

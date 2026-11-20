@@ -24,6 +24,7 @@ import {
   openProjectIn,
   projectForPath,
   setLanguage,
+  setNotifyDone,
   setProjectAccount,
 } from './config';
 import fs from 'node:fs';
@@ -140,6 +141,8 @@ function createWindow(): void {
     previews?.destroyAll();
   });
   win.on('closed', () => (win = null));
+  // Back to the window: the banners of what's on screen have been read (T45).
+  win.on('focus', () => sessions?.seen());
 }
 
 // Windows toast notifications need the app's identity (= electron-builder appId; the installer's Start Menu shortcut carries it).
@@ -401,6 +404,7 @@ app.whenReady().then(async () => {
   ipcMain.handle(IPC.configGet, () => loadConfig());
   ipcMain.handle(IPC.configOpen, () => shell.openPath(CONFIG_PATH));
   ipcMain.handle(IPC.configSetLanguage, (_e, language: Language) => setLanguage(language));
+  ipcMain.handle(IPC.configSetNotifyDone, (_e, on: unknown) => setNotifyDone(on === true));
   ipcMain.handle(
     IPC.configSetProjectAccount,
     (_e, { projectId, account }: { projectId: string; account: string }) =>

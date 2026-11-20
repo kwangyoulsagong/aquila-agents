@@ -11,6 +11,7 @@ const ko = {
   'action.openConfig': '설정 파일 열기',
   'settings.menu': '설정',
   'settings.language': '언어',
+  'settings.notifyDone': '완료 시 알림',
   'globalShortcut.menu': '전역 단축키…',
   'globalShortcut.title': '전역 단축키',
   'globalShortcut.body':
@@ -352,7 +353,8 @@ const ko = {
   'guide.globalShortcut.body':
     '다른 앱을 쓰다가 누르면 Aquila가 앞으로 오고 가장 오래 기다린 세션이 열려요. ⚙ 설정 → 전역 단축키에서 키를 정해요. 처음엔 꺼져 있어요.',
   'guide.notify.title': '알림 · Dock 배지',
-  'guide.notify.body': '다른 화면에 있을 때 완료·입력 필요·오류를 알려요. Dock 배지는 기다리는 세션 수예요.',
+  'guide.notify.body':
+    '다른 곳을 볼 때 입력 필요·오류만 알려요. 완료 알림은 ⚙ 설정에서 켜요. Dock 배지는 기다리는 세션 수예요.',
   'guide.split.title': '화면 분할',
   'guide.split.body': '최대 4개 세션을 나란히 봐요. 탭을 분할 가장자리로 끌어도 나뉘어요.',
   'guide.focus.title': '분할 사이 이동',
@@ -575,6 +577,7 @@ const en = {
   'action.openConfig': 'Open settings file',
   'settings.menu': 'Settings',
   'settings.language': 'Language',
+  'settings.notifyDone': 'Notify when done',
   'globalShortcut.menu': 'Global shortcut…',
   'globalShortcut.title': 'Global shortcut',
   'globalShortcut.body':
@@ -920,7 +923,7 @@ const en = {
     'Press it from any app: Aquila comes to the front on the session that has waited longest. Pick the key in ⚙ Settings → Global shortcut. Off until you do.',
   'guide.notify.title': 'Notifications · Dock badge',
   'guide.notify.body':
-    "Done, needs input and errors are notified when you're looking elsewhere. The Dock badge counts waiting sessions.",
+    "Needs input and errors are notified when you're looking elsewhere; turn on done in ⚙ Settings. The Dock badge counts waiting sessions.",
   'guide.split.title': 'Split view',
   'guide.split.body': 'See up to 4 sessions side by side. Dragging a tab onto a pane edge splits too.',
   'guide.focus.title': 'Move between panes',

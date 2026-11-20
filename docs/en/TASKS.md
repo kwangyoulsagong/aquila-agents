@@ -422,7 +422,8 @@ From the ADE UX research (calm attention, recognition over recall). Only what is
 - **Done:** the preview shows every status at both sizes, and each one is recognisable in greyscale.
 
 ### T45 · Calmer notifications
-- [ ] **Goal:** a banner only when something is blocked on me. No stale alerts, no alerts for what I'm already looking at.
+- [x] **Goal:** a banner only when something is blocked on me. No stale alerts, no alerts for what I'm already looking at.
+  _Left over: the settings item lives in `features/switch-language/ui/SettingsMenu.tsx` (there is no `settings-menu` slice); withdrawal on macOS was checked by unit tests, not by watching Notification Center (smoke can't stage a hook-driven banner)._
 - **Spec:**
   - `done` no longer sends a system notification by default. It stays a quiet dot (and Dock badge rules are unchanged). An opt-in "Notify when done" setting lives in ⚙ Settings.
   - A delivered notification is withdrawn as soon as its session is viewed or changes status (keep the `Notification` object per session, call `close()`).

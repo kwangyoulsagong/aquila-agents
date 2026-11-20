@@ -135,6 +135,8 @@ export class SessionManager {
   private order: string[] = [];
   private codexScans: NodeJS.Timeout[] = [];
   private activeId: string | null = null;
+  /** Sessions whose terminal is in a visible pane (any split), reported by the renderer. */
+  private visible = new Set<string>();
   private timer: NodeJS.Timeout;
   /** Set on quit so the exits caused by killAll don't wipe the saved tabs. */
   private closing = false;
@@ -152,7 +154,8 @@ export class SessionManager {
         const s = this.sessions.get(id);
         return s && this.attentionView(s);
       },
-      onScreen: (id) => !!this.deps.getWindow()?.isFocused() && this.activeId === id,
+      onScreen: (id) => this.onScreen(id),
+      notifyDone: () => !!loadConfig().notifyDone,
       t: () => translator(loadConfig().language),
       focus: (id) => {
         const win = this.deps.getWindow();
@@ -406,6 +409,7 @@ export class SessionManager {
     // The tab is gone for good (not a quit): its saved output too.
     if (!this.closing) this.deps.scrollback?.remove(s.key);
     this.attention.forget(id);
+    this.visible.delete(id);
     this.deps.onEnded?.(id);
     this.updateBadge();
     this.tabsChanged();
@@ -685,6 +689,20 @@ export class SessionManager {
 
   setActive(id: string | null): void {
     this.activeId = id;
+    this.seen();
+  }
+
+  /**
+   * The user is looking at it: the window is focused and the session is the focused tab or in any visible
+   * split pane (T45). The other pane of a split never notifies.
+   */
+  onScreen(id: string): boolean {
+    return !!this.deps.getWindow()?.isFocused() && (this.activeId === id || this.visible.has(id));
+  }
+
+  /** Withdraw the banners of every session now on screen (tab clicked, pane shown, window focused). */
+  seen(): void {
+    for (const id of this.sessions.keys()) if (this.onScreen(id)) this.attention.viewed(id);
   }
 
   /** The tab the renderer has focused (smoke checks where the global shortcut landed, T41). */
@@ -704,7 +722,12 @@ export class SessionManager {
 
   /** Whether the session's terminal is on screen (any split pane): on-screen output flushes every frame. */
   setVisible(id: string, visible: boolean): void {
-    this.sessions.get(id)?.output.setVisible(visible);
+    const s = this.sessions.get(id);
+    if (!s) return;
+    s.output.setVisible(visible);
+    if (visible) this.visible.add(id);
+    else this.visible.delete(id);
+    this.seen();
   }
 
   /** Power profile changed: slower timers while saving. */

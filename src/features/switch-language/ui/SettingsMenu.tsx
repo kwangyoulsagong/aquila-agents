@@ -29,11 +29,13 @@ export default function SettingsMenu({
           { id: 'lang:en', label: t('language.en'), checked: config.language === 'en' },
         ],
       },
+      { id: 'notifyDone', label: t('settings.notifyDone'), checked: !!config.notifyDone },
       ...(onGlobalShortcut ? [{ id: 'globalShortcut', label: t('globalShortcut.menu') }] : []),
       { separator: true },
       { id: 'config', label: t('action.openConfig') },
     ]);
     if (id === 'lang:ko' || id === 'lang:en') pick(id.slice(5) as Language);
+    else if (id === 'notifyDone') void api.setNotifyDone(!config.notifyDone).then(onChanged);
     else if (id === 'globalShortcut') onGlobalShortcut?.();
     else if (id === 'config') void api.openConfig();
   };

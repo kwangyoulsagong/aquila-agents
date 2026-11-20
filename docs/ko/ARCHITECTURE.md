@@ -476,13 +476,17 @@ command + `curl`로 둡니다. 2.1.295보다 오래된 Claude(시작할 때 `cla
 
 ### 주의 끌기 (`electron/notify.ts`, `features/next-waiting`)
 
-- **알림:** 창에 포커스가 없거나 다른 세션을 보고 있을 때 done / waiting / error(종료 코드 오류 제외)가 되면 띄웁니다.
+- **알림:** 세션이 화면에 없을 때(창에 포커스가 없거나, 활성 탭도 아니고 보이는 분할 창에도 없을 때 —
+  `SessionManager.onScreen`, `session:visible` 기준) waiting / error(종료 코드 오류 제외)가 되면 띄웁니다.
+  `done`은 ⚙ 설정 ▸ 완료 시 알림(`config.notifyDone`)을 켰을 때만 알리고, 기본은 조용한 점만(T45).
   제목 = 프로젝트(· 워크트리 브랜치), 본문 = `Claude · 입력 필요 — Bash: npm install`. 맥락은 waiting이면
   `PermissionRequest`의 도구 요약(없으면 7501 `msg`, `Notification` 메시지), done이면 `Stop`의
   `last_assistant_message` 첫 줄(없으면 7501 `msg`)이고, 새 턴이 시작되면 지웁니다. 알림은 400 ms 기다렸다
   띄워서(늦게 온 hook 맥락은 합치고, waiting → working으로 금방 바뀌면 버림), 같은 세션의 같은 상태는 30초 안에
   두 번 알리지 않습니다. 클릭 → 창을 올리고 그 세션으로.
 - **리마인더:** 화면 밖에서 10분째 기다리면 한 번 더 알림("10분째 입력 대기").
+- **알림 거두기:** `Attention`이 세션마다 띄운 `Notification`을 들고 있다가, 그 세션을 보면(탭 포커스, 분할 창에
+  보임, 창 포커스) · 상태가 바뀌면 · 탭을 닫으면 · 리마인더가 뜨면 `close()`해서 알림 센터에서도 지웁니다(세션당 배너 하나).
 - **Dock 배지** = `waiting`인 세션 수 (0이면 비움).
 - **대기 시간:** 탭과 프로젝트 행에 기다린 시간(`12분`, `since` 기준, 1분 이상)을 `.c-elapsed`로 보여 줍니다.
   행은 가장 오래 기다린 세션 기준.

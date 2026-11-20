@@ -2,14 +2,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // vi.mock is hoisted above the imports, so what it closes over must be hoisted too.
 const { shown, badge } = vi.hoisted(() => ({
-  shown: [] as { title: string; body: string; click?: () => void }[],
+  shown: [] as { title: string; body: string; click?: () => void; closed?: boolean }[],
   badge: [] as string[],
 }));
 vi.mock('electron', () => ({
   app: { dock: { setBadge: (b: string) => badge.push(b) } },
   Notification: class {
     static isSupported = () => true;
-    private entry: { title: string; body: string; click?: () => void };
+    private entry: { title: string; body: string; click?: () => void; closed?: boolean };
     constructor(o: { title: string; body: string }) {
       this.entry = { ...o };
     }
@@ -18,6 +18,9 @@ vi.mock('electron', () => ({
     }
     show() {
       shown.push(this.entry);
+    }
+    close() {
+      this.entry.closed = true;
     }
   },
 }));
@@ -31,8 +34,8 @@ import {
   firstLine,
   notificationBody,
   setDockBadge,
+  shouldNotify,
   toolSummary,
-  wantsAttention,
   type AttentionSession,
 } from './notify';
 import { translator } from '../src/shared/i18n/dictionary';
@@ -82,14 +85,15 @@ describe('notificationBody', () => {
   });
 });
 
-describe('wantsAttention', () => {
+describe('shouldNotify', () => {
   it('waiting, done and errors other than exit', () => {
-    expect(wantsAttention('waiting')).toBe(true);
-    expect(wantsAttention('done')).toBe(true);
-    expect(wantsAttention('error', 'auth')).toBe(true);
-    expect(wantsAttention('error', 'exit')).toBe(false);
-    expect(wantsAttention('working')).toBe(false);
-    expect(wantsAttention('stopped')).toBe(false);
+    expect(shouldNotify('waiting')).toBe(true);
+    expect(shouldNotify('done')).toBe(false);
+    expect(shouldNotify('done', undefined, true)).toBe(true);
+    expect(shouldNotify('error', 'auth')).toBe(true);
+    expect(shouldNotify('error', 'exit')).toBe(false);
+    expect(shouldNotify('working')).toBe(false);
+    expect(shouldNotify('stopped')).toBe(false);
   });
 });
 
@@ -117,6 +121,7 @@ describe('Attention', () => {
   let live: Map<string, AttentionSession>;
   let onScreen: Set<string>;
   let focused: string[];
+  let notifyDone: boolean;
   let attention: InstanceType<typeof Attention>;
   const put = (s: AttentionSession) => {
     live.set(s.id, s);
@@ -130,9 +135,11 @@ describe('Attention', () => {
     live = new Map();
     onScreen = new Set();
     focused = [];
+    notifyDone = true;
     attention = new Attention({
       get: (id) => live.get(id),
       onScreen: (id) => onScreen.has(id),
+      notifyDone: () => notifyDone,
       t: () => t,
       focus: (id) => focused.push(id),
     });
@@ -202,5 +209,37 @@ describe('Attention', () => {
     attention.forget('a');
     vi.advanceTimersByTime(REMIND_MS * 2);
     expect(shown).toHaveLength(2); // the two waiting notifications, no reminder
+  });
+
+  it('done is quiet unless Notify when done is on: four agents finishing make no banners', () => {
+    notifyDone = false;
+    for (const id of ['a', 'b', 'c', 'd']) put({ ...waiting(0), id, status: 'done' });
+    vi.advanceTimersByTime(SETTLE_MS * 2);
+    expect(shown).toHaveLength(0);
+  });
+
+  it('withdraws a banner once the session is viewed', () => {
+    put(waiting(0));
+    vi.advanceTimersByTime(SETTLE_MS);
+    expect(shown[0].closed).toBeUndefined();
+    attention.viewed('a');
+    expect(shown[0].closed).toBe(true);
+  });
+
+  it('withdraws a banner when the status moves on, not on a detail update', () => {
+    put(waiting(0));
+    vi.advanceTimersByTime(SETTLE_MS);
+    put(waiting(0, 'Bash: ls'));
+    expect(shown[0].closed).toBeUndefined();
+    put({ ...waiting(1000), status: 'working' });
+    expect(shown[0].closed).toBe(true);
+  });
+
+  it('the reminder replaces the first banner; forget withdraws it', () => {
+    put(waiting(0));
+    vi.advanceTimersByTime(REMIND_MS + 1000);
+    expect(shown.map((n) => n.closed)).toEqual([true, undefined]);
+    attention.forget('a');
+    expect(shown[1].closed).toBe(true);
   });
 });
