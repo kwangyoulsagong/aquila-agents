@@ -359,7 +359,8 @@ Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-1
 - **Owns:** `src/features/fullscreen/`, scrollback setting in `entities/session`.
 
 ### T38 · Worktree sessions v2
-- [ ] **Goal:** use the worktrees you already have, and clean them up from the app. (#31 + T7 leftovers)
+- [x] **Goal:** use the worktrees you already have, and clean them up from the app. (#31 + T7 leftovers)
+  _Done: + menu "Worktrees" submenu and ⌘K list linked worktrees × Claude/Codex/Shell; the dialog has an agent picker. New worktrees copy gitignored files matching `.worktreeinclude`. "Clean up worktrees…" suggests merged + clean + closed ones, removes after a confirm step with plain `git worktree remove`; the branch stays. Left over: detached/locked worktrees are not listed; no branch deletion; the cleanup dialog was not seen in a screenshot (only the open dialog, via the guide capture)._
 - **Spec:** list existing worktrees (`git worktree list --porcelain`) in the open-session menu and ⌘K; open
   claude/codex/shell in any of them. New worktrees copy the files listed in `.worktreeinclude` (gitignored files like
   `.env`), nothing else. Never force a worktree — "in worktree" stays opt-in. Cleanup: suggest removing worktrees that

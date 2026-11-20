@@ -1,9 +1,10 @@
 import { Button } from '@design-system/react';
 import { useEffect, useRef, type ReactNode } from 'react';
-import { api, type Config, type Session, type SessionKind } from '@/shared/api';
+import { api, type Config, type Session, type SessionKind, type Worktree } from '@/shared/api';
 import { kindLabel, useT } from '@/shared/i18n';
 import { endSessionDrag, startSessionDrag } from '@/shared/lib/sessionDrag';
 import { accelerator, withShortcut } from '@/shared/lib/shortcuts';
+import { parseWorktreeMenuId, worktreeMenuItems } from '@/features/open-in-worktree';
 import { AccountBadge, HostBadge } from '@/entities/project';
 import { ContextGauge, StatusDot, WaitingTime } from '@/entities/session';
 
@@ -16,8 +17,14 @@ interface Props {
   onNew: (kind: SessionKind) => void;
   /** What a click on + opens (the project's default agent; Claude when unset). */
   defaultKind?: SessionKind;
-  /** "New Claude in worktree…" in the + button's right-click menu. */
-  onNewInWorktree?: () => void;
+  /** Worktree entries in the + button's right-click menu (local git projects): "Open in worktree…" opens the dialog. */
+  worktrees?: {
+    /** The project's existing linked worktrees, read when the menu opens. */
+    load: () => Promise<Worktree[]>;
+    onDialog: () => void;
+    onOpen: (branch: string, kind: SessionKind) => void;
+    onCleanup: () => void;
+  };
   /** Right-aligned controls (account switch). */
   trailing?: ReactNode;
 }
@@ -37,7 +44,7 @@ export default function SessionTabs({
   onClose,
   onNew,
   defaultKind = 'claude',
-  onNewInWorktree,
+  worktrees,
   trailing,
 }: Props) {
   const t = useT();
@@ -62,13 +69,26 @@ export default function SessionTabs({
     else if (r.left < left) bar.scrollLeft -= left - r.left;
   }, [activeId, sessions.length]);
   const newMenu = async () => {
+    const existing = worktrees ? await worktrees.load() : [];
     const id = await api.showContextMenu([
       { id: 'claude', label: t('action.openClaude'), accelerator: accelerator('openClaude') },
       { id: 'codex', label: t('action.openCodex'), accelerator: accelerator('openCodex') },
       { id: 'shell', label: t('palette.openShell'), accelerator: accelerator('openShell') },
-      ...(onNewInWorktree ? [{ separator: true }, { id: 'worktree', label: t('worktree.action') }] : []),
+      ...(worktrees
+        ? [
+            { separator: true },
+            ...(existing.length
+              ? [{ label: t('worktree.existing'), submenu: worktreeMenuItems(t, existing) }]
+              : []),
+            { id: 'worktree', label: t('worktree.action') },
+            ...(existing.length ? [{ id: 'worktree-cleanup', label: t('worktree.cleanup') }] : []),
+          ]
+        : []),
     ]);
-    if (id === 'worktree') onNewInWorktree?.();
+    const picked = parseWorktreeMenuId(id);
+    if (picked) worktrees?.onOpen(picked.branch, picked.kind);
+    else if (id === 'worktree') worktrees?.onDialog();
+    else if (id === 'worktree-cleanup') worktrees?.onCleanup();
     else if (id === 'claude' || id === 'codex' || id === 'shell') onNew(id);
   };
   return (

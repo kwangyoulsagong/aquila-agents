@@ -16,7 +16,7 @@
 │ entities/ session (xterm, 상태), project    │        │ state.ts      ~/.aquila/state.json (탭, 레이아웃)│
 │                                           │        │               + scrollback/ (T21)                │
 │                                           │        │ codex.ts      탭별 codex 세션 id (T21)           │
-│           diff                            │        │ worktrees.ts  git worktree 만들기 / 재사용 (T7)  │
+│           diff                            │        │ worktrees.ts  git worktree 만들기 / 재사용 / 삭제│
 │           open-in-worktree                │        │ menu.ts       네이티브 우클릭 메뉴               │
 │                                           │        │ notify.ts     알림, 리마인더, Dock 배지          │
 │                                           │        │ status/       OSC 7501 파서 + 상태 판정          │
@@ -148,12 +148,17 @@
 
 ## 워크트리 세션
 
-- "워크트리에서 새 Claude…"(탭 바의 **+** 우클릭, 또는 ⌘K 팔레트) → `features/open-in-worktree` 다이얼로그:
-  브랜치 입력칸(로컬 브랜치 추천)과 무엇을 어디에 하는지 알려주는 한 줄.
+- "워크트리에서 열기…"(탭 바의 **+** 우클릭, 또는 ⌘K 팔레트) → `features/open-in-worktree` 다이얼로그:
+  브랜치 입력칸(로컬 브랜치 추천), 무엇을 어디에 하는지 알려주는 한 줄, 에이전트(Claude / Codex / 셸, 기본값 = 프로젝트 기본 에이전트).
+- 기존 워크트리(T38): **+** 메뉴의 "워크트리" 하위 메뉴(브랜치 → Claude / Codex / 셸, 메뉴를 열 때 `worktree:info`로 읽음),
+  ⌘K에는 현재 프로젝트의 연결된 워크트리마다 "Claude · <브랜치>" 등(팔레트를 열 때 읽음). 둘 다 `session:create-worktree`로
+  가서 워크트리를 재사용해요.
 - Main (`worktrees.ts`, `session:create-worktree`): `git check-ref-format --branch`로 이름을 확인한 뒤, 그 브랜치가
   이미 체크아웃된 워크트리가 있으면 재사용(`git worktree list --porcelain`, 메인 포함), 없으면 메인 워크트리 옆
   `<repo>-wt/<branch>`에 `git worktree add` — 브랜치가 있으면 체크아웃, 없으면 프로젝트의 **기본 브랜치**(T26, 커밋을
-  가리킬 때) 또는 현재 HEAD에서 `-b`로 만들어요. 실패하면 git 메시지를 다이얼로그에 보여줘요. 아무것도 지우지 않아요.
+  가리킬 때) 또는 현재 HEAD에서 `-b`로 만들어요. 실패하면 git 메시지를 다이얼로그에 보여줘요.
+  새 워크트리에는 저장소의 **`.worktreeinclude`**(gitignore 문법)에 적힌 파일을 메인 워크트리에서 복사해요 — git이 무시하는
+  파일만(`git ls-files --others --ignored --directory --exclude-from=.worktreeinclude`를 `git check-ignore`로 거름), 덮어쓰지 않아요.
   이번에 새로 만든 워크트리는 에이전트보다 먼저 세션의 로그인 셸에서 프로젝트 **셋업 스크립트**를 한 번 보이게 실행해요
   (실패해도 에이전트는 시작).
 - 세션(`SessionInfo.worktree = { path, branch }`)은 그 폴더에서 시작. 탭에 브랜치가 보이고(`.c-tab__branch`, 툴팁에 경로),
@@ -161,6 +166,11 @@
 - 변경사항 패널은 포커스된 세션을 따라가요: 워크트리 세션이면 그 워크트리를 보여줘요(경로는 main이 살아 있는 세션 id로
   찾고, 렌더러가 준 경로는 쓰지 않아요).
 - `worktree:info`는 다이얼로그에 저장소 루트, 현재 브랜치, 로컬 브랜치, 기존 워크트리를 알려줘요(읽기만).
+- **정리**(**+** 메뉴와 ⌘K의 "워크트리 정리…"): `worktree:candidates`가 연결된 워크트리(잠기지 않고, 폴더가 있고, 브랜치가
+  있는 것)를 `merged`(`git merge-base --is-ancestor <branch> <base>`, base = 기본 브랜치 또는 HEAD), `clean`(`git status
+  --porcelain`이 비어 있음), `open`(살아 있거나 잠든 탭이 거기서 실행 중)과 함께 알려줘요. 병합 + 깨끗 + 안 열림은 추천,
+  깨끗하고 닫힌 것은 모두 삭제 가능. 삭제는 한 번 더 묻고 `worktree:remove`가 그냥 `git worktree remove`를 실행 —
+  **`--force`는 절대 안 씀**. main이 프로젝트의 연결된 워크트리인지, 탭에서 열려 있지 않은지 다시 확인해요. 브랜치는 남아요.
 
 ## 다시 열면 복원
 
