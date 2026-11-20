@@ -351,6 +351,7 @@ Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-1
 
 ### T37 · Fullscreen toggle + scrollback per kind
 - [ ] **Goal:** read a long Claude session full-window without re-splitting, and keep memory down for chatty sessions. (#40)
+  _Note: per-kind scrollback already exists (`SCROLLBACK` in `entities/session/model/terminal.ts`: claude/codex 5000, shell 10000) — only revisit the numbers._
 - **Spec:** toggle that hides sidebar + tab bar for the focused pane (macOS only; off on Windows because of the Hangul
   paste bug); same shortcut to leave, Esc does not (it belongs to the CLI). Scrollback differs per session kind
   (claude/codex vs shell), set from one place.
@@ -369,3 +370,18 @@ Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-1
 - **Spec:** optional helper binary on the host (hash-verified, never installed without asking), mosh as a transport
   option, tmux `-CC` control mode. Plain ssh + tmux stays the default.
 - **Owns:** `electron/remote/`, `src/features/remote-connection/`.
+
+### T40 · Scrollback search + safe paste
+- [ ] **Goal:** find an error or file name in long agent output, and never let a paste run a command. (Ghostty 1.3, see `docs/research/notes/ghostty.md`)
+- **Spec:** ⌘F (Windows Ctrl+Shift+F, in T13's map) opens a find bar on the focused pane: next/previous, match count,
+  case toggle, Esc closes and returns focus to the terminal; highlights cleared on close. `@xterm/addon-search`, loaded
+  only while the bar is open. Paste: strip control characters that can end bracketed paste early (`ESC[201~`, other
+  C0/C1 except tab/newline) before writing to the pty — same rule for ⌘V, drag & drop paths and quick select.
+- **Owns:** `src/features/terminal-search/`, paste path in `src/entities/session/lib/terminalBus.ts`.
+
+### T41 · Global shortcut: bring Aquila + next waiting
+- [ ] **Goal:** jump to the session that needs you from any app. (Ghostty quick terminal, adapted)
+- **Spec:** one system-wide shortcut (`globalShortcut`, default off until the user picks a key in settings; show a clear
+  error when the key is taken). Pressing it shows the window and focuses the next waiting session (T15's order); if
+  none is waiting, just shows the window. Registered only while enabled, unregistered on quit.
+- **Owns:** `electron/globalShortcut.ts`, setting UI in `src/features/global-shortcut/`.
