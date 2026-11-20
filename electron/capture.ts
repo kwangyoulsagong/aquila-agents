@@ -27,6 +27,8 @@ const TOP_LEFT: Rectangle = { x: 0, y: 0, width: 960, height: 600 };
 const TOP_RIGHT: Rectangle = { x: 480, y: 0, width: 960, height: 600 };
 const SIDEBAR: Rectangle = { x: 0, y: 0, width: 640, height: 400 };
 const CENTER: Rectangle = { x: 240, y: 0, width: 960, height: 600 };
+/** Centered both ways: a dialog sits in the middle of the window. */
+const MIDDLE: Rectangle = { x: 240, y: 150, width: 960, height: 600 };
 
 interface Frame {
   t: number;
@@ -173,6 +175,24 @@ export async function runCapture(
         await press('J', ['meta'], 1700);
         await press('J', ['meta'], 1500);
       },
+    },
+    {
+      // Global shortcut (T41): ⌘K → the dialog, record a key. Not saved, so nothing is registered with the OS.
+      id: 'globalShortcut',
+      rect: MIDDLE,
+      ms: 4600,
+      act: async () => {
+        await wait(400);
+        await openPalette();
+        await type(lang === 'ko' ? '전역' : 'global', 200);
+        await wait(500);
+        await click('.c-palette__item', t('globalShortcut.menu'));
+        await waitFor(`!!document.querySelector('.c-dialog[open] .c-input')`);
+        await wait(900);
+        await js(`document.querySelector('.c-dialog[open] .c-input')?.focus()`);
+        await press('G', ['meta', 'alt'], 1500);
+      },
+      after: () => press('Escape', [], 400),
     },
     { id: 'notify', rect: TOP_LEFT },
     {

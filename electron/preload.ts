@@ -101,6 +101,9 @@ const api: AquilaApi = {
   newsOpened: () => ipcRenderer.send(IPC.newsOpened),
   newsOpen: (url) => ipcRenderer.send(IPC.newsOpen, url),
   newsSummarize: (language, account) => ipcRenderer.invoke(IPC.newsSummarize, { language, account }),
+  globalShortcut: () => ipcRenderer.invoke(IPC.globalShortcutGet),
+  setGlobalShortcut: (accelerator) => ipcRenderer.invoke(IPC.globalShortcutSet, accelerator),
+  onGlobalShortcut: on(IPC.globalShortcutFired),
 };
 
 contextBridge.exposeInMainWorld('aquila', api);

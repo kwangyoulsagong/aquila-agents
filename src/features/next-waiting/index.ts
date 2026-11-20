@@ -1,1 +1,1 @@
-export { attentionQueue, nextWaiting } from './model/nextWaiting';
+export { attentionQueue, nextWaiting, summonTarget } from './model/nextWaiting';

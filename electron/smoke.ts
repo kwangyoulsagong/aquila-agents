@@ -1,10 +1,11 @@
 // `npm run smoke`: launch the built app, open a shell session, check the pty round-trips,
 // check OSC 7501 (main answers the query; a report becomes the session status), check Ctrl+C stops a `yes` flood fast, open shells from the UI and check terminals on screen render with WebGL, save a screenshot to dist/smoke.png,
-// open the first-run checklist from ⌘K (dist/smoke-first-run.png), project settings from ⌘K (dist/smoke-settings.png, Figma on: dist/smoke-settings-figma.png), open the guide with ⌘/ (dist/smoke-guide.png,
+// open the first-run checklist from ⌘K (dist/smoke-first-run.png), project settings from ⌘K (dist/smoke-settings.png, Figma on: dist/smoke-settings-figma.png), the global shortcut dialog from ⌘K (dist/smoke-global-shortcut.png), open the guide with ⌘/ (dist/smoke-guide.png,
 // dist/smoke-guide-shortcuts.png; every feature must show captured media), ⌘K → What's new (dist/smoke-whats-new.png;
 // headlines with media, "How to use" opens the guide at that item), run the Korean IME scenarios (real composition
 // events through Chromium's IME path via CDP; checks the exact bytes the terminal sends), then quit with exit code 0 (ok) or 1 (fail).
 // Agents use this to verify their change actually runs.
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { app, ipcMain, type BrowserWindow } from 'electron';
@@ -24,6 +25,9 @@ const OSC_CHECK =
   'case "$r" in *states=*) echo AQUILA_7501_$((40+2));; esac; ' +
   "printf '\\033]7501;state=working:app=smoke\\007'\r";
 /** `yes` floods the pty; after Ctrl+C the shell must answer within YES_BUDGET_MS (flow control keeps it responsive). */
+/** T41: query 7501, then report "waiting" (a question), from a plain shell. */
+const SUMMON_WAITING =
+  "printf '\\033]7501;?\\007'; IFS= read -rs -t 2 -d '\\' r; printf '\\033]7501;state=blocked:app=smoke:kind=question\\007'\r";
 const YES_MARKER = 'AQUILA_YES_2';
 const YES_FLOOD_MS = 1000;
 const YES_BUDGET_MS = 3000;
@@ -125,6 +129,14 @@ export async function runSmoke(
     if (firstRunError) return fail(firstRunError);
     const settingsError = await checkProjectSettings(win, config, path.join(outDir, 'smoke-settings.png'));
     if (settingsError) return fail(settingsError);
+    const shortcutError = await checkGlobalShortcut(
+      win,
+      config,
+      path.join(outDir, 'smoke-global-shortcut.png'),
+    );
+    if (shortcutError) return fail(shortcutError);
+    const summonError = await checkSummonFromOtherApp(win, sessions);
+    if (summonError) return fail(summonError);
     const guideError = await checkGuide(win, outDir);
     if (guideError) return fail(guideError);
     const notesError = await checkWhatsNew(win, config, path.join(outDir, 'smoke-whats-new.png'));
@@ -455,6 +467,100 @@ async function checkFirstRun(win: BrowserWindow, config: Config, out: string): P
     `!!document.querySelector('.c-dialog[open]')`,
   );
   return stillOpen ? 'Esc did not close the first-run checklist' : null;
+}
+
+/**
+ * The real global key from another app (T41), opt-in with AQUILA_SMOKE_GLOBAL=1: needs Accessibility for the terminal
+ * (System Events sends the key). Two new shells, the unfocused one reports waiting over OSC 7501; register ⌃⌥⌘J
+ * through the app's own API (smoke never saves it), bring Finder to the front, press the key: the window must come
+ * back focused on the waiting shell. The key is unregistered after.
+ */
+async function checkSummonFromOtherApp(win: BrowserWindow, s: SessionManager): Promise<string | null> {
+  if (process.env.AQUILA_SMOKE_GLOBAL !== '1') {
+    console.log(
+      '[smoke] global shortcut from another app: skipped (AQUILA_SMOKE_GLOBAL=1, needs Accessibility)',
+    );
+    return null;
+  }
+  win.show();
+  win.focus();
+  const before = new Set(s.ids());
+  press(win, 'T', ['meta', 'alt']);
+  await wait(1500);
+  press(win, 'T', ['meta', 'alt']);
+  await wait(1500);
+  const [waiting, other] = s.ids().filter((id) => !before.has(id));
+  if (!waiting || !other) return 'global shortcut: could not open two shells';
+  if (s.active !== other) return `global shortcut: expected the second shell focused, got ${s.active}`;
+  s.write(waiting, SUMMON_WAITING);
+  await wait(1500);
+  const set = (acc: string | null): Promise<{ active: boolean; error?: string }> =>
+    win.webContents.executeJavaScript(`window.aquila.setGlobalShortcut(${JSON.stringify(acc)})`);
+  const reg = await set('Control+Alt+Command+J');
+  if (!reg.active) return `global shortcut: ⌃⌥⌘J not registered (${reg.error ?? 'unknown'})`;
+  try {
+    execFileSync('open', ['-a', 'Finder']);
+    await wait(1200);
+    if (win.isFocused()) return 'global shortcut: Aquila still focused after opening Finder';
+    try {
+      // key code 38 = J
+      execFileSync('osascript', [
+        '-e',
+        'tell application "System Events" to key code 38 using {control down, option down, command down}',
+      ]);
+    } catch (err) {
+      return `global shortcut: System Events could not send the key (Accessibility?): ${(err as Error).message}`;
+    }
+    for (let i = 0; i < 20 && !(win.isFocused() && s.active === waiting); i++) await wait(100);
+    if (!win.isFocused()) return 'global shortcut: the key did not bring the window to the front';
+    if (s.active !== waiting)
+      return `global shortcut: focused ${s.active}, expected the waiting shell ${waiting}`;
+    console.log('[smoke] global shortcut from Finder: window up, focused the waiting shell');
+    return null;
+  } finally {
+    await set(null);
+  }
+}
+
+/**
+ * ⌘K → "Global shortcut…" (T41) opens its dialog; a key pressed in the field is recorded (⌥⌘G), and one Aquila
+ * uses in the window (⌘J) is refused. Screenshot, then Esc closes it — nothing is saved or registered.
+ */
+async function checkGlobalShortcut(win: BrowserWindow, config: Config, out: string): Promise<string | null> {
+  const t = translator(config.language);
+  win.show();
+  win.focus();
+  press(win, 'K', ['meta']);
+  await wait(500);
+  const clicked: boolean = await win.webContents.executeJavaScript(`(() => {
+    const item = [...document.querySelectorAll('.c-palette__item')].find((el) => el.textContent === ${JSON.stringify(t('globalShortcut.menu'))});
+    item?.click();
+    return !!item;
+  })()`);
+  if (!clicked) return `palette has no "${t('globalShortcut.menu')}" action`;
+  await wait(500);
+  const field = `document.querySelector('.c-dialog[open] .c-input')`;
+  const value = () => win.webContents.executeJavaScript(`${field}?.value ?? null`) as Promise<string | null>;
+  await win.webContents.executeJavaScript(`${field}?.focus()`);
+  press(win, 'J', ['meta']);
+  await wait(200);
+  const refused: boolean = await win.webContents.executeJavaScript(
+    `!!document.querySelector('.c-dialog[open] .c-field__hint[data-tone=warning]')`,
+  );
+  if (!refused) return 'global shortcut accepted ⌘J, which Aquila uses in the window';
+  press(win, 'G', ['meta', 'alt']);
+  await wait(200);
+  const recorded = await value();
+  if (recorded !== '⌥⌘G') return `global shortcut recorded ${JSON.stringify(recorded)}, expected "⌥⌘G"`;
+  await wait(300);
+  fs.writeFileSync(out, (await win.webContents.capturePage()).toPNG());
+  console.log(`[smoke] global shortcut: refused ⌘J, recorded ${recorded}, screenshot: ${out}`);
+  press(win, 'Escape', []);
+  await wait(400);
+  const stillOpen: boolean = await win.webContents.executeJavaScript(
+    `!!document.querySelector('.c-dialog[open]')`,
+  );
+  return stillOpen ? 'Esc did not close the global shortcut dialog' : null;
 }
 
 /** ⌘K → "Project settings…" opens the settings dialog with its fields; screenshot, then Esc closes it (nothing saved). */

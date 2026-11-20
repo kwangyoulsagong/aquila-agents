@@ -488,6 +488,14 @@ command + `curl`로 둡니다. 2.1.295보다 오래된 Claude(시작할 때 `cla
   행은 가장 오래 기다린 세션 기준.
 - **다음 대기 세션**(⌘J, 팔레트에도): 프로젝트를 가로질러 waiting > error > done 순으로 돌고, 같은 단계에서는
   오래 기다린 것부터. 목록 밖 세션에서 누르면 맨 앞으로.
+- **전역 단축키**(T41, `electron/globalShortcut.ts`, `features/global-shortcut`): ⚙ 설정 → 전역 단축키…(또는 ⌘K)에서
+  키를 녹음하기 전에는 꺼져 있습니다. ⌘/⌃/⌥ 중 하나가 있어야 하고 앱 안 단축키와 겹치면 안 돼요.
+  `globalShortcut.register`가 성공해야만 `~/.aquila/global-shortcut.json`에 저장하고, 다른 앱이 쓰는 키면 오류를
+  보여 주고 이전 키를 유지합니다. `will-quit`에서 해제, smoke는 읽지도 쓰지도 등록하지도 않아요. 누르면 창을 띄우고
+  `global-shortcut:fired { wasFocused }`를 보냅니다. 다른 앱에서 눌렀으면 대기 목록 맨 앞으로, Aquila 안에서
+  눌렀으면 ⌘J처럼 다음으로, 목록이 비었으면 창만 띄웁니다. `AQUILA_SMOKE_GLOBAL=1 npm run smoke`는 Finder가 앞에 있을 때
+  실제 키를 누르고(System Events, 터미널에 손쉬운 사용 권한 필요) 대기 상태를 보고한 셸로 창이 뜨는지 확인합니다.
+  일반 smoke는 이 단계를 건너뜁니다.
 
 ## 설정 (`~/.aquila/config.json`)
 

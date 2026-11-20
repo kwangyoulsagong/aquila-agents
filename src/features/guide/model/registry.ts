@@ -47,6 +47,7 @@ export const GUIDE_ITEMS: readonly GuideItem[] = [
     bodyKey: 'guide.attention.body',
     shortcuts: ['nextWaiting'],
   },
+  { id: 'globalShortcut', titleKey: 'guide.globalShortcut.title', bodyKey: 'guide.globalShortcut.body' },
   { id: 'notify', titleKey: 'guide.notify.title', bodyKey: 'guide.notify.body' },
   {
     id: 'split',
@@ -60,7 +61,12 @@ export const GUIDE_ITEMS: readonly GuideItem[] = [
     bodyKey: 'guide.focus.body',
     shortcuts: ['focusLeft', 'focusRight', 'focusUp', 'focusDown'],
   },
-  { id: 'zoom', titleKey: 'guide.zoom.title', bodyKey: 'guide.zoom.body', shortcuts: ['zoomPane', 'fullscreen'] },
+  {
+    id: 'zoom',
+    titleKey: 'guide.zoom.title',
+    bodyKey: 'guide.zoom.body',
+    shortcuts: ['zoomPane', 'fullscreen'],
+  },
   {
     id: 'resize',
     titleKey: 'guide.resize.title',
