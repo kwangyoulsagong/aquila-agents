@@ -787,6 +787,8 @@ export interface PreviewNav {
   loading: boolean;
   /** The last load failed (server down): the renderer hides the view and offers a retry. */
   error?: string;
+  /** The address whose load failed (the view's `url` stays on the last page that loaded). */
+  errorUrl?: string;
   canGoBack: boolean;
 }
 
