@@ -7,6 +7,8 @@ import { api } from '@/shared/api';
  */
 export function useGuide() {
   const [open, setOpen] = useState(false);
+  /** Item to select on open ("How to use" in release notes); undefined = the first. */
+  const [focusId, setFocusId] = useState<string | undefined>();
   const [offer, setOffer] = useState(false);
   /** null until main answered. */
   const offered = useRef<boolean | null>(null);
@@ -26,13 +28,19 @@ export function useGuide() {
     void api.markGuideOffered();
   }, []);
 
-  const show = useCallback(() => {
-    setOffer(false);
-    setOpen(true);
-    markOffered();
-  }, [markOffered]);
+  const show = useCallback(
+    (id?: unknown) => {
+      // Also wired straight to onClick handlers: anything but a string id means "the first item".
+      setFocusId(typeof id === 'string' ? id : undefined);
+      setOffer(false);
+      setOpen(true);
+      markOffered();
+    },
+    [markOffered],
+  );
 
   const toggle = useCallback(() => {
+    setFocusId(undefined);
     setOpen((o) => !o);
     setOffer(false);
     markOffered();
@@ -49,7 +57,7 @@ export function useGuide() {
 
   const dismissOffer = useCallback(() => setOffer(false), []);
 
-  return { open, offer, show, toggle, close, offerOnce, dismissOffer };
+  return { open, focusId, offer, show, toggle, close, offerOnce, dismissOffer };
 }
 
 export type Guide = ReturnType<typeof useGuide>;

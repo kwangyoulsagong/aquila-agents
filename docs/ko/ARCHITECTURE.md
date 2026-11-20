@@ -29,6 +29,8 @@
 │           preview                         │        │ preview.ts    dev server, 프리뷰 뷰, 선택 (T33)  │
 │                                           │        │ detect.ts     CLI 점검, 첫 실행 상태 (T17)       │
 │                                           │        │ guide.ts      둘러보기 제안 한 번만 (T23)        │
+│                                           │        │ releaseNotes  마지막으로 본 버전 (T27)           │
+│                                           │        │ updater.ts    GitHub 릴리스 확인 (T27)           │
 │                                           │        │ history.ts    지난 세션, 읽기 전용 (T11)         │
 │                                           │        │ terminalHelpers.ts 클립보드 경로, 마지막 응답    │
 │                                           │        │ remote/       ssh + tmux, 재연결, 호스트 확인    │
@@ -527,6 +529,27 @@ Agentrix에서 이름이 바뀌었습니다: 처음 실행할 때 `~/.aquila/con
   포스터를 보여요. 미디어가 없는 항목은 T24가 캡처할 때까지 자리표시(제목 + 단축키)를 보여요.
 - 제안: 첫 실행 체크리스트를 닫으면 "둘러보기 / 건너뛰기"를 한 번만 띄워요(`~/.aquila/guide.json` `offered`,
   `guide:get` / `guide:offered`). 가이드를 한 번 열어도 제안한 걸로 쳐요. smoke는 이 파일을 읽거나 쓰지 않아요.
+
+## 릴리스 노트와 업데이트 (T27)
+
+- 노트: `release-notes/<버전>.json` — `{ version, date, headlines: [{ guideId, media?, title: {ko,en}, body: {ko,en} }] }`,
+  헤드라인 3~5개. `features/release-notes/model/bundle.ts`가 번들(`import.meta.glob`, 오프라인). 검증·버전 비교·초안은
+  `model/notes.ts`(import 없음 — 스크립트가 직접 실행, 테스트 있음).
+- `scripts/release-notes.ts`(Node 타입 제거로 실행, `tsconfig.scripts.json`): `draft [버전]`은 지난 태그 이후
+  Conventional Commits로 초안(`feat` 제목 → 영어 제목, 나머지는 TODO), `check [버전]`은 파일 없음·언어 누락·TODO·헤드라인
+  개수·없는 `guideId`·가이드 미디어 없음이면 실패. `npm run dist`가 먼저 `check`를 돌려요.
+- 언제 열리나: `electron/releaseNotes.ts`가 `~/.aquila/release-notes.json` `lastSeenVersion`을 관리(`release-notes:get` /
+  `release-notes:seen`, 뒤로 가지 않음). 새 설치(기록 없음, 이번 실행 전 `state.json` / `guide.json` 없음) → 버전만 기록하고
+  안 띄움(둘러보기는 첫 실행 체크리스트 뒤에 제안). T27 이전 설치 → 현재 버전 노트만. 그 외엔 (lastSeen, current] 구간의
+  모든 버전을 최신순으로, 버전별로 묶어서.
+- UI: `ReleaseNotesModal`은 가이드의 `Modal`: 버전별 헤드라인, 미디어는 가이드 것(`guideMedia`, 페이지가 넘김),
+  "사용법 보기" → `guide.show(guideId)`(`GuideModal` `initialId`). 사이드바 `?`는 네이티브 메뉴(가이드 ⌘/ · 새로운 기능),
+  ⌘K → "새로운 기능"도 있음. 둘 다 번들된 모든 버전을 보여요.
+- 업데이트: `electron/updater.ts`(패키징된 앱만, smoke/capture 제외)가 `electron-builder.yml` → `publish`의 GitHub 릴리스를
+  실행 시와 6시간마다 electron-updater로 확인하고 알림. 알림을 누르면 릴리스 페이지. 서명이 없어 자동 설치는 안 되므로
+  (Squirrel.Mac) 다운로드하지 않아요.
+- smoke: 전부 본 것으로 처리(자동으로 안 열림). ⌘K → "새로운 기능"이 미디어 있는 헤드라인 3개 이상을 보여 주고
+  "사용법 보기"가 가이드를 열어야 함(`dist/smoke-whats-new.png`).
 
 ## 다국어
 

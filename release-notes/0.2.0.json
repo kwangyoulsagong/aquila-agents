@@ -1,0 +1,46 @@
+{
+  "version": "0.2.0",
+  "date": "2026-11-20",
+  "headlines": [
+    {
+      "guideId": "attention",
+      "title": { "ko": "기다리는 세션으로 바로", "en": "Jump to the waiting session" },
+      "body": {
+        "ko": "상태가 더 정확해졌고, 단축키 하나로 나를 기다리는 다음 세션으로 가요. 알림에 맥락도 붙어요.",
+        "en": "Status is more accurate, one shortcut takes you to the next session waiting for you, and notifications say why."
+      }
+    },
+    {
+      "guideId": "history",
+      "title": { "ko": "세션 기록", "en": "Session history" },
+      "body": {
+        "ko": "지난 Claude · Codex 세션을 검색하고 미리 본 뒤 이어서 열어요. SSH 프로젝트도 돼요.",
+        "en": "Search and preview past Claude and Codex sessions, then resume one. Works for SSH projects too."
+      }
+    },
+    {
+      "guideId": "preview",
+      "title": { "ko": "미리보기 + 요소 선택", "en": "Preview + select element" },
+      "body": {
+        "ko": "실행 중인 앱을 앱 안에서 띄우고, 요소를 가리켜 에이전트에게 무엇을 고칠지 알려요.",
+        "en": "Open the running app in a panel and point at an element to tell the agent what to change."
+      }
+    },
+    {
+      "guideId": "restore",
+      "title": { "ko": "다시 열면 그대로", "en": "Back where you left" },
+      "body": {
+        "ko": "앱을 다시 열면 탭과 분할, 마지막 출력까지 돌아와요.",
+        "en": "Relaunching brings back your tabs, splits and the last output."
+      }
+    },
+    {
+      "guideId": "trends",
+      "title": { "ko": "AI 트렌드", "en": "AI trends" },
+      "body": {
+        "ko": "설치한 CLI의 새 버전과 업계 소식을 앱 안에서 봐요. 열 때만 가져와요.",
+        "en": "See new releases of your CLIs and news from the field, fetched only when you open it."
+      }
+    }
+  ]
+}

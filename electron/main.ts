@@ -29,6 +29,8 @@ import { showContextMenu } from './menu';
 import { gitAction, gitChanges, localGit, localTrash, treeOf, TreeWatcher } from './git';
 import { ensureWorktree, worktreeInfo } from './worktrees';
 import { markGuideOffered, readGuideState } from './guide';
+import { releaseNotesState, usedBefore, writeLastSeen } from './releaseNotes';
+import { startUpdater } from './updater';
 import { displayTitle, HistoryIndex, matchProject, resumeWorktree, toMarkdown } from './history';
 import { binaryFor, finishFirstRun, firstRunReport, loadOverrides, setBinaryPath } from './detect';
 import {
@@ -125,6 +127,8 @@ function createWindow(): void {
 }
 
 app.whenReady().then(async () => {
+  // Release notes (T27): an install from before T27 has state but no record. Read before this launch writes any.
+  const seenBefore = usedBefore();
   // Force a theme for smoke / capture / checking (AQUILA_THEME=light|dark); otherwise follow macOS.
   const forced = process.env.AQUILA_THEME;
   if (forced === 'light' || forced === 'dark') nativeTheme.themeSource = forced;
@@ -642,6 +646,15 @@ app.whenReady().then(async () => {
   ipcMain.handle(IPC.guideOffered, () => {
     if (!isSmoke) markGuideOffered();
   });
+  // Release notes (T27). Smoke: everything counts as seen, nothing auto-opens; ⌘K → What's new still works.
+  ipcMain.handle(IPC.releaseNotesGet, () =>
+    isSmoke
+      ? { current: app.getVersion(), lastSeen: app.getVersion(), fresh: false }
+      : releaseNotesState(app.getVersion(), seenBefore),
+  );
+  ipcMain.handle(IPC.releaseNotesSeen, (_e, version: string) => {
+    if (!isSmoke && typeof version === 'string') writeLastSeen(version);
+  });
   ipcMain.on(IPC.sessionWrite, (_e, { id, data }: { id: string; data: string }) => s.write(id, data));
   ipcMain.on(IPC.sessionResize, (_e, { id, cols, rows }: { id: string; cols: number; rows: number }) =>
     s.resize(id, cols, rows),
@@ -655,6 +668,9 @@ app.whenReady().then(async () => {
   );
 
   createWindow();
+  // T27: notify when a newer release is out (packaged builds only).
+  if (app.isPackaged && !isSmoke && !process.env.AQUILA_CAPTURE)
+    safe('updater', () => startUpdater(() => translator(loadConfig().language)));
   if (isSmoke && win) {
     const w = win;
     w.webContents.once('did-finish-load', () => runSmoke(w, s, loadConfig(), smokeOutput, previews));

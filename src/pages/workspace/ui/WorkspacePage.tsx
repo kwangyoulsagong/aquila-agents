@@ -10,7 +10,8 @@ import { SettingsMenu } from '@/features/switch-language';
 import { nextWaiting } from '@/features/next-waiting';
 import { copyLastReply, toggleQuickSelect } from '@/features/terminal-helpers';
 import { FirstRunChecklist, useFirstRun } from '@/features/first-run';
-import { GuideButton, GuideModal, GuideOffer, useGuide } from '@/features/guide';
+import { GuideButton, GuideModal, GuideOffer, guideMedia, useGuide } from '@/features/guide';
+import { ReleaseNotesModal, useReleaseNotes } from '@/features/release-notes';
 import { ManageProjectsDialog, useManageProjects } from '@/features/manage-projects';
 import { FigmaSettings } from '@/features/figma';
 import { Sidebar } from '@/widgets/sidebar';
@@ -43,6 +44,8 @@ export default function WorkspacePage() {
   const { reopen: reopenFirstRun } = firstRun;
   const guide = useGuide();
   const { toggle: toggleGuide, show: showGuide } = guide;
+  const notes = useReleaseNotes();
+  const { showAll: showNotes } = notes;
   const { sessions, activeSessionId: focusedId, selectSession } = ws;
   const waitingNext = nextWaiting(sessions, focusedId);
   const goNextWaiting = useCallback(() => {
@@ -115,6 +118,7 @@ export default function WorkspacePage() {
     if (focusedSession && !focusedSession.dormant) a.quickSelect = quickSelect;
     a.firstRun = reopenFirstRun;
     a.guide = showGuide;
+    a.whatsNew = showNotes;
     if (config) {
       a.switchLanguage = () =>
         api
@@ -141,6 +145,7 @@ export default function WorkspacePage() {
     goNextWaiting,
     reopenFirstRun,
     showGuide,
+    showNotes,
     toggleHistory,
     addProject,
     openSettings,
@@ -180,7 +185,7 @@ export default function WorkspacePage() {
           footer={
             <>
               <SettingsMenu config={config} onChanged={ws.setConfig} />
-              <GuideButton open={guide.open} onClick={toggleGuide} />
+              <GuideButton open={guide.open} onClick={toggleGuide} onWhatsNew={showNotes} />
             </>
           }
         />
@@ -310,7 +315,23 @@ export default function WorkspacePage() {
           onError={ws.showError}
         />
         <GuideOffer open={guide.offer} onTake={showGuide} onSkip={guide.dismissOffer} />
-        <GuideModal open={guide.open} onClose={guide.close} language={config.language} />
+        <GuideModal
+          open={guide.open}
+          onClose={guide.close}
+          language={config.language}
+          initialId={guide.focusId}
+        />
+        <ReleaseNotesModal
+          open={notes.open}
+          onClose={notes.close}
+          notes={notes.notes}
+          language={config.language}
+          mediaFor={guideMedia}
+          onHowTo={(id) => {
+            notes.close();
+            showGuide(id);
+          }}
+        />
         <TrendsModal
           open={trendsOpen}
           onClose={() => setTrendsOpen(false)}

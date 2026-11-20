@@ -303,7 +303,8 @@ Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-1
 ## Release (last)
 
 ### T27 · Release notes modal + pipeline
-- [ ] **Goal:** after an update, show once what changed. (#29, #30, owner)
+- [x] **Goal:** after an update, show once what changed. (#29, #30, owner)
+  _Left over: version bumped to 0.2.0 with notes for 0.1.0 and 0.2.0 (both reuse guide media — nothing new to capture). Notes are one JSON per version with ko + en inside, not two .md files. `?` is now a native menu (Guide ⌘/ · What's new); ⌘/ still opens the guide directly. The updater only checks and notifies (opens the release page): unsigned builds can't self-install, so download + install waits for signing (T20); it needs a public GitHub release with `latest-mac.yml` and was not tried against a real release. The auto-open after an update was checked by unit tests, not by installing an older build and upgrading. Smoke failed once on an IME scenario (timing, not touched here) and passed on rerun. Also: `electron/releaseNotes.ts`, `electron/updater.ts`, `tsconfig.scripts.json` outside Owns._
 - **Spec:** compare `lastSeenVersion` in `~/.aquila/` with `app.getVersion()`; open only when higher (not on a fresh
   install — record the version and offer the guide instead). Same modal as T23: 3–5 headlines with media, "How to use" →
   guide item; "What's new" in the `?` menu lists past versions; skipped versions are combined. Notes bundled per version

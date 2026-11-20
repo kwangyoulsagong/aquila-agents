@@ -23,7 +23,8 @@ export type ActionId =
   | 'closeSession'
   | 'switchLanguage'
   | 'firstRun'
-  | 'guide';
+  | 'guide'
+  | 'whatsNew';
 
 export type Command =
   | {
@@ -75,6 +76,7 @@ const ACTIONS: {
   { action: 'switchLanguage', label: (t) => t('palette.switchLanguage') },
   { action: 'firstRun', label: (t) => t('firstRun.checklist') },
   { action: 'guide', label: (t) => t('guide.title'), shortcut: 'guide' },
+  { action: 'whatsNew', label: (t) => t('notes.title') },
 ];
 
 /** Sessions that need you come first in the list. */
