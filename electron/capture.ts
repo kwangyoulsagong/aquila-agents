@@ -284,7 +284,11 @@ export async function runCapture(
         await press('E', ['meta', 'shift'], 1900);
         await press('A', [], 1000); // ends on the "Copied" note (shown 1.6 s)
       },
-      after: () => press('Escape', [], 300),
+      // No Escape after: quick select has closed and the terminal has focus again, so it would reach the CLI and
+      // leave `^[` on screen for every later scene. The note hides itself.
+      after: async () => {
+        await wait(1000);
+      },
     },
     { id: 'accounts', rect: TOP_RIGHT },
     { id: 'projects', rect: SIDEBAR },
