@@ -5,7 +5,9 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   FIVE_HOURS_MS,
   UsageTracker,
+  codexReport,
   currentBlock,
+  mergeClaudeLive,
   learn,
   limitsFor,
   parseUsageLine,
@@ -16,7 +18,7 @@ import {
   weekUsed,
   weigh,
 } from './usage';
-import type { Config } from '../src/shared/api/types';
+import type { AccountUsage, Config } from '../src/shared/api/types';
 
 const H = 3_600_000;
 const T0 = Date.parse('2026-11-19T10:00:00.000Z');
@@ -235,10 +237,67 @@ describe('UsageTracker', () => {
     expect(later[0].weekly.used).toBe(25);
   });
 
+  it('live: probes in the background, then the CLI percent wins over the estimate', async () => {
+    const { root, proj, config } = setup();
+    fs.writeFileSync(path.join(proj, 'sess.jsonl'), `${line(T0, 'a', { input_tokens: 10 })}\n`);
+    let now = T0 + H;
+    const asked: (string | null)[] = [];
+    let resolveUpdate: (l: AccountUsage[]) => void = () => {};
+    const updated = new Promise<AccountUsage[]>((r) => (resolveUpdate = r));
+    const tracker = new UsageTracker({
+      config: () => config,
+      now: () => now,
+      limitsPath: path.join(root, 'l.json'),
+      live: {
+        claude: async (dir) => {
+          asked.push(dir);
+          return { session: { percent: 92, resetsAt: T0 + 2 * H, span: 300 }, week: { percent: 40, resetsAt: null, span: 10_080 } };
+        },
+        codex: async () => ({ primary: { percent: 5, resetsAt: T0 + 3 * H, span: 300 }, secondary: null, plan: 'plus', at: T0 }),
+      },
+      onUpdate: resolveUpdate,
+    });
+    // First answer: the estimate right away (no waiting on the hidden claude).
+    const first = await tracker.refresh();
+    expect(first[0].live).toBeUndefined();
+    expect(first[0].fiveHour.used).toBe(10);
+    const list = await updated;
+    expect(asked).toEqual([path.join(root, '.claude-personal')]);
+    expect(list[0]).toMatchObject({
+      account: 'personal',
+      live: true,
+      near: true,
+      fiveHour: { used: 10, percent: 92, resetsAt: T0 + 2 * H, span: 300 },
+      weekly: { percent: 40, span: 10_080 },
+    });
+    expect(list[1]).toMatchObject({ account: 'codex', kind: 'codex', fiveHour: { percent: 5 }, weekly: { percent: null } });
+    // Not asked again within LIVE_EVERY_MS.
+    now += 60_000;
+    await tracker.refresh();
+    expect(asked).toHaveLength(1);
+  });
+
   it('skips logged-out accounts', async () => {
     const { root, acct, config } = setup();
     fs.writeFileSync(path.join(acct, '.claude.json'), '{}');
     const tracker = new UsageTracker({ config: () => config, limitsPath: path.join(root, 'l.json') });
     expect(await tracker.refresh()).toEqual([]);
+  });
+});
+
+describe('live merge', () => {
+  const est = usageReport('shared', [{ at: T0, weight: 50 }], { tier: null }, T0 + H);
+  it('a reset already past reads 0% (the CLI answer is old)', () => {
+    const u = mergeClaudeLive(est, { session: { percent: 95, resetsAt: T0, span: 300 }, week: null }, T0 + H);
+    expect(u.fiveHour.percent).toBe(0);
+    expect(u.near).toBe(false);
+    expect(u.weekly.percent).toBeUndefined(); // the estimate stays where the CLI said nothing
+  });
+  it('no live answer → the estimate as is', () => {
+    expect(mergeClaudeLive(est, null, T0 + H)).toBe(est);
+  });
+  it('Codex row: a missing secondary window has no percent', () => {
+    const r = codexReport({ primary: { percent: 91, resetsAt: null, span: 43_200 }, secondary: null, plan: 'go', at: T0 }, T0);
+    expect(r).toMatchObject({ kind: 'codex', near: true, fiveHour: { percent: 91, span: 43_200 }, weekly: { percent: null } });
   });
 });

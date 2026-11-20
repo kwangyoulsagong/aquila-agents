@@ -338,8 +338,13 @@ export interface UsageWindow {
   used: number;
   /** Learned 100% mark: what was used when this account last hit a rate limit. null until one was seen. */
   limit: number | null;
-  /** When the window ends (epoch ms). 5h: block start + 5h, null when no block is running. Weekly: always null (rolling). */
+  /** When the window ends (epoch ms). 5h: block start + 5h, null when no block is running. Weekly: always null (rolling).
+   * With a live `percent`: the reset time the CLI reported. */
   resetsAt: number | null;
+  /** Real share 0–100 as the CLI reports it (T30b: `claude -p /usage`, Codex session files); wins over `used`/`limit`. */
+  percent?: number | null;
+  /** Window length in minutes when known (300 = 5 hours, 10080 = a week; Codex can report others, e.g. 43200). */
+  span?: number;
 }
 
 /** What `usage:get` / `usage:changed` report per logged-in local Claude account (T30). */
@@ -347,8 +352,12 @@ export interface AccountUsage {
   account: string;
   fiveHour: UsageWindow;
   weekly: UsageWindow;
-  /** At or past 90% of a learned limit in either window. */
+  /** At or past 90% of a learned limit (or of a live percent) in either window. */
   near: boolean;
+  /** Absent = a Claude account; 'codex' = the Codex row (`account` is then 'codex'). */
+  kind?: 'codex';
+  /** At least one window comes from the CLI itself, not from the estimate (T30b). */
+  live?: boolean;
 }
 
 /** Context window use of a Claude tab (T31), from the statusline JSON Claude hands our statusline command. */

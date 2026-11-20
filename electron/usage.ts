@@ -12,10 +12,14 @@
 //
 // Read-only under ~/.claude*. No secrets, no network. claude.ai and other machines are not in the transcripts — the UI
 // says "estimated".
+//
+// T30b: when the CLI tells us the real share (`claude -p /usage` per account, Codex's session files — see
+// usage-live.ts), that wins: `percent` + the real reset time. The estimate stays underneath as the fallback.
 import fs from 'node:fs';
 import path from 'node:path';
 import { accountPaths, isLoggedIn } from './accounts';
 import { APP_DIR } from './config';
+import { probeClaudeUsage, readCodexLive, type ClaudeLive, type CodexLive, type LiveWindow } from './usage-live';
 import type { AccountUsage, Config, UsageWindow } from '../src/shared/api/types';
 
 export const USAGE_LIMITS_PATH = path.join(APP_DIR, 'usage-limits.json');
@@ -158,7 +162,45 @@ function readLimits(file: string): Record<string, LearnedLimits> {
 
 // ── Report ─────────────────────────────────────────────────────────────────────
 
-const ratio = (w: UsageWindow): number => (w.limit ? w.used / w.limit : 0);
+/** Share of the limit, 0–1: the live percent, else used / learned limit, else 0. */
+export const ratio = (w: UsageWindow): number =>
+  typeof w.percent === 'number' ? w.percent / 100 : w.limit ? w.used / w.limit : 0;
+
+/** A live window over an estimated one: the CLI's percent and reset time. A reset already past reads 0%. */
+export function withLive(w: UsageWindow, live: LiveWindow | null, now: number): UsageWindow {
+  if (!live) return w;
+  const over = live.resetsAt !== null && live.resetsAt <= now;
+  return {
+    ...w,
+    percent: over ? 0 : live.percent,
+    resetsAt: over ? null : (live.resetsAt ?? w.resetsAt),
+    span: live.span,
+  };
+}
+
+/** The estimate with what `/usage` said merged in. */
+export function mergeClaudeLive(u: AccountUsage, live: ClaudeLive | null, now: number): AccountUsage {
+  if (!live) return u;
+  const fiveHour = withLive(u.fiveHour, live.session, now);
+  const weekly = withLive(u.weekly, live.week, now);
+  return { ...u, fiveHour, weekly, live: true, near: ratio(fiveHour) >= NEAR || ratio(weekly) >= NEAR };
+}
+
+const empty: UsageWindow = { used: 0, limit: null, resetsAt: null, percent: null };
+
+/** The Codex row: its primary window first (usually 5 hours), the secondary (weekly) second when it has one. */
+export function codexReport(live: CodexLive, now: number): AccountUsage {
+  const fiveHour = withLive(empty, live.primary, now);
+  const weekly = withLive(empty, live.secondary, now);
+  return {
+    account: 'codex',
+    kind: 'codex',
+    fiveHour,
+    weekly,
+    live: true,
+    near: ratio(fiveHour) >= NEAR || ratio(weekly) >= NEAR,
+  };
+}
 
 export function usageReport(
   account: string,
@@ -295,7 +337,20 @@ export interface UsageDeps {
   onNear?: (u: AccountUsage, window: 'fiveHour' | 'weekly') => void;
   now?: () => number;
   limitsPath?: string;
+  /** Ask the CLIs for the real share (T30b). Off in tests / smoke unless injected. */
+  live?: {
+    claude: (configDir: string | null) => Promise<ClaudeLive | null>;
+    codex: () => Promise<CodexLive | null>;
+  };
+  /** A background live probe finished: here is the list with it. */
+  onUpdate?: (list: AccountUsage[]) => void;
 }
+
+/** Real CLI probes. */
+export const LIVE_SOURCES = { claude: probeClaudeUsage, codex: () => readCodexLive() };
+
+/** Re-ask the CLIs at most this often (a probe is a hidden `claude` start, ~2 s of CPU). */
+export const LIVE_EVERY_MS = 3 * 60_000;
 
 export class UsageTracker {
   private readonly scans = new Map<string, DirScan>();
@@ -304,6 +359,10 @@ export class UsageTracker {
   private running: Promise<AccountUsage[]> | null = null;
   private latest: AccountUsage[] = [];
   lastRefresh = 0;
+  /** Last `/usage` per account id (null = asked, unreadable) and when. */
+  private readonly claudeLive = new Map<string, { at: number; value: ClaudeLive | null }>();
+  private codexLive: { at: number; value: CodexLive | null } | null = null;
+  private probing = false;
 
   constructor(private readonly deps: UsageDeps) {
     this.limits = readLimits(this.limitsPath);
@@ -334,6 +393,7 @@ export class UsageTracker {
     const a = this.deps.config().accounts[account];
     if (!u || !a) return this.latest;
     const tier = readTier(readOrNull(accountPaths(a.claudeConfigDir).claudeJson));
+    this.claudeLive.delete(account); // ask the CLI again: it knows which window ran out
     this.limits[account] = learn(this.limits[account], tier, u.fiveHour.used, u.weekly.used, this.now());
     try {
       fs.mkdirSync(path.dirname(this.limitsPath), { recursive: true });
@@ -356,13 +416,50 @@ export class UsageTracker {
       if (!scan) this.scans.set(p.dir, (scan = new DirScan()));
       await scan.scan(p.dir, now);
       const limits = limitsFor(this.limits[id], readTier(claudeJson));
-      const { blockStart, ...report } = usageReport(id, [...scan.entries.values()], limits, now);
-      this.checkNear(report, blockStart, now);
+      const { blockStart, ...estimate } = usageReport(id, [...scan.entries.values()], limits, now);
+      const report = mergeClaudeLive(estimate, this.claudeLive.get(id)?.value ?? null, now);
+      this.checkNear(report, blockStart ?? report.fiveHour.resetsAt, now);
       out.push(report);
     }
+    const codex = this.codexLive?.value;
+    if (codex) out.push(codexReport(codex, now));
     this.latest = out;
     this.lastRefresh = now;
+    this.probeLive(config, now);
     return out;
+  }
+
+  /** Asks the CLIs in the background when due; a finished round re-reports through `onUpdate`. */
+  private probeLive(config: Config, now: number): void {
+    const live = this.deps.live;
+    if (!live || this.probing) return;
+    const due = (at: number | undefined) => at === undefined || now - at >= LIVE_EVERY_MS;
+    const accounts = Object.entries(config.accounts).filter(
+      ([id, a]) => due(this.claudeLive.get(id)?.at) && isLoggedIn(readOrNull(accountPaths(a.claudeConfigDir).claudeJson)),
+    );
+    const codex = due(this.codexLive?.at);
+    if (!accounts.length && !codex) return;
+    this.probing = true;
+    void (async () => {
+      try {
+        await Promise.all([
+          ...accounts.map(async ([id, a]) => {
+            const value = await live.claude(a.claudeConfigDir ? accountPaths(a.claudeConfigDir).dir : null).catch(() => null);
+            this.claudeLive.set(id, { at: this.now(), value });
+          }),
+          codex
+            ? live
+                .codex()
+                .catch(() => null)
+                .then((value) => (this.codexLive = { at: this.now(), value }))
+            : null,
+        ]);
+      } finally {
+        this.probing = false;
+      }
+      const list = await this.refresh();
+      this.deps.onUpdate?.(list);
+    })();
   }
 
   private checkNear(u: AccountUsage, blockStart: number | null, now: number): void {

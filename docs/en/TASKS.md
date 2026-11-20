@@ -237,6 +237,7 @@ Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-1
 ### T30 · Usage gauge per account
 - [x] **Goal:** see how much of the 5-hour and weekly limits is left, per account. (#33)
   _Left over: estimated from local transcripts (owner's pick over the undocumented OAuth usage API); the 100% mark is learned from the first `StopFailure: rate_limit`, so a fresh install shows tokens without a percentage, and which window ran out is a heuristic (the hook doesn't say). Weekly is a rolling 7 days, not the account's real reset time. claude.ai, other machines and remote sessions aren't counted. Not yet hit a real rate limit in the app (learning is unit-tested); no in-app guide entry (needs captured media)._
+  _T30b: real percentages and reset times from `claude -p /usage` (per account, hidden, no quota) and Codex's session files, with the estimate as the fallback; a Codex row. Checked live: shared 8% / 78%, personal 9% / 40%, Codex 0% (30-day window). Not yet seen a real 90% notification with live values._
 - **Spec:** per account config dir (not per session — statusline mixes accounts), bars side by side with reset time,
   labelled "estimated"; near the limit → notice + "open a new session with the other account".
 - **Owns:** `electron/usage.ts`, `src/widgets/usage-gauge/`.
