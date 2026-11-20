@@ -701,4 +701,13 @@ app.whenReady().then(async () => {
 });
 
 app.on('window-all-closed', () => app.quit());
-app.on('before-quit', () => sessions?.killAll());
+// Hold the quit until the ptys have exited (bounded): exiting earlier can abort in node-pty (see exitWait.ts).
+let ptysDone = false;
+app.on('before-quit', (e) => {
+  if (ptysDone || !sessions) return;
+  e.preventDefault();
+  void sessions.killAll().finally(() => {
+    ptysDone = true;
+    app.quit();
+  });
+});
