@@ -1,7 +1,7 @@
 import { useId, useState } from 'react';
-import { Button, Dialog, DialogForm, Field, FieldGrid, FieldRow, Input, Select } from '@design-system/react';
-import type { Config, RemoteHost } from '@/shared/api';
-import { groupLabel, useT } from '@/shared/i18n';
+import { Button, Dialog, DialogForm, Field, FieldGrid, FieldRow, Input } from '@design-system/react';
+import { REMOTE_GROUP, type RemoteHost } from '@/shared/api';
+import { useT } from '@/shared/i18n';
 import { remoteName, toHost, validHost } from '../model/remote';
 import { useRemoteCheck } from '../model/useRemoteCheck';
 import RemoteCheckView from './RemoteCheckView';
@@ -14,14 +14,12 @@ export interface RemoteProjectValues {
 }
 
 interface Props {
-  config: Config;
-  defaultGroup?: string;
   onClose: () => void;
   onAdd: (values: RemoteProjectValues) => Promise<void>;
 }
 
 /** Add a project on an SSH host (T29): host alias, folder there, optional remote Claude config dir, "Check host". */
-export default function RemoteProjectDialog({ config, defaultGroup, onClose, onAdd }: Props) {
+export default function RemoteProjectDialog({ onClose, onAdd }: Props) {
   const t = useT();
   const formId = useId();
   const hostList = useId();
@@ -29,11 +27,6 @@ export default function RemoteProjectDialog({ config, defaultGroup, onClose, onA
   const [path, setPath] = useState('~/');
   const [name, setName] = useState('');
   const [claudeDir, setClaudeDir] = useState('');
-  const [group, setGroup] = useState(() =>
-    defaultGroup && config.groups.some((g) => g.id === defaultGroup)
-      ? defaultGroup
-      : (config.groups[0]?.id ?? ''),
-  );
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const { hosts, check, checking, start } = useRemoteCheck(alias);
@@ -49,7 +42,8 @@ export default function RemoteProjectDialog({ config, defaultGroup, onClose, onA
     try {
       await onAdd({
         name: name.trim() || remoteName(path, alias),
-        group,
+        // Always the built-in Remote group (main enforces it too).
+        group: REMOTE_GROUP,
         path: path.trim(),
         remote: toHost(alias, claudeDir),
       });
@@ -120,13 +114,6 @@ export default function RemoteProjectDialog({ config, defaultGroup, onClose, onA
           </Field>
         </FieldGrid>
         <FieldGrid>
-          <Field label={t('projects.group')}>
-            <Select
-              value={group}
-              onChange={setGroup}
-              options={config.groups.map((g) => ({ value: g.id, label: groupLabel(t, g) }))}
-            />
-          </Field>
           <Field label={t('remote.claudeDir')} hint={t('remote.claudeDirHint')}>
             <Input
               value={claudeDir}

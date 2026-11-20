@@ -1,6 +1,6 @@
 import { Button, Label } from '@design-system/react';
 import type { ReactNode } from 'react';
-import type { Config, Session } from '@/shared/api';
+import { REMOTE_GROUP, type Config, type Session } from '@/shared/api';
 import { groupLabel, useT } from '@/shared/i18n';
 import { AccountBadge, HostBadge, ProjectRow } from '@/entities/project';
 import { StatusDot, WaitingTime, mostUrgent } from '@/entities/session';
@@ -46,7 +46,12 @@ export default function Sidebar({
               <div onContextMenu={(e) => manage.groupMenu(group, e)}>
                 <Label>{groupLabel(t, group)}</Label>
               </div>
-              {projects.length === 0 && <div className="c-sidebar__empty">{t('groups.empty')}</div>}
+              {projects.length === 0 && (
+                <div className="c-sidebar__empty">
+                  {/* Only remote projects go in the Remote group, and they're added, not dragged. */}
+                  {t(group.id === REMOTE_GROUP ? 'groups.emptyRemote' : 'groups.empty')}
+                </div>
+              )}
               {projects.map((p) => {
                 const mine = sessions.filter((s) => s.projectId === p.id);
                 // The longest wait in this project.

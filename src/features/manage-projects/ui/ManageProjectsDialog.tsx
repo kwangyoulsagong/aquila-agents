@@ -1,6 +1,6 @@
 import { useId, useState } from 'react';
 import { Button, Dialog, DialogForm, Field, Input, Select } from '@design-system/react';
-import type { Config, ProjectSettings, RemoteHost } from '@/shared/api';
+import { fitsGroup, type Config, type ProjectSettings, type RemoteHost } from '@/shared/api';
 import { accountLabel, groupLabel, useT } from '@/shared/i18n';
 import type { ManageDialog } from '../model/useManageProjects';
 import { useDuplicateFolder } from '../model/useDuplicateFolder';
@@ -42,15 +42,7 @@ export default function ManageProjectsDialog(props: Props) {
         renderFigma={props.renderFigma}
       />
     );
-  if (dialog.kind === 'addRemote')
-    return (
-      <RemoteProjectDialog
-        config={props.config}
-        defaultGroup={props.defaults.group}
-        onClose={props.onClose}
-        onAdd={props.onAdd}
-      />
-    );
+  if (dialog.kind === 'addRemote') return <RemoteProjectDialog onClose={props.onClose} onAdd={props.onAdd} />;
   return <SimpleDialog {...props} />;
 }
 
@@ -68,10 +60,12 @@ function SimpleDialog({ dialog, config, defaults, onClose, onAdd, onName, onRemo
     if (dialog.kind === 'renameGroup') return groupLabel(t, dialog.group);
     return '';
   });
+  // Local projects: any group but the built-in Remote one.
+  const localGroups = config.groups.filter((g) => fitsGroup(false, g.id));
   const [group, setGroup] = useState(() =>
-    defaults.group && config.groups.some((g) => g.id === defaults.group)
+    defaults.group && localGroups.some((g) => g.id === defaults.group)
       ? defaults.group
-      : (config.groups[0]?.id ?? ''),
+      : (localGroups[0]?.id ?? ''),
   );
   const [account, setAccount] = useState(() =>
     defaults.account && config.accounts[defaults.account] ? defaults.account : firstAccount,
@@ -147,7 +141,7 @@ function SimpleDialog({ dialog, config, defaults, onClose, onAdd, onName, onRemo
             <Select
               value={group}
               onChange={setGroup}
-              options={config.groups.map((g) => ({ value: g.id, label: groupLabel(t, g) }))}
+              options={localGroups.map((g) => ({ value: g.id, label: groupLabel(t, g) }))}
             />
           </Field>
           <Field label={t('account.title')}>

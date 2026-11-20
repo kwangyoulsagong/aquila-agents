@@ -351,11 +351,10 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
   `--force`를 몰래 쓰지 않음).
 - **담당:** `electron/worktrees.ts`, `src/features/open-in-worktree/`.
 
-### T39 · 원격 세션 v2
-- [ ] **목표:** 느리거나 끊기는 연결에서도 로컬처럼 쓰는 원격 세션. (#46 + T29/T36 남은 것)
-- **스펙:** 호스트에 선택형 헬퍼 바이너리(해시 검증, 묻지 않고 설치하지 않음), 전송 옵션으로 mosh, tmux `-CC`
-  컨트롤 모드. 기본은 계속 ssh + tmux.
-- **담당:** `electron/remote/`, `src/features/remote-connection/`.
+### T39 · 사이드바 원격 그룹
+- [x] **목표:** 원격 프로젝트를 한눈에 구분: 사이드바가 회사 / 개인 / 원격으로 나뉜다.
+  _완료: 기본 그룹 `remote`("원격" / "Remote")를 기본 설정에 추가. 원격 프로젝트는 자동으로 이 그룹에 들어가고("원격 프로젝트 추가"와 설정에 그룹 선택 없음) 밖으로 옮길 수 없으며, 로컬 프로젝트는 안으로 옮길 수 없다. 실행 시 예전 설정에는 그룹을 한 번 추가하고(표시 파일 `~/.aquila/.remote-group` — 빈 그룹을 지우면 다시 생기지 않음) 잘못된 그룹에 있는 프로젝트를 옮긴다. 예전 스펙에서 일부러 뺀 것(오너 결정): 헬퍼 바이너리, mosh, tmux `-CC` — 원격 탭은 그냥 호스트의 터미널이다._
+- **담당:** `src/shared/api/types.ts`의 `REMOTE_GROUP`, `electron/config.ts`의 `addProject`, `RemoteProjectDialog`.
 
 ### T40 · 스크롤백 검색 + 안전한 붙여넣기
 - [x] **목표:** 긴 에이전트 출력에서 에러나 파일명을 찾고, 붙여넣기가 명령을 실행하지 못하게 한다. (Ghostty 1.3, `docs/research/notes/ghostty.md` 참고)

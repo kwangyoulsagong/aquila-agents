@@ -6,6 +6,8 @@ import path from 'node:path';
 import {
   PORT_BASE_MAX,
   PORT_BASE_MIN,
+  REMOTE_GROUP,
+  fitsGroup,
   type Config,
   type Group,
   type Language,
@@ -34,7 +36,7 @@ const DEFAULT_CONFIG: Config = {
     shared: { claudeConfigDir: null },
     personal: { claudeConfigDir: '~/.claude-personal' },
   },
-  groups: [{ id: 'work' }, { id: 'personal' }],
+  groups: [{ id: 'work' }, { id: 'personal' }, { id: REMOTE_GROUP }],
   projects: [
     {
       id: 'data-bahn',
@@ -79,6 +81,44 @@ export function migrateLegacyDir(from = LEGACY_DIR, to = APP_DIR): boolean {
   return true;
 }
 
+/** Written once the built-in Remote group was offered, so deleting the (empty) group sticks. */
+export const REMOTE_GROUP_MARKER = path.join(APP_DIR, '.remote-group');
+
+/**
+ * Remote group on load (T39): older configs get it once (the sidebar then reads Work / Personal / Remote), remote
+ * projects anywhere else move into it, local ones in it move out. A user who deletes the empty group keeps it deleted
+ * until the next remote project.
+ */
+export function normalizeRemoteGroup(
+  c: Config,
+  marker = REMOTE_GROUP_MARKER,
+  save: (c: Config) => Config = saveConfig,
+): Config {
+  if (!Array.isArray(c.groups) || !Array.isArray(c.projects)) return c;
+  let groups = c.groups;
+  const offered = fs.existsSync(marker);
+  if (!offered)
+    try {
+      fs.writeFileSync(marker, '');
+    } catch {
+      // can't remember it: offer it again next launch
+    }
+  const hasRemote = c.projects.some((p) => p.remote);
+  if ((hasRemote || !offered) && !groups.some((g) => g.id === REMOTE_GROUP))
+    groups = [...groups, { id: REMOTE_GROUP }];
+  const misplaced = c.projects.some((p) => !fitsGroup(!!p.remote, p.group));
+  if (groups === c.groups && !misplaced) return c;
+  let local = groups.find((g) => g.id !== REMOTE_GROUP)?.id;
+  if (!local && c.projects.some((p) => !p.remote)) {
+    local = 'work';
+    groups = [{ id: local }, ...groups];
+  }
+  const projects = c.projects.map((p) =>
+    fitsGroup(!!p.remote, p.group) ? p : { ...p, group: p.remote ? REMOTE_GROUP : local! },
+  );
+  return save({ ...c, groups, projects });
+}
+
 export function loadConfig(): Config {
   migrateLegacyDir();
   if (!fs.existsSync(CONFIG_PATH)) {
@@ -86,7 +126,7 @@ export function loadConfig(): Config {
     fs.writeFileSync(CONFIG_PATH, JSON.stringify(DEFAULT_CONFIG, null, 2));
   }
   try {
-    const c = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8')) as Config;
+    const c = normalizeRemoteGroup(JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8')) as Config);
     return { ...c, language: c.language === 'en' ? 'en' : 'ko' };
   } catch (err) {
     const t = translator(DEFAULT_CONFIG.language);
@@ -188,7 +228,7 @@ export function applySettings(
   let next: Project = { ...p };
   const name = s.name?.trim();
   if (name) next.name = name;
-  if (s.group && ctx.hasGroup(s.group)) next.group = s.group;
+  if (s.group && ctx.hasGroup(s.group) && fitsGroup(!!p.remote, s.group)) next.group = s.group;
   if (s.account && ctx.hasAccount(s.account)) next.account = s.account;
   // A remote project's path is on the host: kept as typed (`~` there is the remote home).
   if (s.path?.trim()) next.path = p.remote ? s.path.trim() : tildify(s.path.trim(), ctx.home);
@@ -249,8 +289,20 @@ export function applyProjectEdit(c: Config, e: ProjectEdit, home = HOME): Config
       const remote = e.remote ? cleanRemote(e.remote) : undefined;
       if (remote === null || (remote && !e.path.trim())) return c;
       const name = e.name.trim() || path.basename(e.path) || (remote ? remote.alias : e.path);
-      const groups: Group[] = c.groups.length ? c.groups : [{ id: 'work' }];
-      const group = groups.some((g) => g.id === e.group) ? e.group : groups[0].id;
+      let groups: Group[] = c.groups.length ? c.groups : [{ id: 'work' }];
+      // Remote projects always go to the built-in Remote group (created if it was deleted).
+      if (remote && !hasGroup(REMOTE_GROUP)) groups = [...groups, { id: REMOTE_GROUP }];
+      const local = groups.filter((g) => g.id !== REMOTE_GROUP);
+      const group = remote
+        ? REMOTE_GROUP
+        : local.some((g) => g.id === e.group)
+          ? e.group
+          : (local[0]?.id ??
+            uniqueId(
+              'work',
+              groups.map((g) => g.id),
+            ));
+      if (!groups.some((g) => g.id === group)) groups = [{ id: group }, ...groups];
       const account = hasAccount(e.account) ? e.account : (Object.keys(c.accounts)[0] ?? 'shared');
       const id = uniqueId(
         slugify(name, 'project'),
@@ -275,7 +327,7 @@ export function applyProjectEdit(c: Config, e: ProjectEdit, home = HOME): Config
       return { ...c, projects: c.projects.filter((p) => p.id !== e.id) };
     case 'moveProject': {
       const project = c.projects.find((p) => p.id === e.id);
-      if (!project || !hasGroup(e.group)) return c;
+      if (!project || !hasGroup(e.group) || !fitsGroup(!!project.remote, e.group)) return c;
       return { ...c, projects: placeProject(c.projects, project, e.group, e.index) };
     }
     case 'addGroup': {
