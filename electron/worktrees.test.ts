@@ -6,6 +6,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   ensureWorktree,
   parseWorktreeList,
+  removeWorktree,
+  worktreeCandidates,
   worktreeInfo,
   worktreePathFor,
   worktreeRoot,
@@ -28,11 +30,23 @@ describe('parseWorktreeList', () => {
       'HEAD 3333333333333333333333333333333333333333',
       'detached',
       '',
+      'worktree /a/repo-wt/kept',
+      'HEAD 4444444444444444444444444444444444444444',
+      'branch refs/heads/kept',
+      'locked on a usb disk',
+      '',
+      'worktree /a/repo-wt/gone',
+      'HEAD 5555555555555555555555555555555555555555',
+      'branch refs/heads/gone',
+      'prunable gitdir file points to non-existent location',
+      '',
     ].join('\n');
     expect(parseWorktreeList(out)).toEqual([
       { path: '/a/repo', branch: 'main' },
       { path: '/a/repo-wt/feat/x', branch: 'feat/x' },
       { path: '/a/repo-wt/tmp', branch: '' },
+      { path: '/a/repo-wt/kept', branch: 'kept', locked: true },
+      { path: '/a/repo-wt/gone', branch: 'gone', prunable: true },
     ]);
   });
 });
@@ -74,7 +88,8 @@ describe('ensureWorktree', () => {
     const wt = made.worktree;
     expect(made).toEqual({
       worktree: { path: path.join(base, 'repo-wt', 'feat', 'new'), branch: 'feat/new' },
-      created: true
+      created: true,
+      copied: [],
     });
     expect(fs.existsSync(path.join(wt.path, '.git'))).toBe(true);
     expect(run('branch', '--list', 'feat/new').trim()).toContain('feat/new');
@@ -127,5 +142,67 @@ describe('ensureWorktree', () => {
     fs.mkdirSync(plain);
     const notRepo: Config = { ...config, projects: [{ ...config.projects[0], path: plain }] };
     expect((await worktreeInfo(notRepo, 'r')).isRepo).toBe(false);
+  });
+
+  it('copies only the gitignored files listed in .worktreeinclude into a new worktree', async () => {
+    const { repo, config, run } = setup();
+    fs.writeFileSync(path.join(repo, '.gitignore'), '.env*\nsecrets/\nbuild/\n');
+    fs.writeFileSync(path.join(repo, '.worktreeinclude'), '.env\nsecrets/\nnotes.txt\n');
+    run('add', '.gitignore', '.worktreeinclude');
+    run('-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '-m', 'ignore');
+    fs.writeFileSync(path.join(repo, '.env'), 'KEY=1');
+    fs.writeFileSync(path.join(repo, '.env.local'), 'not listed');
+    fs.mkdirSync(path.join(repo, 'secrets'));
+    fs.writeFileSync(path.join(repo, 'secrets', 'a.pem'), 'pem');
+    fs.mkdirSync(path.join(repo, 'build'));
+    fs.writeFileSync(path.join(repo, 'build', 'out.js'), 'ignored but not listed');
+    fs.writeFileSync(path.join(repo, 'notes.txt'), 'listed but not ignored');
+
+    const made = await ensureWorktree(config, 'r', 'feat/env');
+    const wt = made.worktree.path;
+    expect(made.copied?.sort()).toEqual(['.env', 'secrets/']);
+    expect(fs.readFileSync(path.join(wt, '.env'), 'utf8')).toBe('KEY=1');
+    expect(fs.readFileSync(path.join(wt, 'secrets', 'a.pem'), 'utf8')).toBe('pem');
+    expect(fs.existsSync(path.join(wt, '.env.local'))).toBe(false);
+    expect(fs.existsSync(path.join(wt, 'build'))).toBe(false);
+    expect(fs.existsSync(path.join(wt, 'notes.txt'))).toBe(false);
+    // Reusing a worktree copies nothing.
+    expect((await ensureWorktree(config, 'r', 'feat/env')).copied).toBeUndefined();
+  });
+
+  it('suggests merged + clean worktrees and removes them without --force', async () => {
+    const { config, run } = setup();
+    const merged = (await ensureWorktree(config, 'r', 'done')).worktree.path;
+    const ahead = (await ensureWorktree(config, 'r', 'wip')).worktree.path;
+    execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '--allow-empty', '-m', 'w'], {
+      cwd: ahead,
+    });
+    const dirty = (await ensureWorktree(config, 'r', 'dirty')).worktree.path;
+    fs.writeFileSync(path.join(dirty, 'new.txt'), 'x');
+    const open = (await ensureWorktree(config, 'r', 'open')).worktree.path;
+
+    const list = await worktreeCandidates(config, 'r', [open]);
+    const by = Object.fromEntries(list.map((c) => [c.branch, c]));
+    expect(Object.keys(by).sort()).toEqual(['dirty', 'done', 'open', 'wip']);
+    expect(by.done).toMatchObject({ merged: true, clean: true, open: false });
+    expect(by.wip).toMatchObject({ merged: false, clean: true });
+    expect(by.dirty).toMatchObject({ merged: true, clean: false });
+    expect(by.open).toMatchObject({ open: true });
+
+    await expect(removeWorktree(config, 'r', open, [open])).rejects.toThrow(/open in a tab/);
+    await expect(removeWorktree(config, 'r', dirty, [])).rejects.toThrow();
+    expect(fs.existsSync(dirty)).toBe(true);
+    await expect(removeWorktree(config, 'r', config.projects[0].path, [])).rejects.toThrow(/Not a worktree/);
+    await removeWorktree(config, 'r', merged, []);
+    expect(fs.existsSync(merged)).toBe(false);
+    // The branch stays.
+    expect(run('branch', '--list', 'done').trim()).toContain('done');
+  });
+
+  it('leaves locked worktrees out of cleanup', async () => {
+    const { config, run } = setup();
+    const wt = (await ensureWorktree(config, 'r', 'kept')).worktree.path;
+    run('worktree', 'lock', wt);
+    expect(await worktreeCandidates(config, 'r', [])).toEqual([]);
   });
 });

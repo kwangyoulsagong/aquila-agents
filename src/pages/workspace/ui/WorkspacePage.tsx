@@ -1,11 +1,16 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Button } from '@design-system/react';
-import { api } from '@/shared/api';
+import { api, type SessionKind } from '@/shared/api';
 import { I18nContext, translator } from '@/shared/i18n';
 import { withShortcut } from '@/shared/lib/shortcuts';
 import { AccountSwitch } from '@/features/switch-account';
 import { SetupAccount } from '@/features/setup-account';
-import { OpenInWorktreeDialog } from '@/features/open-in-worktree';
+import {
+  CleanupWorktreesDialog,
+  OpenInWorktreeDialog,
+  loadLinkedWorktrees,
+  useLinkedWorktrees,
+} from '@/features/open-in-worktree';
 import { SettingsMenu } from '@/features/switch-language';
 import { nextWaiting } from '@/features/next-waiting';
 import { copyLastReply, toggleQuickSelect } from '@/features/terminal-helpers';
@@ -41,6 +46,8 @@ export default function WorkspacePage() {
   const trends = useTrends();
   const [worktreeOpen, setWorktreeOpen] = useState(false);
   const openWorktreeDialog = useCallback(() => setWorktreeOpen(true), []);
+  const [cleanupOpen, setCleanupOpen] = useState(false);
+  const openCleanup = useCallback(() => setCleanupOpen(true), []);
   const firstRun = useFirstRun();
   const { reopen: reopenFirstRun } = firstRun;
   const guide = useGuide();
@@ -85,6 +92,27 @@ export default function WorkspacePage() {
   });
 
   const { config, project, activeSessionId, openSession, closeSession, setConfig, showError } = ws;
+  const { openWorktreeSession } = ws;
+  // Worktrees (T7/T38) are local-only.
+  const localProjectId = project && !project.remote ? project.id : undefined;
+  const paletteWorktrees = useLinkedWorktrees(localProjectId, paletteOpen);
+  const openInWorktree = useCallback(
+    (branch: string, kind: SessionKind) =>
+      void openWorktreeSession(branch, kind).catch((e: unknown) => showError((e as Error).message)),
+    [openWorktreeSession, showError],
+  );
+  const tabWorktrees = useMemo(
+    () =>
+      localProjectId
+        ? {
+            load: () => loadLinkedWorktrees(localProjectId),
+            onDialog: openWorktreeDialog,
+            onOpen: openInWorktree,
+            onCleanup: openCleanup,
+          }
+        : undefined,
+    [localProjectId, openWorktreeDialog, openInWorktree, openCleanup],
+  );
   const manage = useManageProjects({
     config,
     sessions: ws.sessions,
@@ -111,6 +139,7 @@ export default function WorkspacePage() {
       a.toggleChanges = toggleChanges;
       if (!project.remote) {
         a.openWorktree = openWorktreeDialog;
+        if (paletteWorktrees.length) a.cleanupWorktrees = openCleanup;
         a.togglePreview = togglePreview;
         a.openProjectIn = () => void openIn(project);
       }
@@ -146,6 +175,8 @@ export default function WorkspacePage() {
     toggleChanges,
     togglePreview,
     openWorktreeDialog,
+    paletteWorktrees.length,
+    openCleanup,
     setConfig,
     showError,
     waitingNext,
@@ -205,7 +236,7 @@ export default function WorkspacePage() {
               onClose={ws.closeSession}
               onNew={ws.openSession}
               defaultKind={project?.defaultAgent}
-              onNewInWorktree={project && !project.remote ? openWorktreeDialog : undefined}
+              worktrees={tabWorktrees}
               trailing={
                 project && (
                   <>
@@ -284,6 +315,9 @@ export default function WorkspacePage() {
             onOpen={ws.openWorktreeSession}
           />
         )}
+        {cleanupOpen && project && !project.remote && (
+          <CleanupWorktreesDialog key={project.id} project={project} onClose={() => setCleanupOpen(false)} />
+        )}
         {/* Full window hides the side panels too; their open state is kept for when it ends. */}
         {changesOpen && !fullscreen.on && (
           <ChangesPanel
@@ -359,6 +393,8 @@ export default function WorkspacePage() {
           onSelectProject={ws.selectProject}
           onSelectSession={ws.selectSession}
           actions={paletteActions}
+          worktrees={paletteWorktrees}
+          onOpenWorktree={localProjectId ? openInWorktree : undefined}
         />
       </div>
     </I18nContext.Provider>

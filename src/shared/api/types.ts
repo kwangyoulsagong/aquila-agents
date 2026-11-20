@@ -191,6 +191,18 @@ export interface WorktreeInfo {
   worktrees: Worktree[];
 }
 
+/** A linked worktree as the cleanup dialog sees it (T38). Suggested for removal when merged, clean and not open. */
+export interface WorktreeCandidate {
+  path: string;
+  branch: string;
+  /** The branch is contained in the project's base branch (nothing would be lost; the branch itself is kept). */
+  merged: boolean;
+  /** No changes and no untracked files (`git worktree remove` would refuse otherwise). */
+  clean: boolean;
+  /** A tab (live or dormant) runs in it. */
+  open: boolean;
+}
+
 export interface SessionInfo {
   id: string;
   projectId: string;
@@ -577,6 +589,10 @@ export interface AquilaApi {
   createWorktreeSession(projectId: string, branch: string, kind: SessionKind): Promise<SessionInfo>;
   /** Repo root, current branch, local branches and worktrees of the project (read-only). */
   worktreeInfo(projectId: string): Promise<WorktreeInfo>;
+  /** The project's linked worktrees with merged / clean / open flags, for cleanup (read-only). */
+  worktreeCandidates(projectId: string): Promise<WorktreeCandidate[]>;
+  /** `git worktree remove` (no `--force`) one linked worktree of the project; throws git's message. */
+  removeWorktree(projectId: string, path: string): Promise<void>;
   /**
    * Reopens the tabs saved at the last quit (~/.aquila/state.json), once per launch; later calls return the live ones.
    * Tabs in the saved layout's panes are spawned, the others come back `dormant`.
@@ -804,6 +820,8 @@ export const IPC = {
   sessionScrollback: 'session:scrollback',
   sessionCreateWorktree: 'session:create-worktree',
   worktreeInfo: 'worktree:info',
+  worktreeCandidates: 'worktree:candidates',
+  worktreeRemove: 'worktree:remove',
   accountsStatus: 'accounts:status',
   accountsPrepare: 'accounts:prepare',
   accountsShellPreview: 'accounts:shell-preview',

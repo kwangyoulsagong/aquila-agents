@@ -28,7 +28,7 @@ import {
 import fs from 'node:fs';
 import { showContextMenu } from './menu';
 import { gitAction, gitChanges, localGit, localTrash, treeOf, TreeWatcher } from './git';
-import { ensureWorktree, worktreeInfo } from './worktrees';
+import { ensureWorktree, removeWorktree, worktreeCandidates, worktreeInfo } from './worktrees';
 import { markGuideOffered, readGuideState } from './guide';
 import { releaseNotesState, usedBefore, writeLastSeen } from './releaseNotes';
 import { startUpdater } from './updater';
@@ -473,6 +473,15 @@ app.whenReady().then(async () => {
   ipcMain.handle(IPC.worktreeInfo, (_e, projectId: string) => {
     localOnly(projectId);
     return worktreeInfo(loadConfig(), projectId);
+  });
+  const openWorktreePaths = () => s.tabs().flatMap((t) => (t.worktree ? [t.worktree.path] : []));
+  ipcMain.handle(IPC.worktreeCandidates, (_e, projectId: string) => {
+    localOnly(projectId);
+    return worktreeCandidates(loadConfig(), projectId, openWorktreePaths());
+  });
+  ipcMain.handle(IPC.worktreeRemove, (_e, { projectId, path: target }: { projectId: string; path: string }) => {
+    localOnly(projectId);
+    return removeWorktree(loadConfig(), projectId, String(target ?? ''), openWorktreePaths());
   });
   ipcMain.handle(IPC.sessionRestore, () => restoreSessions());
   ipcMain.handle(IPC.sessionStart, (_e, id: string) => s.wake(loadConfig(), id));

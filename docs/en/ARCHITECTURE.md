@@ -16,7 +16,7 @@
 │ entities/ session (xterm, status), project│        │ state.ts      ~/.aquila/state.json (tabs, layout)│
 │                                           │        │               + scrollback/ (T21)                │
 │                                           │        │ codex.ts      codex session id per tab (T21)     │
-│           diff                            │        │ worktrees.ts  git worktree add / reuse (T7)      │
+│           diff                            │        │ worktrees.ts  git worktree add / reuse / remove  │
 │           open-in-worktree                │        │ menu.ts       native context menus               │
 │                                           │        │ notify.ts     notifications, reminder, Dock badge│
 │                                           │        │ status/       OSC 7501 parser + status tracker   │
@@ -153,19 +153,31 @@
 
 ## Worktree sessions
 
-- "New Claude in worktree…" (right-click the tab bar's **+**, or the ⌘K palette) opens `features/open-in-worktree`:
-  a dialog with a branch field (local branches suggested) and a line saying what will happen and where.
+- "Open in worktree…" (right-click the tab bar's **+**, or the ⌘K palette) opens `features/open-in-worktree`:
+  a dialog with a branch field (local branches suggested), a line saying what will happen and where, and the agent
+  (Claude / Codex / Shell, default = the project's default agent).
+- Existing worktrees (T38): the **+** menu has a "Worktrees" submenu (branch → Claude / Codex / Shell, read with
+  `worktree:info` when the menu opens), and ⌘K lists "Claude · <branch>" etc. for the current project's linked
+  worktrees (read when the palette opens). Both go through `session:create-worktree`, which reuses the worktree.
 - Main (`worktrees.ts`, `session:create-worktree`): validates the name with `git check-ref-format --branch`, then
   reuses the worktree that already has the branch checked out (`git worktree list --porcelain`, incl. the main one),
   otherwise `git worktree add <repo>-wt/<branch>` next to the main worktree — checking out the branch if it exists,
   else `-b` from the project's **default branch** (T26; when it names a commit) or its current HEAD. Git's own error
-  is shown in the dialog. Nothing is ever removed. A worktree made by this call runs the project's **setup script**
+  is shown in the dialog. A new worktree gets the files listed in the repo's **`.worktreeinclude`** (gitignore
+  syntax) copied from the main worktree — only those that are also ignored by git (`git ls-files --others --ignored
+  --directory --exclude-from=.worktreeinclude`, filtered with `git check-ignore`), never overwriting. A worktree made by this call runs the project's **setup script**
   once, visibly, in the session's login shell before the agent starts (the agent starts even if it fails).
 - The session (`SessionInfo.worktree = { path, branch }`) spawns with that cwd. The tab shows the branch
   (`.c-tab__branch`, path in the tooltip), as do the pane head, the palette label and the notification title.
 - The changes panel follows the focused session: for a worktree session it shows that worktree (main resolves the
   path from the live session id, never from a renderer-supplied path).
 - `worktree:info` gives the dialog the repo root, the current branch, local branches and existing worktrees (read-only).
+- **Cleanup** ("Clean up worktrees…" in the **+** menu and ⌘K): `worktree:candidates` lists the linked worktrees
+  (not locked, folder present, with a branch) with `merged` (`git merge-base --is-ancestor <branch> <base>`, base =
+  default branch or HEAD), `clean` (`git status --porcelain` empty) and `open` (a live or dormant tab runs there).
+  Merged + clean + not open are suggested; any clean, closed one can be removed. Remove asks once more, then
+  `worktree:remove` runs plain `git worktree remove` — **never `--force`**; main re-checks that the path is a linked
+  worktree of the project and not open in a tab. The branch is kept.
 
 ## Restore on relaunch
 
