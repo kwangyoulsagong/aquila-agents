@@ -569,7 +569,7 @@ Agentrix에서 이름이 바뀌었습니다: 처음 실행할 때 `~/.aquila/con
 ## 릴리스 노트와 업데이트 (T27)
 
 - 노트: `release-notes/<버전>.json` — `{ version, date, headlines: [{ guideId, media?, title: {ko,en}, body: {ko,en} }] }`,
-  헤드라인 3~5개. `features/release-notes/model/bundle.ts`가 번들(`import.meta.glob`, 오프라인). 검증·버전 비교·초안은
+  헤드라인 3~5개(패치 릴리스 x.y.z(z > 0)는 1~5개). `features/release-notes/model/bundle.ts`가 번들(`import.meta.glob`, 오프라인). 검증·버전 비교·초안은
   `model/notes.ts`(import 없음 — 스크립트가 직접 실행, 테스트 있음).
 - `scripts/release-notes.ts`(Node 타입 제거로 실행, `tsconfig.scripts.json`): `draft [버전]`은 지난 태그 이후
   Conventional Commits로 초안(`feat` 제목 → 영어 제목, 나머지는 TODO), `check [버전]`은 파일 없음·언어 누락·TODO·헤드라인

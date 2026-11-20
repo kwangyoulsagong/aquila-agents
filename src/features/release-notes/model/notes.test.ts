@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { ALL_NOTES, notesFrom } from './bundle';
-import { compareVersions, draftNotes, parseCommit, parseNotes, TODO, unseenNotes, type ReleaseNotes } from './notes';
+import {
+  compareVersions,
+  draftNotes,
+  parseCommit,
+  parseNotes,
+  TODO,
+  unseenNotes,
+  type ReleaseNotes,
+} from './notes';
 
 const headline = (id: string) => ({
   guideId: id,
@@ -42,6 +50,12 @@ describe('parseNotes', () => {
     expect(parseNotes(raw('0.2.0', 2)).errors[0]).toMatch(/2 headlines/);
     expect(parseNotes(raw('0.2.0', 6)).errors[0]).toMatch(/6 headlines/);
     expect(parseNotes('nope').errors).toEqual(['not a JSON object']);
+  });
+
+  it('accepts a single headline for a patch release only', () => {
+    expect(parseNotes(raw('0.3.1', 1), '0.3.1').errors).toEqual([]);
+    expect(parseNotes(raw('0.3.1', 0)).errors[0]).toMatch(/0 headlines, expected 1–5/);
+    expect(parseNotes(raw('0.4.0', 1)).errors[0]).toMatch(/1 headlines, expected 3–5/);
   });
 });
 

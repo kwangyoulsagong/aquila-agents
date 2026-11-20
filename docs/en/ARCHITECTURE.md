@@ -599,7 +599,7 @@ on an explicit click, append `claude-<id>() { … }` to `~/.zshrc` — skipped i
 ## Release notes and updates (T27)
 
 - Notes: `release-notes/<version>.json` — `{ version, date, headlines: [{ guideId, media?, title: {ko,en}, body: {ko,en} }] }`,
-  3–5 headlines. Bundled by `features/release-notes/model/bundle.ts` (`import.meta.glob`, offline); validation, version
+  3–5 headlines (1–5 for a patch release, x.y.z with z > 0). Bundled by `features/release-notes/model/bundle.ts` (`import.meta.glob`, offline); validation, version
   compare and drafting live in `model/notes.ts` (no imports, so the script runs it directly; tested).
 - `scripts/release-notes.ts` (Node's type stripping, `tsconfig.scripts.json`): `draft [version]` from Conventional
   Commits since the last tag (`feat` subjects → English titles, the rest TODO); `check [version]` fails on a missing

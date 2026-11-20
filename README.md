@@ -30,7 +30,7 @@ Projects live in `~/.aquila/config.json` (created on first run; "Open settings f
 
 `npm run dist` writes `release/Aquila Agents-<version>-arm64.dmg` and a `.zip` (Apple Silicon). Bump `version` in
 `package.json` before each build you hand out, and write its release notes first: `npm run release-notes -- draft`
-drafts `release-notes/<version>.json` from the commits since the last tag; finish it in ko + en (3–5 headlines, each a
+drafts `release-notes/<version>.json` from the commits since the last tag; finish it in ko + en (3–5 headlines — 1–5 for a patch release x.y.z with z > 0 — each a
 guide item). `npm run dist` refuses to package while it's missing or has a TODO. Upload the `.dmg`, `.zip` and
 `latest-mac.yml` to a GitHub release tagged `v<version>`: installed apps notify about it. Builds are **not signed or
 notarized** yet, so on the receiving Mac:

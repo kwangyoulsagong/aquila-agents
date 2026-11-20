@@ -21,12 +21,18 @@ export interface ReleaseNotes {
 }
 
 export const MIN_HEADLINES = 3;
+/** A patch release (x.y.z, z > 0) carries fixes only: one headline is enough. */
+export const MIN_PATCH_HEADLINES = 1;
 export const MAX_HEADLINES = 5;
 /** What `draft` writes where a human still has to write: `check` fails while any is left. */
 export const TODO = 'TODO';
 
 const VERSION = /^\d+\.\d+\.\d+$/;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Fewest headlines a version needs: 3, or 1 for a patch release. */
+export const minHeadlines = (version: string): number =>
+  /^\d+\.\d+\.[1-9]\d*$/.test(version) ? MIN_PATCH_HEADLINES : MIN_HEADLINES;
 
 /** Numeric x.y.z compare (anything after `-` or `+` is ignored): <0, 0, >0. */
 export function compareVersions(a: string, b: string): number {
@@ -76,8 +82,9 @@ export function parseNotes(raw: unknown, expected?: string): { notes?: ReleaseNo
   const date = typeof raw.date === 'string' ? raw.date : '';
   if (!DATE.test(date)) errors.push('date must be YYYY-MM-DD');
   const list = Array.isArray(raw.headlines) ? raw.headlines : [];
-  if (list.length < MIN_HEADLINES || list.length > MAX_HEADLINES)
-    errors.push(`${list.length} headlines, expected ${MIN_HEADLINES}–${MAX_HEADLINES}`);
+  const min = minHeadlines(version);
+  if (list.length < min || list.length > MAX_HEADLINES)
+    errors.push(`${list.length} headlines, expected ${min}–${MAX_HEADLINES}`);
   const headlines = list.map((h: unknown, i): ReleaseHeadline => {
     const where = `headlines[${i}]`;
     if (!isObject(h)) {
@@ -138,14 +145,12 @@ export function draftNotes(subjects: readonly string[], version: string, date: s
     .map(parseCommit)
     .filter((c): c is NonNullable<typeof c> => !!c && c.type === 'feat')
     .slice(0, MAX_HEADLINES);
-  const headlines = feats.map(
-    (c): ReleaseHeadline => ({
-      guideId: TODO,
-      title: { ko: TODO, en: c.text.charAt(0).toUpperCase() + c.text.slice(1) },
-      body: { ko: TODO, en: TODO },
-    }),
-  );
-  while (headlines.length < MIN_HEADLINES)
+  const headlines = feats.map((c): ReleaseHeadline => ({
+    guideId: TODO,
+    title: { ko: TODO, en: c.text.charAt(0).toUpperCase() + c.text.slice(1) },
+    body: { ko: TODO, en: TODO },
+  }));
+  while (headlines.length < minHeadlines(version))
     headlines.push({ guideId: TODO, title: { ko: TODO, en: TODO }, body: { ko: TODO, en: TODO } });
   return { version, date, headlines };
 }
