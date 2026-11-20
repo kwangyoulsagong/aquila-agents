@@ -10,12 +10,19 @@ import type { FirstRunReport, ToolCheck, ToolId } from '../src/shared/api/types'
 export const FIRST_RUN_PATH = path.join(APP_DIR, 'first-run.json');
 export const TOOLS: readonly ToolId[] = ['claude', 'codex', 'git'];
 
-/** Copyable install command per tool (macOS). */
-export const INSTALL: Record<ToolId, string> = {
-  claude: 'curl -fsSL https://claude.ai/install.sh | bash',
-  codex: 'npm install -g @openai/codex',
-  git: 'xcode-select --install',
-};
+/** Copyable install command per tool (macOS; PowerShell on Windows). */
+export const INSTALL: Record<ToolId, string> =
+  process.platform === 'win32'
+    ? {
+        claude: 'irm https://claude.ai/install.ps1 | iex',
+        codex: 'npm install -g @openai/codex',
+        git: 'winget install --id Git.Git -e',
+      }
+    : {
+        claude: 'curl -fsSL https://claude.ai/install.sh | bash',
+        codex: 'npm install -g @openai/codex',
+        git: 'xcode-select --install',
+      };
 
 export interface FirstRunState {
   /** The checklist was closed once (done or skipped): don't open it at launch again. */
@@ -73,12 +80,25 @@ export function isExecutable(file: string): boolean {
   }
 }
 
+/** Extensions tried after the bare name: Windows' PATHEXT (`git` → `git.exe`, `claude` → `claude.cmd`). */
+export function pathExts(platform: string = process.platform, pathExt = process.env.PATHEXT): string[] {
+  if (platform !== 'win32') return [''];
+  const exts = (pathExt || '.COM;.EXE;.BAT;.CMD').split(';').filter(Boolean);
+  return ['', ...exts.map((e) => e.toLowerCase())];
+}
+
 /** First executable `bin` in PATH, like `command -v` (no aliases or functions: main can't run those). */
-export function findOnPath(bin: string, pathEnv = process.env.PATH ?? ''): string | null {
+export function findOnPath(
+  bin: string,
+  pathEnv = process.env.PATH ?? process.env.Path ?? '',
+  exts = pathExts(),
+): string | null {
   for (const dir of pathEnv.split(path.delimiter)) {
     if (!dir) continue;
-    const file = path.join(dir, bin);
-    if (isExecutable(file)) return file;
+    for (const ext of exts) {
+      const file = path.join(dir, bin.toLowerCase().endsWith(ext) ? bin : bin + ext);
+      if (isExecutable(file)) return file;
+    }
   }
   return null;
 }
@@ -132,13 +152,7 @@ export function loadOverrides(state = readFirstRunState()): void {
   applyGitOverride();
 }
 
-/** What a session's shell command runs: the bare name (aliases and functions keep working) or the picked path, quoted. */
-export function commandName(tool: 'claude' | 'codex'): string {
-  const p = overrides[tool];
-  return p ? `'${p.replace(/'/g, `'\\''`)}'` : tool;
-}
-
-/** What main runs directly (execFile). */
+/** What main runs directly (execFile), and what a session runs (the platform layer quotes it). */
 export function binaryFor(tool: ToolId): string {
   return overrides[tool] ?? tool;
 }

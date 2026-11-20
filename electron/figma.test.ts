@@ -7,12 +7,13 @@ import {
   ensureMcpConfig,
   extractJson,
   FIGMA_MCP_URL,
-  figmaArgs,
+  figmaArgv,
   parsePlans,
   parseProbe,
   readProfiles,
   writeProfile,
 } from './figma';
+import { posixPrelude } from './platform/posix';
 
 const dirs: string[] = [];
 const tmp = () => {
@@ -39,11 +40,11 @@ describe('mcp config + args', () => {
     expect(fs.readFileSync(file, 'utf8')).toContain(FIGMA_MCP_URL);
   });
 
-  it('builds shell-safe args for claude and codex', () => {
-    expect(figmaArgs('claude', "/Users/me/it's/figma.json")).toBe(`--mcp-config "/Users/me/it's/figma.json"`);
+  it('builds args for claude and codex that survive the session shell', () => {
+    expect(figmaArgv('claude', "/Users/me/it's/figma.json")).toEqual(['--mcp-config', "/Users/me/it's/figma.json"]);
     // The shell must hand codex exactly key="url" (TOML string).
-    const codex = figmaArgs('codex');
-    const argv = execFileSync('/bin/sh', ['-c', `printf '%s\\n' ${codex}`])
+    const codex = posixPrelude({ argv: ['printf', '%s\\n', ...figmaArgv('codex')] });
+    const argv = execFileSync('/bin/sh', ['-c', `${codex}true`])
       .toString()
       .trim()
       .split('\n');

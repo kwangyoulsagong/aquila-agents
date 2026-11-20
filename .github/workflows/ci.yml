@@ -1,0 +1,46 @@
+# Typecheck + lint + test + build on macOS and on Windows x64 / arm64 (T19).
+# `npm ci` runs the postinstall `electron-rebuild -f -w node-pty`, so node-pty is rebuilt for Electron's ABI on
+# each runner's own architecture — a broken native build fails here, not on a user's machine.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            arch: arm64
+          - os: windows-latest
+            arch: x64
+          - os: windows-11-arm
+            arch: arm64
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.os }} (${{ matrix.arch }})
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Load node-pty under Electron
+        run: npx electron -e "require('node-pty'); process.exit(0)"
+        env:
+          ELECTRON_RUN_AS_NODE: '1'
+      - run: npm run check
+        if: runner.os == 'macOS'
+      # Many existing tests drive /bin/sh, real repos and fake POSIX binaries; on Windows run the ones written
+      # for it until the rest are ported.
+      - name: Typecheck, lint, Windows-safe tests
+        if: runner.os == 'Windows'
+        run: |
+          npm run typecheck
+          npm run lint
+          npx vitest run electron/platform src/shared src/entities
+      - run: npm run build

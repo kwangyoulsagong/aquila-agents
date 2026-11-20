@@ -8,6 +8,7 @@ import { currentTheme, onThemeChange } from '@/shared/lib/theme';
 import { usePowerSaver } from '@/shared/lib/usePowerSaver';
 import { gpuPool } from '../lib/gpuPool';
 import { createImeGuard } from '../lib/imeGuard';
+import { windowsCopyKey } from '../lib/windowsKeys';
 import { SNAPSHOT_MS, SNAPSHOT_SAVER_MS, snapshotText } from '../lib/snapshot';
 import { attach, registerPaste, registerTerminal } from '../lib/terminalBus';
 import { SCROLLBACK, sizeChanged } from '../model/terminal';
@@ -30,6 +31,13 @@ const terminalTheme = () => ({
  * On light, xterm darkens any foreground below WCAG AA against its cell background.
  */
 const minimumContrast = () => (currentTheme() === 'light' ? 4.5 : 1);
+
+/** Windows (T19): xterm adapts reflow and wrapping to ConPTY, which depends on the build. */
+const windowsPty = () =>
+  api.platform.windowsBuild
+    ? { windowsPty: { backend: 'conpty' as const, buildNumber: api.platform.windowsBuild } }
+    : {};
+const isWindows = () => api.platform.os === 'win32';
 
 /** After this many lost WebGL contexts a terminal stays on the DOM renderer. */
 const MAX_CONTEXT_LOSSES = 3;
@@ -71,6 +79,7 @@ export default function TerminalView({ id, kind, visible, focused = visible }: P
       scrollback: SCROLLBACK[kind],
       theme: terminalTheme(),
       minimumContrastRatio: minimumContrast(),
+      ...windowsPty(),
     });
     const unTheme = onThemeChange(() => {
       term.options.theme = terminalTheme();
@@ -129,7 +138,10 @@ export default function TerminalView({ id, kind, visible, focused = visible }: P
     const unregister = registerTerminal(id, term);
     // Hangul IME: keys the IME swallows while composing (Enter, Esc, Ctrl+C…) still reach the session, once.
     const ime = createImeGuard({ write: (data) => api.write(id, data) });
-    term.attachCustomKeyEventHandler(ime.onKey);
+    // Windows: Ctrl+C with a selection copies it (else SIGINT, as before).
+    term.attachCustomKeyEventHandler(
+      isWindows() ? (e) => windowsCopyKey(e, term, (text) => api.copyText(text)) && ime.onKey(e) : ime.onKey,
+    );
     // Added after xterm's own listener, so xterm sends the committed syllable first.
     term.textarea?.addEventListener('compositionend', ime.onCompositionEnd);
     const resized = term.onResize(({ cols, rows }) => api.resize(id, cols, rows));

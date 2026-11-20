@@ -4,13 +4,14 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   checkTool,
-  commandName,
+  binaryFor,
   finishFirstRun,
   findOnPath,
   firstRunReport,
   loadOverrides,
   parseFirstRunState,
   parseVersion,
+  pathExts,
   readFirstRunState,
   setBinaryPath,
 } from './detect';
@@ -91,8 +92,8 @@ describe('setBinaryPath', () => {
     const check = await setBinaryPath('claude', bin, stateFile);
     expect(check).toMatchObject({ found: true, version: '2.1.400', override: bin });
     expect(readFirstRunState(stateFile).paths?.claude).toBe(bin);
-    expect(commandName('claude')).toBe(`'${bin.replace("'", `'\\''`)}'`);
-    expect(commandName('codex')).toBe('codex');
+    expect(binaryFor('claude')).toBe(bin);
+    expect(binaryFor('codex')).toBe('codex');
   });
 
   it('rejects a file that does not run, keeping the old choice', async () => {
@@ -126,5 +127,21 @@ describe('first-run state', () => {
     expect(report.pending).toBe(false);
     expect(report.pathRestored).toBe(false);
     expect(report.tools.map((t) => t.tool)).toEqual(['claude', 'codex', 'git']);
+  });
+});
+
+describe('pathExts', () => {
+  it('tries PATHEXT after the bare name on Windows only', () => {
+    expect(pathExts('darwin', '.EXE')).toEqual(['']);
+    expect(pathExts('win32', '.COM;.EXE;.CMD')).toEqual(['', '.com', '.exe', '.cmd']);
+    expect(pathExts('win32', undefined)).toContain('.exe');
+  });
+
+  it('finds git.exe for `git`', () => {
+    const bin = path.join(dir, 'git.exe');
+    fs.writeFileSync(bin, '');
+    fs.chmodSync(bin, 0o755);
+    expect(findOnPath('git', dir, ['', '.exe'])).toBe(bin);
+    expect(findOnPath('git.exe', dir, ['', '.exe'])).toBe(bin);
   });
 });

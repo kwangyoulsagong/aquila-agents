@@ -91,6 +91,7 @@
 | 토큰 | px | |
 |---|---|---|
 | `--size-titlebar` = `--size-tabbar` | 40 | 사이드바·탭·패널을 가로지르는 한 줄 |
+| `--size-window-controls` | 0 / 140 | 오른쪽 위 OS 창 버튼 자리: macOS 0, `:root[data-platform='win32']`에서 140 (맨 오른쪽 열의 탭 바 / 패널 헤드가 그만큼 비움) |
 | `--size-row` | 32 | 사이드바 행, 탭도 32 (40 − 위 여백 8) |
 | `--size-control` | 28 | 버튼, 세그먼트 컨트롤 |
 | `--size-pane-head` | 28 | 분할 패널 헤더 |

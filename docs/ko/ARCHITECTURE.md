@@ -34,6 +34,7 @@
 │                                           │        │ history.ts    지난 세션, 읽기 전용 (T11)         │
 │                                           │        │ terminalHelpers.ts 클립보드 경로, 마지막 응답    │
 │                                           │        │ remote/       ssh + tmux, 재연결, 호스트 확인    │
+│                                           │        │ platform/     셸, spawn, git, kill (T19)         │
 │                                           │        │ smoke.ts      npm run smoke 자동 점검            │
 │ shared/   api (타입·IPC·bridge), i18n       │        │                                                 │
 └───────────────────────────────────────────┘        └─────────────────────────────────────────────────┘
@@ -54,7 +55,13 @@
 
 1. 렌더러가 `createSession(projectId, kind)` 호출.
 2. Main이 프로젝트 폴더에서 `$SHELL -l -i -c "<명령>; exec $SHELL -l -i"` 실행. 그래서 PATH/fnm/alias가 그대로 동작하고,
-   에이전트가 끝나면 탭이 셸로 남습니다.
+   에이전트가 끝나면 탭이 셸로 남습니다. spawn은 `electron/platform/`을 거칩니다(T19): sessions.ts는 명령을 argv로
+   만들고(`SessionCommand`: 프로그램 + 인자, 이어하기 실패 표시, setup 스크립트) 플랫폼 레이어가 셸 문법으로 씁니다.
+   macOS: 위의 로그인 셸. Windows: pwsh 7 > Windows PowerShell 5.1 > Git Bash > CMD (`-NoLogo -NoExit -EncodedCommand`,
+   `bash -l -i -c`, `cmd /S /K`). `\\wsl.localhost\<배포판>\…` 아래 폴더는 `wsl.exe -d <배포판> --cd <리눅스 경로> -- bash -lic
+   "…; exec bash -l -i"`로 실행하고 git도 `wsl.exe … -e git`으로 돌립니다. WSL 안의 Claude는 `--settings`·계정 폴더·Figma
+   설정 없이 뜨고(배포판 안에서 따로 로그인) 원격 탭처럼 출력 활동으로 상태를 추정합니다. kill은 `KillQueue`를 거칩니다
+   (Windows에선 50ms 간격으로 하나씩, 이미 끝난 pty는 kill하지 않음). Windows에서 종료할 때는 세션마다 `taskkill /T`도 실행합니다.
 3. 세션별 환경변수: `AQUILA_TAB_ID`, `AQUILA_PORT`, 그리고 **개인** 계정의 Claude 세션에만
    `CLAUDE_CONFIG_DIR=~/.claude-personal` (`claude-personal` 셸 함수와 같음). **공용** 계정은 설정하지 않음(그냥 `claude`).
    Claude가 이 변수로 키체인 항목을 구분하기 때문에 `~/.claude`로 명시하면 안 됩니다.

@@ -1,6 +1,7 @@
 // The only bridge between renderer and main. Shape is defined by AquilaApi in src/shared/api/types.ts.
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import { IPC, type AquilaApi } from '../src/shared/api/types';
+import { platformInfo } from './platform/os';
 
 const on =
   <T>(channel: string) =>
@@ -13,6 +14,7 @@ const on =
   };
 
 const api: AquilaApi = {
+  platform: platformInfo(),
   getConfig: () => ipcRenderer.invoke(IPC.configGet),
   openConfig: () => ipcRenderer.invoke(IPC.configOpen),
   setLanguage: (language) => ipcRenderer.invoke(IPC.configSetLanguage, language),
