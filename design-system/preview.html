@@ -326,6 +326,9 @@
   </section>
 </div>
 <script>
+  // ?theme=light|dark, otherwise the OS appearance (same as the app).
+  document.documentElement.dataset.theme = new URLSearchParams(location.search).get('theme')
+    ?? (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
   const names = ['bg-canvas','bg-surface','bg-hover','bg-pressed','bg-selected','border-subtle','border-default','border-focus','text-primary','text-secondary','text-tertiary','action-primary','status-working','status-waiting','status-done','status-error','status-idle','agent-claude','agent-codex','diff-add-text','diff-del-text'];
   const cs = getComputedStyle(document.documentElement);
   document.getElementById('swatches').innerHTML = names.map(n =>

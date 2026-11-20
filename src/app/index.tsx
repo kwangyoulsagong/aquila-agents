@@ -6,5 +6,8 @@ import '@design-system/tokens.css';
 import '@design-system/components.css';
 import './styles/app.css';
 import App from './App';
+import { followSystemTheme } from '@/shared/lib/theme';
+
+followSystemTheme(); // before the first render: terminals read the tokens on mount
 
 createRoot(document.getElementById('root')!).render(<App />);

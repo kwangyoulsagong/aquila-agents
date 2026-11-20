@@ -6,16 +6,20 @@ One window, many agents. The UI disappears behind the terminals and only speaks 
 
 - Source of truth: `design-system/tokens.css` (values), `design-system/components.css` (component styles) and
   `design-system/react/` (React components that render them).
-- Preview: `open design-system/preview.html`.
+- Preview: `open design-system/preview.html` (add `?theme=light` or `?theme=dark` to force one).
 - Rule: **no raw hex/px in app code.** New value → primitive + semantic token first.
 
 ## Principles
 
-1. **Terminals are the content.** Chrome (sidebar, tabs) stays dark and quiet; `--color-bg-canvas` is the darkest surface.
+1. **Terminals are the content.** Chrome (sidebar, tabs) stays quiet; `--color-bg-canvas` (window + terminal) is the
+   darkest surface in dark and the lightest in light, so the terminal always stands apart from the chrome.
 2. **Status is the only loud color.** Blue = selection/focus. Orange (`--color-status-waiting`) means
    "you need to act" — never decorative.
 3. **One grid.** Everything is a multiple of 4px and edges line up across regions (see Layout).
-4. **Dark only (v0.1).** Light theme later = remap semantic tokens only.
+4. **Dark and light follow macOS.** `src/shared/lib/theme.ts` sets `<html data-theme>` from `prefers-color-scheme`
+   (Electron maps `nativeTheme` onto it); `tokens.css` remaps **only `--color-*`** under `[data-theme='light']`.
+   Components never branch on the theme. A new color token needs a value in both blocks. `AQUILA_THEME=light|dark`
+   forces one (smoke, capture, checking).
 
 ## Token tiers
 
@@ -41,7 +45,7 @@ Check: `grep -rn -- '--p-' src design-system/components.css` returns only the ru
 | `--color-agent-claude` / `-codex` / `-shell` | Session kind |
 | `--color-account-shared` / `-personal` | Claude account badge (`claude` / `claude-personal`) |
 | `--color-diff-*` | Diff add / del / hunk |
-| `--color-terminal-*` | xterm theme (read at runtime): bg, fg, cursor, selection, scrollbar (+ `-hover`) |
+| `--color-terminal-*` | xterm theme (read at runtime, re-read when the theme changes): bg, fg, cursor, selection, scrollbar (+ `-hover`). On light, xterm's `minimumContrastRatio` is 4.5 so CLI colors picked for a dark background stay readable |
 
 ### Session status — the core vocabulary
 

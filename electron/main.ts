@@ -1,6 +1,17 @@
 // Main process: window, config, pty sessions, Claude hook receiver.
 import path from 'node:path';
-import { app, BrowserWindow, clipboard, dialog, ipcMain, net, Notification, powerMonitor, shell } from 'electron';
+import {
+  app,
+  BrowserWindow,
+  clipboard,
+  dialog,
+  ipcMain,
+  nativeTheme,
+  net,
+  Notification,
+  powerMonitor,
+  shell,
+} from 'electron';
 import { restoreShellPath } from './env';
 import { accountsStatus, installShellFunction, prepareAccount, shellFunctionPreview } from './accounts';
 import {
@@ -83,13 +94,16 @@ let win: BrowserWindow | null = null;
 let sessions: SessionManager | null = null;
 let previews: PreviewViews | null = null;
 
+/** = --color-bg-canvas per theme (--p-slate-950 / --p-paper-0); the renderer follows the same nativeTheme. */
+const windowBackground = () => (nativeTheme.shouldUseDarkColors ? '#0e1014' : '#ffffff');
+
 function createWindow(): void {
   win = new BrowserWindow({
     width: 1440,
     height: 900,
     minWidth: 900,
     minHeight: 560,
-    backgroundColor: '#0e1014', // = --p-slate-950; avoids a white flash before CSS loads
+    backgroundColor: windowBackground(), // avoids a flash of the wrong color before CSS loads
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 16, y: 14 },
     webPreferences: {
@@ -111,6 +125,10 @@ function createWindow(): void {
 }
 
 app.whenReady().then(async () => {
+  // Force a theme for smoke / capture / checking (AQUILA_THEME=light|dark); otherwise follow macOS.
+  const forced = process.env.AQUILA_THEME;
+  if (forced === 'light' || forced === 'dark') nativeTheme.themeSource = forced;
+  nativeTheme.on('updated', () => win?.setBackgroundColor(windowBackground()));
   let pathRestored = await restoreShellPath(); // Finder launches get a minimal PATH
   loadOverrides(); // binaries picked in the first-run checklist
   // Read before any session exists: the first create/exit rewrites state.json. Smoke never touches it.
@@ -314,14 +332,14 @@ app.whenReady().then(async () => {
   ipcMain.on(IPC.newsOpen, (_e, url: string) => {
     if (typeof url === 'string' && news.isKnownUrl(url)) void shell.openExternal(url);
   });
-  ipcMain.handle(
-    IPC.newsSummarize,
-    (_e, { language, account }: { language: Language; account?: string }) => {
-      const config = loadConfig();
-      const a = account ? config.accounts[account] : undefined;
-      return news.summarize(language, a?.claudeConfigDir && account ? claudeConfigDir(config, account) : undefined);
-    },
-  );
+  ipcMain.handle(IPC.newsSummarize, (_e, { language, account }: { language: Language; account?: string }) => {
+    const config = loadConfig();
+    const a = account ? config.accounts[account] : undefined;
+    return news.summarize(
+      language,
+      a?.claudeConfigDir && account ? claudeConfigDir(config, account) : undefined,
+    );
+  });
 
   // Tabs on screen in the saved layout are spawned now; the rest stay dormant until first shown (T21).
   let restored: { sessions: SessionInfo[]; keys: Map<string, string> } | null = null;
@@ -483,7 +501,11 @@ app.whenReady().then(async () => {
       return gitAction(remoteGit(sshExec, remote, dir), a, remoteTrash(sshExec, remote, dir));
     }
     const cwd = treeOf(config, a.projectId, worktreeFor(a.projectId, a.sessionId));
-    return gitAction(localGit(cwd), a, localTrash(cwd, (p) => shell.trashItem(p)));
+    return gitAction(
+      localGit(cwd),
+      a,
+      localTrash(cwd, (p) => shell.trashItem(p)),
+    );
   });
   // Session history (T11): read-only over ~/.claude*/projects and ~/.codex; names and favorites in ~/.aquila.
   // Remote projects' hosts (T36) are scanned over SSH on request, after the local list is up.

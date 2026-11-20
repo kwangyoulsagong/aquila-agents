@@ -283,7 +283,8 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
 - **담당:** `electron/remote/`, `git.ts` / `history.ts`의 원격 어댑터.
 
 ### T10 · 라이트 테마
-- [ ] `tokens.css`에 `[data-theme='light']` 시맨틱 재매핑, `nativeTheme` 추종. 터미널 테마도 따라감. 컴포넌트 수정 금지. (#41)
+- [x] `tokens.css`에 `[data-theme='light']` 시맨틱 재매핑, `nativeTheme` 추종. 터미널 테마도 따라감. 컴포넌트 수정 금지. (#41)
+  _남은 것: 가이드 미디어(`src/features/guide/media/`)는 다크로만 캡처돼 있어요. 기본 버튼 안의 `.c-kbd` 힌트는 두 테마 모두 대비가 낮아요(강조색 위 3차 글자) — 컴포넌트 수정이라 범위 밖. Claude의 `/theme`은 사용자 선택 그대로이고, 라이트에선 xterm 최소 대비가 다크 테마 출력을 읽히게 하지만 색이 조금 바뀌어요. `AQUILA_THEME=light npm run smoke` 스크린샷으로 확인했고, macOS 모양을 실시간으로 바꿔 보진 않았어요._
 
 ## 배포 (맨 마지막)
 

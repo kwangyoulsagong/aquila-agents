@@ -297,7 +297,8 @@ Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-1
 - **Owns:** `electron/remote/`, remote adapters for `git.ts` / `history.ts`.
 
 ### T10 · Light theme
-- [ ] Add `[data-theme='light']` semantic remap in `tokens.css`, follow `nativeTheme`; the terminal theme follows. No component changes allowed. (#41)
+- [x] Add `[data-theme='light']` semantic remap in `tokens.css`, follow `nativeTheme`; the terminal theme follows. No component changes allowed. (#41)
+  _Left over: guide media (`src/features/guide/media/`) is captured in dark only. The `.c-kbd` hint inside a primary button is low-contrast in both themes (tertiary text on the accent) — a component fix, out of scope here. Claude's own `/theme` stays the user's choice; on light, xterm's minimum contrast keeps dark-theme output readable but tints it. Checked with `AQUILA_THEME=light npm run smoke` screenshots, not by flipping macOS appearance live._
 
 ## Release (last)
 
