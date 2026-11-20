@@ -388,3 +388,9 @@ Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-1
   error when the key is taken). Pressing it shows the window and focuses the next waiting session (T15's order); if
   none is waiting, just shows the window. Registered only while enabled, unregistered on quit.
 - **Owns:** `electron/globalShortcut.ts`, setting UI in `src/features/global-shortcut/`.
+
+### T42 · Leftovers: terminal helpers + find media
+- [x] **Goal:** close the small leftovers of T28, T38 and T40 that are worth it.
+  _Done: the terminal's right-click menu has Paste (files or an image as paths like ⌘V, else the text through the same safe paste). Quick select follows output while open: boxes move with the screen, a text keeps its label, new paths get free labels (smoke prints a path after opening and checks it gets one). The guide's terminal media now shows ⌘F find (`npm run capture` rerun, ko + en). T38 correction: locked worktrees with a branch were already listed (only cleanup skips them). Left over: right-click Paste not tried by hand (native menu, no smoke); detached worktrees still not listed — opening is keyed by branch in the menu, ⌘K and IPC, so it needs path-based opening; quick select still covers only the visible rows._
+- **Spec:** right-click Paste; quick select keeps labels stable but follows new output; find in the guide media.
+- **Owns:** `src/features/terminal-helpers/`, the terminal scene in `electron/capture.ts`, `checkQuickSelectFollows` in `electron/smoke.ts`; `clipboardText` IPC (additive).

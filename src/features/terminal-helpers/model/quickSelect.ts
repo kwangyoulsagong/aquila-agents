@@ -70,6 +70,34 @@ export function assignLabels<T extends { text: string }>(targetsTopDown: readonl
   return new Map(labels.map((l, i) => [texts[i], l]));
 }
 
+/**
+ * Labels after the screen changed while quick select is open (output kept coming). A text that already has a label
+ * keeps it, so nothing moves under the user's fingers; new texts get free labels of the same length, nearest
+ * (bottom) first. Labels of texts that scrolled away stay taken, so a typed prefix never changes meaning. New texts
+ * get none once the labels of that length run out.
+ */
+export function extendLabels<T extends { text: string }>(
+  prev: ReadonlyMap<string, string>,
+  targetsTopDown: readonly T[],
+): Map<string, string> {
+  const fresh: string[] = [];
+  for (let i = targetsTopDown.length - 1; i >= 0; i--) {
+    const t = targetsTopDown[i].text;
+    if (!prev.has(t) && !fresh.includes(t)) fresh.push(t);
+  }
+  if (!fresh.length) return new Map(prev);
+  const length = prev.size ? [...prev.values()][0].length : fresh.length > LABEL_KEYS.length ? 2 : 1;
+  const used = new Set(prev.values());
+  const free = makeLabels(length === 1 ? LABEL_KEYS.length : LABEL_KEYS.length ** 2).filter(
+    (l) => !used.has(l),
+  );
+  const next = new Map(prev);
+  fresh.forEach((t, i) => {
+    if (free[i]) next.set(t, free[i]);
+  });
+  return next;
+}
+
 /** What a typed prefix means: a finished label, a prefix of some, or nothing. */
 export function resolveLabel(prefix: string, labels: Iterable<string>): 'none' | 'partial' | string {
   let partial = false;

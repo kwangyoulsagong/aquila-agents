@@ -63,6 +63,7 @@ const api: AquilaApi = {
   pathForFile: (file) => webUtils.getPathForFile(file as Parameters<typeof webUtils.getPathForFile>[0]),
   copyText: (text) => ipcRenderer.send(IPC.clipboardWrite, text),
   clipboardPaths: () => ipcRenderer.invoke(IPC.clipboardPaths),
+  clipboardText: () => ipcRenderer.invoke(IPC.clipboardText),
   lastReply: (sessionId) => ipcRenderer.invoke(IPC.sessionLastReply, sessionId),
   write: (id, data) => ipcRenderer.send(IPC.sessionWrite, { id, data }),
   resize: (id, cols, rows) => ipcRenderer.send(IPC.sessionResize, { id, cols, rows }),

@@ -122,6 +122,8 @@ export async function runSmoke(
     if (fullscreenError) return fail(fullscreenError);
     const findError = await checkPasteAndFind(win, outDir);
     if (findError) return fail(findError);
+    const quickError = await checkQuickSelectFollows(win);
+    if (quickError) return fail(quickError);
     const onPath = (bin: string) =>
       (process.env.PATH ?? '').split(':').some((dir) => dir && fs.existsSync(path.join(dir, bin)));
     console.log(`[smoke] PATH has claude: ${onPath('claude')}, codex: ${onPath('codex')}`);
@@ -423,6 +425,42 @@ async function checkPasteAndFind(win: BrowserWindow, outDir: string): Promise<st
   })`);
   if (closed.bar || !closed.terminal)
     return `find: Esc did not close the bar back to the terminal (${JSON.stringify(closed)})`;
+  return null;
+}
+
+/**
+ * T42, on the focused shell: quick select stays useful while output keeps coming. A path printed after it opened gets
+ * a new label; the labels already shown keep theirs. Esc closes it and gives the terminal its keyboard back.
+ */
+async function checkQuickSelectFollows(win: BrowserWindow): Promise<string | null> {
+  const js = <T>(code: string): Promise<T> => win.webContents.executeJavaScript(code) as Promise<T>;
+  // `aq/%s` on the command line is not a path; only the printed `aq/one`, then `aq/two` a second later, are.
+  const typed: boolean = await js(`(() => {
+    const ta = document.activeElement;
+    if (!ta?.classList.contains('xterm-helper-textarea')) return false;
+    const dt = new DataTransfer();
+    dt.setData('text/plain', "clear; printf 'aq/%s\\\\n' one; sleep 1.2; printf 'aq/%s\\\\n' two");
+    ta.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
+    return true;
+  })()`);
+  if (!typed) return 'quick select: the shell does not have focus';
+  press(win, 'Return', []);
+  await wait(500);
+  press(win, 'E', process.platform === 'win32' ? ['control', 'shift'] : ['meta', 'shift']);
+  await wait(200);
+  const labels = () =>
+    js<string[]>(`[...document.querySelectorAll('.c-term-hint__label')].map((e) => e.textContent ?? '')`);
+  const before = await labels();
+  await wait(1500);
+  const after = await labels();
+  console.log(`[smoke] quick select labels ${JSON.stringify(before)} → ${JSON.stringify(after)}`);
+  press(win, 'Escape', []);
+  await wait(300);
+  const terminal: boolean = await js(`!!document.activeElement?.classList.contains('xterm-helper-textarea')`);
+  if (!before.length) return 'quick select: no label for the printed path';
+  if (after.length !== before.length + 1 || !before.every((l) => after.includes(l)))
+    return `quick select: output after opening did not get a new label (${JSON.stringify({ before, after })})`;
+  if (!terminal) return 'quick select: Esc did not give the terminal its keyboard back';
   return null;
 }
 

@@ -295,19 +295,25 @@ export async function runCapture(
       },
     },
     {
-      // Terminal helpers (T28): quick select labels the paths on screen; typing one copies it.
+      // Terminal helpers (T28): quick select labels the paths on screen; typing one copies it. Then find (T40):
+      // ⌘F, a word on screen, Enter to the next match — the loop ends on the bar with its count.
       id: 'terminal',
       rect: FULL,
-      ms: 3600,
+      ms: 7000,
       act: async () => {
         await wait(400);
         await press('E', ['meta', 'shift'], 1900);
-        await press('A', [], 1000); // ends on the "Copied" note (shown 1.6 s)
+        await press('A', [], 1700); // the "Copied" note (shown 1.6 s)
+        await press('F', ['meta'], 500);
+        await type('src', 200);
+        await press('Enter', [], 600);
+        await press('Enter', [], 800);
       },
-      // No Escape after: quick select has closed and the terminal has focus again, so it would reach the CLI and
-      // leave `^[` on screen for every later scene. The note hides itself.
+      // Escape goes to the find bar (it has focus), which closes and hands the terminal back. Never send Escape
+      // while the terminal has focus: it would reach the CLI and leave `^[` on screen for every later scene.
       after: async () => {
-        await wait(1000);
+        await press('Escape', [], 400);
+        await waitFor(`!document.querySelector('.c-term-find')`);
       },
     },
     { id: 'accounts', rect: TOP_RIGHT },
