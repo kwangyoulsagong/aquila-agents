@@ -259,7 +259,9 @@ export default function ChangesPanel({ project, session, onClose }: Props) {
   // Remote (T36): which host, and how long the last round trip took.
   const source = remote
     ? `${t('changes.source.remote', { host: remote.alias })} · ${tree}${
-        changes?.latencyMs !== undefined ? ` · ${t('changes.latency', { ms: String(changes.latencyMs) })}` : ''
+        changes?.latencyMs !== undefined
+          ? ` · ${t('changes.latency', { ms: String(changes.latencyMs) })}`
+          : ''
       }`
     : tree;
 
@@ -272,12 +274,17 @@ export default function ChangesPanel({ project, session, onClose }: Props) {
       <div className="c-panel__head">
         <span>{t('changes.title')}</span>
         {branch && (
-          <span className="c-row__meta" title={own?.worktree?.path ?? project?.path}>
+          <span
+            className="c-row__meta"
+            title={[branch, own?.worktree?.path ?? project?.path].filter(Boolean).join('\n')}
+          >
             {branch}
           </span>
         )}
         {changes?.isRepo && changes.files.length > 0 && (
-          <span className="c-row__meta">{t('changes.files', { count: String(changes.files.length) })}</span>
+          <span className="c-row__meta" data-fixed>
+            {t('changes.files', { count: String(changes.files.length) })}
+          </span>
         )}
         <div className="c-panel__actions">
           <Button
