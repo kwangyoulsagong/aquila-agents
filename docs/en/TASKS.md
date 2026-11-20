@@ -394,3 +394,65 @@ Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-1
   _Done: the terminal's right-click menu has Paste (files or an image as paths like ⌘V, else the text through the same safe paste). Quick select follows output while open: boxes move with the screen, a text keeps its label, new paths get free labels (smoke prints a path after opening and checks it gets one). The guide's terminal media now shows ⌘F find (`npm run capture` rerun, ko + en). Detached worktrees are listed too (+ menu and ⌘K, as `a1b2c3d (detached)`) and open by path — a git branch name can't start with `/`, so the same IPC takes either; never turned into a branch (tested on a real repo). Smoke checks right-click Paste end to end (the menu handler answers for the native menu): text arrives without `ESC[201~`, an image as a temp PNG path. T38 correction: locked worktrees with a branch were already listed (only cleanup skips them). Not changed on purpose: quick select labels only the visible rows, like Kitty hints / WezTerm QuickSelect — ⌘F covers the scrollback. Left over: the native menu itself and a detached worktree in the running app not seen by hand; detached worktrees are not offered for cleanup (merge check needs a branch)._
 - **Spec:** right-click Paste; quick select keeps labels stable but follows new output; find in the guide media.
 - **Owns:** `src/features/terminal-helpers/`, the terminal scene in `electron/capture.ts`, `checkQuickSelectFollows` / `checkMenuPaste` in `electron/smoke.ts`, detached worktrees in `electron/worktrees.ts` + `src/features/open-in-worktree/`; `clipboardText` IPC and `Worktree.detached` (additive).
+
+## UX: comfort pass
+
+From the ADE UX research (calm attention, recognition over recall). Only what is uncomfortable today; no new features.
+
+### T43 · Session titles
+- [ ] **Goal:** every tab says which session it is. Today two Claude tabs both read "Claude".
+- **Spec:**
+  - The tab title is the first that exists: a user title → the first prompt (from the Claude `UserPromptSubmit` hook, first line, ~40 chars) → the worktree branch → the kind label.
+  - The kind moves to a small badge in front of the title (reuse `KindBadge`).
+  - Double-click the title (or ⌘K "Rename session") edits it in place: Enter saves, Esc cancels, empty resets to auto.
+  - The CLI's own terminal title never overwrites it.
+  - The title is shown in the pane head, the palette and notifications, and is kept by Restore.
+- **Owns:** `src/widgets/session-tabs/`, `src/features/rename-session/`; `Session.title` (additive).
+- **Done:** two Claude tabs with different prompts show different titles; a rename survives a restart.
+
+### T44 · Status by shape, not only colour
+- [ ] **Goal:** status can be read without telling blue, green and red apart (colour vision, 6px sidebar dots).
+- **Spec:**
+  - `done` shows a check and `error` shows `!` (or a square).
+  - `waiting` (halo), `stopped` (ring) and `working` (pulse) stay as they are.
+  - Must stay legible at `--size-dot-sm`, in light and dark themes and under reduced motion.
+- **Owns:** `design-system/react/Dot.tsx`, `.c-dot` in `components.css`, `design-system/preview.html`, `docs/*/DESIGN-SYSTEM.md`.
+- **Done:** the preview shows every status at both sizes, and each one is recognisable in greyscale.
+
+### T45 · Calmer notifications
+- [ ] **Goal:** a banner only when something is blocked on me. No stale alerts, no alerts for what I'm already looking at.
+- **Spec:**
+  - `done` no longer sends a system notification by default. It stays a quiet dot (and Dock badge rules are unchanged). An opt-in "Notify when done" setting lives in ⚙ Settings.
+  - A delivered notification is withdrawn as soon as its session is viewed or changes status (keep the `Notification` object per session, call `close()`).
+  - "On screen" means every pane visible in the focused window, not only the active session (`electron/sessions.ts` `onScreen`).
+- **Owns:** `electron/notify.ts` (+ tests), `onScreen` in `electron/sessions.ts`, the setting in `src/features/settings-menu/`.
+- **Done:** four agents finishing in a row produce no banners. A waiting session's banner disappears from Notification Center after clicking its tab. The other pane of a split never notifies.
+
+### T46 · Clear sidebar buttons
+- [ ] **Goal:** the two icon-only buttons are understood without hovering.
+- **Spec:**
+  - **Add project:**
+    - The bare **+** in the footer (easily confused with the tab bar's **+** = new session) becomes a text row "+ Add project" right under the project list.
+    - Menu items: "Folder on this Mac…" / "Remote server (SSH)…".
+    - Dropping a folder on the sidebar adds it (T17 leftover).
+  - **AI trends:**
+    - The ✦ in the top band reads as "run AI", but it opens a news list. Rename it to "News" (subtitle "CLI updates · industry").
+    - Give it a news icon and move it to the footer next to Settings and Guide.
+    - Show a dot only when the last cached fetch found a CLI version newer than the installed one. No new background fetch (T35's call stands).
+- **Owns:** `src/widgets/sidebar/`, `src/widgets/trends/ui/TrendsButton.tsx`, `addProject` labels in `src/features/manage-projects/`.
+- **Done:** a first-time user can add a project and find the news without a tooltip. The ko + en copy is updated and the guide text matches.
+
+### T47 · App menu bar
+- [ ] **Goal:** Aquila behaves like a Mac app: commands and their shortcuts can be found in the menu bar (T13 leftover).
+- **Spec:**
+  - `Menu.setApplicationMenu` built from T13's shortcut map:
+    - **Aquila:** About, Settings… ⌘,, Hide, Quit
+    - **File:** Open Claude / Codex / Shell, Close session ⌘W, Reopen ⌘⇧T
+    - **Edit:** standard roles
+    - **View:** Split, Full window, Find ⌘F
+    - **Window:** Next waiting ⌘J, Command palette ⌘K, Minimize ⌘M
+    - **Help:** Guide
+  - Accelerators are display-only where the renderer already handles the key (`registerAccelerator: false`).
+  - Labels are in ko/en and rebuilt when the language changes.
+- **Owns:** `electron/appMenu.ts`; one call in `electron/main.ts`.
+- **Done:** every shortcut in the guide also appears in a menu, and switching the language relabels the menu.
