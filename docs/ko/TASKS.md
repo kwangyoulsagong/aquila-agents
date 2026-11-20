@@ -373,8 +373,8 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
   있을 때만 등록하고 종료 시 해제.
 - **담당:** `electron/globalShortcut.ts`, `src/features/global-shortcut/`의 설정 UI.
 
-### T42 · 남은 것 정리: 터미널 도우미 + 찾기 미디어
+### T42 · 남은 것 정리: 터미널 도우미, 찾기 미디어, detached worktree
 - [x] **목표:** T28·T38·T40의 남은 것 중 할 만한 작은 것을 닫는다.
-  _완료: 터미널 우클릭 메뉴에 붙여넣기 추가(파일·이미지는 ⌘V처럼 경로로, 아니면 같은 안전 붙여넣기로 텍스트). Quick select가 열린 동안 출력을 따라감: 상자는 화면과 함께 움직이고, 한 번 붙은 라벨은 유지, 새 경로에는 남은 라벨을 붙임(smoke가 연 뒤 경로를 출력해 라벨이 붙는지 확인). 가이드의 터미널 미디어에 ⌘F 찾기 장면 추가(`npm run capture` 재실행, ko + en). T38 정정: 브랜치가 있는 잠긴 worktree는 이미 목록에 나왔음(정리에서만 제외). 남은 것: 우클릭 붙여넣기는 손으로 안 해 봄(네이티브 메뉴, smoke 없음); detached worktree는 여전히 목록에 없음 — 메뉴·⌘K·IPC가 브랜치로 열기 때문에 경로 기반 열기가 필요; quick select는 여전히 보이는 행만 다룸._
+  _완료: 터미널 우클릭 메뉴에 붙여넣기 추가(파일·이미지는 ⌘V처럼 경로로, 아니면 같은 안전 붙여넣기로 텍스트). Quick select가 열린 동안 출력을 따라감: 상자는 화면과 함께 움직이고, 한 번 붙은 라벨은 유지, 새 경로에는 남은 라벨을 붙임(smoke가 연 뒤 경로를 출력해 라벨이 붙는지 확인). 가이드의 터미널 미디어에 ⌘F 찾기 장면 추가(`npm run capture` 재실행, ko + en). detached worktree도 목록에 나옴(+ 메뉴·⌘K에 `a1b2c3d (분리됨)`), 경로로 열림 — git 브랜치 이름은 `/`로 시작할 수 없어서 같은 IPC가 둘 다 받음; 브랜치로 바뀌지 않음(실제 저장소로 테스트). smoke가 우클릭 붙여넣기를 끝까지 확인(네이티브 메뉴 대신 메뉴 핸들러가 응답): 텍스트는 `ESC[201~` 없이, 이미지는 임시 PNG 경로로. T38 정정: 브랜치가 있는 잠긴 worktree는 이미 목록에 나왔음(정리에서만 제외). 일부러 안 바꿈: quick select는 Kitty hints / WezTerm QuickSelect처럼 보이는 행에만 라벨 — 스크롤백은 ⌘F가 담당. 남은 것: 네이티브 메뉴 자체와 실행 중인 앱의 detached worktree는 손으로 안 봄; detached worktree는 정리 대상에 안 나옴(병합 확인에 브랜치 필요)._
 - **스펙:** 우클릭 붙여넣기; quick select는 라벨을 고정하되 새 출력을 따라감; 가이드 미디어에 찾기.
-- **담당:** `src/features/terminal-helpers/`, `electron/capture.ts`의 터미널 장면, `electron/smoke.ts`의 `checkQuickSelectFollows`; `clipboardText` IPC(추가만).
+- **담당:** `src/features/terminal-helpers/`, `electron/capture.ts`의 터미널 장면, `electron/smoke.ts`의 `checkQuickSelectFollows` / `checkMenuPaste`, `electron/worktrees.ts` + `src/features/open-in-worktree/`의 detached worktree; `clipboardText` IPC와 `Worktree.detached`(추가만).

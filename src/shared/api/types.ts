@@ -177,7 +177,10 @@ export interface ContextMenuItem {
 export interface Worktree {
   /** Absolute path of the worktree. */
   path: string;
+  /** Checked-out branch; for a detached worktree, its short commit. */
   branch: string;
+  /** No branch checked out (T42): opened by `path`, shown by commit. */
+  detached?: true;
 }
 
 /** What `worktree:info` reports for a project, for the "New Claude in worktree" dialog. */

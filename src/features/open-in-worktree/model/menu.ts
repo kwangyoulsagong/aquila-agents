@@ -4,9 +4,16 @@ import { kindLabel, type Translate } from '@/shared/i18n';
 const KINDS: SessionKind[] = ['claude', 'codex', 'shell'];
 const PREFIX = 'worktree:';
 
-/** The repo's linked worktrees that have a branch (the main checkout is the project itself). */
+/** The repo's linked worktrees (the main checkout is the project itself). */
 export const linkedWorktrees = (info: WorktreeInfo | null): Worktree[] =>
   info?.isRepo ? info.worktrees.filter((w) => w.path !== info.repoRoot) : [];
+
+/** What opens a worktree: its branch, or its path when detached (git branch names can't start with `/`). */
+export const worktreeRef = (w: Worktree): string => (w.detached ? w.path : w.branch);
+
+/** How a worktree is named in menus: the branch, or `a1b2c3d (detached)`. */
+export const worktreeLabel = (t: Translate, w: Worktree): string =>
+  w.detached ? t('worktree.detached', { commit: w.branch }) : w.branch;
 
 /**
  * Open-session menu entries for existing worktrees: one submenu per branch with Claude / Codex / Shell.
@@ -14,8 +21,8 @@ export const linkedWorktrees = (info: WorktreeInfo | null): Worktree[] =>
  */
 export function worktreeMenuItems(t: Translate, worktrees: Worktree[]): ContextMenuItem[] {
   return worktrees.map((w) => ({
-    label: w.branch,
-    submenu: KINDS.map((kind) => ({ id: `${PREFIX}${kind}:${w.branch}`, label: kindLabel(t, kind) })),
+    label: worktreeLabel(t, w),
+    submenu: KINDS.map((kind) => ({ id: `${PREFIX}${kind}:${worktreeRef(w)}`, label: kindLabel(t, kind) })),
   }));
 }
 
