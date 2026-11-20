@@ -134,7 +134,8 @@ function parse(accelerator: string): Combo {
   const key = parts.pop() ?? '';
   const mods = new Set(parts);
   return {
-    primary: mods.has('CommandOrControl') || mods.has('CmdOrCtrl'),
+    // `Command` only comes from a recorded global shortcut (T41, macOS); on macOS it is the same key as primary.
+    primary: mods.has('CommandOrControl') || mods.has('CmdOrCtrl') || mods.has('Command') || mods.has('Cmd'),
     ctrl: mods.has('Control') || mods.has('Ctrl'),
     shift: mods.has('Shift'),
     alt: mods.has('Alt') || mods.has('Option'),
@@ -200,7 +201,14 @@ const MAC_KEYS: Record<string, string> = {
 
 /** Label for a shortcut: `⌥⌘T` on macOS (Apple's modifier order ⌃⌥⇧⌘), `Ctrl+Alt+T` elsewhere. */
 export function shortcutLabel(id: ShortcutId, platform: Platform = PLATFORM): string {
-  const c = combos(platform).get(id) ?? parse(shortcutsFor(platform)[id]);
+  return comboLabel(combos(platform).get(id) ?? parse(shortcutsFor(platform)[id]), platform);
+}
+
+/** Label for any accelerator string (a recorded global shortcut, T41), same format as `shortcutLabel`. */
+export const acceleratorLabel = (accelerator: string, platform: Platform = PLATFORM): string =>
+  comboLabel(parse(accelerator), platform);
+
+function comboLabel(c: Combo, platform: Platform): string {
   if (platform === 'mac') {
     return (
       (c.ctrl ? '⌃' : '') +

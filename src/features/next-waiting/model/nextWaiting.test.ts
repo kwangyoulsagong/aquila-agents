@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Session } from '@/shared/api';
-import { attentionQueue, nextWaiting } from './nextWaiting';
+import { attentionQueue, nextWaiting, summonTarget } from './nextWaiting';
 
 const s = (id: string, status: Session['status'], extra: Partial<Session> = {}): Session => ({
   id,
@@ -42,5 +42,19 @@ describe('nextWaiting', () => {
   });
   it('is null when nothing needs the user', () => {
     expect(nextWaiting([s('w', 'working'), s('i', 'idle')], 'w')).toBeNull();
+  });
+});
+
+describe('summonTarget', () => {
+  const list = [s('d', 'done'), s('q', 'waiting', { since: 1 }), s('e', 'error')];
+  it('goes to the head of the queue from another app, even when a queued tab is focused', () => {
+    expect(summonTarget(list, 'q', false)).toBe('q');
+    expect(summonTarget(list, 'e', false)).toBe('q');
+  });
+  it('cycles like the in-app shortcut when Aquila was already in front', () => {
+    expect(summonTarget(list, 'q', true)).toBe('e');
+  });
+  it('is null when nothing needs the user', () => {
+    expect(summonTarget([s('w', 'working')], 'w', false)).toBeNull();
   });
 });

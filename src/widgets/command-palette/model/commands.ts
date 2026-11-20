@@ -25,6 +25,7 @@ export type ActionId =
   | 'find'
   | 'closeSession'
   | 'switchLanguage'
+  | 'globalShortcut'
   | 'firstRun'
   | 'guide'
   | 'whatsNew';
@@ -89,6 +90,7 @@ const ACTIONS: {
   { action: 'find', label: (t) => t('term.find'), shortcut: 'find' },
   { action: 'closeSession', label: (t) => t('action.closeSession'), shortcut: 'closeSession' },
   { action: 'switchLanguage', label: (t) => t('palette.switchLanguage') },
+  { action: 'globalShortcut', label: (t) => t('globalShortcut.menu') },
   { action: 'firstRun', label: (t) => t('firstRun.checklist') },
   { action: 'guide', label: (t) => t('guide.title'), shortcut: 'guide' },
   { action: 'whatsNew', label: (t) => t('notes.title') },

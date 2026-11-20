@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@design-system/react';
 import { api, type SessionKind } from '@/shared/api';
 import { I18nContext, translator } from '@/shared/i18n';
@@ -12,7 +12,8 @@ import {
   useLinkedWorktrees,
 } from '@/features/open-in-worktree';
 import { SettingsMenu } from '@/features/switch-language';
-import { nextWaiting } from '@/features/next-waiting';
+import { nextWaiting, summonTarget } from '@/features/next-waiting';
+import { GlobalShortcutDialog } from '@/features/global-shortcut';
 import { copyLastReply, toggleQuickSelect } from '@/features/terminal-helpers';
 import { openFind } from '@/features/terminal-search';
 import { FirstRunChecklist, useFirstRun } from '@/features/first-run';
@@ -62,6 +63,19 @@ export default function WorkspacePage() {
   const goNextWaiting = useCallback(() => {
     if (waitingNext) selectSession(waitingNext);
   }, [waitingNext, selectSession]);
+  // Global shortcut (T41): main already brought the window up; go to the session that needs the user.
+  const [globalShortcutOpen, setGlobalShortcutOpen] = useState(false);
+  const summonRef = useRef({ sessions, focusedId, selectSession });
+  summonRef.current = { sessions, focusedId, selectSession };
+  useEffect(
+    () =>
+      api.onGlobalShortcut(({ wasFocused }) => {
+        const { sessions: list, focusedId: active, selectSession: select } = summonRef.current;
+        const target = summonTarget(list, active, wasFocused);
+        if (target) select(target);
+      }),
+    [],
+  );
   const focusedSession = sessions.find((x) => x.id === focusedId);
   const agentFocused = !!focusedSession && focusedSession.kind !== 'shell' && !focusedSession.dormant;
   const copyReply = useCallback(() => {
@@ -158,6 +172,7 @@ export default function WorkspacePage() {
       a.quickSelect = quickSelect;
       a.find = find;
     }
+    a.globalShortcut = () => setGlobalShortcutOpen(true);
     a.firstRun = reopenFirstRun;
     a.guide = showGuide;
     a.whatsNew = showNotes;
@@ -227,7 +242,11 @@ export default function WorkspacePage() {
             }
             footer={
               <>
-                <SettingsMenu config={config} onChanged={ws.setConfig} />
+                <SettingsMenu
+                  config={config}
+                  onChanged={ws.setConfig}
+                  onGlobalShortcut={() => setGlobalShortcutOpen(true)}
+                />
                 <GuideButton open={guide.open} onClick={toggleGuide} onWhatsNew={showNotes} />
               </>
             }
@@ -327,6 +346,7 @@ export default function WorkspacePage() {
         {cleanupOpen && project && !project.remote && (
           <CleanupWorktreesDialog key={project.id} project={project} onClose={() => setCleanupOpen(false)} />
         )}
+        {globalShortcutOpen && <GlobalShortcutDialog onClose={() => setGlobalShortcutOpen(false)} />}
         {/* Full window hides the side panels too; their open state is kept for when it ends. */}
         {changesOpen && !fullscreen.on && (
           <ChangesPanel

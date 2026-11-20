@@ -383,7 +383,8 @@ Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-1
 - **Owns:** `src/features/terminal-search/`, paste path in `src/entities/session/lib/terminalBus.ts`.
 
 ### T41 · Global shortcut: bring Aquila + next waiting
-- [ ] **Goal:** jump to the session that needs you from any app. (Ghostty quick terminal, adapted)
+- [x] **Goal:** jump to the session that needs you from any app. (Ghostty quick terminal, adapted)
+  _Done: ⚙ Settings → Global shortcut… (also ⌘K) records a key (needs ⌘/⌃/⌥, in-app shortcuts refused); saved only after the OS registers it, a taken key keeps the old one. From another app it goes to the head of T15's queue, from Aquila it cycles like ⌘J. Smoke opens the dialog and records a key (nothing registered). Left over: pressing the real key from another app was not tried by hand; the guide has a line in "Next waiting session" but no new media; not run on Windows._
 - **Spec:** one system-wide shortcut (`globalShortcut`, default off until the user picks a key in settings; show a clear
   error when the key is taken). Pressing it shows the window and focuses the next waiting session (T15's order); if
   none is waiting, just shows the window. Registered only while enabled, unregistered on quit.

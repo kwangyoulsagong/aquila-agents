@@ -5,6 +5,7 @@ import {
   BrowserWindow,
   clipboard,
   dialog,
+  globalShortcut,
   ipcMain,
   nativeTheme,
   net,
@@ -27,6 +28,7 @@ import {
 } from './config';
 import fs from 'node:fs';
 import { showContextMenu } from './menu';
+import { GlobalShortcut, readGlobalShortcut, writeGlobalShortcut } from './globalShortcut';
 import { gitAction, gitChanges, localGit, localTrash, treeOf, TreeWatcher } from './git';
 import { ensureWorktree, removeWorktree, worktreeCandidates, worktreeInfo } from './worktrees';
 import { markGuideOffered, readGuideState } from './guide';
@@ -697,6 +699,30 @@ app.whenReady().then(async () => {
   ipcMain.on(IPC.sessionVisible, (_e, { id, visible }: { id: string; visible: boolean }) =>
     s.setVisible(id, visible),
   );
+
+  // Global shortcut (T41): off until the user picks a key. Pressing it brings the window up; the renderer then
+  // focuses the next waiting session. Smoke never reads, writes or registers it.
+  const summon = () => {
+    if (!win) return createWindow();
+    const wasFocused = win.isFocused() && win.isVisible() && !win.isMinimized();
+    if (win.isMinimized()) win.restore();
+    win.show();
+    if (process.platform === 'darwin') app.focus({ steal: true });
+    win.focus();
+    win.webContents.send(IPC.globalShortcutFired, { wasFocused });
+  };
+  const shortcut = new GlobalShortcut(globalShortcut, summon, {
+    read: () => (isSmoke ? null : readGlobalShortcut()),
+    write: (a) => {
+      if (!isSmoke) writeGlobalShortcut(a);
+    },
+  });
+  shortcut.start();
+  ipcMain.handle(IPC.globalShortcutGet, () => shortcut.current());
+  ipcMain.handle(IPC.globalShortcutSet, (_e, accelerator: unknown) =>
+    accelerator === null || typeof accelerator === 'string' ? shortcut.set(accelerator) : shortcut.state('invalid'),
+  );
+  app.on('will-quit', () => shortcut.dispose());
 
   createWindow();
   // T27: notify when a newer release is out (packaged builds only).

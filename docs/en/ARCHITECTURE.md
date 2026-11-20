@@ -517,6 +517,12 @@ command + `curl` posting the same JSON. Raw 7501 reports and hook event names go
   `.c-elapsed`; the row shows its longest wait.
 - **Next waiting session** (⌘J, also in the palette): cycles waiting > error > done across projects, longest wait
   first within a tier; from a session outside that list it jumps to the head.
+- **Global shortcut** (T41, `electron/globalShortcut.ts`, `features/global-shortcut`): off until the user records a
+  key in ⚙ Settings → Global shortcut… (or ⌘K). The key must have ⌘/⌃/⌥ and not be one of the in-app shortcuts; it is
+  saved in `~/.aquila/global-shortcut.json` only once `globalShortcut.register` succeeds — a key another app holds is
+  reported and the old one stays. Unregistered on `will-quit`; smoke never reads, writes or registers it. Pressing it
+  shows the window and sends `global-shortcut:fired { wasFocused }`: from another app the renderer goes to the head
+  of the attention queue, from Aquila it cycles like ⌘J; with nothing in the queue it only shows the window.
 
 ## Config (`~/.aquila/config.json`)
 

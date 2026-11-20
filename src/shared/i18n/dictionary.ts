@@ -9,6 +9,22 @@ const ko = {
   'action.openConfig': '설정 파일 열기',
   'settings.menu': '설정',
   'settings.language': '언어',
+  'globalShortcut.menu': '전역 단축키…',
+  'globalShortcut.title': '전역 단축키',
+  'globalShortcut.body':
+    '다른 앱을 쓰다가도 누르면 Aquila를 띄우고 기다리는 세션으로 가요. 기다리는 세션이 없으면 창만 띄워요.',
+  'globalShortcut.key': '단축키',
+  'globalShortcut.placeholder': '여기를 누르고 키 조합을 입력',
+  'globalShortcut.off': '꺼짐',
+  'globalShortcut.on': '켜짐: {key}',
+  'globalShortcut.inactive': '{key} 저장됨 · 등록 안 됨',
+  'globalShortcut.save': '저장',
+  'globalShortcut.turnOff': '끄기',
+  'globalShortcut.error.needsModifier': '{mods} 중 하나와 함께 눌러요',
+  'globalShortcut.error.unsupported': '이 키는 쓸 수 없어요',
+  'globalShortcut.error.inApp': 'Aquila 안에서 이미 쓰는 단축키예요',
+  'globalShortcut.error.taken': '{key}는 다른 앱이나 시스템이 쓰고 있어요. 다른 키를 골라요',
+  'globalShortcut.error.invalid': '쓸 수 없는 단축키예요',
   'language.ko': '한국어',
   'language.en': 'English',
   'action.closePane': '분할 닫기',
@@ -109,7 +125,8 @@ const ko = {
     '이 프레임이 쓰는 이미지와 아이콘을 download_assets로 프로젝트의 에셋 폴더에 받아서 코드에서 참조해 주세요. SVG를 손으로 다시 그리지 마세요.',
   'figma.prompt.chromeCheck':
     '그다음 Claude in Chrome으로 Figma 프레임(Dev Mode)과 실행 중인 앱(안 떠 있으면 dev 서버 실행)을 둘 다 열어 주세요. Figma에서는 레이어를 하나씩 선택해 속성 패널(어떤 디자인 시스템 컴포넌트·variant인지, 크기, 오토 레이아웃, 패딩·간격, 글꼴, 색·변수, 효과)을 읽고, 앱에서는 같은 요소가 쓰는 컴포넌트와 계산된 스타일을 읽어 하나하나 대조해 주세요. 컴포넌트가 다르면 우리 디자인 시스템의 맞는 컴포넌트로 바꿔 주세요. 화면으로도 비교해서 Figma MCP 데이터가 놓친 것(호버·포커스 상태, 실제 글꼴, 이미지, 넘침, 반응형 폭)까지 고치고, 둘이 맞을 때까지 반복해 주세요.',
-  'figma.prompt.pickDesign': 'Figma 디자인: {url} — get_screenshot으로 가져와서 선택한 요소의 스크린샷과 비교해 주세요.',
+  'figma.prompt.pickDesign':
+    'Figma 디자인: {url} — get_screenshot으로 가져와서 선택한 요소의 스크린샷과 비교해 주세요.',
   'groups.new': '새 그룹…',
   'groups.newTitle': '새 그룹',
   'groups.renameTitle': '그룹 이름 바꾸기',
@@ -199,7 +216,8 @@ const ko = {
   'preview.pick.pasted': '{name}에 붙여 넣었어요. 바꿀 내용을 적고 Enter를 누르세요.',
   'preview.pick.copied': 'Claude·Codex 탭이 선택되지 않아 클립보드에 복사했어요.',
   'preview.empty': '개발 서버를 찾지 못했어요',
-  'preview.emptyHint': '터미널에서 개발 서버를 켜거나(npm run dev) 위에 주소를 입력하세요. .claude/launch.json과 이 프로젝트 터미널에 나온 주소가 여기 떠요.',
+  'preview.emptyHint':
+    '터미널에서 개발 서버를 켜거나(npm run dev) 위에 주소를 입력하세요. .claude/launch.json과 이 프로젝트 터미널에 나온 주소가 여기 떠요.',
   'preview.error': '페이지를 열지 못했어요',
   'preview.retry': '다시 시도',
   'preview.designer': '디자이너',
@@ -324,7 +342,8 @@ const ko = {
   'guide.status.body':
     '주황은 입력 필요, 빨강은 오류, 파랑은 작업 중, 초록은 완료예요. 흐린 초록은 출력이 멈춘 걸로 추정한 완료예요.',
   'guide.attention.title': '다음 대기 세션',
-  'guide.attention.body': '입력을 기다리는 세션으로 바로 가요. 오래 기다린 순서로 돌아요.',
+  'guide.attention.body':
+    '입력을 기다리는 세션으로 바로 가요. 오래 기다린 순서로 돌아요. ⚙ 설정 → 전역 단축키를 정하면 다른 앱에서도 돼요.',
   'guide.notify.title': '알림 · Dock 배지',
   'guide.notify.body': '다른 화면에 있을 때 완료·입력 필요·오류를 알려요. Dock 배지는 기다리는 세션 수예요.',
   'guide.split.title': '화면 분할',
@@ -364,7 +383,8 @@ const ko = {
   'guide.trends.body':
     '사이드바 위 ✦에서 내 CLI의 새 버전과 업계 소식을 봐요. 열 때만 가져오고, Claude 요약은 누를 때만 실행돼요.',
   'guide.language.title': '언어',
-  'guide.language.body': '사이드바 왼쪽 아래 ⚙ 설정 → 언어에서 한국어와 English를 바꿔요. ⌘K로도 바꿀 수 있어요.',
+  'guide.language.body':
+    '사이드바 왼쪽 아래 ⚙ 설정 → 언어에서 한국어와 English를 바꿔요. ⌘K로도 바꿀 수 있어요.',
   'guide.shortcuts.title': '모든 단축키',
   'guide.shortcuts.body': '앱의 단축키 전체예요.',
   'restore.previous': '이전 출력 · {time} · 읽기 전용',
@@ -520,10 +540,13 @@ const ko = {
   'usage.nearBody5h':
     '5시간 한도의 {percent}%를 썼어요 (추정). {time}에 리셋돼요. 다른 계정으로 새 세션을 열 수 있어요.',
   'usage.nearBodyWeek': '주간 한도의 {percent}%를 썼어요 (추정). 다른 계정으로 새 세션을 열 수 있어요.',
-  'usage.nearBody5hLive': '5시간 한도의 {percent}%를 썼어요. {time}에 리셋돼요. 다른 계정으로 새 세션을 열 수 있어요.',
-  'usage.nearBodyWeekLive': '주간 한도의 {percent}%를 썼어요. {time}에 리셋돼요. 다른 계정으로 새 세션을 열 수 있어요.',
+  'usage.nearBody5hLive':
+    '5시간 한도의 {percent}%를 썼어요. {time}에 리셋돼요. 다른 계정으로 새 세션을 열 수 있어요.',
+  'usage.nearBodyWeekLive':
+    '주간 한도의 {percent}%를 썼어요. {time}에 리셋돼요. 다른 계정으로 새 세션을 열 수 있어요.',
   'usage.live': '실제',
-  'usage.liveHint': 'Claude의 /usage와 Codex 세션 기록에서 읽은 실제 사용률이에요. claude.ai와 다른 기기 사용량도 포함돼요.',
+  'usage.liveHint':
+    'Claude의 /usage와 Codex 세션 기록에서 읽은 실제 사용률이에요. claude.ai와 다른 기기 사용량도 포함돼요.',
   'usage.liveTitle': '실제 사용률 {percent}% (Claude /usage)',
   'usage.codexTitle': '실제 사용률 {percent}% (Codex 마지막 세션 기준)',
   'usage.days': '{n}일',
@@ -542,6 +565,22 @@ const en = {
   'action.openConfig': 'Open settings file',
   'settings.menu': 'Settings',
   'settings.language': 'Language',
+  'globalShortcut.menu': 'Global shortcut…',
+  'globalShortcut.title': 'Global shortcut',
+  'globalShortcut.body':
+    'Press it from any app to bring Aquila up on the session that is waiting. If none is waiting, it just shows the window.',
+  'globalShortcut.key': 'Shortcut',
+  'globalShortcut.placeholder': 'Click here and press a key combo',
+  'globalShortcut.off': 'Off',
+  'globalShortcut.on': 'On: {key}',
+  'globalShortcut.inactive': '{key} saved · not registered',
+  'globalShortcut.save': 'Save',
+  'globalShortcut.turnOff': 'Turn off',
+  'globalShortcut.error.needsModifier': 'Use it with one of {mods}',
+  'globalShortcut.error.unsupported': "This key can't be used",
+  'globalShortcut.error.inApp': 'Aquila already uses this key in the window',
+  'globalShortcut.error.taken': '{key} is taken by another app or the system. Pick another key',
+  'globalShortcut.error.invalid': "This shortcut can't be used",
   'language.ko': '한국어',
   'language.en': 'English',
   'action.closePane': 'Close pane',
@@ -642,7 +681,8 @@ const en = {
     "Download the images and icons this frame uses into the project's assets folder with download_assets and reference them from code. Don't redraw SVGs by hand.",
   'figma.prompt.chromeCheck':
     "Then use Claude in Chrome: open the Figma frame (Dev Mode) and the running app (start the dev server if it isn't up). In Figma, select the layers one by one and read the properties panel (which design-system component and variant, size, auto layout, padding and gap, typography, color and variables, effects); in the app, read which component the matching element uses and its computed styles; compare one by one. If the component differs, switch to the matching component from our design system. Compare on screen too, fix what the Figma MCP data missed (hover and focus states, real fonts, images, overflow, responsive widths), and repeat until they match.",
-  'figma.prompt.pickDesign': "Figma design: {url} — call get_screenshot on it and compare it with the picked element's screenshot.",
+  'figma.prompt.pickDesign':
+    "Figma design: {url} — call get_screenshot on it and compare it with the picked element's screenshot.",
   'groups.new': 'New group…',
   'groups.newTitle': 'New group',
   'groups.renameTitle': 'Rename group',
@@ -733,7 +773,8 @@ const en = {
   'preview.pick.pasted': 'Pasted into {name}. Write what to change, then press Enter.',
   'preview.pick.copied': 'No Claude or Codex tab focused: copied to the clipboard.',
   'preview.empty': 'No dev server found',
-  'preview.emptyHint': "Start one in a terminal (npm run dev) or type an address above. Addresses from .claude/launch.json and this project's terminals show up here.",
+  'preview.emptyHint':
+    "Start one in a terminal (npm run dev) or type an address above. Addresses from .claude/launch.json and this project's terminals show up here.",
   'preview.error': "Couldn't load the page",
   'preview.retry': 'Retry',
   'preview.designer': 'Designer',
@@ -860,7 +901,7 @@ const en = {
     'Orange needs input, red is an error, blue is working, green is done. Faded green = probably done, guessed from quiet output.',
   'guide.attention.title': 'Next waiting session',
   'guide.attention.body':
-    'Jump to the session that waits for you. Repeats cycle through them, longest wait first.',
+    'Jump to the session that waits for you. Repeats cycle through them, longest wait first. Set a key in ⚙ Settings → Global shortcut to do it from any app.',
   'guide.notify.title': 'Notifications · Dock badge',
   'guide.notify.body':
     "Done, needs input and errors are notified when you're looking elsewhere. The Dock badge counts waiting sessions.",
@@ -878,7 +919,7 @@ const en = {
     "See the files and diff the agent changed, on the right; it updates as files are saved. Click a line to comment, then paste the comments into the session's input. Stage or revert a file or hunk (backed up first).",
   'guide.preview.title': 'Preview + select element',
   'guide.preview.body':
-    "See the running app on the right. The address comes from .claude/launch.json and the localhost addresses your terminals print. Switch between 390, 768 and 1440 wide; Select element and click: its selector, text, style, component name and a screenshot are pasted into the focused Claude or Codex tab. With Figma on, Designer shows Figma under the app.",
+    'See the running app on the right. The address comes from .claude/launch.json and the localhost addresses your terminals print. Switch between 390, 768 and 1440 wide; Select element and click: its selector, text, style, component name and a screenshot are pasted into the focused Claude or Codex tab. With Figma on, Designer shows Figma under the app.',
   'guide.worktree.title': 'Open in worktree',
   'guide.worktree.body':
     'Right-click + in the tab bar, or use {palette}. Each branch gets its own folder at ../<repo>-wt/<branch>; Claude, Codex or a shell can also open in a worktree you already have. A new worktree gets only the ignored files listed in .worktreeinclude (like .env). Clean up worktrees suggests merged, clean ones and removes them after you confirm.',
@@ -903,7 +944,8 @@ const en = {
   'guide.trends.body':
     '✦ at the top of the sidebar shows new versions of your CLIs and industry news. Fetched only when you open it; the Claude summary runs only when you click.',
   'guide.language.title': 'Language',
-  'guide.language.body': 'Switch between 한국어 and English under ⚙ Settings → Language at the bottom left. ⌘K works too.',
+  'guide.language.body':
+    'Switch between 한국어 and English under ⚙ Settings → Language at the bottom left. ⌘K works too.',
   'guide.shortcuts.title': 'All shortcuts',
   'guide.shortcuts.body': 'Every shortcut in the app.',
   'restore.previous': 'Previous output · {time} · read-only',
@@ -969,7 +1011,7 @@ const en = {
   'trends.notInstalled': 'Not installed',
   'trends.upToDate': "You're on the latest. Added in it:",
   'trends.newer': 'Newer than your {installed}. Added:',
-  'trends.latestOnly': "Your version is unknown, so only the latest is shown.",
+  'trends.latestOnly': 'Your version is unknown, so only the latest is shown.',
   'trends.noLines': 'The release notes list nothing added.',
   'trends.releaseNotes': 'Open release notes',
   'trends.openLink': 'Open',
@@ -1062,10 +1104,13 @@ const en = {
     'Used {percent}% of the 5-hour limit (estimated). Resets at {time}. You can open a new session with another account.',
   'usage.nearBodyWeek':
     'Used {percent}% of the weekly limit (estimated). You can open a new session with another account.',
-  'usage.nearBody5hLive': 'Used {percent}% of the 5-hour limit. Resets at {time}. You can open a new session with another account.',
-  'usage.nearBodyWeekLive': 'Used {percent}% of the weekly limit. Resets {time}. You can open a new session with another account.',
+  'usage.nearBody5hLive':
+    'Used {percent}% of the 5-hour limit. Resets at {time}. You can open a new session with another account.',
+  'usage.nearBodyWeekLive':
+    'Used {percent}% of the weekly limit. Resets {time}. You can open a new session with another account.',
   'usage.live': 'Live',
-  'usage.liveHint': "Real usage from Claude's /usage and Codex's session files. Includes claude.ai and other machines.",
+  'usage.liveHint':
+    "Real usage from Claude's /usage and Codex's session files. Includes claude.ai and other machines.",
   'usage.liveTitle': 'Real usage {percent}% (Claude /usage)',
   'usage.codexTitle': 'Real usage {percent}% (as of the last Codex session)',
   'usage.days': '{n} days',

@@ -555,6 +555,18 @@ export interface NewsState {
 
 export type Unsubscribe = () => void;
 
+/** The system-wide key that brings Aquila up (T41), from `~/.aquila/global-shortcut.json`. */
+export interface GlobalShortcutState {
+  /** Saved key as an Electron accelerator (`Command+Shift+J`); null = off. */
+  accelerator: string | null;
+  /** Registered with the OS right now. */
+  active: boolean;
+  /** The last attempt failed: another app or the OS has the key / not a key we accept. */
+  error?: 'taken' | 'invalid';
+  /** The key that failed, when it isn't the saved one (a change that didn't go through). */
+  failed?: string;
+}
+
 /** The OS the app runs on (T19), known synchronously at startup. */
 export interface PlatformInfo {
   os: 'darwin' | 'win32' | 'linux';
@@ -722,6 +734,12 @@ export interface AquilaApi {
   newsOpen(url: string): void;
   /** Opt-in: summarizes the industry items with a hidden `claude -p` (the account's quota). Rejects on failure. */
   newsSummarize(language: Language, account?: string): Promise<NewsState>;
+  /** Global shortcut (T41): the saved key and whether the OS gave it to us. */
+  globalShortcut(): Promise<GlobalShortcutState>;
+  /** Saves and registers a new key (null = off). A taken key keeps the old one and reports `taken`. */
+  setGlobalShortcut(accelerator: string | null): Promise<GlobalShortcutState>;
+  /** The key was pressed: the window is already up. `wasFocused`: Aquila was the front window before. */
+  onGlobalShortcut(cb: (p: { wasFocused: boolean }) => void): Unsubscribe;
 }
 
 /** In-app preview (T33): the app, or Figma under it in the Designer layout. */
@@ -882,4 +900,7 @@ export const IPC = {
   newsOpened: 'news:opened',
   newsOpen: 'news:open',
   newsSummarize: 'news:summarize',
+  globalShortcutGet: 'global-shortcut:get',
+  globalShortcutSet: 'global-shortcut:set',
+  globalShortcutFired: 'global-shortcut:fired',
 } as const;

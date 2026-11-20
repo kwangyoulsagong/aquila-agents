@@ -1,6 +1,6 @@
 // `npm run smoke`: launch the built app, open a shell session, check the pty round-trips,
 // check OSC 7501 (main answers the query; a report becomes the session status), check Ctrl+C stops a `yes` flood fast, open shells from the UI and check terminals on screen render with WebGL, save a screenshot to dist/smoke.png,
-// open the first-run checklist from ⌘K (dist/smoke-first-run.png), project settings from ⌘K (dist/smoke-settings.png, Figma on: dist/smoke-settings-figma.png), open the guide with ⌘/ (dist/smoke-guide.png,
+// open the first-run checklist from ⌘K (dist/smoke-first-run.png), project settings from ⌘K (dist/smoke-settings.png, Figma on: dist/smoke-settings-figma.png), the global shortcut dialog from ⌘K (dist/smoke-global-shortcut.png), open the guide with ⌘/ (dist/smoke-guide.png,
 // dist/smoke-guide-shortcuts.png; every feature must show captured media), ⌘K → What's new (dist/smoke-whats-new.png;
 // headlines with media, "How to use" opens the guide at that item), run the Korean IME scenarios (real composition
 // events through Chromium's IME path via CDP; checks the exact bytes the terminal sends), then quit with exit code 0 (ok) or 1 (fail).
@@ -125,6 +125,12 @@ export async function runSmoke(
     if (firstRunError) return fail(firstRunError);
     const settingsError = await checkProjectSettings(win, config, path.join(outDir, 'smoke-settings.png'));
     if (settingsError) return fail(settingsError);
+    const shortcutError = await checkGlobalShortcut(
+      win,
+      config,
+      path.join(outDir, 'smoke-global-shortcut.png'),
+    );
+    if (shortcutError) return fail(shortcutError);
     const guideError = await checkGuide(win, outDir);
     if (guideError) return fail(guideError);
     const notesError = await checkWhatsNew(win, config, path.join(outDir, 'smoke-whats-new.png'));
@@ -455,6 +461,47 @@ async function checkFirstRun(win: BrowserWindow, config: Config, out: string): P
     `!!document.querySelector('.c-dialog[open]')`,
   );
   return stillOpen ? 'Esc did not close the first-run checklist' : null;
+}
+
+/**
+ * ⌘K → "Global shortcut…" (T41) opens its dialog; a key pressed in the field is recorded (⌥⌘G), and one Aquila
+ * uses in the window (⌘J) is refused. Screenshot, then Esc closes it — nothing is saved or registered.
+ */
+async function checkGlobalShortcut(win: BrowserWindow, config: Config, out: string): Promise<string | null> {
+  const t = translator(config.language);
+  win.show();
+  win.focus();
+  press(win, 'K', ['meta']);
+  await wait(500);
+  const clicked: boolean = await win.webContents.executeJavaScript(`(() => {
+    const item = [...document.querySelectorAll('.c-palette__item')].find((el) => el.textContent === ${JSON.stringify(t('globalShortcut.menu'))});
+    item?.click();
+    return !!item;
+  })()`);
+  if (!clicked) return `palette has no "${t('globalShortcut.menu')}" action`;
+  await wait(500);
+  const field = `document.querySelector('.c-dialog[open] .c-input')`;
+  const value = () => win.webContents.executeJavaScript(`${field}?.value ?? null`) as Promise<string | null>;
+  await win.webContents.executeJavaScript(`${field}?.focus()`);
+  press(win, 'J', ['meta']);
+  await wait(200);
+  const refused: boolean = await win.webContents.executeJavaScript(
+    `!!document.querySelector('.c-dialog[open] .c-field__hint[data-tone=warning]')`,
+  );
+  if (!refused) return 'global shortcut accepted ⌘J, which Aquila uses in the window';
+  press(win, 'G', ['meta', 'alt']);
+  await wait(200);
+  const recorded = await value();
+  if (recorded !== '⌥⌘G') return `global shortcut recorded ${JSON.stringify(recorded)}, expected "⌥⌘G"`;
+  await wait(300);
+  fs.writeFileSync(out, (await win.webContents.capturePage()).toPNG());
+  console.log(`[smoke] global shortcut: refused ⌘J, recorded ${recorded}, screenshot: ${out}`);
+  press(win, 'Escape', []);
+  await wait(400);
+  const stillOpen: boolean = await win.webContents.executeJavaScript(
+    `!!document.querySelector('.c-dialog[open]')`,
+  );
+  return stillOpen ? 'Esc did not close the global shortcut dialog' : null;
 }
 
 /** ⌘K → "Project settings…" opens the settings dialog with its fields; screenshot, then Esc closes it (nothing saved). */

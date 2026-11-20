@@ -28,3 +28,13 @@ export function nextWaiting(sessions: Session[], activeId: string | null): strin
   const i = queue.findIndex((s) => s.id === activeId);
   return queue[(i + 1) % queue.length].id;
 }
+
+/**
+ * Where the global shortcut (T41) goes. From another app: the head of the queue (the one that has waited longest),
+ * so the user lands where they are needed most. From Aquila itself: the same cycling as ⌘J. Null = just show the
+ * window.
+ */
+export function summonTarget(sessions: Session[], activeId: string | null, wasFocused: boolean): string | null {
+  if (wasFocused) return nextWaiting(sessions, activeId);
+  return attentionQueue(sessions)[0]?.id ?? null;
+}
