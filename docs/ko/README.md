@@ -30,7 +30,7 @@ npm run dist:win # Windows 설치 파일 → release/AquilaAgents-<버전>-{x64,
 
 `npm run dist`가 `release/Aquila Agents-<버전>-arm64.dmg`와 `.zip`(Apple Silicon)을 만듭니다. 전달할 때마다
 `package.json`의 `version`을 올리고 릴리스 노트를 먼저 쓰세요: `npm run release-notes -- draft`가 지난 태그 이후 커밋으로
-`release-notes/<버전>.json` 초안을 만들고, ko + en으로 마무리합니다(헤드라인 3~5개, 각각 가이드 항목). 노트가 없거나
+`release-notes/<버전>.json` 초안을 만들고, ko + en으로 마무리합니다(헤드라인 3~5개, 패치 릴리스 x.y.z(z > 0)는 1~5개, 각각 가이드 항목). 노트가 없거나
 TODO가 남아 있으면 `npm run dist`가 패키징을 거부합니다. `.dmg`, `.zip`, `latest-mac.yml`을 `v<버전>` 태그의 GitHub
 릴리스에 올리면 설치된 앱이 알림을 띄웁니다. 아직 **서명·공증을 하지 않아서** 받는 맥에서는:
 
