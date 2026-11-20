@@ -3,7 +3,7 @@
 // The pure parts (launch.json, address scan, fit) are tested; the view and the pick script run only in the app.
 import fs from 'node:fs';
 import path from 'node:path';
-import { WebContentsView, type BrowserWindow } from 'electron';
+import { BrowserWindow, WebContentsView, type WebContents } from 'electron';
 import type {
   PickResult,
   PreviewCommand,
@@ -314,6 +314,8 @@ interface SlotView {
  */
 export class PreviewViews {
   private slots = new Map<PreviewSlot, SlotView>();
+  /** DevTools windows we host, per slot (see `openDevTools`). */
+  private devtools = new Map<PreviewSlot, BrowserWindow>();
 
   constructor(
     private getWindow: () => BrowserWindow | null,
@@ -357,7 +359,36 @@ export class PreviewViews {
     if (!wc) return;
     if (command === 'reload') wc.reload();
     else if (command === 'back' && wc.navigationHistory.canGoBack()) wc.navigationHistory.goBack();
-    else if (command === 'devtools') wc.openDevTools({ mode: 'detach' });
+    else if (command === 'devtools') this.openDevTools(slot, wc);
+  }
+
+  /**
+   * DevTools in a window of ours, a child of the app window: a child stays above its parent, so a pick (which hands
+   * focus back to the app to paste into the session) no longer buries it. A second click brings it forward.
+   */
+  private openDevTools(slot: PreviewSlot, wc: WebContents): void {
+    const open = this.devtools.get(slot);
+    if (open && !open.isDestroyed()) {
+      open.show();
+      open.focus();
+      return;
+    }
+    const parent = this.getWindow();
+    if (!parent) {
+      wc.openDevTools({ mode: 'detach' });
+      return;
+    }
+    const dt = new BrowserWindow({ parent, width: 960, height: 680, title: 'DevTools' });
+    this.devtools.set(slot, dt);
+    dt.on('closed', () => {
+      if (this.devtools.get(slot) === dt) this.devtools.delete(slot);
+      if (!wc.isDestroyed()) wc.closeDevTools();
+    });
+    wc.once('devtools-closed', () => {
+      if (!dt.isDestroyed()) dt.close();
+    });
+    wc.setDevToolsWebContents(dt.webContents);
+    wc.openDevTools({ mode: 'detach' });
   }
 
   async pick(slot: PreviewSlot): Promise<PickResult | null> {
@@ -488,6 +519,9 @@ export class PreviewViews {
   }
 
   private destroy(slot: PreviewSlot, s: SlotView, win: BrowserWindow): void {
+    const dt = this.devtools.get(slot);
+    if (dt && !dt.isDestroyed()) dt.close();
+    this.devtools.delete(slot);
     win.contentView.removeChildView(s.view);
     s.view.webContents.close();
     this.slots.delete(slot);
