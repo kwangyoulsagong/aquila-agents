@@ -143,6 +143,8 @@ export interface Config {
   accounts: Record<string, Account>;
   groups: Group[];
   projects: Project[];
+  /** ⚙ Notify when done: a banner when a session finishes (off by default, T45). */
+  notifyDone?: boolean;
   error?: string;
 }
 
@@ -601,6 +603,8 @@ export interface AquilaApi {
   getConfig(): Promise<Config>;
   openConfig(): Promise<string>;
   setLanguage(language: Language): Promise<Config>;
+  /** ⚙ Notify when done (T45). */
+  setNotifyDone(on: boolean): Promise<Config>;
   setProjectAccount(projectId: string, account: string): Promise<Config>;
   /** Add/rename/move/remove projects and groups; returns the saved config. */
   editProjects(edit: ProjectEdit): Promise<Config>;
@@ -849,6 +853,7 @@ export const IPC = {
   configGet: 'config:get',
   configOpen: 'config:open',
   configSetLanguage: 'config:set-language',
+  configSetNotifyDone: 'config:set-notify-done',
   configSetProjectAccount: 'config:set-project-account',
   configEditProjects: 'config:edit-projects',
   dialogPickFolder: 'dialog:pick-folder',

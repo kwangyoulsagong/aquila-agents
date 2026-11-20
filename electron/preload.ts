@@ -18,6 +18,7 @@ const api: AquilaApi = {
   getConfig: () => ipcRenderer.invoke(IPC.configGet),
   openConfig: () => ipcRenderer.invoke(IPC.configOpen),
   setLanguage: (language) => ipcRenderer.invoke(IPC.configSetLanguage, language),
+  setNotifyDone: (on) => ipcRenderer.invoke(IPC.configSetNotifyDone, on),
   setProjectAccount: (projectId, account) =>
     ipcRenderer.invoke(IPC.configSetProjectAccount, { projectId, account }),
   editProjects: (edit) => ipcRenderer.invoke(IPC.configEditProjects, edit),

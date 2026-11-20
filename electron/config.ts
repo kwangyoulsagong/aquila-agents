@@ -145,6 +145,13 @@ export function setLanguage(language: Language): Config {
   return saveConfig({ ...loadConfig(), language });
 }
 
+/** ⚙ Notify when done (T45); stored only when on. */
+export function setNotifyDone(on: boolean): Config {
+  const { notifyDone: _old, ...c } = loadConfig();
+  void _old;
+  return saveConfig(on ? { ...c, notifyDone: true } : c);
+}
+
 export function setProjectAccount(projectId: string, account: string): Config {
   const c = loadConfig();
   if (!c.accounts[account]) return c;

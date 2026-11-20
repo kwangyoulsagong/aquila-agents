@@ -70,9 +70,12 @@ export function notificationBody({
   return detail ? `${head} — ${detail}` : head;
 }
 
-/** Statuses that ask for the user: notified, counted, and what "next waiting" cycles through. */
-export const wantsAttention = (status: SessionStatus, reason?: ErrorReason): boolean =>
-  status === 'waiting' || status === 'done' || (status === 'error' && reason !== 'exit');
+/**
+ * Statuses that get a system notification: blocked on the user (waiting, a real error). `done` only when the
+ * user opted in (⚙ Notify when done, T45); otherwise it stays a quiet dot.
+ */
+export const shouldNotify = (status: SessionStatus, reason?: ErrorReason, notifyDone = false): boolean =>
+  status === 'waiting' || (status === 'done' && notifyDone) || (status === 'error' && reason !== 'exit');
 
 /** Remembers the last notification per session so the same status isn't repeated within DEBOUNCE_MS. */
 export class Debouncer {
@@ -108,18 +111,25 @@ export interface AttentionSession {
 interface AttentionDeps {
   /** Current state of a live session; undefined once it's gone. */
   get: (id: string) => AttentionSession | undefined;
-  /** Whether the user is looking at it right now (window focused and it's the focused session). */
+  /** Whether the user is looking at it right now (window focused and the session in a visible pane). */
   onScreen: (id: string) => boolean;
+  /** ⚙ Notify when done (off by default, T45). */
+  notifyDone: () => boolean;
   t: () => Translate;
   /** Notification clicked: bring the window up and focus that session. */
   focus: (id: string) => void;
 }
 
-/** Schedules notifications for status changes (after SETTLE_MS) and one reminder per waiting stretch. */
+/**
+ * Schedules notifications for status changes (after SETTLE_MS) and one reminder per waiting stretch.
+ * A delivered notification is withdrawn from Notification Center once its session is viewed or moves on (T45).
+ */
 export class Attention {
   private settle = new Map<string, NodeJS.Timeout>();
   private remind = new Map<string, NodeJS.Timeout>();
   private debounce = new Debouncer();
+  /** The banner on screen / in Notification Center per session, and the status stretch it was about. */
+  private delivered = new Map<string, { n: Notification; status: SessionStatus; since: number }>();
 
   constructor(private deps: AttentionDeps) {}
 
@@ -127,7 +137,10 @@ export class Attention {
   changed(s: AttentionSession): void {
     clearTimeout(this.settle.get(s.id));
     this.settle.delete(s.id);
-    if (wantsAttention(s.status, s.reason)) {
+    const old = this.delivered.get(s.id);
+    // A detail update keeps the stretch; a new status (or the same one again, later) makes the banner stale.
+    if (old && (old.status !== s.status || old.since !== s.since)) this.withdraw(s.id);
+    if (shouldNotify(s.status, s.reason, this.deps.notifyDone())) {
       const { status, since } = s;
       this.settle.set(
         s.id,
@@ -166,8 +179,19 @@ export class Attention {
     );
   }
 
+  /** The user is looking at the session now: its banner has been read. */
+  viewed(id: string): void {
+    this.withdraw(id);
+  }
+
+  private withdraw(id: string): void {
+    this.delivered.get(id)?.n.close();
+    this.delivered.delete(id);
+  }
+
   /** The session is gone. */
   forget(id: string): void {
+    this.withdraw(id);
     clearTimeout(this.settle.get(id));
     clearTimeout(this.remind.get(id));
     this.settle.delete(id);
@@ -176,7 +200,8 @@ export class Attention {
   }
 
   dispose(): void {
-    for (const id of new Set([...this.settle.keys(), ...this.remind.keys()])) this.forget(id);
+    for (const id of new Set([...this.settle.keys(), ...this.remind.keys(), ...this.delivered.keys()]))
+      this.forget(id);
   }
 
   private show(s: AttentionSession, remindMinutes?: number): void {
@@ -190,8 +215,11 @@ export class Attention {
       detail: s.detail,
       remindMinutes,
     });
+    this.withdraw(s.id); // one banner per session: the reminder replaces the first one
     const n = new Notification({ title: s.projectName, body });
     n.on('click', () => this.deps.focus(s.id));
+    // Held here, which also keeps it from being garbage-collected (and losing its click handler).
+    this.delivered.set(s.id, { n, status: s.status, since: s.since });
     n.show();
   }
 }

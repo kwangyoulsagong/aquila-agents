@@ -101,3 +101,30 @@ describe('SessionManager titles (T43)', () => {
     expect(sent).toHaveLength(1);
   });
 });
+
+describe('SessionManager on screen (T45)', () => {
+  const local: Config = { ...config, projects: [{ ...config.projects[0], path: os.tmpdir() }] };
+  let focused: boolean;
+  let m: SessionManager;
+  beforeEach(() => {
+    vi.useFakeTimers();
+    focused = true;
+    const win = { isFocused: () => focused } as unknown as Electron.BrowserWindow;
+    m = new SessionManager({ send: () => {}, getWindow: () => win, hookPort: 0, hookSettingsPath: () => '' });
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it('every visible pane of the focused window counts, not only the active tab', () => {
+    const a = m.create(local, 'a', 'shell');
+    const b = m.create(local, 'a', 'shell');
+    const c = m.create(local, 'a', 'shell');
+    m.setActive(a.id);
+    m.setVisible(a.id, true);
+    m.setVisible(b.id, true); // the other pane of a split
+    expect([a, b, c].map((s) => m.onScreen(s.id))).toEqual([true, true, false]);
+    m.setVisible(b.id, false);
+    expect(m.onScreen(b.id)).toBe(false);
+    focused = false;
+    expect(m.onScreen(a.id)).toBe(false);
+  });
+});
