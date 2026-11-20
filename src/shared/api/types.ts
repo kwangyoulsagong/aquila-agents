@@ -83,6 +83,12 @@ export interface RemoteHost {
   claudeConfigDir?: string;
 }
 
+/** Built-in sidebar group for SSH projects ("원격" / "Remote"). Remote projects live there and only there. */
+export const REMOTE_GROUP = 'remote';
+
+/** A remote project belongs in the Remote group, a local one anywhere else. */
+export const fitsGroup = (remote: boolean, group: string): boolean => (group === REMOTE_GROUP) === remote;
+
 /** Connection of a remote session: up, retrying with backoff, or retrying for a while without luck. */
 export type ConnectionState = 'connecting' | 'connected' | 'reconnecting' | 'lost';
 

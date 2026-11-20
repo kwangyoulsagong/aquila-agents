@@ -367,11 +367,10 @@ Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-1
   are merged and clean, remove only after confirmation (`git worktree remove`, never a silent `--force`).
 - **Owns:** `electron/worktrees.ts`, `src/features/open-in-worktree/`.
 
-### T39 · Remote sessions v2
-- [ ] **Goal:** remote sessions that feel local on slow or flaky links. (#46 + T29/T36 leftovers)
-- **Spec:** optional helper binary on the host (hash-verified, never installed without asking), mosh as a transport
-  option, tmux `-CC` control mode. Plain ssh + tmux stays the default.
-- **Owns:** `electron/remote/`, `src/features/remote-connection/`.
+### T39 · Remote group in the sidebar
+- [x] **Goal:** tell remote projects apart at a glance: the sidebar reads Work / Personal / Remote.
+  _Done: built-in group `remote` ("원격" / "Remote"), in the default config. Remote projects go there automatically (no group field in "Add remote project" or its settings) and can't be moved out; local projects can't be moved in. On launch, older configs get the group once (marker `~/.aquila/.remote-group`, so deleting the empty group sticks) and misplaced projects are moved. Dropped from the old spec on purpose (owner): helper binary, mosh, tmux `-CC` — a remote tab is just a terminal on the host._
+- **Owns:** `REMOTE_GROUP` in `src/shared/api/types.ts`, `addProject` in `electron/config.ts`, `RemoteProjectDialog`.
 
 ### T40 · Scrollback search + safe paste
 - [x] **Goal:** find an error or file name in long agent output, and never let a paste run a command. (Ghostty 1.3, see `docs/research/notes/ghostty.md`)

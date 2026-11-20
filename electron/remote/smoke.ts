@@ -59,7 +59,7 @@ export async function checkRemoteSession(
   const project = {
     id: 'smoke-remote',
     name: 'smoke-remote',
-    group: config.groups[0]?.id ?? 'work',
+    group: 'remote',
     account: 'shared',
     path: '~/proj',
     remote: { alias: 'smoke' },

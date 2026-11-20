@@ -11,7 +11,15 @@ import {
   Select,
   Textarea,
 } from '@design-system/react';
-import { api, PORT_BASE_MAX, PORT_BASE_MIN, type Config, type Project, type SessionKind } from '@/shared/api';
+import {
+  api,
+  fitsGroup,
+  PORT_BASE_MAX,
+  PORT_BASE_MIN,
+  type Config,
+  type Project,
+  type SessionKind,
+} from '@/shared/api';
 import { accountLabel, groupLabel, kindLabel, useT } from '@/shared/i18n';
 import { editorOptions, parsePort, toForm, toSettings, type SettingsForm } from '../model/settings';
 import { useDuplicateFolder } from '../model/useDuplicateFolder';
@@ -171,13 +179,18 @@ export default function ProjectSettingsDialog({ project, config, onClose, onSave
           </Field>
         )}
         <FieldGrid>
-          <Field label={t('projects.group')}>
-            <Select
-              value={form.group}
-              onChange={(v) => set('group', v)}
-              options={config.groups.map((g) => ({ value: g.id, label: groupLabel(t, g) }))}
-            />
-          </Field>
+          {/* Remote projects always sit in the Remote group; local ones never do. */}
+          {!remote && (
+            <Field label={t('projects.group')}>
+              <Select
+                value={form.group}
+                onChange={(v) => set('group', v)}
+                options={config.groups
+                  .filter((g) => fitsGroup(false, g.id))
+                  .map((g) => ({ value: g.id, label: groupLabel(t, g) }))}
+              />
+            </Field>
+          )}
           {/* A remote project's Claude uses the host's config dir above, not a local account. */}
           {!remote && (
             <Field label={t('account.title')}>

@@ -1,6 +1,7 @@
 import { useCallback, useState, type DragEvent, type MouseEvent } from 'react';
 import {
   api,
+  fitsGroup,
   type Config,
   type Group,
   type Project,
@@ -104,6 +105,8 @@ export function useManageProjects({
             id: `group:${g.id}`,
             label: groupLabel(t, g),
             checked: g.id === project.group,
+            // Remote projects stay in the Remote group; local ones can't go there.
+            enabled: fitsGroup(!!project.remote, g.id),
           })),
           { separator: true },
           { id: 'new-group', label: t('groups.new') },

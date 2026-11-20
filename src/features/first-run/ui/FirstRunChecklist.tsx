@@ -9,7 +9,7 @@ import {
   Dot,
   Dropzone,
 } from '@design-system/react';
-import { api, type Config, type ToolCheck } from '@/shared/api';
+import { api, REMOTE_GROUP, type Config, type ToolCheck } from '@/shared/api';
 import { useT } from '@/shared/i18n';
 import type { FirstRun } from '../model/useFirstRun';
 
@@ -73,7 +73,7 @@ export default function FirstRunChecklist({
           op: 'addProject',
           path,
           name: '',
-          group: next.groups[0]?.id ?? 'work',
+          group: next.groups.find((g) => g.id !== REMOTE_GROUP)?.id ?? 'work',
           account: next.accounts.shared ? 'shared' : (Object.keys(next.accounts)[0] ?? 'shared'),
         });
       } catch (e) {

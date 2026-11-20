@@ -3,7 +3,14 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { Config } from '../src/shared/api/types';
-import { applyProjectEdit, migrateLegacyDir, projectForPath, slugify, tildify } from './config';
+import {
+  normalizeRemoteGroup,
+  applyProjectEdit,
+  migrateLegacyDir,
+  projectForPath,
+  slugify,
+  tildify,
+} from './config';
 
 const tmp: string[] = [];
 const dir = () => {
@@ -52,6 +59,40 @@ const base = (): Config => ({
 const ids = (c: Config, group?: string) =>
   c.projects.filter((p) => !group || p.group === group).map((p) => p.id);
 
+describe('normalizeRemoteGroup', () => {
+  const run = (c: Config, marker: string) => {
+    const saved: Config[] = [];
+    return { c: normalizeRemoteGroup(c, marker, (x) => (saved.push(x), x)), saved };
+  };
+  const tmpMarker = () => path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'aq-rg-')), '.remote-group');
+
+  it('adds the Remote group to an old config once; a deleted empty one stays deleted', () => {
+    const marker = tmpMarker();
+    const old = { groups: [{ id: 'work' }, { id: 'personal' }], projects: [] } as unknown as Config;
+    const first = run(old, marker);
+    expect(first.c.groups.map((g) => g.id)).toEqual(['work', 'personal', 'remote']);
+    expect(first.saved).toHaveLength(1);
+    const again = run(old, marker);
+    expect(again.c).toBe(old);
+    expect(again.saved).toHaveLength(0);
+  });
+
+  it('moves remote projects into the Remote group and local ones out', () => {
+    const c = {
+      groups: [{ id: 'work' }, { id: 'remote' }],
+      projects: [
+        { id: 'r', name: 'R', group: 'work', account: 'shared', path: '~/a', remote: { alias: 'devbox' } },
+        { id: 'l', name: 'L', group: 'remote', account: 'shared', path: '~/b' },
+      ],
+    } as unknown as Config;
+    const { c: out } = run(c, tmpMarker());
+    expect(out.projects.map((p) => [p.id, p.group])).toEqual([
+      ['r', 'remote'],
+      ['l', 'work'],
+    ]);
+  });
+});
+
 describe('applyProjectEdit', () => {
   it('adds a project at the end of its group with a unique id and a ~ path', () => {
     const c = applyProjectEdit(
@@ -87,6 +128,30 @@ describe('applyProjectEdit', () => {
     expect(
       applyProjectEdit(base(), { ...bad, path: ' ', remote: { alias: 'devbox' } }).projects,
     ).toHaveLength(3);
+  });
+
+  it('puts remote projects in the built-in Remote group automatically', () => {
+    const edit = {
+      op: 'addProject',
+      path: '~/app',
+      name: 'Dev',
+      group: 'work',
+      account: 'shared',
+      remote: { alias: 'devbox' },
+    } as const;
+    const c = applyProjectEdit(base(), edit);
+    expect(c.groups.map((g) => g.id)).toContain('remote');
+    expect(c.projects.at(-1)).toMatchObject({ group: 'remote', remote: { alias: 'devbox' } });
+    // Once only; a local project can't create it.
+    expect(applyProjectEdit(c, edit).groups.filter((g) => g.id === 'remote')).toHaveLength(1);
+    // A local project never lands there, and nothing moves across.
+    const local = applyProjectEdit(c, { ...edit, group: 'remote', remote: undefined, path: '/srv/x' });
+    const added = local.projects.find((p) => p.path === '/srv/x')!;
+    expect(added.group).not.toBe('remote');
+    const rid = c.projects.at(-1)!.id;
+    expect(applyProjectEdit(c, { op: 'moveProject', id: rid, group: 'work', index: 0 })).toBe(c);
+    const lid = added.id;
+    expect(applyProjectEdit(local, { op: 'moveProject', id: lid, group: 'remote', index: 0 })).toBe(local);
   });
 
   it('updates a remote project host and path without tildifying', () => {
