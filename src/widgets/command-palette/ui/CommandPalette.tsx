@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useState, type KeyboardEvent } from 'react';
 import { Palette, PaletteEmpty, PaletteItem, PaletteList } from '@design-system/react';
-import type { Config, Session } from '@/shared/api';
+import type { Config, Session, SessionKind, Worktree } from '@/shared/api';
 import { useT } from '@/shared/i18n';
 import { fuzzyRank } from '@/shared/lib/fuzzy';
 import { AccountBadge } from '@/entities/project';
@@ -18,6 +18,9 @@ interface Props {
   onSelectSession: (sessionId: string) => void;
   /** One handler per action that applies right now; actions without one aren't listed. */
   actions: Partial<Record<ActionId, () => void>>;
+  /** Linked worktrees of the current project, each listed as Claude / Codex / Shell. */
+  worktrees?: Worktree[];
+  onOpenWorktree?: (branch: string, kind: SessionKind) => void;
 }
 
 /** ⌘K: fuzzy-search open sessions, projects and actions; ↑↓ to pick, Enter to run, Esc to close. */
@@ -31,6 +34,8 @@ export default function CommandPalette({
   onSelectProject,
   onSelectSession,
   actions,
+  worktrees,
+  onOpenWorktree,
 }: Props) {
   const t = useT();
   const baseId = useId();
@@ -55,9 +60,10 @@ export default function CommandPalette({
         activeProjectId,
         activeSessionId,
         available: new Set(actionKeys.split(',').filter(Boolean) as ActionId[]),
+        worktrees: onOpenWorktree ? worktrees : [],
         t,
       }),
-    [config, sessions, activeProjectId, activeSessionId, actionKeys, t],
+    [config, sessions, activeProjectId, activeSessionId, actionKeys, worktrees, onOpenWorktree, t],
   );
   const results = useMemo(() => fuzzyRank(commands, query, (c) => c.label, commandDetail), [commands, query]);
   const selected = Math.min(index, results.length - 1);
@@ -68,6 +74,7 @@ export default function CommandPalette({
     requestAnimationFrame(() => {
       if (c.type === 'session') onSelectSession(c.sessionId);
       else if (c.type === 'project') onSelectProject(c.projectId);
+      else if (c.type === 'worktree') onOpenWorktree?.(c.branch, c.kind);
       else actions[c.action]?.();
     });
   };
@@ -141,6 +148,8 @@ function itemDecor(c: Command, config: Config) {
       };
     case 'project':
       return { leading: <StatusDot status={c.status} />, hint: c.hint };
+    case 'worktree':
+      return { hint: c.hint };
     case 'action':
       return { kbd: c.kbd };
   }

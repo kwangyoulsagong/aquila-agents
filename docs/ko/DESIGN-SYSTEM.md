@@ -40,6 +40,7 @@
 | `--color-bg-scrim` | 다이얼로그 뒤 배경 |
 | `--color-border-subtle` / `-default` / `-focus` | 구분선 / 컨트롤 테두리 / 포커스 링 |
 | `--color-text-primary` / `-secondary` / `-tertiary` / `-on-accent` | 글자 단계 (tertiary는 힌트 전용) |
+| `--color-meter-track` / `-outline` | 사용량 게이지: 빈 막대 / 한도를 모를 때 테두리 (라이트에선 더 진하게 — bg-pressed, border-subtle은 사이드바에 묻혀요) |
 | `--color-action-primary(-hover)` | 주요 버튼 |
 | `--color-agent-claude` / `-codex` / `-shell` | 세션 종류 |
 | `--color-account-shared` / `-personal` | Claude 계정 배지 (`claude` / `claude-personal`) |

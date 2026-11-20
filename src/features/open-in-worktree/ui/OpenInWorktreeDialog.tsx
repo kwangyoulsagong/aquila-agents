@@ -1,24 +1,27 @@
 import { useId, useState } from 'react';
-import { Button, Dialog, DialogForm, Field, Input } from '@design-system/react';
-import type { Project } from '@/shared/api';
-import { useT } from '@/shared/i18n';
+import { Button, Dialog, DialogForm, Field, Input, Segment } from '@design-system/react';
+import type { Project, SessionKind } from '@/shared/api';
+import { kindLabel, useT } from '@/shared/i18n';
 import { useWorktreeInfo } from '../model/useWorktreeInfo';
 import { worktreeTarget } from '../model/target';
 
 interface Props {
   project: Project;
   onClose: () => void;
-  /** Opens Claude in the worktree of `branch` (main creates or reuses it). Throws with git's message. */
-  onOpen: (branch: string) => Promise<void>;
+  /** Opens `kind` in the worktree of `branch` (main creates or reuses it). Throws with git's message. */
+  onOpen: (branch: string, kind: SessionKind) => Promise<void>;
 }
 
-/** "New Claude in worktree": pick or type a branch; the session runs in `../<repo>-wt/<branch>`. */
+const KINDS: SessionKind[] = ['claude', 'codex', 'shell'];
+
+/** "Open in worktree": pick or type a branch and an agent; the session runs in `../<repo>-wt/<branch>`. */
 export default function OpenInWorktreeDialog({ project, onClose, onOpen }: Props) {
   const t = useT();
   const formId = useId();
   const listId = useId();
   const { info, error: loadError } = useWorktreeInfo(project.id);
   const [branch, setBranch] = useState('');
+  const [kind, setKind] = useState<SessionKind>(project.defaultAgent ?? 'claude');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,7 +39,7 @@ export default function OpenInWorktreeDialog({ project, onClose, onOpen }: Props
     setBusy(true);
     setError(null);
     try {
-      await onOpen(branch.trim());
+      await onOpen(branch.trim(), kind);
       onClose();
     } catch (e) {
       setError((e as Error).message);
@@ -71,6 +74,14 @@ export default function OpenInWorktreeDialog({ project, onClose, onOpen }: Props
               list={listId}
               placeholder={t('worktree.placeholder')}
               autoFocus
+            />
+          </Field>
+          <Field label={t('worktree.kind')}>
+            <Segment
+              label={t('worktree.kind')}
+              value={kind}
+              onChange={setKind}
+              options={KINDS.map((k) => ({ value: k, label: kindLabel(t, k) }))}
             />
           </Field>
           <datalist id={listId}>

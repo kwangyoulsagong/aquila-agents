@@ -1,4 +1,4 @@
-import type { Config, Project, Session, SessionKind, SessionStatus } from '@/shared/api';
+import type { Config, Project, Session, SessionKind, SessionStatus, Worktree } from '@/shared/api';
 import { groupLabel, kindLabel, type Translate } from '@/shared/i18n';
 import { shortcutLabel, type ShortcutId } from '@/shared/lib/shortcuts';
 
@@ -8,6 +8,7 @@ export type ActionId =
   | 'openCodex'
   | 'openShell'
   | 'openWorktree'
+  | 'cleanupWorktrees'
   | 'addProject'
   | 'projectSettings'
   | 'openProjectIn'
@@ -48,6 +49,15 @@ export type Command =
       status: SessionStatus;
       current: boolean;
     }
+  | {
+      type: 'worktree';
+      id: string;
+      branch: string;
+      kind: SessionKind;
+      label: string;
+      /** "Worktree · <path>"; also searched. */
+      hint: string;
+    }
   | { type: 'action'; id: string; action: ActionId; label: string; kbd?: string };
 
 /** Label and shortcut per action, in the order they're listed. */
@@ -61,6 +71,7 @@ const ACTIONS: {
   { action: 'openCodex', label: (t) => t('action.openCodex'), shortcut: 'openCodex' },
   { action: 'openShell', label: (t) => t('palette.openShell'), shortcut: 'openShell' },
   { action: 'openWorktree', label: (t) => t('worktree.title') },
+  { action: 'cleanupWorktrees', label: (t) => t('worktree.cleanupTitle') },
   { action: 'projectSettings', label: (t) => t('settings.action') },
   { action: 'openProjectIn', label: (t, p) => t('settings.openInAction', { app: p?.openIn || 'Finder' }) },
   { action: 'addProject', label: (t) => t('projects.add') },
@@ -105,6 +116,8 @@ interface Input {
   activeSessionId: string | null;
   /** Actions that apply right now (others aren't listed). */
   available: ReadonlySet<ActionId>;
+  /** Linked worktrees of the current project: Claude / Codex / Shell in each, listed after the actions. */
+  worktrees?: Worktree[];
   t: Translate;
 }
 
@@ -118,6 +131,7 @@ export function buildCommands({
   activeProjectId,
   activeSessionId,
   available,
+  worktrees = [],
   t,
 }: Input): Command[] {
   const projectName = new Map(config.projects.map((p) => [p.id, p.name]));
@@ -169,10 +183,22 @@ export function buildCommands({
     kbd: a.shortcut && shortcutLabel(a.shortcut),
   }));
 
-  return [...sessionCommands, ...projectCommands, ...actionCommands];
+  const kinds: SessionKind[] = ['claude', 'codex', 'shell'];
+  const worktreeCommands: Command[] = worktrees.flatMap((w) =>
+    kinds.map((kind) => ({
+      type: 'worktree' as const,
+      id: `worktree:${kind}:${w.path}`,
+      branch: w.branch,
+      kind,
+      label: `${kindLabel(t, kind)} · ${w.branch}`,
+      hint: t('worktree.paletteHint', { path: w.path }),
+    })),
+  );
+
+  return [...sessionCommands, ...projectCommands, ...actionCommands, ...worktreeCommands];
 }
 
 /** Extra text a command is also found by (weaker than its label). */
 export function commandDetail(c: Command): string {
-  return c.type === 'project' ? c.hint : '';
+  return c.type === 'project' || c.type === 'worktree' ? c.hint : '';
 }

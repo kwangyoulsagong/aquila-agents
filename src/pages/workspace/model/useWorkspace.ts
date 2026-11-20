@@ -117,11 +117,11 @@ export function useWorkspace() {
     [activeProjectId, placeInFocused],
   );
 
-  /** Claude in the worktree of `branch` (created or reused by main). Throws so the dialog can show git's error. */
+  /** `kind` in the worktree of `branch` (created or reused by main). Throws so the dialog can show git's error. */
   const openWorktreeSession = useCallback(
-    async (branch: string) => {
+    async (branch: string, kind: SessionKind = 'claude') => {
       if (!activeProjectId) return;
-      const s = await api.createWorktreeSession(activeProjectId, branch, 'claude');
+      const s = await api.createWorktreeSession(activeProjectId, branch, kind);
       setSessions((list) => [...list, { ...s, status: 'idle' }]);
       placeInFocused(s.id);
     },

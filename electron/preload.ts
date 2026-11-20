@@ -30,6 +30,8 @@ const api: AquilaApi = {
   createWorktreeSession: (projectId, branch, kind) =>
     ipcRenderer.invoke(IPC.sessionCreateWorktree, { projectId, branch, kind }),
   worktreeInfo: (projectId) => ipcRenderer.invoke(IPC.worktreeInfo, projectId),
+  worktreeCandidates: (projectId) => ipcRenderer.invoke(IPC.worktreeCandidates, projectId),
+  removeWorktree: (projectId, path) => ipcRenderer.invoke(IPC.worktreeRemove, { projectId, path }),
   restoreSessions: () => ipcRenderer.invoke(IPC.sessionRestore),
   startSession: (id) => ipcRenderer.invoke(IPC.sessionStart, id),
   saveLayout: (layout) => ipcRenderer.send(IPC.layoutSave, layout),
