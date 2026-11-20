@@ -378,3 +378,65 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
   _완료: 터미널 우클릭 메뉴에 붙여넣기 추가(파일·이미지는 ⌘V처럼 경로로, 아니면 같은 안전 붙여넣기로 텍스트). Quick select가 열린 동안 출력을 따라감: 상자는 화면과 함께 움직이고, 한 번 붙은 라벨은 유지, 새 경로에는 남은 라벨을 붙임(smoke가 연 뒤 경로를 출력해 라벨이 붙는지 확인). 가이드의 터미널 미디어에 ⌘F 찾기 장면 추가(`npm run capture` 재실행, ko + en). detached worktree도 목록에 나옴(+ 메뉴·⌘K에 `a1b2c3d (분리됨)`), 경로로 열림 — git 브랜치 이름은 `/`로 시작할 수 없어서 같은 IPC가 둘 다 받음; 브랜치로 바뀌지 않음(실제 저장소로 테스트). smoke가 우클릭 붙여넣기를 끝까지 확인(네이티브 메뉴 대신 메뉴 핸들러가 응답): 텍스트는 `ESC[201~` 없이, 이미지는 임시 PNG 경로로. T38 정정: 브랜치가 있는 잠긴 worktree는 이미 목록에 나왔음(정리에서만 제외). 일부러 안 바꿈: quick select는 Kitty hints / WezTerm QuickSelect처럼 보이는 행에만 라벨 — 스크롤백은 ⌘F가 담당. 남은 것: 네이티브 메뉴 자체와 실행 중인 앱의 detached worktree는 손으로 안 봄; detached worktree는 정리 대상에 안 나옴(병합 확인에 브랜치 필요)._
 - **스펙:** 우클릭 붙여넣기; quick select는 라벨을 고정하되 새 출력을 따라감; 가이드 미디어에 찾기.
 - **담당:** `src/features/terminal-helpers/`, `electron/capture.ts`의 터미널 장면, `electron/smoke.ts`의 `checkQuickSelectFollows` / `checkMenuPaste`, `electron/worktrees.ts` + `src/features/open-in-worktree/`의 detached worktree; `clipboardText` IPC와 `Worktree.detached`(추가만).
+
+## UX: 편안함 정리
+
+ADE UX 조사(차분한 주의, 떠올리지 말고 알아보기)에서 나온 것. 지금 불편한 것만 다루고 새 기능은 넣지 않는다.
+
+### T43 · 세션 제목
+- [ ] **목표:** 탭만 보고 어느 세션인지 안다. 지금은 Claude 탭 두 개가 모두 "Claude"로 보인다.
+- **스펙:**
+  - 탭 제목은 있는 것 중 첫 번째를 쓴다: 사용자 제목 → 첫 프롬프트(Claude `UserPromptSubmit` hook, 첫 줄, 약 40자) → worktree 브랜치 → 종류 이름.
+  - 종류는 제목 앞 작은 배지로 내린다(`KindBadge` 재사용).
+  - 제목을 더블클릭하거나 ⌘K "세션 이름 바꾸기"를 고르면 그 자리에서 고친다. Enter는 저장, Esc는 취소, 빈 값이면 자동으로 되돌린다.
+  - CLI가 터미널 제목을 바꿔도 이 제목은 바뀌지 않는다.
+  - 제목은 pane 헤더, 팔레트, 알림에도 쓰고, 복원(Restore) 때 유지한다.
+- **담당:** `src/widgets/session-tabs/`, `src/features/rename-session/`; `Session.title`(추가만).
+- **완료 기준:** 프롬프트가 다른 Claude 탭 두 개가 서로 다른 제목을 보이고, 바꾼 이름이 재시작 뒤에도 남는다.
+
+### T44 · 색이 아니라 모양으로도 상태 구분
+- [ ] **목표:** 파랑·초록·빨강을 구별하지 못해도 상태를 읽을 수 있다(색각 이상, 6px 사이드바 점).
+- **스펙:**
+  - `done`은 체크, `error`는 `!`(또는 네모)로 보인다.
+  - `waiting`(halo), `stopped`(링), `working`(깜빡임)은 그대로 둔다.
+  - `--size-dot-sm` 크기, 라이트/다크 테마, 줄어든 움직임 설정에서도 알아볼 수 있어야 한다.
+- **담당:** `design-system/react/Dot.tsx`, `components.css`의 `.c-dot`, `design-system/preview.html`, `docs/*/DESIGN-SYSTEM.md`.
+- **완료 기준:** preview에 두 크기의 모든 상태가 나오고, 흑백으로 봐도 하나하나 구별된다.
+
+### T45 · 차분한 알림
+- [ ] **목표:** 나 때문에 막혔을 때만 배너가 뜬다. 이미 확인한 알림이 쌓이지 않고, 지금 보고 있는 세션은 알림을 보내지 않는다.
+- **스펙:**
+  - `done`은 기본으로 시스템 알림을 보내지 않고 조용한 점으로만 남는다(Dock 배지 규칙은 그대로). ⚙ 설정에 "완료 시 알림" 옵션을 두고, 켜야만 알림이 간다.
+  - 이미 보낸 알림은 그 세션을 보거나 상태가 바뀌는 즉시 철회한다(세션별로 `Notification` 객체를 보관하고 `close()`).
+  - "화면에 있음"은 활성 세션 하나가 아니라, 포커스된 창에 보이는 모든 pane을 뜻한다(`electron/sessions.ts`의 `onScreen`).
+- **담당:** `electron/notify.ts`(+ 테스트), `electron/sessions.ts`의 `onScreen`, `src/features/settings-menu/`의 설정.
+- **완료 기준:** 에이전트 4개가 연달아 끝나도 배너가 뜨지 않는다. 대기 세션 탭을 누르면 알림 센터에서 그 알림이 사라진다. split의 다른 pane은 알림을 보내지 않는다.
+
+### T46 · 알기 쉬운 사이드바 버튼
+- [ ] **목표:** 아이콘만 있는 두 버튼을 툴팁 없이도 이해한다.
+- **스펙:**
+  - **프로젝트 추가:**
+    - 아래쪽의 맨 **+**(탭 막대의 **+** = 새 세션과 헷갈림)를 프로젝트 목록 바로 밑의 글자 줄 "+ 프로젝트 추가"로 바꾼다.
+    - 메뉴 항목은 "내 Mac의 폴더…" / "원격 서버(SSH)…"로 바꾼다.
+    - 폴더를 사이드바에 끌어다 놓으면 추가된다(T17 남은 것).
+  - **AI 트렌드:**
+    - 위쪽 ✦는 "AI 실행"으로 읽히는데 실제로는 소식 목록이 열린다. 이름을 "소식"(부제 "CLI 업데이트 · 업계 소식")으로 바꾼다.
+    - 소식 아이콘을 쓰고, 아래쪽 설정·가이드 옆으로 옮긴다.
+    - 마지막으로 캐시된 데이터에 설치된 버전보다 새 CLI 버전이 있을 때만 점을 붙인다. 새 백그라운드 fetch는 없다(T35 결정 유지).
+- **담당:** `src/widgets/sidebar/`, `src/widgets/trends/ui/TrendsButton.tsx`, `src/features/manage-projects/`의 `addProject` 문구.
+- **완료 기준:** 처음 쓰는 사용자가 툴팁 없이 프로젝트를 추가하고 소식을 찾는다. ko + en 문구를 갱신하고 가이드 문구도 맞춘다.
+
+### T47 · 앱 메뉴 막대
+- [ ] **목표:** Mac 앱처럼 동작한다. 명령과 단축키를 메뉴 막대에서 찾을 수 있다(T13 남은 것).
+- **스펙:**
+  - T13 단축키 맵으로 `Menu.setApplicationMenu`를 만든다:
+    - **Aquila:** 정보, 설정… ⌘,, 숨기기, 종료
+    - **파일:** Claude / Codex / 셸 열기, 세션 닫기 ⌘W, 다시 열기 ⌘⇧T
+    - **편집:** 표준 역할
+    - **보기:** 분할, 전체 창, 찾기 ⌘F
+    - **윈도우:** 다음 대기 ⌘J, 명령 팔레트 ⌘K, 최소화 ⌘M
+    - **도움말:** 가이드
+  - 렌더러가 이미 처리하는 키는 표시만 한다(`registerAccelerator: false`).
+  - 메뉴 문구는 ko/en이고, 언어를 바꾸면 메뉴를 다시 만든다.
+- **담당:** `electron/appMenu.ts`; `electron/main.ts`에 호출 한 줄.
+- **완료 기준:** 가이드에 있는 모든 단축키가 메뉴에도 있고, 언어를 바꾸면 메뉴 문구도 바뀐다.
