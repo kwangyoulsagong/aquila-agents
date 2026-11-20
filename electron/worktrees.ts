@@ -37,18 +37,26 @@ export interface ListedWorktree {
   locked?: true;
   /** Its folder is gone (`git worktree prune` would drop it). */
   prunable?: true;
+  /** Short commit of a detached HEAD (no branch checked out). */
+  detached?: string;
 }
 
 /** Parse `git worktree list --porcelain`: blocks of `worktree <path>`, `HEAD <sha>`, `branch refs/heads/<b>`. */
 export function parseWorktreeList(out: string): ListedWorktree[] {
   const list: ListedWorktree[] = [];
+  let head = '';
   for (const line of out.split('\n')) {
-    if (line.startsWith('worktree ')) list.push({ path: line.slice('worktree '.length), branch: '' });
-    else if (line.startsWith('branch ') && list.length)
-      list[list.length - 1].branch = line.slice('branch '.length).replace(/^refs\/heads\//, '');
-    else if ((line === 'locked' || line.startsWith('locked ')) && list.length) list[list.length - 1].locked = true;
-    else if ((line === 'prunable' || line.startsWith('prunable ')) && list.length)
-      list[list.length - 1].prunable = true;
+    if (line.startsWith('worktree ')) {
+      list.push({ path: line.slice('worktree '.length), branch: '' });
+      head = '';
+    }
+    const last = list[list.length - 1];
+    if (!last) continue;
+    if (line.startsWith('HEAD ')) head = line.slice('HEAD '.length);
+    else if (line.startsWith('branch ')) last.branch = line.slice('branch '.length).replace(/^refs\/heads\//, '');
+    else if (line === 'detached') last.detached = head.slice(0, 7); // HEAD always comes before `detached`
+    else if (line === 'locked' || line.startsWith('locked ')) last.locked = true;
+    else if (line === 'prunable' || line.startsWith('prunable ')) last.prunable = true;
   }
   return list;
 }
@@ -164,9 +172,13 @@ export async function worktreeInfo(config: Config, projectId: string): Promise<W
     current: current.stdout.trim(),
     base: base ?? current.stdout.trim(),
     branches: refs.stdout.split('\n').filter(Boolean),
-    worktrees: list.filter((w) => w.branch).map((w) => ({ path: w.path, branch: w.branch })),
+    worktrees: list.filter((w) => !w.prunable && (w.branch || w.detached)).map(openable),
   };
 }
+
+/** A listed worktree as a session sees it; a detached one is labelled by its short commit. */
+const openable = (w: ListedWorktree): Worktree =>
+  w.branch ? { path: w.path, branch: w.branch } : { path: w.path, branch: w.detached ?? '', detached: true };
 
 /**
  * The worktree to run a session for `branch` in. Reuses the worktree that already has the branch checked out;
@@ -181,6 +193,12 @@ export async function ensureWorktree(
   const project = projectOf(config, projectId);
   const cwd = expand(project.path);
   const branch = branchInput.trim();
+  // An absolute path names an existing worktree (how a detached one is opened); git branch names can't start with `/`.
+  if (path.isAbsolute(branch)) {
+    const found = (await listWorktrees(cwd))?.find((w) => w.path === branch && !w.prunable);
+    if (!found || !(found.branch || found.detached)) throw new Error(`Not a worktree of this repo: ${branch}`);
+    return { worktree: openable(found), created: false };
+  }
   // check-ref-format also rules out `..`, spaces and other path tricks; a leading `-` would read as an option.
   const valid =
     branch && !branch.startsWith('-') && (await git(cwd, ['check-ref-format', '--branch', branch]));

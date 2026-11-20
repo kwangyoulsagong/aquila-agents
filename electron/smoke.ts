@@ -8,13 +8,14 @@
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import { app, ipcMain, type BrowserWindow } from 'electron';
+import { app, BrowserWindow, clipboard, ClipboardItem, ipcMain } from 'electron';
+import { showContextMenu } from './menu';
 import { runCapture } from './capture';
 import type { PreviewViews } from './preview';
 import { runPerf } from './perf';
 import type { SessionManager } from './sessions';
 import { checkRemoteSession } from './remote/smoke';
-import { IPC, type Config, type ConnectionUpdate } from '../src/shared/api/types';
+import { IPC, type Config, type ConnectionUpdate, type ContextMenuItem } from '../src/shared/api/types';
 import { translator } from '../src/shared/i18n/dictionary';
 
 const MARKER = 'AQUILA_SMOKE_OK';
@@ -122,6 +123,10 @@ export async function runSmoke(
     if (fullscreenError) return fail(fullscreenError);
     const findError = await checkPasteAndFind(win, outDir);
     if (findError) return fail(findError);
+    const quickError = await checkQuickSelectFollows(win);
+    if (quickError) return fail(quickError);
+    const menuPasteError = await checkMenuPaste(win);
+    if (menuPasteError) return fail(menuPasteError);
     const onPath = (bin: string) =>
       (process.env.PATH ?? '').split(':').some((dir) => dir && fs.existsSync(path.join(dir, bin)));
     console.log(`[smoke] PATH has claude: ${onPath('claude')}, codex: ${onPath('codex')}`);
@@ -425,6 +430,107 @@ async function checkPasteAndFind(win: BrowserWindow, outDir: string): Promise<st
     return `find: Esc did not close the bar back to the terminal (${JSON.stringify(closed)})`;
   return null;
 }
+
+/**
+ * T42, on the focused shell: quick select stays useful while output keeps coming. A path printed after it opened gets
+ * a new label; the labels already shown keep theirs. Esc closes it and gives the terminal its keyboard back.
+ */
+async function checkQuickSelectFollows(win: BrowserWindow): Promise<string | null> {
+  const js = <T>(code: string): Promise<T> => win.webContents.executeJavaScript(code) as Promise<T>;
+  // `aq/%s` on the command line is not a path; only the printed `aq/one`, then `aq/two` a second later, are.
+  const typed: boolean = await js(`(() => {
+    const ta = document.activeElement;
+    if (!ta?.classList.contains('xterm-helper-textarea')) return false;
+    const dt = new DataTransfer();
+    dt.setData('text/plain', "clear; printf 'aq/%s\\\\n' one; sleep 1.2; printf 'aq/%s\\\\n' two");
+    ta.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
+    return true;
+  })()`);
+  if (!typed) return 'quick select: the shell does not have focus';
+  press(win, 'Return', []);
+  await wait(500);
+  press(win, 'E', process.platform === 'win32' ? ['control', 'shift'] : ['meta', 'shift']);
+  await wait(200);
+  const labels = () =>
+    js<string[]>(`[...document.querySelectorAll('.c-term-hint__label')].map((e) => e.textContent ?? '')`);
+  const before = await labels();
+  await wait(1500);
+  const after = await labels();
+  console.log(`[smoke] quick select labels ${JSON.stringify(before)} → ${JSON.stringify(after)}`);
+  press(win, 'Escape', []);
+  await wait(300);
+  const terminal: boolean = await js(`!!document.activeElement?.classList.contains('xterm-helper-textarea')`);
+  if (!before.length) return 'quick select: no label for the printed path';
+  if (after.length !== before.length + 1 || !before.every((l) => after.includes(l)))
+    return `quick select: output after opening did not get a new label (${JSON.stringify({ before, after })})`;
+  if (!terminal) return 'quick select: Esc did not give the terminal its keyboard back';
+  return null;
+}
+
+/**
+ * T42, on the focused shell: right-click → Paste. The native menu can't be clicked from here, so for this check the
+ * menu handler answers "paste" itself (the items the terminal asked for are checked). Text goes through the safe
+ * paste (no `ESC[201~`), an image goes in as a temp PNG path. The user's clipboard is put back afterwards.
+ */
+async function checkMenuPaste(win: BrowserWindow): Promise<string | null> {
+  const js = <T>(code: string): Promise<T> => win.webContents.executeJavaScript(code) as Promise<T>;
+  // Copied out now: the items' data must outlive our own writes.
+  const saved = await Promise.all(
+    (await clipboard.read()).map(
+      async (item) =>
+        new ClipboardItem(
+          Object.fromEntries(await Promise.all(item.types.map(async (t) => [t, await item.getType(t)] as const))),
+        ),
+    ),
+  ).catch(() => [] as ClipboardItem[]);
+  let asked: ContextMenuItem[] = [];
+  let written = '';
+  const record = (_e: unknown, { data }: { id: string; data: string }) => (written += data);
+  ipcMain.removeHandler(IPC.uiContextMenu);
+  ipcMain.handle(IPC.uiContextMenu, (_e, items: ContextMenuItem[]) => {
+    asked = items;
+    return 'paste';
+  });
+  ipcMain.on(IPC.sessionWrite, record);
+  const rightClick = async () => {
+    written = '';
+    const ok: boolean = await js(`(() => {
+      const el = document.activeElement?.closest('.xterm');
+      el?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, button: 2 }));
+      return !!el;
+    })()`);
+    await wait(600);
+    return ok;
+  };
+  try {
+    await clipboard.writeText('AQMENU\x1b[201~TEXT');
+    if (!(await rightClick())) return 'menu paste: the shell does not have focus';
+    if (!asked.some((i) => i.id === 'paste')) return 'menu paste: the terminal menu has no Paste item';
+    console.log(`[smoke] menu paste (text) wrote ${JSON.stringify(written)}`);
+    if (!written.includes('AQMENU[201~TEXT') || written.includes('\x1b[201~T'))
+      return `menu paste: text did not arrive through the safe paste (${JSON.stringify(written)})`;
+    const png = new Blob([Buffer.from(TINY_PNG, 'base64')], { type: 'image/png' });
+    await clipboard.write([new ClipboardItem({ 'image/png': png })]);
+    await rightClick();
+    console.log(`[smoke] menu paste (image) wrote ${JSON.stringify(written)}`);
+    if (!/\.png ?/.test(written)) return `menu paste: an image did not go in as a file path (${JSON.stringify(written)})`;
+    press(win, 'U', ['control']); // clear the line we typed into
+    await wait(200);
+    return null;
+  } finally {
+    ipcMain.removeListener(IPC.sessionWrite, record);
+    ipcMain.removeHandler(IPC.uiContextMenu);
+    ipcMain.handle(IPC.uiContextMenu, (e, items: ContextMenuItem[]) =>
+      showContextMenu(BrowserWindow.fromWebContents(e.sender), items),
+    );
+    clipboard.clear();
+    if (saved.length) await clipboard.write(saved).catch(() => undefined);
+  }
+}
+
+/** 1×1 transparent PNG. */
+const TINY_PNG =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
 
 /**
  * ⌘K → "Setup checklist": the first-run dialog opens with PATH, claude, codex, git, projects and login rows.

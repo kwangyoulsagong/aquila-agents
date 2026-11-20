@@ -1,6 +1,7 @@
 import type { Config, Project, Session, SessionKind, SessionStatus, Worktree } from '@/shared/api';
 import { groupLabel, kindLabel, type Translate } from '@/shared/i18n';
 import { shortcutLabel, type ShortcutId } from '@/shared/lib/shortcuts';
+import { worktreeLabel, worktreeRef } from '@/features/open-in-worktree';
 
 /** Actions the palette can run. The workspace passes a handler for each one that applies right now. */
 export type ActionId =
@@ -54,6 +55,7 @@ export type Command =
   | {
       type: 'worktree';
       id: string;
+      /** Branch to open, or the path of a detached worktree (`worktreeRef`). */
       branch: string;
       kind: SessionKind;
       label: string;
@@ -192,9 +194,9 @@ export function buildCommands({
     kinds.map((kind) => ({
       type: 'worktree' as const,
       id: `worktree:${kind}:${w.path}`,
-      branch: w.branch,
+      branch: worktreeRef(w),
       kind,
-      label: `${kindLabel(t, kind)} · ${w.branch}`,
+      label: `${kindLabel(t, kind)} · ${worktreeLabel(t, w)}`,
       hint: t('worktree.paletteHint', { path: w.path }),
     })),
   );

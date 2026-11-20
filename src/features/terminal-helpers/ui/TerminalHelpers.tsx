@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import type { Terminal } from '@xterm/xterm';
 import { Dropzone, TermHint, TermJump, TermNote, TermOverlay } from '@design-system/react';
 import { safePaste, useTerminal } from '@/entities/session';
@@ -8,7 +8,7 @@ import { SESSION_DRAG_TYPE } from '@/shared/lib/sessionDrag';
 import { accelerator } from '@/shared/lib/shortcuts';
 import { screenTargets } from '../lib/screen';
 import { pathsInput } from '../model/paths';
-import { assignLabels, resolveLabel } from '../model/quickSelect';
+import { assignLabels, extendLabels, resolveLabel } from '../model/quickSelect';
 import {
   clearFlash,
   closeQuickSelect,
@@ -65,6 +65,23 @@ function useFollow(term: Terminal | null) {
   return state;
 }
 
+/** Paths typed into the session (shell-quoted, space after), like Terminal.app drag and drop. False when none. */
+function typePaths(term: Terminal, paths: string[]): boolean {
+  const input = pathsInput(paths);
+  if (!input) return false;
+  safePaste(term, input);
+  term.focus();
+  return true;
+}
+
+/** Right-click Paste: files or an image as paths, like ⌘V; otherwise the text, through the same safe paste. */
+async function pasteClipboard(term: Terminal): Promise<void> {
+  const paths = await api.clipboardPaths().catch(() => [] as string[]);
+  if (typePaths(term, paths)) return;
+  const text = await api.clipboardText().catch(() => '');
+  if (text) safePaste(term, text);
+}
+
 const hasFiles = (dt: DataTransfer | null) =>
   !!dt && dt.types.includes('Files') && !dt.types.includes(SESSION_DRAG_TYPE);
 
@@ -74,13 +91,7 @@ function useFileInput(term: Terminal | null, sessionId: string) {
   useEffect(() => {
     const el = term?.element;
     if (!term || !el) return;
-    const type = (paths: string[]) => {
-      const input = pathsInput(paths);
-      if (!input) return false;
-      safePaste(term, input);
-      term.focus();
-      return true;
-    };
+    const type = (paths: string[]) => typePaths(term, paths);
     // Capture on xterm's root runs before xterm's own paste handler on its textarea.
     const onPaste = (e: ClipboardEvent) => {
       if (!hasFiles(e.clipboardData)) return;
@@ -124,7 +135,7 @@ function useFileInput(term: Terminal | null, sessionId: string) {
   return over;
 }
 
-/** Right-click on the terminal: copy the selection, the helpers, jump to bottom. */
+/** Right-click on the terminal: copy the selection, paste, the helpers, jump to bottom. */
 function useContextMenu(term: Terminal | null, sessionId: string, kind: SessionKind, scrolled: boolean) {
   const t = useT();
   const scrolledRef = useRef(scrolled);
@@ -143,11 +154,16 @@ function useContextMenu(term: Terminal | null, sessionId: string, kind: SessionK
             enabled: !!selection,
             accelerator: 'CommandOrControl+C',
           },
+          { id: 'paste', label: t('term.paste'), accelerator: 'CommandOrControl+V' },
           { separator: true },
           ...(kind === 'shell'
             ? []
             : [
-                { id: 'copyLastReply', label: t('term.copyLastReply'), accelerator: accelerator('copyLastReply') },
+                {
+                  id: 'copyLastReply',
+                  label: t('term.copyLastReply'),
+                  accelerator: accelerator('copyLastReply'),
+                },
               ]),
           { id: 'quickSelect', label: t('term.quickSelect'), accelerator: accelerator('quickSelect') },
           { id: 'jumpBottom', label: t('term.jumpBottom'), enabled: scrolledRef.current },
@@ -156,7 +172,8 @@ function useContextMenu(term: Terminal | null, sessionId: string, kind: SessionK
           if (id === 'copy') {
             api.copyText(selection);
             flash(sessionId, 'copied');
-          } else if (id === 'copyLastReply') void copyLastReply(sessionId);
+          } else if (id === 'paste') void pasteClipboard(term);
+          else if (id === 'copyLastReply') void copyLastReply(sessionId);
           else if (id === 'quickSelect') toggleQuickSelect(sessionId);
           else if (id === 'jumpBottom') term.scrollToBottom();
           if (id) term.focus();
@@ -179,9 +196,29 @@ function QuickSelect({
 }) {
   const t = useT();
   const [typed, setTyped] = useState('');
-  // Read once when opened: the labels must not move under the user's fingers.
-  const targets = useMemo(() => screenTargets(term.buffer.active, term.rows, term.cols), [term]);
-  const labels = useMemo(() => assignLabels(targets), [targets]);
+  // Labelled once when opened; output that keeps coming moves the boxes, but a text keeps its label (extendLabels).
+  const [{ targets, labels }, setShown] = useState(() => {
+    const first = screenTargets(term.buffer.active, term.rows, term.cols);
+    return { targets: first, labels: assignLabels(first) };
+  });
+  const [openedEmpty] = useState(() => targets.length === 0);
+  useEffect(() => {
+    // A short timer, not requestAnimationFrame: streaming output re-reads at most ~20×/s either way.
+    let timer = 0;
+    const reread = () => {
+      if (timer) return;
+      timer = window.setTimeout(() => {
+        timer = 0;
+        const next = screenTargets(term.buffer.active, term.rows, term.cols);
+        setShown((prev) => ({ targets: next, labels: extendLabels(prev.labels, next) }));
+      }, 50);
+    };
+    const subs = [term.onWriteParsed(reread), term.onScroll(reread)];
+    return () => {
+      clearTimeout(timer);
+      for (const s of subs) s.dispose();
+    };
+  }, [term]);
   const [grid] = useState(() => {
     const screen = term.element?.querySelector('.xterm-screen');
     const overlay = overlayRef.current;
@@ -197,10 +234,10 @@ function QuickSelect({
   });
 
   useEffect(() => {
-    if (targets.length && grid) return;
+    if (!openedEmpty && grid) return;
     flash(sessionId, 'noTargets');
     closeQuickSelect();
-  }, [targets, grid, sessionId]);
+  }, [openedEmpty, grid, sessionId]);
 
   useEffect(() => {
     term.blur(); // keys come to us, and the IME doesn't compose them

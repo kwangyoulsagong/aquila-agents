@@ -9,7 +9,7 @@ export type WorktreeTarget =
 export function worktreeTarget(info: WorktreeInfo, input: string): WorktreeTarget | null {
   const branch = input.trim();
   if (!info.isRepo || !branch) return null;
-  const existing = info.worktrees.find((w) => w.branch === branch);
+  const existing = info.worktrees.find((w) => !w.detached && w.branch === branch);
   if (existing) return { kind: 'reuse', path: existing.path };
   const path = `${info.root}/${branch}`;
   return info.branches.includes(branch) ? { kind: 'checkout', path } : { kind: 'create', path, from: info.base };

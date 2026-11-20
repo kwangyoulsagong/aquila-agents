@@ -16,7 +16,7 @@ import {
 import type { Config } from '../src/shared/api/types';
 
 describe('parseWorktreeList', () => {
-  it('reads paths and branches, leaves detached ones without a branch', () => {
+  it('reads paths and branches; a detached one has no branch and its short commit', () => {
     const out = [
       'worktree /a/repo',
       'HEAD 1111111111111111111111111111111111111111',
@@ -44,7 +44,7 @@ describe('parseWorktreeList', () => {
     expect(parseWorktreeList(out)).toEqual([
       { path: '/a/repo', branch: 'main' },
       { path: '/a/repo-wt/feat/x', branch: 'feat/x' },
-      { path: '/a/repo-wt/tmp', branch: '' },
+      { path: '/a/repo-wt/tmp', branch: '', detached: '3333333' },
       { path: '/a/repo-wt/kept', branch: 'kept', locked: true },
       { path: '/a/repo-wt/gone', branch: 'gone', prunable: true },
     ]);
@@ -94,6 +94,21 @@ describe('ensureWorktree', () => {
     expect(fs.existsSync(path.join(wt.path, '.git'))).toBe(true);
     expect(run('branch', '--list', 'feat/new').trim()).toContain('feat/new');
     expect(await ensureWorktree(config, 'r', 'feat/new')).toEqual({ worktree: wt, created: false });
+  });
+
+  it('lists a detached worktree by its commit and opens it by path, never as a branch', async () => {
+    const { base, config, run } = setup();
+    const dir = path.join(base, 'repo-wt', 'detached');
+    run('worktree', 'add', '-q', '--detach', dir);
+    const commit = run('rev-parse', '--short=7', 'HEAD').trim();
+    const info = await worktreeInfo(config, 'r');
+    expect(info.worktrees).toContainEqual({ path: dir, branch: commit, detached: true });
+    expect(await ensureWorktree(config, 'r', dir)).toEqual({
+      worktree: { path: dir, branch: commit, detached: true },
+      created: false,
+    });
+    await expect(ensureWorktree(config, 'r', path.join(base, 'elsewhere'))).rejects.toThrow('Not a worktree');
+    expect(run('branch', '--list', commit).trim()).toBe('');
   });
 
   it('checks out an existing branch and reuses the main worktree for its own branch', async () => {

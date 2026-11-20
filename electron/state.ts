@@ -123,7 +123,15 @@ export function readState(file = STATE_PATH): SavedState {
         projectId: t.projectId,
         kind: t.kind as SessionKind,
         ...(typeof t.account === 'string' ? { account: t.account } : {}),
-        ...(isWorktree(t.worktree) ? { worktree: { path: t.worktree.path, branch: t.worktree.branch } } : {}),
+        ...(isWorktree(t.worktree)
+          ? {
+              worktree: {
+                path: t.worktree.path,
+                branch: t.worktree.branch,
+                ...(t.worktree.detached === true ? { detached: true as const } : {}),
+              },
+            }
+          : {}),
         ...(isSessionId(t.claudeSessionId) ? { claudeSessionId: t.claudeSessionId } : {}),
         ...(isSessionId(t.codexSessionId) ? { codexSessionId: t.codexSessionId } : {}),
       },

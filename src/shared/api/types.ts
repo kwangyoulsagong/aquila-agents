@@ -177,7 +177,10 @@ export interface ContextMenuItem {
 export interface Worktree {
   /** Absolute path of the worktree. */
   path: string;
+  /** Checked-out branch; for a detached worktree, its short commit. */
   branch: string;
+  /** No branch checked out (T42): opened by `path`, shown by commit. */
+  detached?: true;
 }
 
 /** What `worktree:info` reports for a project, for the "New Claude in worktree" dialog. */
@@ -682,6 +685,8 @@ export interface AquilaApi {
    * Empty when the clipboard holds neither.
    */
   clipboardPaths(): Promise<string[]>;
+  /** Plain text on the clipboard (T42: the terminal's right-click Paste). */
+  clipboardText(): Promise<string>;
   /** Text of the last agent reply in a Claude/Codex tab, from its transcript (read-only). null when there is none. */
   lastReply(sessionId: string): Promise<string | null>;
   write(id: string, data: string): void;
@@ -836,6 +841,7 @@ export const IPC = {
   uiContextMenu: 'ui:context-menu',
   clipboardPaths: 'clipboard:paths',
   clipboardWrite: 'clipboard:write',
+  clipboardText: 'clipboard:text',
   sessionLastReply: 'session:last-reply',
   sessionCreate: 'session:create',
   sessionRestore: 'session:restore',

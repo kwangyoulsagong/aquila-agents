@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { pathsInput, shellQuote } from './paths';
-import { assignLabels, findMatches, makeLabels, resolveLabel } from './quickSelect';
+import { assignLabels, extendLabels, findMatches, makeLabels, resolveLabel } from './quickSelect';
 
 describe('paths', () => {
   it('escapes like Terminal.app drag and drop', () => {
@@ -76,5 +76,27 @@ describe('labels', () => {
     expect(resolveLabel('a', labels)).toBe('partial');
     expect(resolveLabel('as', labels)).toBe('as');
     expect(resolveLabel('x', labels)).toBe('none');
+  });
+});
+
+describe('extendLabels (output while quick select is open)', () => {
+  const tt = (...texts: string[]) => texts.map((text) => ({ text }));
+  it('keeps the labels it gave and labels new texts with free ones, bottom first', () => {
+    const first = assignLabels(tt('a/x', 'b/y')); // b/y: a, a/x: s
+    const next = extendLabels(first, tt('b/y', 'c/z', 'd/w'));
+    expect(next.get('b/y')).toBe('a');
+    expect(next.get('a/x')).toBe('s'); // scrolled away, still taken
+    expect(next.get('d/w')).toBe('d');
+    expect(next.get('c/z')).toBe('f');
+  });
+  it('stays at one letter and gives nothing once the letters run out', () => {
+    const many = tt(...Array.from({ length: 26 }, (_, i) => `p/${i}`));
+    const next = extendLabels(assignLabels(many), [...many, { text: 'p/new' }]);
+    expect(next.has('p/new')).toBe(false);
+    expect([...next.values()].every((l) => l.length === 1)).toBe(true);
+  });
+  it('returns the same labels when nothing is new', () => {
+    const first = assignLabels(tt('a/x'));
+    expect([...extendLabels(first, tt('a/x'))]).toEqual([...first]);
   });
 });

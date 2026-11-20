@@ -421,6 +421,7 @@ app.whenReady().then(async () => {
   ipcMain.on(IPC.clipboardWrite, (_e, text: unknown) => {
     if (typeof text === 'string') void clipboard.writeText(text);
   });
+  ipcMain.handle(IPC.clipboardText, () => clipboard.readText());
   ipcMain.handle(IPC.clipboardPaths, async () => {
     const byType = new Map<string, Electron.ClipboardItem>();
     for (const item of await clipboard.read())
