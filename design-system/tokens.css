@@ -74,6 +74,7 @@
   --p-size-12: 12px;
   --p-size-16: 16px;
   --p-size-24: 24px;
+  --p-size-140: 140px; /* Windows caption buttons (3 × 46 at 100%, on the grid) */
   --p-radius-4: 4px;
   --p-radius-6: 6px;
   --p-radius-10: 10px;
@@ -145,8 +146,9 @@
   --color-terminal-scrollbar-hover: var(--p-slate-500);  /* hovered / dragged */
 
   /* Typography */
-  --font-family-ui: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Apple SD Gothic Neo', system-ui, sans-serif;
-  --font-family-mono: 'JetBrains Mono', 'D2Coding', 'SF Mono', Menlo, monospace;
+  --font-family-ui: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Apple SD Gothic Neo', 'Segoe UI Variable Text',
+    'Segoe UI', 'Malgun Gothic', system-ui, sans-serif;
+  --font-family-mono: 'JetBrains Mono', 'D2Coding', 'SF Mono', Menlo, 'Cascadia Mono', Consolas, monospace;
   --font-size-caption: var(--p-font-11); /* meta, badges, section labels */
   --font-size-label: var(--p-font-12);   /* tabs, buttons */
   --font-size-body: var(--p-font-13);    /* body, rows, terminal */
@@ -173,6 +175,7 @@
    *  - Pane: header text and terminal text share the same left edge (inset-md). */
   --size-titlebar: 40px;
   --size-tabbar: var(--size-titlebar);
+  --size-window-controls: 0px; /* room the OS window buttons take at the top-right (Windows only, below) */
   --size-pane-head: 28px;
   --size-focus-line: var(--p-size-2); /* accent under the focused pane's header */
   --size-split-handle: var(--p-size-8); /* grab area of a split divider, centred on the hairline */
@@ -210,6 +213,11 @@
 }
 
 /* ══════════════ 3. LIGHT THEME (colors only) ══════════════ */
+/* Windows (T19): titleBarOverlay puts the caption buttons over the top-right of the title-bar band. */
+:root[data-platform='win32'] {
+  --size-window-controls: var(--p-size-140);
+}
+
 :root[data-theme='light'] {
   color-scheme: light;
 

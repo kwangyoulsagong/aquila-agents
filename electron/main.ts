@@ -13,6 +13,7 @@ import {
   shell,
 } from 'electron';
 import { restoreShellPath } from './env';
+import { isWindows, platform } from './platform';
 import { accountsStatus, installShellFunction, prepareAccount, shellFunctionPreview } from './accounts';
 import {
   CONFIG_PATH,
@@ -99,6 +100,18 @@ let previews: PreviewViews | null = null;
 /** = --color-bg-canvas per theme (--p-slate-950 / --p-paper-0); the renderer follows the same nativeTheme. */
 const windowBackground = () => (nativeTheme.shouldUseDarkColors ? '#0e1014' : '#ffffff');
 
+/** = --size-titlebar: Windows' caption buttons sit in the same band as the tab bar. */
+const TITLEBAR_HEIGHT = 40;
+
+/**
+ * Windows caption buttons (T19): over the top-right corner in the title-bar band, on --color-bg-surface
+ * (--p-slate-900 / --p-paper-50) with --color-text-secondary symbols (--p-slate-400 / --p-slate-500).
+ */
+const titleBarOverlay = () =>
+  nativeTheme.shouldUseDarkColors
+    ? { color: '#14171d', symbolColor: '#8a91a0', height: TITLEBAR_HEIGHT }
+    : { color: '#f5f6f8', symbolColor: '#5b6170', height: TITLEBAR_HEIGHT };
+
 function createWindow(): void {
   win = new BrowserWindow({
     width: 1440,
@@ -106,8 +119,9 @@ function createWindow(): void {
     minWidth: 900,
     minHeight: 560,
     backgroundColor: windowBackground(), // avoids a flash of the wrong color before CSS loads
-    titleBarStyle: 'hiddenInset',
-    trafficLightPosition: { x: 16, y: 14 },
+    ...(isWindows
+      ? { titleBarStyle: 'hidden' as const, titleBarOverlay: titleBarOverlay() }
+      : { titleBarStyle: 'hiddenInset' as const, trafficLightPosition: { x: 16, y: 14 } }),
     webPreferences: {
       // compiled layout: dist-electron/electron/main.js → dist-electron/electron/preload.js
       preload: path.join(__dirname, 'preload.js'),
@@ -126,13 +140,21 @@ function createWindow(): void {
   win.on('closed', () => (win = null));
 }
 
+// Windows toast notifications need the app's identity (= electron-builder appId; the installer's Start Menu shortcut carries it).
+if (isWindows) app.setAppUserModelId('dev.aquila.agents');
+
 app.whenReady().then(async () => {
   // Release notes (T27): an install from before T27 has state but no record. Read before this launch writes any.
   const seenBefore = usedBefore();
   // Force a theme for smoke / capture / checking (AQUILA_THEME=light|dark); otherwise follow macOS.
   const forced = process.env.AQUILA_THEME;
   if (forced === 'light' || forced === 'dark') nativeTheme.themeSource = forced;
-  nativeTheme.on('updated', () => win?.setBackgroundColor(windowBackground()));
+  nativeTheme.on('updated', () => {
+    win?.setBackgroundColor(windowBackground());
+    if (isWindows) win?.setTitleBarOverlay(titleBarOverlay());
+  });
+  // Windows: shell profiles and WSL distros, detected once (never polled).
+  if (isWindows) void platform.refreshShells();
   let pathRestored = await restoreShellPath(); // Finder launches get a minimal PATH
   loadOverrides(); // binaries picked in the first-run checklist
   // Read before any session exists: the first create/exit rewrites state.json. Smoke never touches it.

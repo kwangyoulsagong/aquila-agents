@@ -1,8 +1,9 @@
 // The one shortcut map. The key handler, the command palette, buttons/tooltips (and later menus and the guide)
 // all read it, so a shortcut is defined once and its label can never drift from what the key handler does.
 //
-// Accelerators use Electron's syntax (`CommandOrControl+Shift+T`) so a native menu can take them as-is and
-// Windows can reuse the map later (CommandOrControl → Ctrl there). Keys are matched by `KeyboardEvent.code`,
+// Accelerators use Electron's syntax (`CommandOrControl+Shift+T`) so a native menu can take them as-is.
+// Windows (T19) has its own map: Ctrl+<letter> belongs to the terminal there (Ctrl+T/W/D/J/Y are control
+// characters the CLIs use), and Ctrl+Alt is AltGr on many keyboards, so it uses Ctrl+Shift and Alt instead. Keys are matched by `KeyboardEvent.code`,
 // not `key`, so shortcuts keep working with the Korean input source on (`key` would be "ㅅ" for T).
 
 export type ShortcutId =
@@ -31,7 +32,7 @@ export type ShortcutId =
   | 'resizeDown'
   | `project${1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9}`;
 
-export type Platform = 'mac' | 'other';
+export type Platform = 'mac' | 'windows' | 'other';
 
 export const SHORTCUTS: Readonly<Record<ShortcutId, string>> = {
   palette: 'CommandOrControl+K',
@@ -68,6 +69,29 @@ export const SHORTCUTS: Readonly<Record<ShortcutId, string>> = {
   project9: 'CommandOrControl+9',
 };
 
+/** Windows: no plain Ctrl+<letter> (the terminal's), no Ctrl+Alt (AltGr); focus/resize like Windows Terminal. */
+export const WINDOWS_SHORTCUTS: Readonly<Record<ShortcutId, string>> = {
+  ...SHORTCUTS,
+  palette: 'Control+Shift+K',
+  guide: 'F1',
+  openClaude: 'Control+Shift+T',
+  openCodex: 'Control+Shift+X',
+  openShell: 'Control+Shift+S',
+  closeSession: 'Control+Shift+W',
+  history: 'Control+Shift+H',
+  nextWaiting: 'Control+Shift+J',
+  splitRight: 'Alt+Shift+=',
+  splitDown: 'Alt+Shift+-',
+  focusLeft: 'Alt+Left',
+  focusRight: 'Alt+Right',
+  focusUp: 'Alt+Up',
+  focusDown: 'Alt+Down',
+  resizeLeft: 'Alt+Shift+Left',
+  resizeRight: 'Alt+Shift+Right',
+  resizeUp: 'Alt+Shift+Up',
+  resizeDown: 'Alt+Shift+Down',
+};
+
 export const SHORTCUT_IDS = Object.keys(SHORTCUTS) as ShortcutId[];
 
 interface Combo {
@@ -93,6 +117,8 @@ const NAMED_CODES: Record<string, string> = {
   Space: 'Space',
   Tab: 'Tab',
   Esc: 'Escape',
+  '=': 'Equal',
+  '-': 'Minus',
 };
 
 function parse(accelerator: string): Combo {
@@ -115,20 +141,31 @@ function codeOf(key: string): string {
   return NAMED_CODES[key] ?? key;
 }
 
-const COMBOS = new Map(SHORTCUT_IDS.map((id) => [id, parse(SHORTCUTS[id])]));
+/** The accelerator map a platform uses. */
+export const shortcutsFor = (platform: Platform) => (platform === 'windows' ? WINDOWS_SHORTCUTS : SHORTCUTS);
+
+const combosOf = (map: Readonly<Record<ShortcutId, string>>) =>
+  new Map(SHORTCUT_IDS.map((id) => [id, parse(map[id])]));
+const COMBOS = { default: combosOf(SHORTCUTS), windows: combosOf(WINDOWS_SHORTCUTS) };
+const combos = (platform: Platform) => (platform === 'windows' ? COMBOS.windows : COMBOS.default);
 
 export function detectPlatform(): Platform {
-  return typeof navigator !== 'undefined' && /Mac/i.test(navigator.userAgent) ? 'mac' : 'other';
+  if (typeof navigator === 'undefined') return 'other';
+  if (/Mac/i.test(navigator.userAgent)) return 'mac';
+  return /Windows/i.test(navigator.userAgent) ? 'windows' : 'other';
 }
 
 const PLATFORM = detectPlatform();
+
+/** Electron accelerator for a shortcut on this platform (native menus show it next to the item). */
+export const accelerator = (id: ShortcutId, platform: Platform = PLATFORM) => shortcutsFor(platform)[id];
 
 /** Modifier keys of an event, in the terms of the map (exact match: ⌘⇧K isn't ⌘K). */
 type KeyEventLike = Pick<KeyboardEvent, 'code' | 'metaKey' | 'ctrlKey' | 'shiftKey' | 'altKey'>;
 
 /** The shortcut this key event triggers, if any. */
 export function matchShortcut(e: KeyEventLike, platform: Platform = PLATFORM): ShortcutId | null {
-  for (const [id, c] of COMBOS) {
+  for (const [id, c] of combos(platform)) {
     const meta = platform === 'mac' ? c.primary : false;
     const ctrl = platform === 'mac' ? c.ctrl : c.primary || c.ctrl;
     if (
@@ -155,7 +192,7 @@ const MAC_KEYS: Record<string, string> = {
 
 /** Label for a shortcut: `⌥⌘T` on macOS (Apple's modifier order ⌃⌥⇧⌘), `Ctrl+Alt+T` elsewhere. */
 export function shortcutLabel(id: ShortcutId, platform: Platform = PLATFORM): string {
-  const c = COMBOS.get(id) ?? parse(SHORTCUTS[id]);
+  const c = combos(platform).get(id) ?? parse(shortcutsFor(platform)[id]);
   if (platform === 'mac') {
     return (
       (c.ctrl ? '⌃' : '') +

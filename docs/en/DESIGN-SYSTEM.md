@@ -92,6 +92,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | Token | px | |
 |---|---|---|
 | `--size-titlebar` = `--size-tabbar` | 40 | One horizontal line across sidebar, tabs, panel |
+| `--size-window-controls` | 0 / 140 | Room for the OS caption buttons at the top-right: 0 on macOS, 140 under `:root[data-platform='win32']` (the last column's tab bar / panel head pads by it) |
 | `--size-row` | 32 | Sidebar rows; tabs are 32 tall too (40 − 8 top offset) |
 | `--size-control` | 28 | Buttons, segmented control |
 | `--size-pane-head` | 28 | Split pane header |

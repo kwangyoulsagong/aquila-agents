@@ -5,7 +5,7 @@ import { useTerminal } from '@/entities/session';
 import { api, type SessionKind } from '@/shared/api';
 import { useT } from '@/shared/i18n';
 import { SESSION_DRAG_TYPE } from '@/shared/lib/sessionDrag';
-import { SHORTCUTS } from '@/shared/lib/shortcuts';
+import { accelerator } from '@/shared/lib/shortcuts';
 import { screenTargets } from '../lib/screen';
 import { pathsInput } from '../model/paths';
 import { assignLabels, resolveLabel } from '../model/quickSelect';
@@ -147,9 +147,9 @@ function useContextMenu(term: Terminal | null, sessionId: string, kind: SessionK
           ...(kind === 'shell'
             ? []
             : [
-                { id: 'copyLastReply', label: t('term.copyLastReply'), accelerator: SHORTCUTS.copyLastReply },
+                { id: 'copyLastReply', label: t('term.copyLastReply'), accelerator: accelerator('copyLastReply') },
               ]),
-          { id: 'quickSelect', label: t('term.quickSelect'), accelerator: SHORTCUTS.quickSelect },
+          { id: 'quickSelect', label: t('term.quickSelect'), accelerator: accelerator('quickSelect') },
           { id: 'jumpBottom', label: t('term.jumpBottom'), enabled: scrolledRef.current },
         ])
         .then((id) => {

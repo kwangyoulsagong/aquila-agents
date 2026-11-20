@@ -34,6 +34,7 @@
 │                                           │        │ history.ts    past sessions, read-only (T11)     │
 │                                           │        │ terminalHelpers.ts clipboard paths, last reply   │
 │                                           │        │ remote/       ssh + tmux, reconnect, host check  │
+│                                           │        │ platform/     shells, spawn, git, kills (T19)    │
 │                                           │        │ smoke.ts      npm run smoke self-check           │
 │ shared/   api (types · IPC · bridge), i18n│        │                                                 │
 └───────────────────────────────────────────┘        └─────────────────────────────────────────────────┘
@@ -54,7 +55,14 @@
 
 1. Renderer calls `createSession(projectId, kind)`.
 2. Main spawns `$SHELL -l -i -c "<cmd>; exec $SHELL -l -i"` in the project dir, so the user's PATH/fnm/aliases work
-   and the tab drops to a shell when the agent exits.
+   and the tab drops to a shell when the agent exits. The spawn goes through `electron/platform/` (T19): sessions.ts
+   builds the command as an argv (`SessionCommand`: program + args, resume-failure marker, setup script) and the
+   platform layer writes it in the shell's syntax. macOS: the login shell as above. Windows: pwsh 7 > Windows
+   PowerShell 5.1 > Git Bash > CMD (`-NoLogo -NoExit -EncodedCommand`, `bash -l -i -c`, `cmd /S /K`); a folder under
+   `\\wsl.localhost\<distro>\…` runs `wsl.exe -d <distro> --cd <linux path> -- bash -lic "…; exec bash -l -i"` and its
+   git runs as `wsl.exe … -e git`. Claude in WSL gets no `--settings`/account dir/Figma config (log in inside the
+   distro) and falls back to output activity like a remote tab. Kills go through `KillQueue` (one at a time, 50 ms
+   apart on Windows; an exited pty is never killed); quit on Windows also `taskkill /T`s each session's tree.
 3. Env per session: `AQUILA_TAB_ID`, `AQUILA_PORT`, and — for Claude sessions on the **personal** account —
    `CLAUDE_CONFIG_DIR=~/.claude-personal` (same as the `claude-personal` shell function). The **shared** account leaves
    it unset (plain `claude`): Claude keys its keychain entry off this variable, so it must not be set to `~/.claude`.

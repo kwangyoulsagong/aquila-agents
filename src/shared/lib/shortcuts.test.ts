@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   SHORTCUTS,
   SHORTCUT_IDS,
+  WINDOWS_SHORTCUTS,
+  accelerator,
   matchShortcut,
   projectIndex,
   shortcutLabel,
@@ -43,6 +45,36 @@ describe('matchShortcut', () => {
 
   it('gives every shortcut a unique combo', () => {
     expect(new Set(Object.values(SHORTCUTS)).size).toBe(SHORTCUT_IDS.length);
+    expect(new Set(Object.values(WINDOWS_SHORTCUTS)).size).toBe(SHORTCUT_IDS.length);
+  });
+});
+
+describe('Windows map', () => {
+  it('never takes a plain Ctrl+letter (the terminal’s) or Ctrl+Alt (AltGr)', () => {
+    for (const acc of Object.values(WINDOWS_SHORTCUTS)) {
+      const parts = acc.split('+');
+      const key = parts.pop()!;
+      const ctrl = parts.some((p) => p === 'Control' || p === 'CommandOrControl');
+      expect(ctrl && parts.includes('Alt'), acc).toBe(false);
+      if (ctrl && /^[A-Z]$/.test(key)) expect(parts.includes('Shift'), acc).toBe(true);
+    }
+  });
+
+  it('matches Ctrl+Shift, Alt and F1 combos', () => {
+    expect(matchShortcut(key('KeyT', { ctrl: true, shift: true }), 'windows')).toBe('openClaude');
+    expect(matchShortcut(key('KeyT', { ctrl: true }), 'windows')).toBeNull();
+    expect(matchShortcut(key('KeyK', { ctrl: true, shift: true }), 'windows')).toBe('palette');
+    expect(matchShortcut(key('ArrowLeft', { alt: true }), 'windows')).toBe('focusLeft');
+    expect(matchShortcut(key('Equal', { alt: true, shift: true }), 'windows')).toBe('splitRight');
+    expect(matchShortcut(key('F1'), 'windows')).toBe('guide');
+    expect(matchShortcut(key('Digit2', { ctrl: true }), 'windows')).toBe('project2');
+  });
+
+  it('labels and menu accelerators follow the platform', () => {
+    expect(shortcutLabel('closeSession', 'windows')).toBe('Ctrl+Shift+W');
+    expect(shortcutLabel('focusUp', 'windows')).toBe('Alt+Up');
+    expect(accelerator('openClaude', 'windows')).toBe('Control+Shift+T');
+    expect(accelerator('openClaude', 'mac')).toBe('CommandOrControl+T');
   });
 });
 

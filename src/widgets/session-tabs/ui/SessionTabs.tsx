@@ -3,7 +3,7 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import { api, type Config, type Session, type SessionKind } from '@/shared/api';
 import { kindLabel, useT } from '@/shared/i18n';
 import { endSessionDrag, startSessionDrag } from '@/shared/lib/sessionDrag';
-import { SHORTCUTS, withShortcut } from '@/shared/lib/shortcuts';
+import { accelerator, withShortcut } from '@/shared/lib/shortcuts';
 import { AccountBadge, HostBadge } from '@/entities/project';
 import { ContextGauge, StatusDot, WaitingTime } from '@/entities/session';
 
@@ -63,9 +63,9 @@ export default function SessionTabs({
   }, [activeId, sessions.length]);
   const newMenu = async () => {
     const id = await api.showContextMenu([
-      { id: 'claude', label: t('action.openClaude'), accelerator: SHORTCUTS.openClaude },
-      { id: 'codex', label: t('action.openCodex'), accelerator: SHORTCUTS.openCodex },
-      { id: 'shell', label: t('palette.openShell'), accelerator: SHORTCUTS.openShell },
+      { id: 'claude', label: t('action.openClaude'), accelerator: accelerator('openClaude') },
+      { id: 'codex', label: t('action.openCodex'), accelerator: accelerator('openCodex') },
+      { id: 'shell', label: t('palette.openShell'), accelerator: accelerator('openShell') },
       ...(onNewInWorktree ? [{ separator: true }, { id: 'worktree', label: t('worktree.action') }] : []),
     ]);
     if (id === 'worktree') onNewInWorktree?.();

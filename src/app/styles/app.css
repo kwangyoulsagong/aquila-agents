@@ -21,6 +21,15 @@
   color: var(--color-status-error);
 }
 
+/* Windows (T19): the caption buttons cover the top-right corner, so the last column's title-bar band leaves room
+ * (the tab bar, or the head of the rightmost open panel). */
+:root[data-platform='win32'] .app__main:not(:has(~ .c-panel)) > .c-tabbar {
+  padding-right: calc(var(--space-inset-sm) + var(--size-window-controls));
+}
+:root[data-platform='win32'] .c-panel:not(:has(~ .c-panel)) > .c-panel__head {
+  padding-right: calc(var(--space-inset-md) + var(--size-window-controls));
+}
+
 /* Hidden sessions stay mounted so scrollback and the pty survive tab switches. */
 .term-host {
   position: absolute;

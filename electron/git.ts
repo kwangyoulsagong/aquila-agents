@@ -7,6 +7,7 @@ import { watch, type FSWatcher } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import path from 'node:path';
 import { expand } from './config';
+import { platform } from './platform';
 import type {
   Config,
   GitAction,
@@ -29,7 +30,8 @@ const GIT_ENV = { ...process.env, GIT_OPTIONAL_LOCKS: '0' };
 /** Run git with `input` on stdin (`git apply -`). */
 function gitInput(cwd: string, args: string[], input: string): Promise<Run> {
   return new Promise((resolve) => {
-    const p = spawn('git', args, { cwd, env: GIT_ENV });
+    const g = platform.git(cwd, args);
+    const p = spawn(g.file, g.args, { cwd: g.cwd, env: GIT_ENV, windowsHide: true });
     let stdout = '';
     let stderr = '';
     p.stdout.on('data', (d: Buffer) => (stdout += d.toString()));
@@ -42,10 +44,12 @@ function gitInput(cwd: string, args: string[], input: string): Promise<Run> {
 
 function git(cwd: string, args: string[]): Promise<Run> {
   return new Promise((resolve) => {
+    // A folder inside WSL runs the distro's git (T19).
+    const g = platform.git(cwd, ['-c', 'core.quotepath=off', ...args]);
     execFile(
-      'git',
-      ['-c', 'core.quotepath=off', ...args],
-      { cwd, maxBuffer: DIFF_CAP * 4, env: GIT_ENV },
+      g.file,
+      g.args,
+      { cwd: g.cwd, maxBuffer: DIFF_CAP * 4, env: GIT_ENV, windowsHide: true },
       (err, stdout, stderr) => {
         const code = err ? (typeof err.code === 'number' ? err.code : 1) : 0;
         resolve({ code, stdout: String(stdout), stderr: String(stderr) });

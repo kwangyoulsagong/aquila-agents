@@ -543,8 +543,17 @@ export interface NewsState {
 
 export type Unsubscribe = () => void;
 
+/** The OS the app runs on (T19), known synchronously at startup. */
+export interface PlatformInfo {
+  os: 'darwin' | 'win32' | 'linux';
+  /** Windows build number (xterm's ConPTY handling); Windows only. */
+  windowsBuild?: number;
+}
+
 /** API exposed on window.aquila by electron/preload.ts. */
 export interface AquilaApi {
+  /** Read once in preload, no IPC round trip (the terminal needs it at creation). */
+  platform: PlatformInfo;
   getConfig(): Promise<Config>;
   openConfig(): Promise<string>;
   setLanguage(language: Language): Promise<Config>;

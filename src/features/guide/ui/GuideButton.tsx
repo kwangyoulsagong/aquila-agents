@@ -1,7 +1,7 @@
 import { Button } from '@design-system/react';
 import { api } from '@/shared/api';
 import { useT } from '@/shared/i18n';
-import { SHORTCUTS, withShortcut } from '@/shared/lib/shortcuts';
+import { accelerator, withShortcut } from '@/shared/lib/shortcuts';
 
 interface Props {
   onClick: () => void;
@@ -19,7 +19,7 @@ export default function GuideButton({ onClick, open, onWhatsNew }: Props) {
       {
         id: 'guide',
         label: t('guide.title'),
-        accelerator: SHORTCUTS.guide,
+        accelerator: accelerator('guide'),
       },
       { id: 'notes', label: t('notes.title') },
     ]);

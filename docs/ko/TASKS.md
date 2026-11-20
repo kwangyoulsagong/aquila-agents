@@ -301,7 +301,8 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
 ## Windows (추후)
 
 ### T19 · Windows 런타임
-- [ ] **목표:** Windows 10 1809+ / 11, x64 + arm64, 네이티브와 WSL에서 제대로 동작. (#9–#13)
+- [x] **목표:** Windows 10 1809+ / 11, x64 + arm64, 네이티브와 WSL에서 제대로 동작. (#9–#13)
+  _남은 것: **macOS에서 빌드·단위 테스트만 했고 Windows에서 실행해 본 적 없음**. CI(`.github/workflows/ci.yml`, windows x64 + arm64)가 첫 실제 검증이고, Windows에선 Windows에서 돌 수 있는 테스트만 실행(기존 테스트 다수가 /bin/sh 사용). 한 것: `electron/platform/`(셸 감지 + spawn 템플릿, WSL 경로 + 배포판 목록, git 경로 분기, `KillQueue`, 종료 시 `taskkill /T`), ConPTY `windowsPty`, Windows 단축키 맵(Ctrl+Shift+T/W/K/G…, Alt+화살표, Ctrl+1–9, 가이드는 Ctrl+/ 대신 F1, Ctrl+Alt 없음), 선택이 있으면 Ctrl+C 복사, 토큰 색의 `titleBarOverlay` + `--size-window-controls`, AUMID, 작업 표시줄 `flashFrame`, PATHEXT 탐색(`git.exe`), Windows 설치 명령, Cascadia Mono / Consolas / Segoe UI 폴백. pwsh는 따옴표 문제를 피하려고 `-Command` 대신 `-EncodedCommand`. 프로젝트 폴더가 `\\wsl.localhost\…` 경로면 WSL에서 실행 — 프로젝트 설정의 네이티브/배포판 선택, 셸 선택 UI, "배포판 다시 찾기"는 아직 없음(시작할 때 한 번 감지). 안 한 것: NAT 모드 WSL hook(WSL Claude는 활동 폴백, 컨텍스트 게이지 없음), "이 배포판에서 따로 로그인" 안내, WSL 프로젝트의 워크트리 세션, Ctrl+V vs Alt+V 이미지 붙여넣기 확인, main의 `execFile` 호출(`claude --version`, 사용량, figma)이 `.cmd` 심을 실행하려면 Windows에서 `shell: true` 필요, 작업 표시줄 오버레이 아이콘, 배포판별 시작 점검, Windows IME smoke, 전력 측정 도구, OS별 캡처, Windows OpenSSH 제어 채널(T36), ⌘를 하드코딩한 가이드/UI 문구("⌘K", "⌘V" 등)._
 - **명세:**
   - node-pty: kill을 짧은 큐로 직렬화, 이미 끝난 pty는 kill 금지, 종료 시 남은 conhost 정리, CI에서 아키텍처별로
     Electron ABI에 맞춰 리빌드, 렌더러 `windowsPty: { backend: 'conpty', buildNumber }`(build number는 IPC로).

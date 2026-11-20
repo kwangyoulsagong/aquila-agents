@@ -1,5 +1,5 @@
 // One pty per session. Runs the user's real `claude` / `codex` / shell — same tokens, same config.
-import { execFile } from 'node:child_process';
+import { execFile, execFileSync } from 'node:child_process';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -7,8 +7,8 @@ import type { BrowserWindow } from 'electron';
 import * as pty from 'node-pty';
 import { expand, loadConfig } from './config';
 import { assignRollouts, findRollouts } from './codex';
-import { commandName } from './detect';
-import { ensureMcpConfig, figmaArgs } from './figma';
+import { binaryFor } from './detect';
+import { ensureMcpConfig, figmaArgv } from './figma';
 import { headSha } from './git';
 import type { HookEvent } from './hooks';
 import { OutputBatcher } from './output';
@@ -19,6 +19,7 @@ import { formatRestored, newTabKey, type RestorePlan, type SavedTab } from './st
 import { logStatus } from './status/log';
 import { OSC_7501_REPLY, OscScanner, parse7501 } from './status/osc';
 import { StatusTracker } from './status/tracker';
+import { isWindows, KILL_GAP_MS, KillQueue, platform, type SessionCommand } from './platform';
 import { sshExec } from './remote/exec';
 import { remoteHeadSha } from './remote/git';
 import { Reconnector } from './remote/reconnect';
@@ -34,9 +35,6 @@ import {
   type Worktree,
 } from '../src/shared/api/types';
 
-const SHELL = process.env.SHELL || '/bin/zsh';
-/** `'…'` for sh, with embedded quotes escaped. */
-const shellQuote = (s: string) => `'${s.replace(/'/g, `'\\''`)}'`;
 /** Printed by the session command when `claude --resume` / `codex resume` fails (OSC 7501 so the scanner sees it). */
 const RESUME_FAILED = 'aquila-resume-failed';
 /** A resume that fails does so right away; a non-zero exit later is the user's own session ending. */
@@ -98,6 +96,8 @@ interface LiveSession {
   rows: number;
   /** The user closed the tab: its exit is final (no reconnect). */
   killed?: boolean;
+  /** The current pty exited (never kill it again: ConPTY throws). */
+  exited?: boolean;
 }
 
 interface Deps {
@@ -137,6 +137,8 @@ export class SessionManager {
   private badge = 0;
   /** Power-saver mode (T9): slower activity tick, hidden output held longer. */
   private saver = false;
+  /** ConPTY wants kills one at a time (T19); immediate on macOS. */
+  private kills = new KillQueue(KILL_GAP_MS);
 
   constructor(private deps: Deps) {
     this.timer = setInterval(() => this.tickActivity(), TICK_MS);
@@ -254,37 +256,41 @@ export class SessionManager {
     const resuming = !!(restore.resumeClaude || restore.resumeCodexId);
     // Remote: ssh runs from home; the project folder is on the host (cd'd into by the remote script).
     const cwd = remote ? os.homedir() : (worktree?.path ?? expand(project.path));
-    // Figma MCP (T32): local projects only (the server's login lives in this Mac's CLI config).
-    const figma = !!project.figma && !remote && kind !== 'shell';
+    // Local: the platform's shell for that folder (macOS login shell; Windows pwsh/…/WSL distro, T19).
+    const shell = remote ? null : platform.shellFor(cwd);
+    // Inside WSL the Windows-side account dir, hook file and Figma config don't apply: log in in the distro.
+    const wsl = shell?.kind === 'wsl';
+    if (wsl) delete env.CLAUDE_CONFIG_DIR;
+    // Figma MCP (T32): local projects only (the server's login lives in this machine's CLI config).
+    const figma = !!project.figma && !remote && !wsl && kind !== 'shell';
     if (figma) ensureMcpConfig();
-    let command = this.commandFor(
-      kind,
-      claudeSessionId,
-      restore,
-      { cwd, configDir: env.CLAUDE_CONFIG_DIR },
-      figma,
-    );
-    // A failed resume prints our marker, then the tab drops to the shell as usual (cold restore).
-    if (command && resuming) command = `${command} || printf '\\033]7501;${RESUME_FAILED}\\007'`;
-    // The setup script runs in the same login shell (the user's PATH), visibly, once; the program starts either way.
-    const pre = setup?.trim()
-      ? `printf '\\033[2m%s\\033[0m\\n' ${shellQuote(translator(config.language)('settings.setupRunning'))}; ${setup.trim()}\n`
-      : '';
-    const args = remote
-      ? sessionArgs({
-          host: remote,
-          path: project.path,
-          tabKey: key,
-          kind,
-          claudeSessionId,
-          resumeClaude: !!restore.resumeClaude,
-          resumeCodexId: restore.resumeCodexId,
-        })
-      : command || pre
-        ? ['-l', '-i', '-c', `${pre}${command ? `${command}; ` : ''}exec ${SHELL} -l -i`]
-        : ['-l', '-i'];
+    const command: SessionCommand = {
+      argv: this.commandFor(kind, claudeSessionId, restore, { cwd, configDir: env.CLAUDE_CONFIG_DIR }, figma, wsl),
+      // A failed resume prints our marker, then the tab drops to the shell as usual (cold restore).
+      ...(resuming ? { onFail: RESUME_FAILED } : {}),
+      // The setup script runs in the same shell (the user's PATH), visibly, once; the program starts either way.
+      ...(setup?.trim()
+        ? { setup: { banner: translator(config.language)('settings.setupRunning'), script: setup } }
+        : {}),
+    };
+    const spec = shell
+      ? platform.spawnSpec(shell, command, cwd)
+      : {
+          file: 'ssh',
+          args: sessionArgs({
+            host: remote!,
+            path: project.path,
+            tabKey: key,
+            kind,
+            claudeSessionId,
+            resumeClaude: !!restore.resumeClaude,
+            resumeCodexId: restore.resumeCodexId,
+          }),
+          cwd,
+        };
+    Object.assign(env, spec.env);
     const spawnProc = (cols: number, rows: number) =>
-      pty.spawn(remote ? 'ssh' : SHELL, args, { name: 'xterm-256color', cols, rows, cwd, env });
+      pty.spawn(spec.file, spec.args, { name: 'xterm-256color', cols, rows, cwd: spec.cwd, env });
     const proc = spawnProc(120, 32);
 
     const now = Date.now();
@@ -304,7 +310,8 @@ export class SessionManager {
       proc,
       // Claude has hooks as its fallback; codex and shells fall back to output activity. Remote Claude has no
       // hooks (they post to 127.0.0.1 here) and tmux drops OSC 7501, so it falls back to output activity too.
-      tracker: new StatusTracker(kind !== 'claude' || !!remote),
+      // Claude in WSL gets no hooks either (no `--settings`; NAT mode can't reach 127.0.0.1 here).
+      tracker: new StatusTracker(kind !== 'claude' || !!remote || wsl),
       osc: new OscScanner(),
       output: new OutputBatcher({
         send: (data) => this.deps.send(IPC.sessionData, { id, data }),
@@ -332,6 +339,7 @@ export class SessionManager {
           if (this.sessions.get(id) !== s || s.killed || this.closing) return;
           s.output.resetFlow();
           s.proc = spawnProc(s.cols, s.rows);
+          s.exited = false;
           this.attach(s);
           reconnector.spawned();
         },
@@ -359,6 +367,7 @@ export class SessionManager {
     });
     proc.onExit(({ exitCode, signal }) => {
       if (s.proc !== proc) return;
+      s.exited = true;
       // ssh's own failure (connect failed / link lost): keep the tab and retry. Anything else ended the session.
       if (s.remote && exitCode === SSH_FAILED && !s.killed && !this.closing) {
         s.output.flush();
@@ -425,26 +434,31 @@ export class SessionManager {
     return this.sessions.get(id)?.key ?? this.dormant.get(id)?.plan.key;
   }
 
+  /** Program + args for an agent tab (unquoted: the platform layer writes them for the shell); null for a shell. */
   private commandFor(
     kind: SessionKind,
     claudeSessionId: string | undefined,
     restore: RestoreOptions,
     at: { cwd: string; configDir?: string },
     figma = false,
-  ): string | null {
+    /** Runs inside a WSL distro: the CLI on that distro's PATH, without our Windows-side files. */
+    wsl = false,
+  ): string[] | null {
+    const bin = (tool: 'claude' | 'codex') => (wsl ? tool : binaryFor(tool));
     if (kind === 'claude') {
-      // Only uuids reach here (ours or validated from state/hook), so no shell quoting is needed for the id.
+      // Only uuids reach here (ours or validated from state/hook).
       const session = restore.resumeClaude
-        ? `--resume ${claudeSessionId}`
-        : `--session-id ${claudeSessionId}`;
-      const mcp = figma ? ` ${figmaArgs('claude')}` : '';
-      return `${commandName('claude')} --settings ${JSON.stringify(this.deps.hookSettingsPath(at))}${mcp} ${session}`;
+        ? ['--resume', claudeSessionId!]
+        : ['--session-id', claudeSessionId!];
+      if (wsl) return [bin('claude'), ...session];
+      const mcp = figma ? figmaArgv('claude') : [];
+      return [bin('claude'), '--settings', this.deps.hookSettingsPath(at), ...mcp, ...session];
     }
     if (kind === 'codex') {
-      const codex = figma ? `${commandName('codex')} ${figmaArgs('codex')}` : commandName('codex');
-      // Codex ids are validated uuids (state.ts), safe unquoted.
-      if (restore.resumeCodexId) return `${codex} resume ${restore.resumeCodexId}`;
-      return restore.resumeCodex ? `${codex} resume --last` : codex;
+      const codex = [bin('codex'), ...(figma ? figmaArgv('codex') : [])];
+      // Codex ids are validated uuids (state.ts).
+      if (restore.resumeCodexId) return [...codex, 'resume', restore.resumeCodexId];
+      return restore.resumeCodex ? [...codex, 'resume', '--last'] : codex;
     }
     return null;
   }
@@ -613,8 +627,12 @@ export class SessionManager {
     let waiting = 0;
     for (const s of this.sessions.values()) if (s.tracker.current().status === 'waiting') waiting++;
     if (waiting === this.badge) return;
+    const more = waiting > this.badge;
     this.badge = waiting;
     setDockBadge(waiting);
+    // Windows has no Dock badge: flash the taskbar button until the window is focused (T19, T15).
+    const win = this.deps.getWindow();
+    if (isWindows && more && win && !win.isFocused()) win.flashFrame(true);
   }
 
   setActive(id: string | null): void {
@@ -728,7 +746,8 @@ export class SessionManager {
       execFile('ssh', killArgs(s.remote.alias, s.key), { timeout: 20_000 }, () => undefined);
       if (s.remote.reconnector.waiting) return this.ended(s, 0);
     }
-    s.proc.kill();
+    const proc = s.proc;
+    this.kills.kill(proc, () => s.exited === true || s.proc !== proc);
   }
 
   killAll(): void {
@@ -736,14 +755,28 @@ export class SessionManager {
     clearInterval(this.timer);
     for (const t of this.codexScans) clearTimeout(t);
     this.attention.dispose();
+    const pids: number[] = [];
     for (const s of this.sessions.values()) {
       s.remote?.reconnector.dispose();
+      if (s.exited) continue;
+      pids.push(s.proc.pid);
       try {
         s.proc.kill();
       } catch {
         // already exited (a remote tab waiting to reconnect)
       }
     }
+    // Windows: end each session's whole process tree, so no conhost / agent is left behind after quit.
+    if (isWindows && pids.length)
+      try {
+        execFileSync('taskkill', ['/F', '/T', ...pids.flatMap((p) => ['/PID', String(p)])], {
+          timeout: 3_000,
+          windowsHide: true,
+          stdio: 'ignore',
+        });
+      } catch {
+        // some were already gone
+      }
   }
 }
 

@@ -42,11 +42,12 @@ export function ensureMcpConfig(file = FIGMA_MCP_PATH): string {
   return file;
 }
 
-/** Extra CLI arguments for a session of a Figma-enabled project (already shell-safe). */
-export function figmaArgs(kind: 'claude' | 'codex', file = FIGMA_MCP_PATH): string {
-  if (kind === 'claude') return `--mcp-config ${JSON.stringify(file)}`;
-  return `-c 'mcp_servers.figma.url="${FIGMA_MCP_URL}"'`;
+/** Extra CLI arguments for a session of a Figma-enabled project, unquoted (the platform layer quotes them). */
+export function figmaArgv(kind: 'claude' | 'codex', file = FIGMA_MCP_PATH): string[] {
+  if (kind === 'claude') return ['--mcp-config', file];
+  return ['-c', `mcp_servers.figma.url="${FIGMA_MCP_URL}"`];
 }
+
 
 // ── whoami parsing (defensive: the tool's shape isn't documented, so unknown → "unknown") ──
 
