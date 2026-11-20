@@ -19,6 +19,7 @@
   --p-slate-750: #262b35;
   --p-slate-700: #353b48;
   --p-slate-500: #5b6170;
+  --p-slate-450: #6c7382;
   --p-slate-400: #8a91a0;
   --p-slate-100: #e4e7ed;
 
@@ -107,6 +108,10 @@
   --color-text-secondary: var(--p-slate-400); /* 6.0:1 on canvas */
   --color-text-tertiary: var(--p-slate-500);  /* hints only, never essential */
   --color-text-on-accent: var(--p-slate-950);
+
+  /* Meter (usage gauge): empty track, and the outline of a track whose limit is unknown */
+  --color-meter-track: var(--p-slate-800);
+  --color-meter-outline: var(--p-slate-750);
 
   /* Interactive */
   --color-action-primary: var(--p-blue-400);
@@ -237,8 +242,12 @@
 
   --color-text-primary: var(--p-slate-850);   /* 16:1 on canvas */
   --color-text-secondary: var(--p-slate-500); /* 6.1:1 on canvas */
-  --color-text-tertiary: var(--p-slate-400);  /* hints only */
+  --color-text-tertiary: var(--p-slate-450);  /* hints only; 4.4:1 on surface (slate-400 was 3:1, too faint) */
   --color-text-on-accent: var(--p-paper-0);
+
+  /* bg-pressed / border-subtle almost vanish on the light sidebar */
+  --color-meter-track: var(--p-paper-300);
+  --color-meter-outline: var(--p-slate-400);
 
   --color-action-primary: var(--p-blue-600);
   --color-action-primary-hover: var(--p-blue-700);

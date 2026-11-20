@@ -106,7 +106,7 @@ body {
   font-size: var(--font-size-caption); color: var(--color-text-tertiary);
 }
 .c-meter__value { font-family: var(--font-family-mono); color: var(--color-text-secondary); white-space: nowrap; }
-.c-meter__track { height: var(--size-meter); border-radius: var(--radius-badge); background: var(--color-bg-pressed); overflow: hidden; }
+.c-meter__track { height: var(--size-meter); border-radius: var(--radius-badge); background: var(--color-meter-track); overflow: hidden; }
 .c-meter__fill {
   height: 100%; border-radius: inherit; background: var(--color-text-tertiary);
   transition: width var(--motion-slow) var(--motion-ease), background-color var(--motion-medium) var(--motion-ease);
@@ -114,7 +114,7 @@ body {
 .c-meter[data-tone='warn'] .c-meter__fill { background: var(--color-status-waiting); }
 .c-meter[data-tone='danger'] .c-meter__fill { background: var(--color-status-error); }
 .c-meter[data-tone='danger'] .c-meter__value { color: var(--color-status-error); }
-.c-meter[data-unknown] .c-meter__track { background: none; box-shadow: inset 0 0 0 1px var(--color-border-subtle); }
+.c-meter[data-unknown] .c-meter__track { background: none; box-shadow: inset 0 0 0 1px var(--color-meter-outline); }
 .c-meter__caption {
   font-size: var(--font-size-caption); color: var(--color-text-tertiary);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
