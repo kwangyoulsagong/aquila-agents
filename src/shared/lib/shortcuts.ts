@@ -19,6 +19,7 @@ export type ShortcutId =
   | 'nextWaiting'
   | 'copyLastReply'
   | 'quickSelect'
+  | 'find'
   | 'splitRight'
   | 'splitDown'
   | 'focusLeft'
@@ -48,6 +49,7 @@ export const SHORTCUTS: Readonly<Record<ShortcutId, string>> = {
   nextWaiting: 'CommandOrControl+J',
   copyLastReply: 'CommandOrControl+Shift+C',
   quickSelect: 'CommandOrControl+Shift+E',
+  find: 'CommandOrControl+F',
   splitRight: 'CommandOrControl+D',
   splitDown: 'CommandOrControl+Shift+D',
   focusLeft: 'CommandOrControl+Alt+Left',
@@ -83,6 +85,9 @@ export const WINDOWS_SHORTCUTS: Readonly<Record<ShortcutId, string>> = {
   closeSession: 'Control+Shift+W',
   history: 'Control+Shift+H',
   nextWaiting: 'Control+Shift+J',
+  // Ctrl+F is the terminal's (forward a char). Full window is macOS-only (T37), so F11 just keeps Ctrl+Shift+F free.
+  find: 'Control+Shift+F',
+  fullscreen: 'F11',
   splitRight: 'Alt+Shift+=',
   splitDown: 'Alt+Shift+-',
   focusLeft: 'Alt+Left',

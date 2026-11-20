@@ -224,6 +224,17 @@ xterm 인스턴스는 `useTerminal(id)`(`entities/session`, `TerminalView`가 �
   ⇧+라벨은 세션에 입력, Esc는 닫기. 키는 `code`로 읽어서 한글 입력 상태여도 돼요.
 - Electron 45는 preload에 `clipboard` 모듈이 없어서 `copyText`는 main의 `clipboard:write`를 거쳐요.
 
+## 찾기 + 안전한 붙여넣기 (T40)
+
+- `features/terminal-search`: ⌘F(Windows Ctrl+Shift+F, 단축키 맵의 `find`)나 ⌘K → "터미널에서 찾기"로 포커스된
+  세션 위에 `TermFind` 바를 열어요(`openFind` 스토어, 한 번에 하나). `@xterm/addon-search`는 바가 열려 있을 때만
+  import·로드하고, 일치 항목은 `--color-terminal-match(-active)` 데코레이션이에요. Enter / ⇧Enter로 다음 / 이전,
+  Esc로 닫으면 하이라이트를 지우고 키보드를 터미널에 돌려줘요.
+- `entities/session/lib/paste.ts`: `safePaste(term, text)`가 `term.paste` 전에 C0(탭·LF·CR 제외), DEL, C1을 빼서
+  붙여 넣은 `ESC[201~`가 bracketed paste를 일찍 끝내지 못해요. 모든 붙여넣기가 이걸 거쳐요: ⌘V(xterm 루트의
+  capture 리스너가 xterm 핸들러보다 먼저 돌고, 파일은 터미널 도우미에 맡김), 끌어다 놓은 경로, quick select,
+  `pasteIntoSession`(패널), Figma 칩. smoke가 실제 앱에서 둘 다 확인해요.
+
 ## 원격 세션 (T29)
 
 프로젝트를 SSH 호스트에 둘 수 있어요: `project.remote = { alias, claudeConfigDir? }`, 이때 `project.path`는 **호스트의**

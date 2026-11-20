@@ -67,6 +67,8 @@ describe('Windows map', () => {
     expect(matchShortcut(key('ArrowLeft', { alt: true }), 'windows')).toBe('focusLeft');
     expect(matchShortcut(key('Equal', { alt: true, shift: true }), 'windows')).toBe('splitRight');
     expect(matchShortcut(key('F1'), 'windows')).toBe('guide');
+    expect(matchShortcut(key('KeyF', { ctrl: true, shift: true }), 'windows')).toBe('find');
+    expect(matchShortcut(key('KeyF', { ctrl: true }), 'windows')).toBeNull();
     expect(matchShortcut(key('Digit2', { ctrl: true }), 'windows')).toBe('project2');
   });
 

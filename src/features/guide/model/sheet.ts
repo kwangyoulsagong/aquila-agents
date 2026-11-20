@@ -32,6 +32,7 @@ export const SHEET: readonly { titleKey: Key; rows: readonly SheetRow[] }[] = [
       { id: 'closeSession', labelKey: 'action.closeSession', ids: ['closeSession'] },
       { id: 'copyLastReply', labelKey: 'term.copyLastReply', ids: ['copyLastReply'] },
       { id: 'quickSelect', labelKey: 'term.quickSelect', ids: ['quickSelect'] },
+      { id: 'find', labelKey: 'term.find', ids: ['find'] },
       { id: 'project', labelKey: 'shortcut.project', ids: ['project1', 'project9'] },
     ],
   },

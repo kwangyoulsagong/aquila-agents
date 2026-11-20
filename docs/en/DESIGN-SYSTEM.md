@@ -46,7 +46,7 @@ Check: `grep -rn -- '--p-' src design-system/components.css` returns only the ru
 | `--color-agent-claude` / `-codex` / `-shell` | Session kind |
 | `--color-account-shared` / `-personal` | Claude account badge (`claude` / `claude-personal`) |
 | `--color-diff-*` | Diff add / del / hunk |
-| `--color-terminal-*` | xterm theme (read at runtime, re-read when the theme changes): bg, fg, cursor, selection, scrollbar (+ `-hover`). On light, xterm's `minimumContrastRatio` is 4.5 so CLI colors picked for a dark background stay readable |
+| `--color-terminal-*` | xterm theme (read at runtime, re-read when the theme changes): bg, fg, cursor, selection, scrollbar (+ `-hover`), find matches `-match` / `-match-active` (opaque `#RRGGBB`, xterm decorations need it; amber). On light, xterm's `minimumContrastRatio` is 4.5 so CLI colors picked for a dark background stay readable |
 
 ### Session status — the core vocabulary
 
@@ -108,6 +108,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `--size-diff-gutter` / `--size-diff-comment` | 40 / 384 | One line-number column in a diff / a line-comment box |
 | `--size-dialog` / `--size-dialog-wide` | 440 / 560 | Dialog width / with a checklist (first run) |
 | `--size-palette` / `--size-palette-list` | 560 / 352 | Command palette width / list height before it scrolls (11 rows) |
+| `--size-find-input` | 200 | Query field of a terminal's find bar (T40) |
 | `--size-modal` / `--size-modal-height` / `--size-modal-aside` | 760 / 520 / 240 | List + detail modal (guide, release notes) / its list column |
 | `--size-modal-wide` / `--size-modal-wide-height` / `--size-modal-wide-aside` | 960 / 640 / 320 | `.c-modal--wide` (session history: longer rows, a transcript) / its list column |
 
@@ -123,6 +124,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `.c-badge` `--claude` `--codex` `--shell` `--account-shared` `--account-personal` | Tags |
 | `.c-badge--host`, `.c-badge__conn[data-conn=connecting\|connected\|reconnecting\|lost]` | Remote host alias (not uppercased) with a connection dot: idle grey / green / orange pulsing / red (T29) |
 | `.c-term-overlay__banner` `__banner-text` `__banner-meta` | Bar across the top of a terminal that takes clicks, red edge: connection lost + countdown + an action (T29) |
+| `.c-term-find` `__input` `__count[data-empty]` | Find bar at the top-right of a terminal that takes clicks: query · count (red when nothing matches) · case toggle (`aria-pressed`) · previous · next · close; its disabled buttons go tertiary (T40) |
 | `.c-term-overlay__chips` `__chips-group` `__chips-label` `__chips-close` | Bar across the top of a terminal that takes clicks (the CLI input stays uncovered): labelled groups of prompt chips + close (Figma link pasted, T34) |
 | `.c-titlebar` `__title` `__actions` | Bare title band, tab-bar height, draggable, traffic-light room on the left: lead + truncating title + actions (full window, T37) |
 | `.c-label` | Section label |
@@ -181,6 +183,7 @@ from `src/` (ESLint enforces it). New primitive → add the class to `components
 | `TermBanner` `meta?` `action?` | `.c-term-overlay__banner` (connection lost, T29) |
 | `TitleBar` `lead?` `actions?` (+ div props) | `.c-titlebar` (full window, T37) |
 | `TermChips` `label` `closeLabel` `onClose`, `TermChipGroup` `label` | `.c-term-overlay__chips`, `.c-term-overlay__chips-group` (prompt chips, T34) |
+| `TermFind` `label` `query` `onQuery` `onKeyDown?` `inputRef?` `placeholder?` `count?` `empty?` `caseSensitive` `onToggleCase` `onPrev` `onNext` `onClose` `labels` | `.c-term-find` (find in terminal, T40) |
 | `Field` `label` `hint` `warning`, `FieldRow`, `FieldGrid`, `Input`, `Textarea`, `Select` `options` `onChange(value)` | `.c-field`, `.c-field__row`, `.c-field-grid`, `.c-input`, `.c-input--multiline`, `.c-select` |
 | `ChangeRow` `status` `path` | `.c-change` |
 | `Palette` `open` `onClose` `label` `query` `onQueryChange` `listId` `activeId`, `PaletteList`, `PaletteItem` `selected` `label` `marks` `leading` `hint` `kbd`, `PaletteEmpty` | `.c-palette` (combobox + listbox) |

@@ -31,7 +31,10 @@ export function attach(id: string, write: Writer): () => void {
   };
 }
 
-/** Pastes into a mounted terminal like ⌘V (bracketed paste when the CLI asked for it) and focuses it. */
+/**
+ * Pastes into a mounted terminal like ⌘V (bracketed paste when the CLI asked for it) and focuses it. The registered
+ * paster goes through `safePaste` (T40), so panels can't send control characters either.
+ */
 const pasters = new Map<string, (text: string) => void>();
 
 export function registerPaste(id: string, paste: (text: string) => void): () => void {

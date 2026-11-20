@@ -34,6 +34,9 @@
   --p-peach-300: #e8a87c;
   --p-teal-300: #9fd3c7;
   --p-violet-300: #b8a4f4;
+  /* Search matches in the terminal (T40): opaque (xterm decorations need #RRGGBB), amber over the dark canvas */
+  --p-amber-900: #3d3220;
+  --p-amber-800: #6e4c1c;
 
   /* Alpha tints (hue @ low opacity) */
   --p-blue-400-a14: rgba(122, 162, 247, 0.14);
@@ -60,6 +63,8 @@
   --p-peach-600: #b8653a;
   --p-teal-600: #2a8577;
   --p-violet-600: #6d55c4;
+  --p-amber-100: #f7e6c8;
+  --p-amber-200: #efc98f;
   --p-blue-600-a12: rgba(47, 99, 204, 0.12);
   --p-blue-600-a20: rgba(47, 99, 204, 0.2);
   --p-orange-600-a20: rgba(184, 101, 12, 0.2);
@@ -150,6 +155,8 @@
   --color-terminal-selection: var(--p-blue-400-a14);
   --color-terminal-scrollbar: var(--p-slate-700);        /* xterm scrollbar slider */
   --color-terminal-scrollbar-hover: var(--p-slate-500);  /* hovered / dragged */
+  --color-terminal-match: var(--p-amber-900);            /* find bar: every match (opaque #RRGGBB) */
+  --color-terminal-match-active: var(--p-amber-800);     /* find bar: the current match */
 
   /* Typography */
   --font-family-ui: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Apple SD Gothic Neo', 'Segoe UI Variable Text',
@@ -202,6 +209,7 @@
   --size-dialog-wide: 560px;  /* dialogs with a checklist (first run) */
   --size-palette: 560px;      /* command palette width */
   --size-palette-list: 352px; /* list height before it scrolls (11 rows) */
+  --size-find-input: 200px;   /* query field of a terminal's find bar (T40) */
   --size-modal: 760px;        /* list + detail modal (guide, release notes) */
   --size-modal-height: 520px;
   --size-modal-aside: 240px;  /* its list column */
@@ -279,4 +287,6 @@
   --color-terminal-selection: var(--p-blue-600-a20);
   --color-terminal-scrollbar: var(--p-paper-300);
   --color-terminal-scrollbar-hover: var(--p-slate-400);
+  --color-terminal-match: var(--p-amber-100);
+  --color-terminal-match-active: var(--p-amber-200);
 }

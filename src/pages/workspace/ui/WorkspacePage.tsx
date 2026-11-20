@@ -14,6 +14,7 @@ import {
 import { SettingsMenu } from '@/features/switch-language';
 import { nextWaiting } from '@/features/next-waiting';
 import { copyLastReply, toggleQuickSelect } from '@/features/terminal-helpers';
+import { openFind } from '@/features/terminal-search';
 import { FirstRunChecklist, useFirstRun } from '@/features/first-run';
 import { GuideButton, GuideModal, GuideOffer, guideMedia, useGuide } from '@/features/guide';
 import { ReleaseNotesModal, useReleaseNotes } from '@/features/release-notes';
@@ -69,6 +70,9 @@ export default function WorkspacePage() {
   const quickSelect = useCallback(() => {
     if (focusedId && focusedSession && !focusedSession.dormant) toggleQuickSelect(focusedId);
   }, [focusedId, focusedSession]);
+  const find = useCallback(() => {
+    if (focusedId && focusedSession && !focusedSession.dormant) openFind(focusedId);
+  }, [focusedId, focusedSession]);
   useShortcuts({
     config: ws.config,
     activeSessionId: ws.activeSessionId,
@@ -89,6 +93,7 @@ export default function WorkspacePage() {
     nextWaiting: goNextWaiting,
     copyLastReply: copyReply,
     quickSelect,
+    find,
   });
 
   const { config, project, activeSessionId, openSession, closeSession, setConfig, showError } = ws;
@@ -149,7 +154,10 @@ export default function WorkspacePage() {
     if (activeSessionId) a.closeSession = () => closeSession(activeSessionId);
     if (waitingNext) a.nextWaiting = goNextWaiting;
     if (agentFocused) a.copyLastReply = copyReply;
-    if (focusedSession && !focusedSession.dormant) a.quickSelect = quickSelect;
+    if (focusedSession && !focusedSession.dormant) {
+      a.quickSelect = quickSelect;
+      a.find = find;
+    }
     a.firstRun = reopenFirstRun;
     a.guide = showGuide;
     a.whatsNew = showNotes;
@@ -192,6 +200,7 @@ export default function WorkspacePage() {
     copyReply,
     focusedSession,
     quickSelect,
+    find,
   ]);
 
   if (!config) return null;

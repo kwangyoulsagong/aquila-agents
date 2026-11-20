@@ -513,6 +513,20 @@ body {
 .c-term-overlay__chips-group { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--space-inline-xs); }
 .c-term-overlay__chips-label { color: var(--color-text-secondary); }
 .c-term-overlay__chips-close { margin-left: auto; }
+/* Find bar (T40): top-right of a terminal, takes clicks. Query · count · case toggle · previous · next · close. */
+.c-term-find {
+  position: absolute; top: var(--space-inset-sm); right: var(--space-inset-md); max-width: calc(100% - 2 * var(--space-inset-md));
+  display: flex; align-items: center; gap: var(--space-inline-xs); pointer-events: auto;
+  padding: var(--space-inline-xs); border: 1px solid var(--color-border-default); border-radius: var(--radius-control);
+  background: var(--color-bg-surface); color: var(--color-text-primary); font: var(--font-size-caption) var(--font-family-ui);
+}
+.c-term-find__input { width: var(--size-find-input); min-width: 0; flex: 0 1 auto; }
+.c-term-find__count {
+  min-width: var(--size-control); padding: 0 var(--space-inline-xs); color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums; white-space: nowrap; text-align: center;
+}
+.c-term-find__count[data-empty] { color: var(--color-status-error); }
+.c-term-find .c-btn:disabled { color: var(--color-text-tertiary); background: transparent; cursor: default; }
 /* Quick select: the match is tinted, its label covers its first characters (positions come from the cell grid). */
 .c-term-hint { position: absolute; background: var(--color-terminal-selection); border-radius: var(--radius-badge); }
 .c-term-hint__label {
@@ -766,7 +780,7 @@ body {
 .c-modal__item { transition: background var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease); }
 
 /* Terminal helpers: the jump button and notes rise in; labels fade in. */
-.c-term-overlay__jump, .c-term-overlay__note, .c-term-overlay__banner, .c-term-overlay__chips { animation: c-fade-up var(--motion-medium) var(--motion-ease) both; }
+.c-term-overlay__jump, .c-term-overlay__note, .c-term-overlay__banner, .c-term-overlay__chips, .c-term-find { animation: c-fade-up var(--motion-medium) var(--motion-ease) both; }
 .c-term-overlay > .c-dropzone, .c-term-hint { animation: c-fade-in var(--motion-fast) var(--motion-ease) both; }
 
 /* Right panel slides in from the edge. */

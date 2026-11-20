@@ -22,6 +22,7 @@ export type ActionId =
   | 'nextWaiting'
   | 'copyLastReply'
   | 'quickSelect'
+  | 'find'
   | 'closeSession'
   | 'switchLanguage'
   | 'firstRun'
@@ -85,6 +86,7 @@ const ACTIONS: {
   { action: 'nextWaiting', label: (t) => t('attention.next'), shortcut: 'nextWaiting' },
   { action: 'copyLastReply', label: (t) => t('term.copyLastReply'), shortcut: 'copyLastReply' },
   { action: 'quickSelect', label: (t) => t('term.quickSelect'), shortcut: 'quickSelect' },
+  { action: 'find', label: (t) => t('term.find'), shortcut: 'find' },
   { action: 'closeSession', label: (t) => t('action.closeSession'), shortcut: 'closeSession' },
   { action: 'switchLanguage', label: (t) => t('palette.switchLanguage') },
   { action: 'firstRun', label: (t) => t('firstRun.checklist') },

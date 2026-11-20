@@ -6,3 +6,4 @@ export { default as WaitingTime } from './ui/WaitingTime';
 export { focusSession, pasteIntoSession } from './lib/terminalBus';
 export { useTerminal } from './model/useTerminal';
 export { default as ContextGauge } from './ui/ContextGauge';
+export { safePaste } from './lib/paste';

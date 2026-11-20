@@ -5,6 +5,7 @@ import { draggedSession, endSessionDrag } from '@/shared/lib/sessionDrag';
 import { AccountBadge, HostBadge } from '@/entities/project';
 import { StatusDot, TerminalView } from '@/entities/session';
 import { TerminalHelpers } from '@/features/terminal-helpers';
+import { TerminalSearch } from '@/features/terminal-search';
 import { FigmaChips } from '@/features/figma';
 import { ConnectionBanner } from '@/features/remote-connection';
 import { OpenSessionPanel } from '@/features/open-session';
@@ -251,6 +252,7 @@ export default function SplitView({
               <FigmaChips sessionId={s.id} kind={s.kind} />
             )}
             {s.remote && <ConnectionBanner session={s} />}
+            <TerminalSearch sessionId={s.id} />
           </div>
         );
       })}

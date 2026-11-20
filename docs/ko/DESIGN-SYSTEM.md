@@ -45,7 +45,7 @@
 | `--color-agent-claude` / `-codex` / `-shell` | 세션 종류 |
 | `--color-account-shared` / `-personal` | Claude 계정 배지 (`claude` / `claude-personal`) |
 | `--color-diff-*` | diff 추가 / 삭제 / 헝크 |
-| `--color-terminal-*` | xterm 테마 (실행 중에 읽고, 테마가 바뀌면 다시 읽음): 배경, 글자, 커서, 선택, 스크롤바(+ `-hover`). 라이트에선 xterm `minimumContrastRatio`를 4.5로 둬서 다크 배경용으로 고른 CLI 색도 읽혀요 |
+| `--color-terminal-*` | xterm 테마 (실행 중에 읽고, 테마가 바뀌면 다시 읽음): 배경, 글자, 커서, 선택, 스크롤바(+ `-hover`), 찾기 일치 `-match` / `-match-active`(불투명 `#RRGGBB` — xterm 데코레이션이 요구; 호박색). 라이트에선 xterm `minimumContrastRatio`를 4.5로 둬서 다크 배경용으로 고른 CLI 색도 읽혀요 |
 
 ### 세션 상태 — 앱의 핵심 언어
 
@@ -107,6 +107,7 @@
 | `--size-diff-gutter` / `--size-diff-comment` | 40 / 384 | diff의 줄 번호 칸 하나 / 줄 코멘트 상자 |
 | `--size-dialog` / `--size-dialog-wide` | 440 / 560 | 다이얼로그 너비 / 체크리스트가 있는 다이얼로그(첫 실행) |
 | `--size-palette` / `--size-palette-list` | 560 / 352 | 명령 팔레트 너비 / 스크롤 전 목록 높이(11줄) |
+| `--size-find-input` | 200 | 터미널 찾기 바의 검색어 입력 칸 (T40) |
 | `--size-modal` / `--size-modal-height` / `--size-modal-aside` | 760 / 520 / 240 | 목록 + 상세 모달(가이드, 릴리즈 노트) / 목록 열 너비 |
 | `--size-modal-wide` / `--size-modal-wide-height` / `--size-modal-wide-aside` | 960 / 640 / 320 | `.c-modal--wide` (세션 기록: 긴 행, 대화 미리보기) / 목록 열 너비 |
 
@@ -122,6 +123,7 @@
 | `.c-badge` `--claude` `--codex` `--shell` `--account-shared` `--account-personal` | 태그 |
 | `.c-badge--host`, `.c-badge__conn[data-conn=connecting\|connected\|reconnecting\|lost]` | 원격 호스트 이름(대문자로 안 바꿈)과 연결 점: 회색 / 초록 / 주황 깜빡임 / 빨강 (T29) |
 | `.c-term-overlay__banner` `__banner-text` `__banner-meta` | 터미널 위쪽을 가로지르는 클릭 가능한 바, 빨간 테두리: 연결 끊김 + 카운트다운 + 동작 (T29) |
+| `.c-term-find` `__input` `__count[data-empty]` | 터미널 오른쪽 위의 클릭 가능한 찾기 바: 검색어 · 개수(일치 없으면 빨강) · 대소문자 토글(`aria-pressed`) · 이전 · 다음 · 닫기; 비활성 버튼은 tertiary 색 (T40) |
 | `.c-term-overlay__chips` `__chips-group` `__chips-label` `__chips-close` | 터미널 위쪽을 가로지르는 클릭 가능한 바(CLI 입력창은 안 가림): 라벨 붙은 프롬프트 칩 그룹 + 닫기 (Figma 링크 붙여 넣기, T34) |
 | `.c-titlebar` `__title` `__actions` | 탭 바 높이의 맨 타이틀 띠, 드래그 가능, 왼쪽에 신호등 자리: 앞 요소 + 말줄임 제목 + 동작 (전체 창, T37) |
 | `.c-label` | 섹션 라벨 |
@@ -180,6 +182,7 @@
 | `TermBanner` `meta?` `action?` | `.c-term-overlay__banner` (연결 끊김, T29) |
 | `TitleBar` `lead?` `actions?` (+ div 속성) | `.c-titlebar` (전체 창, T37) |
 | `TermChips` `label` `closeLabel` `onClose`, `TermChipGroup` `label` | `.c-term-overlay__chips`, `.c-term-overlay__chips-group` (프롬프트 칩, T34) |
+| `TermFind` `label` `query` `onQuery` `onKeyDown?` `inputRef?` `placeholder?` `count?` `empty?` `caseSensitive` `onToggleCase` `onPrev` `onNext` `onClose` `labels` | `.c-term-find` (터미널에서 찾기, T40) |
 | `Field` `label` `hint` `warning`, `FieldRow`, `FieldGrid`, `Input`, `Textarea`, `Select` `options` `onChange(value)` | `.c-field`, `.c-field__row`, `.c-field-grid`, `.c-input`, `.c-input--multiline`, `.c-select` |
 | `ChangeRow` `status` `path` | `.c-change` |
 | `Palette` `open` `onClose` `label` `query` `onQueryChange` `listId` `activeId`, `PaletteList`, `PaletteItem` `selected` `label` `marks` `leading` `hint` `kbd`, `PaletteEmpty` | `.c-palette` (combobox + listbox) |
