@@ -323,6 +323,16 @@ export interface GuideState {
   offered: boolean;
 }
 
+/** Release notes (T27): the running version and the last one whose notes were shown (~/.aquila/release-notes.json). */
+export interface ReleaseNotesState {
+  /** `app.getVersion()`. */
+  current: string;
+  /** null = no record yet. */
+  lastSeen: string | null;
+  /** A fresh install (no record and no earlier use): the version is recorded, nothing is shown. */
+  fresh: boolean;
+}
+
 /** macOS thermal pressure (Electron `powerMonitor.getCurrentThermalState`). */
 export type ThermalState = 'unknown' | 'nominal' | 'fair' | 'serious' | 'critical';
 
@@ -616,6 +626,10 @@ export interface AquilaApi {
   guideState(): Promise<GuideState>;
   /** The offer was shown (or the guide opened): never offer it again. */
   markGuideOffered(): Promise<void>;
+  /** Running version vs. the last one whose release notes were shown (T27). */
+  releaseNotesState(): Promise<ReleaseNotesState>;
+  /** The notes up to `version` were shown: never auto-open them again. */
+  markReleaseNotesSeen(version: string): Promise<void>;
   /** Absolute path of a dropped `File` (Electron's webUtils; typed loosely because main has no DOM types). */
   pathForFile(file: object): string;
   /** Plain text to the clipboard (through main: Electron 45 has no clipboard module in the preload). */
@@ -802,6 +816,8 @@ export const IPC = {
   firstRunResetBinary: 'first-run:reset-binary',
   guideGet: 'guide:get',
   guideOffered: 'guide:offered',
+  releaseNotesGet: 'release-notes:get',
+  releaseNotesSeen: 'release-notes:seen',
   sessionWrite: 'session:write',
   sessionResize: 'session:resize',
   sessionKill: 'session:kill',

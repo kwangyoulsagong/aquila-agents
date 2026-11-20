@@ -1,18 +1,40 @@
 import { Button } from '@design-system/react';
+import { api } from '@/shared/api';
 import { useT } from '@/shared/i18n';
-import { withShortcut } from '@/shared/lib/shortcuts';
+import { SHORTCUTS, withShortcut } from '@/shared/lib/shortcuts';
 
-/** `?` in the sidebar footer: opens the guide. */
-export default function GuideButton({ onClick, open }: { onClick: () => void; open: boolean }) {
+interface Props {
+  onClick: () => void;
+  open: boolean;
+  /** T27: with it, `?` is a native menu — Guide (⌘/) and What's new; without it, `?` opens the guide directly. */
+  onWhatsNew?: () => void;
+}
+
+/** `?` in the sidebar footer: the guide, and release notes ("What's new"). ⌘/ still opens the guide directly. */
+export default function GuideButton({ onClick, open, onWhatsNew }: Props) {
   const t = useT();
+  const click = async () => {
+    if (!onWhatsNew) return onClick();
+    const id = await api.showContextMenu([
+      {
+        id: 'guide',
+        label: t('guide.title'),
+        accelerator: SHORTCUTS.guide,
+      },
+      { id: 'notes', label: t('notes.title') },
+    ]);
+    if (id === 'guide') onClick();
+    else if (id === 'notes') onWhatsNew();
+  };
   return (
     <Button
       variant="ghost"
       icon
       aria-pressed={open}
-      onClick={onClick}
-      title={withShortcut(t('guide.open'), 'guide')}
-      aria-label={t('guide.open')}
+      aria-haspopup={onWhatsNew ? 'menu' : undefined}
+      onClick={() => void click()}
+      title={withShortcut(onWhatsNew ? t('help.menu') : t('guide.open'), 'guide')}
+      aria-label={onWhatsNew ? t('help.menu') : t('guide.open')}
     >
       ?
     </Button>

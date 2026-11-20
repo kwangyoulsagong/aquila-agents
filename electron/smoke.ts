@@ -1,7 +1,8 @@
 // `npm run smoke`: launch the built app, open a shell session, check the pty round-trips,
 // check OSC 7501 (main answers the query; a report becomes the session status), check Ctrl+C stops a `yes` flood fast, open shells from the UI and check terminals on screen render with WebGL, save a screenshot to dist/smoke.png,
 // open the first-run checklist from ⌘K (dist/smoke-first-run.png), project settings from ⌘K (dist/smoke-settings.png, Figma on: dist/smoke-settings-figma.png), open the guide with ⌘/ (dist/smoke-guide.png,
-// dist/smoke-guide-shortcuts.png; every feature must show captured media), run the Korean IME scenarios (real composition
+// dist/smoke-guide-shortcuts.png; every feature must show captured media), ⌘K → What's new (dist/smoke-whats-new.png;
+// headlines with media, "How to use" opens the guide at that item), run the Korean IME scenarios (real composition
 // events through Chromium's IME path via CDP; checks the exact bytes the terminal sends), then quit with exit code 0 (ok) or 1 (fail).
 // Agents use this to verify their change actually runs.
 import fs from 'node:fs';
@@ -118,6 +119,8 @@ export async function runSmoke(
     if (settingsError) return fail(settingsError);
     const guideError = await checkGuide(win, outDir);
     if (guideError) return fail(guideError);
+    const notesError = await checkWhatsNew(win, config, path.join(outDir, 'smoke-whats-new.png'));
+    if (notesError) return fail(notesError);
     const trendsError = await checkTrends(win, outDir);
     if (trendsError) return fail(trendsError);
     const imeError = await checkIme(win);
@@ -165,10 +168,13 @@ async function checkPreviewPick(previews: PreviewViews): Promise<string | null> 
     await previews.hover('app', '#save', true);
     const pick = await Promise.race([picking, wait(3000).then(() => 'timeout' as const)]);
     if (pick === 'timeout' || !pick) return `preview: pick did not resolve (${String(pick)})`;
-    console.log(`[smoke] preview pick: ${pick.selector} ${pick.components.join(' ← ')} (${pick.source ?? '-'})`);
+    console.log(
+      `[smoke] preview pick: ${pick.selector} ${pick.components.join(' ← ')} (${pick.source ?? '-'})`,
+    );
     if (pick.selector !== '#save') return `preview: selector ${pick.selector}`;
     if (pick.text !== 'Save order') return `preview: text ${pick.text}`;
-    if (pick.components.join(',') !== 'SaveButton,Cart') return `preview: components ${pick.components.join(',')}`;
+    if (pick.components.join(',') !== 'SaveButton,Cart')
+      return `preview: components ${pick.components.join(',')}`;
     if (pick.source !== 'src/Save.tsx:12') return `preview: source ${pick.source}`;
     if (pick.styles['background-color'] !== 'rgb(47, 111, 237)') return 'preview: computed style missing';
     if (!pick.imagePath || !fs.existsSync(pick.imagePath) || fs.statSync(pick.imagePath).size < 100)
@@ -411,7 +417,9 @@ async function checkTrends(win: BrowserWindow, outDir: string): Promise<string |
   }
   if (!rows.some((r) => r.startsWith('2.1.329')) || !rows.some((r) => r.startsWith('2.1.328')))
     return `trends: CLI tab rows ${JSON.stringify(rows)}, expected 2.1.329 and 2.1.328 after opening fetched`;
-  await js(`[...document.querySelectorAll('.c-modal[open] .c-modal__item')].find((el) => el.textContent.trim().startsWith('2.1.329'))?.click()`);
+  await js(
+    `[...document.querySelectorAll('.c-modal[open] .c-modal__item')].find((el) => el.textContent.trim().startsWith('2.1.329'))?.click()`,
+  );
   await wait(200);
   const bullets = await js<number>(`document.querySelectorAll('.c-modal[open] .c-modal__bullets li').length`);
   if (bullets < 3) return `trends: selected release shows ${bullets} "Added" lines, expected 3–5`;
@@ -419,13 +427,22 @@ async function checkTrends(win: BrowserWindow, outDir: string): Promise<string |
   fs.writeFileSync(path.join(outDir, 'smoke-trends.png'), (await win.webContents.capturePage()).toPNG());
   await js(`document.querySelectorAll('.c-modal[open] .c-segment__item')[1]?.click()`);
   await wait(300);
-  const industry = await js<string>(`document.querySelector('.c-modal[open] .c-modal__heading')?.textContent ?? ''`);
+  const industry = await js<string>(
+    `document.querySelector('.c-modal[open] .c-modal__heading')?.textContent ?? ''`,
+  );
   if (!industry) return 'trends: Industry tab shows no detail';
-  fs.writeFileSync(path.join(outDir, 'smoke-trends-industry.png'), (await win.webContents.capturePage()).toPNG());
-  console.log(`[smoke] trends: fetched on open, ${rows.length} CLI rows, ${bullets} added lines, industry "${industry}"`);
+  fs.writeFileSync(
+    path.join(outDir, 'smoke-trends-industry.png'),
+    (await win.webContents.capturePage()).toPNG(),
+  );
+  console.log(
+    `[smoke] trends: fetched on open, ${rows.length} CLI rows, ${bullets} added lines, industry "${industry}"`,
+  );
   press(win, 'Escape', []);
   await wait(400);
-  return (await js<boolean>(`!!document.querySelector('.c-modal[open]')`)) ? 'Esc did not close AI trends' : null;
+  return (await js<boolean>(`!!document.querySelector('.c-modal[open]')`))
+    ? 'Esc did not close AI trends'
+    : null;
 }
 
 /**
@@ -478,6 +495,57 @@ async function checkGuide(win: BrowserWindow, outDir: string): Promise<string | 
     `!!document.querySelector('.c-modal[open]')`,
   );
   return stillOpen ? 'Esc did not close the guide' : null;
+}
+
+/**
+ * ⌘K → "What's new" (T27) opens the release notes: headlines grouped by version, the first one with its media;
+ * "How to use" closes it and opens the guide at that headline's item. Screenshot, then Esc closes the guide.
+ */
+async function checkWhatsNew(win: BrowserWindow, config: Config, out: string): Promise<string | null> {
+  const t = translator(config.language);
+  win.show();
+  win.focus();
+  press(win, 'K', ['meta']);
+  await wait(500);
+  const clicked: boolean = await win.webContents.executeJavaScript(`(() => {
+    const item = [...document.querySelectorAll('.c-palette__item')].find((el) => el.textContent === ${JSON.stringify(t('notes.title'))});
+    item?.click();
+    return !!item;
+  })()`);
+  if (!clicked) return `palette has no "${t('notes.title')}" action`;
+  await wait(600);
+  const seen: { items: number; groups: number; media: boolean; heading: string } = await win.webContents
+    .executeJavaScript(`(() => {
+      const m = document.querySelector('.c-modal[open]');
+      return {
+        items: m ? m.querySelectorAll('.c-modal__item').length : 0,
+        groups: m ? m.querySelectorAll('[role="group"]').length : 0,
+        media: !!m?.querySelector('.c-media__frame'),
+        heading: m?.querySelector('.c-modal__heading')?.textContent ?? '',
+      };
+    })()`);
+  if (seen.items < 3) return `what's new lists ${seen.items} headlines, expected at least 3`;
+  if (!seen.media) return `what's new: "${seen.heading}" shows no media`;
+  await wait(300);
+  fs.writeFileSync(out, (await win.webContents.capturePage()).toPNG());
+  const guideHeading: string = await win.webContents.executeJavaScript(`(async () => {
+    const btn = [...document.querySelectorAll('.c-modal[open] .c-modal__actions button')]
+      .find((b) => b.textContent === ${JSON.stringify(t('notes.howTo'))});
+    btn?.click();
+    await new Promise((r) => setTimeout(r, 400));
+    const open = [...document.querySelectorAll('.c-modal[open]')];
+    return open.length === 1 ? open[0].querySelector('.c-modal__heading')?.textContent ?? '' : '';
+  })()`);
+  if (!guideHeading) return `"${t('notes.howTo')}" did not open the guide alone`;
+  console.log(
+    `[smoke] what's new: ${seen.items} headlines in ${seen.groups} versions, "${seen.heading}" → guide "${guideHeading}", screenshot: ${out}`,
+  );
+  press(win, 'Escape', []);
+  await wait(400);
+  const stillOpen: boolean = await win.webContents.executeJavaScript(
+    `!!document.querySelector('.c-modal[open]')`,
+  );
+  return stillOpen ? "Esc did not close the guide opened from what's new" : null;
 }
 
 /** CDP modifier bits. */

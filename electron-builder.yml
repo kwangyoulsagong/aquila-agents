@@ -1,5 +1,6 @@
-# `npm run dist` → release/Aquila Agents-<version>-arm64.dmg (+ .zip). Builds are shared by hand for now:
-# not signed or notarized, no auto-update (see docs/en/TASKS.md T8 → left over).
+# `npm run dist` → release/Aquila Agents-<version>-arm64.dmg (+ .zip). Not signed or notarized (T8 → left over).
+# `npm run dist` first checks release-notes/<version>.json (T27). Upload the dmg, zip and latest-mac.yml to a GitHub
+# release tagged v<version>: the app checks it (electron/updater.ts) and notifies; unsigned builds can't self-install.
 appId: dev.aquila.agents
 productName: Aquila Agents
 copyright: Copyright © 2026 Aquila Agents
@@ -27,3 +28,8 @@ mac:
   identity: null
 dmg:
   title: Aquila Agents ${version}
+publish:
+  provider: github
+  owner: kwangyoulsagong
+  repo: aquila-agents
+  releaseType: release

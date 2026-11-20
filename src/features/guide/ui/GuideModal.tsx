@@ -23,13 +23,15 @@ interface Props {
   onClose: () => void;
   /** Media are captured per language. */
   language: Language;
+  /** Item selected on open (release notes' "How to use"); default the first. */
+  initialId?: string;
 }
 
 /**
  * ? / ⌘/: every feature in a searchable list; the selected one shows its screenshot or loop, 1–2 lines and its
  * shortcuts. The last item is the full shortcut sheet. ↑↓ pick, Esc closes.
  */
-export default function GuideModal({ open, onClose, language }: Props) {
+export default function GuideModal({ open, onClose, language, initialId }: Props) {
   const t = useT();
   const saver = usePowerSaver();
   const baseId = useId();
@@ -41,9 +43,9 @@ export default function GuideModal({ open, onClose, language }: Props) {
   useEffect(() => {
     if (open) {
       setQuery('');
-      setSelectedId(GUIDE_ITEMS[0].id);
+      setSelectedId((GUIDE_ITEMS.find((i) => i.id === initialId) ?? GUIDE_ITEMS[0]).id);
     }
-  }, [open]);
+  }, [open, initialId]);
 
   const entries = useMemo(() => guideEntries(GUIDE_ITEMS, t), [t]);
   const results = useMemo(() => searchGuide(entries, query, t), [entries, query, t]);

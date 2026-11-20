@@ -1,7 +1,7 @@
 {
   "name": "aquila-agents",
   "productName": "Aquila Agents",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "One window for all your Claude Code / Codex sessions across projects.",
   "main": "dist-electron/electron/main.js",
@@ -9,7 +9,7 @@
     "dev": "tsc -p tsconfig.electron.json && concurrently -k -n vite,tsc,app -c blue,yellow,magenta \"vite\" \"tsc -p tsconfig.electron.json -w --preserveWatchOutput\" \"wait-on tcp:5199 && cross-env AQUILA_DEV=1 electron .\"",
     "build": "tsc -p tsconfig.electron.json && vite build",
     "start": "npm run build && electron .",
-    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.electron.json --noEmit",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.electron.json --noEmit && tsc -p tsconfig.scripts.json",
     "lint": "eslint .",
     "test": "vitest run",
     "format": "prettier --write .",
@@ -18,10 +18,12 @@
     "smoke": "npm run build && cross-env AQUILA_SMOKE=1 electron .",
     "perf": "npm run build && cross-env AQUILA_SMOKE=1 AQUILA_PERF=1 electron .",
     "capture": "npm run build && bash scripts/capture/capture.sh",
-    "dist": "npm run build && electron-builder --mac --arm64",
+    "release-notes": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/release-notes.ts",
+    "dist": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/release-notes.ts check && npm run build && electron-builder --mac --arm64 --publish never",
     "icon": "tsc -p tsconfig.electron.json && electron dist-electron/electron/tools/render-icon.js"
   },
   "dependencies": {
+    "electron-updater": "^6.8.11",
     "node-pty": "^1.1.0"
   },
   "devDependencies": {

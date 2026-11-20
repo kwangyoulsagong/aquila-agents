@@ -1,0 +1,46 @@
+{
+  "version": "0.1.0",
+  "date": "2026-10-01",
+  "headlines": [
+    {
+      "guideId": "sessions",
+      "title": { "ko": "한 창에서 모든 세션", "en": "Every session in one window" },
+      "body": {
+        "ko": "프로젝트마다 진짜 claude · codex · 셸을 탭으로 열고, 상태 점으로 누가 기다리는지 봐요.",
+        "en": "Real claude, codex and shell tabs per project, with a status dot for who is waiting."
+      }
+    },
+    {
+      "guideId": "split",
+      "title": { "ko": "화면 분할", "en": "Split view" },
+      "body": {
+        "ko": "세션 2–4개를 한 화면에 나란히 띄워요. 다른 프로젝트끼리도 돼요.",
+        "en": "See 2–4 sessions side by side, from any projects."
+      }
+    },
+    {
+      "guideId": "changes",
+      "title": { "ko": "변경사항 패널", "en": "Changes panel" },
+      "body": {
+        "ko": "에이전트가 바꾼 파일과 diff를 앱 안에서 바로 봐요.",
+        "en": "See the files and diffs an agent changed without leaving the app."
+      }
+    },
+    {
+      "guideId": "palette",
+      "title": { "ko": "명령 팔레트", "en": "Command palette" },
+      "body": {
+        "ko": "⌘K로 프로젝트 · 세션으로 바로 가거나 동작을 실행해요.",
+        "en": "⌘K jumps to any project or session, or runs an action."
+      }
+    },
+    {
+      "guideId": "worktree",
+      "title": { "ko": "워크트리에서 새 Claude", "en": "New Claude in a worktree" },
+      "body": {
+        "ko": "브랜치별 워크트리를 만들고 거기서 세션을 열어요. 탭에 브랜치가 보여요.",
+        "en": "Create a worktree per branch and open a session there; the tab shows the branch."
+      }
+    }
+  ]
+}

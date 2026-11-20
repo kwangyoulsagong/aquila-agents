@@ -29,6 +29,8 @@
 │           preview                         │        │ preview.ts    dev server, preview view, pick(T33)│
 │                                           │        │ detect.ts     CLI checks, first-run state (T17)  │
 │                                           │        │ guide.ts      tour offered once (T23)            │
+│                                           │        │ releaseNotes  last version shown (T27)           │
+│                                           │        │ updater.ts    GitHub release check (T27)         │
 │                                           │        │ history.ts    past sessions, read-only (T11)     │
 │                                           │        │ terminalHelpers.ts clipboard paths, last reply   │
 │                                           │        │ remote/       ssh + tmux, reconnect, host check  │
@@ -554,6 +556,28 @@ on an explicit click, append `claude-<id>() { … }` to `~/.zshrc` — skipped i
   a video shows its poster. Items without media show a placeholder (title + shortcut) until T24 captures them.
 - Offer: when the first-run checklist closes, "Take a tour / Skip" is shown once (`~/.aquila/guide.json`
   `offered`, via `guide:get` / `guide:offered`); opening the guide also counts. Smoke never reads or writes it.
+
+## Release notes and updates (T27)
+
+- Notes: `release-notes/<version>.json` — `{ version, date, headlines: [{ guideId, media?, title: {ko,en}, body: {ko,en} }] }`,
+  3–5 headlines. Bundled by `features/release-notes/model/bundle.ts` (`import.meta.glob`, offline); validation, version
+  compare and drafting live in `model/notes.ts` (no imports, so the script runs it directly; tested).
+- `scripts/release-notes.ts` (Node's type stripping, `tsconfig.scripts.json`): `draft [version]` from Conventional
+  Commits since the last tag (`feat` subjects → English titles, the rest TODO); `check [version]` fails on a missing
+  file, a missing language, a TODO, a wrong headline count, an unknown `guideId` or missing guide media.
+  `npm run dist` runs `check` first.
+- When it opens: `electron/releaseNotes.ts` keeps `~/.aquila/release-notes.json` `lastSeenVersion` (`release-notes:get` /
+  `release-notes:seen`, never moves backwards). Fresh install (no record, no `state.json` / `guide.json` before this
+  launch) → record the version, show nothing (the tour is offered after the first-run checklist). Install from before
+  T27 → the current version's notes. Otherwise every version in (lastSeen, current], newest first, grouped by version.
+- UI: `ReleaseNotesModal` is the guide's `Modal`: headlines grouped by version, media from the guide (`guideMedia`,
+  passed in by the page), "How to use" → `guide.show(guideId)` (`GuideModal` `initialId`). `?` in the sidebar is a
+  native menu (Guide ⌘/ · What's new); ⌘K → "What's new" too. Both list every bundled version.
+- Updates: `electron/updater.ts` (packaged builds only, not smoke/capture) asks electron-updater about the GitHub
+  release in `electron-builder.yml` → `publish`, at launch and every 6 h, and notifies; the notification opens the
+  release page. Unsigned builds can't self-install (Squirrel.Mac), so nothing is downloaded.
+- Smoke: everything counts as seen (nothing auto-opens); ⌘K → "What's new" must show ≥3 headlines with media and
+  "How to use" must open the guide (`dist/smoke-whats-new.png`).
 
 ## i18n
 
