@@ -264,6 +264,17 @@ xterm 인스턴스는 `useTerminal(id)`(`entities/session`, `TerminalView`가 �
 - **갱신:** 마운트 때 `usage:get`, 이후 `usage:changed` 푸시: `Stop` 훅 3초 뒤, 포커스 중 1분마다, 아니면 5분마다,
   절전 모드에선 두 배. 바쁜 한 주의 첫 스캔 ≈ 2초(비동기), 이후 ~25ms.
 - 빠지는 것: claude.ai, 다른 기기, 원격(SSH) 세션.
+- **실제 값 (T30b, `electron/usage-live.ts`):** CLI가 실제 사용률을 알려 주면 그게 우선, 위의 추정은 대체용으로 남음.
+  Claude: 로그인된 계정마다 `claude -p /usage --no-session-persistence`를 숨겨서, 그 계정의 `CLAUDE_CONFIG_DIR`로 실행
+  (상속된 `CLAUDE_CONFIG_DIR` / `CLAUDECODE` / `CLAUDE_CODE_CHILD_SESSION`은 먼저 지움 — 상속된 값이 다른 계정을
+  가리킨 적이 있음). 로컬 명령이라 모델 호출·사용량 없음, ~2초. "Current session: 8% used · resets Nov 20 at 1:30pm
+  (Asia/Seoul)"과 "Current week (all models)" → `percent` + `resetsAt`(시간대는 문구에서, 시간만 있고 지났으면 내일,
+  연도가 없으니 다음에 오는 그 날짜). 못 읽으면 null. Codex: `rate_limits`가 있는 가장 최근
+  `$CODEX_HOME/sessions/YYYY/MM/DD/rollout-*.jsonl`(끝 512KB만 읽음)의 `primary` / `secondary` `used_percent`,
+  `window_minutes`, `resets_at`. 리셋이 이미 지났으면 0%. "Codex" 한 줄, 창은 길이로 라벨(300 → 5시간, 10080 → 주간,
+  그 밖엔 N일), 안 알려 준 창은 숨김. 확인은 평소 갱신 때 최대 3분에 한 번(`LIVE_EVERY_MS`) 백그라운드로 돌고
+  `usage:get`을 막지 않으며, 끝나면 `usage:changed` 푸시. 사용량 제한에 걸리면 다시 물어봄. 모든 줄이 실제 값이면
+  머리에 "실제", 아니면 "추정". claude.ai와 다른 기기 사용량 포함. smoke / capture에서는 끔.
 
 ## 컨텍스트 게이지 (T31)
 

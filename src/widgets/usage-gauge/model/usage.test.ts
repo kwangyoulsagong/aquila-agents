@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { AccountUsage } from '@/shared/api';
-import { formatTokens, fraction, otherAccount, tone, windowValue } from './usage';
+import { formatTokens, fraction, otherAccount, shown, tone, windowLabel, windowValue } from './usage';
 
 const w = (used: number, limit: number | null = null) => ({ used, limit, resetsAt: null });
 const acct = (account: string, used: number, limit: number | null, near = false): AccountUsage => ({
@@ -35,5 +35,26 @@ describe('usage gauge model', () => {
     const list = [acct('shared', 95, 100, true), acct('personal', 30, 100), acct('work', 10, 100)];
     expect(otherAccount(list, 'shared')).toBe('work');
     expect(otherAccount([acct('shared', 95, 100, true), acct('personal', 99, 100, true)], 'shared')).toBeNull();
+  });
+
+  it('a live percent wins over the estimate', () => {
+    const live = { ...w(50, 200), percent: 77 };
+    expect(fraction(live)).toBe(0.77);
+    expect(windowValue(live)).toBe('77%');
+    expect(tone({ ...w(0), percent: 92 })).toBe('danger');
+  });
+
+  it('labels windows by length when known', () => {
+    expect(windowLabel(w(0), 'weekly')).toBe('weekly');
+    expect(windowLabel({ ...w(0), span: 300 }, 'weekly')).toBe('fiveHour');
+    expect(windowLabel({ ...w(0), span: 10_080 }, 'fiveHour')).toBe('weekly');
+    expect(windowLabel({ ...w(0), span: 43_200 }, 'fiveHour')).toEqual({ days: 30 });
+  });
+
+  it('Codex: windows it did not report are hidden, and it is never the "other account"', () => {
+    const codex: AccountUsage = { account: 'codex', kind: 'codex', fiveHour: { ...w(0), percent: 1 }, weekly: { ...w(0), percent: null }, near: false };
+    expect(shown(codex, codex.fiveHour)).toBe(true);
+    expect(shown(codex, codex.weekly)).toBe(false);
+    expect(otherAccount([acct('shared', 95, 100, true), codex], 'shared')).toBeNull();
   });
 });

@@ -27,7 +27,7 @@ import {
   writeClaudeHookSettings,
   type HookEvent,
 } from './hooks';
-import { refreshDue, UsageTracker } from './usage';
+import { LIVE_SOURCES, ratio, refreshDue, UsageTracker } from './usage';
 import { ContextWatcher, statusLineSources, userHasStatusLine } from './context';
 import { connect as figmaConnect, FIGMA_DOCS_URL, readProfiles as figmaProfiles } from './figma';
 import { PowerWatcher, type PowerSource } from './power';
@@ -230,21 +230,36 @@ app.whenReady().then(async () => {
     const config = loadConfig();
     const t = translator(config.language);
     const w = u[which];
-    const percent = String(Math.round((w.used / (w.limit ?? w.used)) * 100));
+    const percent = String(Math.round(ratio(w) * 100));
+    const live = typeof w.percent === 'number';
     const time = w.resetsAt
-      ? new Date(w.resetsAt).toLocaleTimeString(config.language === 'ko' ? 'ko-KR' : 'en-US', {
+      ? new Date(w.resetsAt).toLocaleString(config.language === 'ko' ? 'ko-KR' : 'en-US', {
+          ...(which === 'weekly' ? { month: 'numeric', day: 'numeric' } : {}),
           hour: '2-digit',
           minute: '2-digit',
         })
       : '';
+    const body = live
+      ? which === 'fiveHour'
+        ? 'usage.nearBody5hLive'
+        : 'usage.nearBodyWeekLive'
+      : which === 'fiveHour'
+        ? 'usage.nearBody5h'
+        : 'usage.nearBodyWeek';
     const n = new Notification({
       title: t('usage.nearTitle', { account: accountLabel(t, u.account, config.accounts[u.account]) }),
-      body: t(which === 'fiveHour' ? 'usage.nearBody5h' : 'usage.nearBodyWeek', { percent, time }),
+      body: t(body, { percent, time }),
     });
     n.on('click', () => win?.show());
     n.show();
   };
-  const usage = new UsageTracker({ config: loadConfig, onNear: notifyNearLimit });
+  const usage = new UsageTracker({
+    config: loadConfig,
+    onNear: notifyNearLimit,
+    // Real share from the CLIs (T30b); not in smoke / capture runs (no hidden `claude` starts there).
+    live: isSmoke || process.env.AQUILA_CAPTURE ? undefined : LIVE_SOURCES,
+    onUpdate: (list) => send(IPC.usageChanged, list),
+  });
   const pushUsage = (p: Promise<AccountUsage[]>) =>
     p.then((list) => send(IPC.usageChanged, list)).catch((err: unknown) => console.error('[usage]', err));
   ipcMain.handle(IPC.usageGet, () => usage.refresh());

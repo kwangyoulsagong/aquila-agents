@@ -279,6 +279,18 @@ side: the 5-hour block (with its reset time) and the last 7 days. Labelled "Esti
 - **Refresh:** `usage:get` on mount, `usage:changed` pushes: 3 s after each `Stop` hook, every minute while focused,
   every 5 min otherwise, twice as long in power saver. First scan of a busy week ≈ 2 s (async), then ~25 ms.
 - Not counted: claude.ai, other machines, remote (SSH) sessions.
+- **Live (T30b, `electron/usage-live.ts`):** the real share wins when the CLIs report it; the estimate above stays as
+  the fallback. Claude: `claude -p /usage --no-session-persistence` per logged-in account, hidden, with that account's
+  `CLAUDE_CONFIG_DIR` (inherited `CLAUDE_CONFIG_DIR` / `CLAUDECODE` / `CLAUDE_CODE_CHILD_SESSION` removed first — an
+  inherited one pointed the probe at the other account). Local command: no model call, no quota, ~2 s. "Current
+  session: 8% used · resets Nov 20 at 1:30pm (Asia/Seoul)" and "Current week (all models)" → `percent` + `resetsAt`
+  (zone from the text; a time alone that passed = tomorrow; no year printed = the next such date). Unreadable → null.
+  Codex: the newest `$CODEX_HOME/sessions/YYYY/MM/DD/rollout-*.jsonl` with `rate_limits` (last 512 KB read):
+  `primary` / `secondary` `used_percent`, `window_minutes`, `resets_at`; a reset already past reads 0%. One "Codex"
+  row, windows labelled by length (300 → 5 hours, 10080 → weekly, else N days), unreported ones hidden.
+  Probes run in the background at most every 3 min (`LIVE_EVERY_MS`) on the usual refreshes, never block
+  `usage:get`, and push `usage:changed` when done; a rate limit hit asks again. The header says "Live" when every row
+  is live, else "Estimated". Includes claude.ai and other machines. Off in smoke / capture.
 
 ## Context gauge (T31)
 
