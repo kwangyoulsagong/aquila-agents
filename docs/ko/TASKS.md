@@ -325,7 +325,8 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
 - **담당:** `electron/platform/`, `sessions.ts`의 Windows 부분, `main.ts` 창 옵션, CI 워크플로.
 
 ### T20 · Windows 패키징 + 서명
-- [ ] **목표:** 사람들이 실행할 수 있는 Windows 설치 파일. (#28)
+- [x] **목표:** 사람들이 실행할 수 있는 Windows 설치 파일. (#28)
+  _남은 것: **서명 경로: 미서명 + SmartScreen 안내**(오너 결정), 나중에 서명할 때는 `win.azureSignOptions`. NSIS x64 + arm64 설치 파일은 macOS에서 빌드·확인만 했고 **Windows에서 설치·실행은 안 해 봄** — CI가 Windows 러너에서 패키징하고 패키징된 레이아웃에서 pty를 띄우는 게 첫 실제 확인. Windows 업데이트는 다운로드 후 종료 시 설치(서명 없는 NSIS 허용), macOS는 여전히 알림만(Squirrel.Mac은 서명 필요). 안 한 것: winget/scoop 매니페스트(공개 릴리스 URL + sha256이 있어야 제출 가능), 릴리스 워크플로(산출물은 수동 업로드), 설치/제거 화면 문구는 NSIS 기본(사전의 ko/en 아님)._
 - **명세:** 서명 경로부터 결정(한국 개인: Azure Artifact Signing 불가, 한국 법인: 가능 → 법인 + Artifact Signing /
   미서명 + winget/scoop + SmartScreen 안내 / MSIX — MSIX 파일시스템 제약 확인). NSIS x64 + arm64, electron-updater
   (macOS도).

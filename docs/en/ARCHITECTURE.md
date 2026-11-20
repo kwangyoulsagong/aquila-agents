@@ -30,7 +30,7 @@
 │                                           │        │ detect.ts     CLI checks, first-run state (T17)  │
 │                                           │        │ guide.ts      tour offered once (T23)            │
 │                                           │        │ releaseNotes  last version shown (T27)           │
-│                                           │        │ updater.ts    GitHub release check (T27)         │
+│                                           │        │ updater.ts    update check/install (T27, T20)    │
 │                                           │        │ history.ts    past sessions, read-only (T11)     │
 │                                           │        │ terminalHelpers.ts clipboard paths, last reply   │
 │                                           │        │ remote/       ssh + tmux, reconnect, host check  │
@@ -583,7 +583,9 @@ on an explicit click, append `claude-<id>() { … }` to `~/.zshrc` — skipped i
   native menu (Guide ⌘/ · What's new); ⌘K → "What's new" too. Both list every bundled version.
 - Updates: `electron/updater.ts` (packaged builds only, not smoke/capture) asks electron-updater about the GitHub
   release in `electron-builder.yml` → `publish`, at launch and every 6 h, and notifies; the notification opens the
-  release page. Unsigned builds can't self-install (Squirrel.Mac), so nothing is downloaded.
+  release page. Unsigned builds can't self-install on macOS (Squirrel.Mac), so nothing is downloaded there. On Windows
+  (T20) the NSIS updater installs unsigned builds (signature checked only with `publisherName`; sha512 always), so it
+  downloads in the background, installs on quit, and the notification offers a restart (`quitAndInstall`).
 - Smoke: everything counts as seen (nothing auto-opens); ⌘K → "What's new" must show ≥3 headlines with media and
   "How to use" must open the guide (`dist/smoke-whats-new.png`).
 
@@ -614,3 +616,7 @@ Renderer: `useT()`; main (notifications): `translator(config.language)`.
 - `npm run dist`: electron-builder (`electron-builder.yml`) → `release/*.dmg` + `.zip`, arm64, unsigned. Only `node-pty`
   is a runtime dependency (renderer libraries are bundled by Vite, so they're devDependencies); it's unpacked from the
   asar. Icon: `build/icon.svg` → `npm run icon` → `build/icon.png` (rendered by Electron, `electron/tools/render-icon.ts`).
+- `npm run dist:win` (T20): NSIS → `release/AquilaAgents-<version>-{x64,arm64}-setup.exe` + `latest.yml`, unsigned,
+  per-user (no admin), built from macOS too. `npmRebuild: false`: the Mac build uses the postinstall rebuild, Windows
+  leaves `node-pty/build/` out so node-pty loads its N-API `prebuilds/win32-<arch>`. CI packs on each Windows runner
+  and spawns a pty from the packaged layout with the packaged Electron.

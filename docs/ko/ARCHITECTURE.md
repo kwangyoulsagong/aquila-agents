@@ -30,7 +30,7 @@
 │                                           │        │ detect.ts     CLI 점검, 첫 실행 상태 (T17)       │
 │                                           │        │ guide.ts      둘러보기 제안 한 번만 (T23)        │
 │                                           │        │ releaseNotes  마지막으로 본 버전 (T27)           │
-│                                           │        │ updater.ts    GitHub 릴리스 확인 (T27)           │
+│                                           │        │ updater.ts    업데이트 확인·설치 (T27, T20)      │
 │                                           │        │ history.ts    지난 세션, 읽기 전용 (T11)         │
 │                                           │        │ terminalHelpers.ts 클립보드 경로, 마지막 응답    │
 │                                           │        │ remote/       ssh + tmux, 재연결, 호스트 확인    │
@@ -554,7 +554,8 @@ Agentrix에서 이름이 바뀌었습니다: 처음 실행할 때 `~/.aquila/con
   ⌘K → "새로운 기능"도 있음. 둘 다 번들된 모든 버전을 보여요.
 - 업데이트: `electron/updater.ts`(패키징된 앱만, smoke/capture 제외)가 `electron-builder.yml` → `publish`의 GitHub 릴리스를
   실행 시와 6시간마다 electron-updater로 확인하고 알림. 알림을 누르면 릴리스 페이지. 서명이 없어 자동 설치는 안 되므로
-  (Squirrel.Mac) 다운로드하지 않아요.
+  (Squirrel.Mac) macOS에서는 다운로드하지 않아요. Windows(T20)는 NSIS 업데이터가 서명 없는 빌드도 설치하므로(서명은
+  `publisherName`이 있을 때만 확인, sha512는 항상) 백그라운드에서 받아 종료할 때 설치하고, 알림으로 다시 시작(`quitAndInstall`)을 제안해요.
 - smoke: 전부 본 것으로 처리(자동으로 안 열림). ⌘K → "새로운 기능"이 미디어 있는 헤드라인 3개 이상을 보여 주고
   "사용법 보기"가 가이드를 열어야 함(`dist/smoke-whats-new.png`).
 
@@ -584,3 +585,7 @@ Agentrix에서 이름이 바뀌었습니다: 처음 실행할 때 `~/.aquila/con
 - `npm run dist`: electron-builder(`electron-builder.yml`) → `release/*.dmg` + `.zip`, arm64, 서명 없음. 런타임 의존성은
   `node-pty`뿐이고(렌더러 라이브러리는 Vite가 번들하므로 devDependencies) asar 밖으로 풀어 둡니다. 아이콘:
   `build/icon.svg` → `npm run icon` → `build/icon.png` (Electron으로 렌더링, `electron/tools/render-icon.ts`).
+- `npm run dist:win`(T20): NSIS → `release/AquilaAgents-<버전>-{x64,arm64}-setup.exe` + `latest.yml`, 서명 없음,
+  사용자별 설치(관리자 불필요), macOS에서도 빌드됨. `npmRebuild: false`: Mac 빌드는 postinstall 재빌드를 쓰고, Windows는
+  `node-pty/build/`를 빼서 node-pty가 N-API `prebuilds/win32-<arch>`를 읽게 해요. CI가 각 Windows 러너에서 패키징하고
+  패키징된 Electron으로 패키징된 레이아웃에서 pty를 띄워 봅니다.

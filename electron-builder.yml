@@ -17,6 +17,9 @@ files:
 # node-pty is native: its .node files and spawn-helper must live outside the asar to load and execute.
 asarUnpack:
   - node_modules/node-pty/**
+# No rebuild at pack time: `postinstall` already rebuilt node-pty for Electron on the host (macOS build), and Windows
+# uses node-pty's N-API prebuilds (see win below). Rebuilding here would try to cross-compile and fail.
+npmRebuild: false
 mac:
   target:
     - target: dmg
@@ -28,6 +31,30 @@ mac:
   identity: null
 dmg:
   title: Aquila Agents ${version}
+# Windows (T20): `npm run dist:win` → release/AquilaAgents-<version>-{x64,arm64}-setup.exe + latest.yml. Unsigned:
+# SmartScreen shows "Windows protected your PC" → More info → Run anyway (docs/*/README.md). node-pty is N-API and ships
+# prebuilds for win32-x64 and win32-arm64, so both installers are packed from any host: the host's own rebuild
+# (build/) is left out and node-pty falls through to prebuilds/win32-<arch>. Signing later: add
+# win.azureSignOptions (Artifact Signing) or a certificate; electron/updater.ts then can download + install.
+win:
+  target:
+    - target: nsis
+      arch: [x64, arm64]
+  icon: build/icon.png
+  files:
+    - '!node_modules/node-pty/build/**'
+    - '!node_modules/node-pty/prebuilds/darwin-*/**'
+    - '!node_modules/node-pty/**/*.pdb'
+# Per-user install, no admin prompt; shortcut AUMID = appId (matches app.setAppUserModelId in electron/main.ts).
+nsis:
+  oneClick: true
+  perMachine: false
+  artifactName: AquilaAgents-${version}-${arch}-setup.${ext}
+  # One installer per arch (~125 MB each), no combined x64+arm64 one; the updater picks the file named after its arch.
+  buildUniversalInstaller: false
+  shortcutName: Aquila Agents
+  uninstallDisplayName: Aquila Agents
+  deleteAppDataOnUninstall: false
 publish:
   provider: github
   owner: kwangyoulsagong

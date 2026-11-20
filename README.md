@@ -21,6 +21,7 @@ npm run smoke   # build, launch, verify a terminal session works, screenshot →
 npm run capture # rebuild the in-app guide's screenshots and loops from demo fixtures (ko + en)
 npm run check   # typecheck + lint (incl. FSD boundaries) + tests
 npm run dist    # package → release/Aquila Agents-<version>-arm64.dmg (+ .zip)
+npm run dist:win # Windows installers → release/AquilaAgents-<version>-{x64,arm64}-setup.exe (builds on macOS too)
 ```
 
 Projects live in `~/.aquila/config.json` (created on first run; "Open settings file" in the sidebar).
@@ -38,6 +39,14 @@ notarized** yet, so on the receiving Mac:
 2. The first launch is blocked ("unidentified developer"). Right-click the app → **Open** → **Open**, or run once:
    `xattr -dr com.apple.quarantine "/Applications/Aquila Agents.app"`
 3. `claude` and/or `codex` must already be installed and logged in on that Mac (the app runs the real CLIs).
+
+**Windows** (10 1809+ / 11, x64 or arm64): `npm run dist:win` writes one installer per architecture and `latest.yml`;
+upload all three (plus the `.blockmap` files) to the same release. Installers are **not signed**, so:
+
+1. Run `AquilaAgents-<version>-x64-setup.exe` (or `-arm64-` on ARM PCs). It installs for the current user, no admin.
+2. SmartScreen says "Windows protected your PC": click **More info** → **Run anyway**. Only the first install asks;
+   updates download in the background and install when you quit (or click the "restart" notification).
+3. `claude` and/or `codex` must be installed and logged in on that PC (or inside the WSL distro you open projects in).
 
 ## Shortcuts
 
