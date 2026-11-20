@@ -695,6 +695,9 @@ app.whenReady().then(async () => {
   );
   ipcMain.on(IPC.sessionKill, (_e, { id }: { id: string }) => s.kill(id));
   ipcMain.on(IPC.sessionSeen, (_e, { id }: { id: string }) => s.markSeen(id));
+  ipcMain.on(IPC.sessionRename, (_e, { id, title }: { id: string; title: unknown }) =>
+    s.rename(id, typeof title === 'string' ? title : ''),
+  );
   ipcMain.on(IPC.uiActive, (_e, { id }: { id: string | null }) => s.setActive(id));
   ipcMain.on(IPC.sessionAck, (_e, { id }: { id: string }) => s.ack(id));
   ipcMain.on(IPC.sessionVisible, (_e, { id, visible }: { id: string; visible: boolean }) =>

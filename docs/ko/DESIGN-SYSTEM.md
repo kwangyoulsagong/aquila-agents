@@ -154,7 +154,7 @@
 | `.c-shortcuts` `__group` `__row` `__label` `__keys` | 단축키 시트: 그룹별 줄, 왼쪽 이름, 오른쪽 키 |
 | `.c-checklist` `__item` `__lead` `__main` `__title` `__meta` `__actions` `__detail` `__command` | 테두리 있는 점검 목록: 제목 줄의 점 · 제목(+ 배지) / 모노 메타 · 버튼, 아래에 전체 폭 상세(복사 버튼 있는 설치 명령, 드롭 영역) |
 | `.c-dropzone[data-over]` | 점선 드롭 영역. 끌어 올리는 동안 강조 테두리 + 선택 배경 |
-| `.c-field` `__label` `__hint`, `.c-input` (`--multiline`), `.c-select` `__control` | 폼 필드: 라벨, 텍스트 입력 / 선택 (포커스 = 파란 테두리), 모노스페이스 힌트 (`data-tone="warning"` = 대기 주황) |
+| `.c-field` `__label` `__hint`, `.c-input` (`--multiline`, `--inline`), `.c-select` `__control` | 폼 필드: 라벨, 텍스트 입력 / 선택 (포커스 = 파란 테두리), 모노스페이스 힌트 (`data-tone="warning"` = 대기 주황). `--inline`은 줄 안에서 제목을 바로 고친다(탭 이름 바꾸기, T43): 그 줄의 글꼴, 고정 높이 없음 |
 | `.c-field__row`, `.c-field-grid` | 컨트롤 옆에 버튼(경로 + "바꾸기…"); 짧은 필드 두 개를 나란히 |
 
 ## React 컴포넌트 (`design-system/react/`)
@@ -183,7 +183,7 @@
 | `TitleBar` `lead?` `actions?` (+ div 속성) | `.c-titlebar` (전체 창, T37) |
 | `TermChips` `label` `closeLabel` `onClose`, `TermChipGroup` `label` | `.c-term-overlay__chips`, `.c-term-overlay__chips-group` (프롬프트 칩, T34) |
 | `TermFind` `label` `query` `onQuery` `onKeyDown?` `inputRef?` `placeholder?` `count?` `empty?` `caseSensitive` `onToggleCase` `onPrev` `onNext` `onClose` `labels` | `.c-term-find` (터미널에서 찾기, T40) |
-| `Field` `label` `hint` `warning`, `FieldRow`, `FieldGrid`, `Input`, `Textarea`, `Select` `options` `onChange(value)` | `.c-field`, `.c-field__row`, `.c-field-grid`, `.c-input`, `.c-input--multiline`, `.c-select` |
+| `Field` `label` `hint` `warning`, `FieldRow`, `FieldGrid`, `Input`, `InlineInput`, `Textarea`, `Select` `options` `onChange(value)` | `.c-field`, `.c-field__row`, `.c-field-grid`, `.c-input`, `.c-input--inline`, `.c-input--multiline`, `.c-select` |
 | `ChangeRow` `status` `path` | `.c-change` |
 | `Palette` `open` `onClose` `label` `query` `onQueryChange` `listId` `activeId`, `PaletteList`, `PaletteItem` `selected` `label` `marks` `leading` `hint` `kbd`, `PaletteEmpty` | `.c-palette` (combobox + listbox) |
 | `Modal` `open` `title` `onClose` `closeLabel` `aside` `footer` `wide`, `ModalSearch` (열 때 포커스), `ModalList` `id` `label`, `ModalItem` `selected` `label` `meta` `trailing` `onSelect`, `ModalEmpty`, `ModalDetail` `heading` `text` `keys`, `ModalGroup` `label` `hint`, `ModalTools`, `ModalActions` `onSubmit?`, `ModalNote` `warn`, `ModalBullets` `items` | `.c-modal` |

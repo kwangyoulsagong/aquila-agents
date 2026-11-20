@@ -127,6 +127,8 @@ export async function runSmoke(
     if (quickError) return fail(quickError);
     const menuPasteError = await checkMenuPaste(win);
     if (menuPasteError) return fail(menuPasteError);
+    const renameError = await checkRename(win, sessions, outDir);
+    if (renameError) return fail(renameError);
     const onPath = (bin: string) =>
       (process.env.PATH ?? '').split(':').some((dir) => dir && fs.existsSync(path.join(dir, bin)));
     console.log(`[smoke] PATH has claude: ${onPath('claude')}, codex: ${onPath('codex')}`);
@@ -464,6 +466,43 @@ async function checkQuickSelectFollows(win: BrowserWindow): Promise<string | nul
   if (after.length !== before.length + 1 || !before.every((l) => after.includes(l)))
     return `quick select: output after opening did not get a new label (${JSON.stringify({ before, after })})`;
   if (!terminal) return 'quick select: Esc did not give the terminal its keyboard back';
+  return null;
+}
+
+/**
+ * T43: double-click the focused tab's title, type a name, Enter. The tab and the pane head show it, the saved tabs
+ * carry it, and the keyboard goes back to the terminal. Cleared afterwards so later checks see the usual tabs.
+ */
+async function checkRename(win: BrowserWindow, s: SessionManager, outDir: string): Promise<string | null> {
+  const js = <T>(code: string): Promise<T> => win.webContents.executeJavaScript(code) as Promise<T>;
+  const name = 'Smoke 제목';
+  const opened: boolean = await js(`(() => {
+    const title = document.querySelector('.c-tab[aria-selected="true"] .c-tab__title');
+    title?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+    return !!title;
+  })()`);
+  if (!opened) return 'rename: no selected tab title';
+  await wait(200);
+  const editing: boolean = await js(`document.activeElement?.matches('.c-tab input') ?? false`);
+  if (!editing) return 'rename: double-click did not open the title for editing';
+  await win.webContents.insertText(name);
+  press(win, 'Return', []);
+  await wait(400);
+  const shown: { tab: string; head: string; terminal: boolean } = await js(`({
+    tab: document.querySelector('.c-tab[aria-selected="true"] .c-tab__title')?.textContent ?? '',
+    head: [...document.querySelectorAll('.c-pane[data-focused="true"] .c-pane__title')].map((e) => e.textContent).join(),
+    terminal: !!document.activeElement?.classList.contains('xterm-helper-textarea'),
+  })`);
+  fs.writeFileSync(path.join(outDir, 'smoke-rename.png'), (await win.webContents.capturePage()).toPNG());
+  const saved = s.tabs().some((t) => t.title === name);
+  console.log(`[smoke] rename: tab "${shown.tab}", pane head "${shown.head}", saved ${saved}`);
+  const id = s.active;
+  if (id) s.rename(id, '');
+  await wait(200);
+  if (shown.tab !== name) return `rename: the tab reads "${shown.tab}"`;
+  if (!shown.head.includes(name)) return `rename: the pane head reads "${shown.head}"`;
+  if (!saved) return 'rename: the title is not in the saved tabs';
+  if (!shown.terminal) return 'rename: Enter did not give the terminal its keyboard back';
   return null;
 }
 

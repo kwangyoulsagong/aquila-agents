@@ -56,10 +56,15 @@ export function useWorkspace() {
       setSessions((list) => list.map((s) => (s.id === id ? { ...s, exited: true } : s))),
     );
     const offFocus = api.onFocusSession(({ id }) => showSession(id));
+    // T43: a rename or the first prompt; absent fields were cleared.
+    const offTitle = api.onTitle(({ id, title, prompt }) =>
+      setSessions((list) => list.map((s) => (s.id === id ? { ...s, title, prompt } : s))),
+    );
     const offConnection = api.onConnection(({ id, state, retryAt }) =>
       setSessions((list) => list.map((s) => (s.id === id ? { ...s, connection: state, retryAt } : s))),
     );
     return () => {
+      offTitle();
       offConnection();
       offStatus();
       offExit();

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   hookSettings,
   parseClaudeVersion,
+  promptTitle,
   readHookBody,
   SESSION_HEADER,
   startHookServer,
@@ -55,7 +56,27 @@ describe('startHookServer', () => {
   });
 });
 
+describe('promptTitle', () => {
+  it('takes the first line of a prompt, cut for a tab title', () => {
+    expect(promptTitle('  Fix the login bug\nwith details')).toBe('Fix the login bug');
+    expect(promptTitle('a'.repeat(60))).toBe(`${'a'.repeat(39)}…`);
+  });
+  it('ignores slash commands and empty prompts', () => {
+    expect(promptTitle('/clear')).toBe('');
+    expect(promptTitle('   ')).toBe('');
+    expect(promptTitle(undefined)).toBe('');
+  });
+});
+
 describe('readHookBody', () => {
+  it('gives UserPromptSubmit the prompt title (T43)', () => {
+    expect(
+      readHookBody(JSON.stringify({ hook_event_name: 'UserPromptSubmit', prompt: 'Add dark mode' })),
+    ).toEqual({ event: 'UserPromptSubmit', prompt: 'Add dark mode' });
+    expect(
+      readHookBody(JSON.stringify({ hook_event_name: 'UserPromptSubmit', prompt: '/model' }))?.prompt,
+    ).toBe(undefined);
+  });
   it('still finds the event name in a body cut at the size cap', () => {
     expect(readHookBody('{"hook_event_name": "PostToolUse", "tool_input": {"content": "aaa')).toEqual({
       event: 'PostToolUse',

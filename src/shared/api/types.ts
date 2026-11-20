@@ -224,6 +224,17 @@ export interface SessionInfo {
   dormant?: boolean;
   /** SSH host alias of a remote session (T29). */
   remote?: string;
+  /** Title the user gave the tab (T43); wins over everything else. */
+  title?: string;
+  /** First prompt of a Claude session, one line (T43): the title until the user names the tab. */
+  prompt?: string;
+}
+
+/** What main sends on `session:title` when a tab's title or first prompt changes (absent = cleared). */
+export interface SessionTitleUpdate {
+  id: string;
+  title?: string;
+  prompt?: string;
 }
 
 /** A split layout as saved across launches: the pane tree with session ids, and the focused pane's index. */
@@ -702,6 +713,9 @@ export interface AquilaApi {
   onStatus(cb: (p: StatusUpdate) => void): Unsubscribe;
   onExit(cb: (p: { id: string; exitCode: number }) => void): Unsubscribe;
   onFocusSession(cb: (p: { id: string }) => void): Unsubscribe;
+  /** Names a tab (T43); '' goes back to the automatic title. Main answers on `onTitle`. */
+  renameSession(id: string, title: string): void;
+  onTitle(cb: (p: SessionTitleUpdate) => void): Unsubscribe;
   /** Host aliases from `~/.ssh/config` (no wildcards), for the remote project form. */
   sshHosts(): Promise<string[]>;
   /** Connects once (BatchMode) and reports OS, CLIs, tmux, git and the Claude login on the host. */
@@ -887,6 +901,8 @@ export const IPC = {
   sessionData: 'session:data',
   sessionStatus: 'session:status',
   sessionExit: 'session:exit',
+  sessionRename: 'session:rename',
+  sessionTitle: 'session:title',
   uiFocusSession: 'ui:focus-session',
   remoteHosts: 'remote:hosts',
   remoteCheck: 'remote:check',

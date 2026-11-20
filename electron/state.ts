@@ -25,6 +25,9 @@ export interface SavedTab {
   claudeSessionId?: string;
   /** Codex session id, read from the rollout file codex wrote for this tab (`codex.ts`). */
   codexSessionId?: string;
+  /** The user's title for the tab and the first prompt (T43). */
+  title?: string;
+  prompt?: string;
 }
 
 export interface SavedState {
@@ -50,6 +53,11 @@ export const isSessionId = (id: unknown): id is string => typeof id === 'string'
 /** Tab keys are uuids too: they become file names, so nothing else is accepted. */
 export const isTabKey = isSessionId;
 export const newTabKey = (): string => crypto.randomUUID();
+
+/** Titles are one short line (T43): anything else in the file is dropped. */
+export const TITLE_MAX = 80;
+const isTitle = (v: unknown): v is string =>
+  typeof v === 'string' && v.trim() === v && v.length > 0 && v.length <= TITLE_MAX && !/[\n\r]/.test(v);
 
 const isWorktree = (w: unknown): w is Worktree =>
   typeof (w as Worktree | null)?.path === 'string' &&
@@ -134,6 +142,8 @@ export function readState(file = STATE_PATH): SavedState {
           : {}),
         ...(isSessionId(t.claudeSessionId) ? { claudeSessionId: t.claudeSessionId } : {}),
         ...(isSessionId(t.codexSessionId) ? { codexSessionId: t.codexSessionId } : {}),
+        ...(isTitle(t.title) ? { title: t.title } : {}),
+        ...(isTitle(t.prompt) ? { prompt: t.prompt } : {}),
       },
     ];
   });
@@ -186,6 +196,9 @@ export interface RestorePlan {
   resumeCodex?: boolean;
   /** Nothing to resume: show the saved output read-only above the fresh session (shells). */
   cold?: boolean;
+  /** Kept across launches (T43). */
+  title?: string;
+  prompt?: string;
 }
 
 /**
@@ -202,7 +215,13 @@ export function planRestore(
     const project = config.projects.find((p) => p.id === t.projectId);
     if (!project) return [];
     if (t.worktree && !dirExists(t.worktree.path)) return [];
-    const where = { key: t.key, projectId: t.projectId, ...(t.worktree ? { worktree: t.worktree } : {}) };
+    const where = {
+      key: t.key,
+      projectId: t.projectId,
+      ...(t.worktree ? { worktree: t.worktree } : {}),
+      ...(t.title ? { title: t.title } : {}),
+      ...(t.prompt ? { prompt: t.prompt } : {}),
+    };
     if (t.kind === 'shell') return [{ ...where, kind: 'shell', cold: true }];
     if (t.kind === 'codex') {
       if (t.codexSessionId) return [{ ...where, kind: 'codex', resumeCodexId: t.codexSessionId }];
