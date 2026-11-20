@@ -340,7 +340,8 @@ Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-1
 - **Owns:** `electron/platform/`, Windows parts of `sessions.ts`, `main.ts` window options, CI workflow.
 
 ### T20 · Windows packaging + signing
-- [ ] **Goal:** a Windows installer people can run. (#28)
+- [x] **Goal:** a Windows installer people can run. (#28)
+  _Left over: **signing path: unsigned + SmartScreen note** (owner's choice); `win.azureSignOptions` is the hook for signing later. NSIS x64 + arm64 installers are built and inspected on macOS, **never installed or run on Windows** — CI packs on the Windows runners and spawns a pty from the packaged layout as the first real check. Windows updates download + install on quit (unsigned NSIS is allowed); macOS still only notifies (Squirrel.Mac needs signing). Not done: winget/scoop manifests (need a published release URL + sha256 to submit), release workflow (artifacts are uploaded by hand), installer/uninstaller UI copy is NSIS default (not ko/en from the dictionary)._
 - **Spec:** decide the signing path first (Korean individual: no Azure Artifact Signing; Korean company: eligible →
   company + Artifact Signing / unsigned + winget/scoop + SmartScreen note / MSIX — check MSIX file-system limits).
   NSIS x64 + arm64, electron-updater (also for macOS).

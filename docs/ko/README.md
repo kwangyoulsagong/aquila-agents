@@ -21,6 +21,7 @@ npm run smoke   # 빌드 → 실행 → 터미널 세션 동작 확인 → 스�
 npm run capture # 앱 가이드의 스크린샷·루프를 데모 픽스처로 다시 만들기 (ko + en)
 npm run check   # 타입 체크 + 린트(FSD 경계 포함) + 테스트
 npm run dist    # 패키징 → release/Aquila Agents-<버전>-arm64.dmg (+ .zip)
+npm run dist:win # Windows 설치 파일 → release/AquilaAgents-<버전>-{x64,arm64}-setup.exe (macOS에서도 빌드됨)
 ```
 
 프로젝트 목록은 `~/.aquila/config.json`에 있습니다 (처음 실행 때 생성, 사이드바 "설정 파일 열기").
@@ -37,6 +38,14 @@ TODO가 남아 있으면 `npm run dist`가 패키징을 거부합니다. `.dmg`,
 2. 처음 실행은 "확인되지 않은 개발자"로 막힙니다. 앱을 우클릭 → **열기** → **열기**, 또는 한 번만 실행:
    `xattr -dr com.apple.quarantine "/Applications/Aquila Agents.app"`
 3. 그 맥에 `claude`나 `codex`가 이미 설치·로그인돼 있어야 합니다 (앱이 실제 CLI를 실행합니다).
+
+**Windows** (10 1809+ / 11, x64 또는 arm64): `npm run dist:win`이 아키텍처별 설치 파일과 `latest.yml`을 만듭니다.
+셋 다(`.blockmap` 파일도) 같은 릴리스에 올리세요. 설치 파일은 **서명하지 않았기 때문에**:
+
+1. `AquilaAgents-<버전>-x64-setup.exe`(ARM PC는 `-arm64-`)를 실행합니다. 현재 사용자에게 설치되고 관리자 권한은 필요 없습니다.
+2. SmartScreen이 "Windows의 PC 보호"를 띄우면 **추가 정보** → **실행**을 누릅니다. 처음 설치할 때만 묻고,
+   업데이트는 백그라운드에서 받아 앱을 종료할 때(또는 "다시 시작" 알림을 누르면) 설치됩니다.
+3. 그 PC(또는 프로젝트를 여는 WSL 배포판 안)에 `claude`나 `codex`가 설치·로그인돼 있어야 합니다.
 
 ## 단축키
 

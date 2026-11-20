@@ -20,6 +20,7 @@
     "capture": "npm run build && bash scripts/capture/capture.sh",
     "release-notes": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/release-notes.ts",
     "dist": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/release-notes.ts check && npm run build && electron-builder --mac --arm64 --publish never",
+    "dist:win": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/release-notes.ts check && npm run build && electron-builder --win --x64 --arm64 --publish never",
     "icon": "tsc -p tsconfig.electron.json && electron dist-electron/electron/tools/render-icon.js"
   },
   "dependencies": {

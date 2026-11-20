@@ -44,3 +44,19 @@ jobs:
           npm run lint
           npx vitest run electron/platform src/shared src/entities
       - run: npm run build
+      # Pack the app for this runner's arch and spawn a pty from the packaged layout with the packaged Electron:
+      # proves node-pty falls through to its win32 prebuild once build/ is left out (electron-builder.yml → win).
+      - name: Package and load node-pty from the installer layout
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          npx electron-builder --win --${{ matrix.arch }} --dir --publish never
+          dir=release/win-unpacked; [ -d "$dir" ] || dir=release/win-${{ matrix.arch }}-unpacked
+          ELECTRON_RUN_AS_NODE=1 "$dir/Aquila Agents.exe" -e "
+            const pty = require(process.argv[1]);
+            const p = pty.spawn('cmd.exe', ['/c', 'echo aquila-ok'], {});
+            let out = '';
+            p.onData((d) => (out += d));
+            p.onExit(() => { console.log(out); process.exit(out.includes('aquila-ok') ? 0 : 1); });
+            setTimeout(() => { console.error('timeout', out); process.exit(1); }, 20000);
+          " "$(pwd)/$dir/resources/app.asar.unpacked/node_modules/node-pty"
