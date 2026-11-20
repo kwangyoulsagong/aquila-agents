@@ -4,7 +4,17 @@ import type { Translate } from '@/shared/i18n';
 
 export type HistoryFilter = 'all' | 'favorites' | HistoryAgent;
 
-export const refKey = (r: HistoryRef) => `${r.agent}:${r.id}`;
+/** Same as main's: `agent:id`, plus `@host` for a session on an SSH host (T36). */
+export const refKey = (r: HistoryRef) => `${r.agent}:${r.id}${r.host ? `@${r.host}` : ''}`;
+
+/** `refKey` back to a ref (ids never contain `@`). */
+export function parseRefKey(key: string): HistoryRef {
+  const i = key.indexOf(':');
+  const rest = key.slice(i + 1);
+  const at = rest.indexOf('@');
+  const agent = key.slice(0, i) as HistoryAgent;
+  return at < 0 ? { agent, id: rest } : { agent, id: rest.slice(0, at), host: rest.slice(at + 1) };
+}
 
 /** Our name, else the CLI's name, else its auto title, else the first message. */
 export const historyTitle = (e: HistoryEntry) => e.name || e.title || e.autoTitle || e.firstMessage || e.id;
@@ -36,7 +46,11 @@ export function matchesListed(e: HistoryEntry, q: string): boolean {
 }
 
 export interface HistoryGroup {
+  /** Folder + host: the same path on two machines is two groups. */
+  key: string;
   cwd: string;
+  /** SSH host (T36). */
+  host?: string;
   /** Project name (· subfolder), else the folder's last two segments. */
   label: string;
   entries: HistoryEntry[];
@@ -44,11 +58,12 @@ export interface HistoryGroup {
 
 const tail = (p: string, n: number) => p.split('/').filter(Boolean).slice(-n).join('/');
 
-/** Groups by the folder recorded in the transcript; groups ordered by their most recent session. */
+/** Groups by the folder recorded in the transcript (and host); groups ordered by their most recent session. */
 export function groupHistory(entries: readonly HistoryEntry[], config: Config): HistoryGroup[] {
   const groups = new Map<string, HistoryGroup>();
   for (const e of entries) {
-    let g = groups.get(e.cwd);
+    const key = e.host ? `${e.host}:${e.cwd}` : e.cwd;
+    let g = groups.get(key);
     if (!g) {
       const project = e.projectId ? config.projects.find((p) => p.id === e.projectId) : undefined;
       const base = tail(e.cwd, 1);
@@ -56,9 +71,11 @@ export function groupHistory(entries: readonly HistoryEntry[], config: Config): 
         ? tail(project.path, 1) === base
           ? project.name
           : `${project.name} · ${base}`
-        : tail(e.cwd, 2);
-      g = { cwd: e.cwd, label: label || e.cwd, entries: [] };
-      groups.set(e.cwd, g);
+        : e.host
+          ? `${e.host} · ${tail(e.cwd, 1)}`
+          : tail(e.cwd, 2);
+      g = { key, cwd: e.cwd, ...(e.host ? { host: e.host } : {}), label: label || e.cwd, entries: [] };
+      groups.set(key, g);
     }
     g.entries.push(e);
   }

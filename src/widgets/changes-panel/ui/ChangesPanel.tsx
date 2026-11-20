@@ -73,7 +73,8 @@ export default function ChangesPanel({ project, session, onClose }: Props) {
   const own = session && session.projectId === project?.id ? session : undefined;
   const [scope, setScope] = useState<GitScope>('worktree');
   const activeScope: GitScope = own ? scope : 'worktree';
-  const { changes, error, refresh } = useChanges(project?.id ?? null, own?.id, activeScope);
+  const remote = project?.remote;
+  const { changes, error, refresh } = useChanges(project?.id ?? null, own?.id, activeScope, !!remote);
   const files = useMemo(() => parseDiff(changes?.diff ?? ''), [changes?.diff]);
   const statusOf = useMemo(() => new Map((changes?.files ?? []).map((f) => [f.path, f])), [changes?.files]);
   const [mode, setModeState] = useState<DiffMode>(readMode);
@@ -145,6 +146,7 @@ export default function ChangesPanel({ project, session, onClose }: Props) {
       .gitAction({ ...a, projectId: project.id, sessionId: own?.id })
       .then((r) => {
         if (r.stash) setNotice(t('changes.backup.stash', { sha: r.stash.slice(0, 7) }));
+        else if (r.trashedTo) setNotice(t('changes.backup.remoteTrash', { path: r.trashedTo }));
         else if (r.trashed) setNotice(t('changes.backup.trash'));
       })
       .catch((e: Error) => setNotice(e.message))
@@ -154,7 +156,13 @@ export default function ChangesPanel({ project, session, onClose }: Props) {
   const askRevert = (title: string, untracked: boolean, a: Omit<GitAction, 'projectId' | 'sessionId'>) =>
     setConfirm({
       title,
-      body: t(untracked ? 'changes.revert.bodyUntracked' : 'changes.revert.body'),
+      body: t(
+        !untracked
+          ? 'changes.revert.body'
+          : remote
+            ? 'changes.revert.bodyUntrackedRemote'
+            : 'changes.revert.bodyUntracked',
+      ),
       run: () => run(a),
     });
 
@@ -244,10 +252,16 @@ export default function ChangesPanel({ project, session, onClose }: Props) {
         .filter(Boolean)
         .join(' ')
     : '';
-  const source =
+  const tree =
     activeScope === 'session' && changes?.base
       ? t('changes.source.session', { sha: changes.base.slice(0, 7) })
       : t('changes.source.worktree');
+  // Remote (T36): which host, and how long the last round trip took.
+  const source = remote
+    ? `${t('changes.source.remote', { host: remote.alias })} · ${tree}${
+        changes?.latencyMs !== undefined ? ` · ${t('changes.latency', { ms: String(changes.latencyMs) })}` : ''
+      }`
+    : tree;
 
   return (
     <aside

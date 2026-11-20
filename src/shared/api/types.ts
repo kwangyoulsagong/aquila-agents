@@ -261,6 +261,8 @@ export interface GitChanges {
   base?: string;
   /** When main last checked the tree (ms since epoch). */
   checkedAt?: number;
+  /** Remote projects (T36): how long the SSH round trip took. */
+  latencyMs?: number;
 }
 
 /** What the changes panel diffs against: HEAD (working tree), or the commit HEAD was at when the session spawned. */
@@ -285,6 +287,8 @@ export interface GitAction extends GitTarget {
 export interface GitActionResult {
   stash?: string;
   trashed?: string[];
+  /** Remote projects (T36): where on the host the untracked file went (`~/.aquila/trash/…`) instead of the Trash. */
+  trashedTo?: string;
 }
 
 /** A CLI the first-run checklist looks for (T17). */
@@ -382,6 +386,8 @@ export type HistoryAgent = 'claude' | 'codex';
 export interface HistoryRef {
   agent: HistoryAgent;
   id: string;
+  /** SSH host alias when the transcript is on a remote host (T36); absent on this Mac. */
+  host?: string;
 }
 
 /** One past session in the ⌘Y panel. */
@@ -415,6 +421,18 @@ export interface HistoryList {
   entries: HistoryEntry[];
   /** Claude's `cleanupPeriodDays` per account (30 when unset; 0 = never). */
   cleanupDays: Record<string, number>;
+  /** SSH hosts of remote projects scanned so far (T36). */
+  hosts?: HistoryHost[];
+}
+
+/** One SSH host's last history scan (T36). */
+export interface HistoryHost {
+  alias: string;
+  /** The last scan failed (its entries are from the scan before). */
+  error?: string;
+  checkedAt?: number;
+  /** Listing round trip. */
+  latencyMs?: number;
 }
 
 /** A full-text hit: the session and a line around the first match. */
@@ -569,6 +587,8 @@ export interface AquilaApi {
   gitAction(action: GitAction): Promise<GitActionResult>;
   /** Past Claude / Codex sessions (read-only scan; files already read are cached). */
   historyList(): Promise<HistoryList>;
+  /** Scan the SSH hosts of remote projects (T36) and return the whole list again; slow, so called after `historyList`. */
+  historyRefreshRemote(): Promise<HistoryList>;
   /** Full-text search over the indexed transcripts. */
   historySearch(query: string): Promise<HistoryMatch[]>;
   historyTranscript(ref: HistoryRef): Promise<HistoryTranscript>;
@@ -770,6 +790,7 @@ export const IPC = {
   gitChanged: 'git:changed',
   gitAction: 'git:action',
   historyList: 'history:list',
+  historyRefreshRemote: 'history:refresh-remote',
   historySearch: 'history:search',
   historyTranscript: 'history:transcript',
   historySetMeta: 'history:set-meta',

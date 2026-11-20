@@ -13,13 +13,24 @@ import path from 'node:path';
 import readline from 'node:readline';
 import { APP_DIR, expand } from './config';
 import { claudeConfigDir } from './state';
+import type { RemoteExec } from './remote/exec';
+import {
+  fetchFiles,
+  listRemote,
+  REMOTE_HEAD as REMOTE_HEAD_BYTES,
+  matchRemoteProject,
+  remoteHosts,
+  type RemoteFile,
+} from './remote/history';
 import type {
   Config,
+  HistoryHost,
   HistoryEntry,
   HistoryList,
   HistoryMatch,
   HistoryRef,
   HistoryTranscript,
+  RemoteHost,
   TranscriptMessage,
   Worktree,
 } from '../src/shared/api/types';
@@ -248,6 +259,12 @@ export class CodexParser {
   }
 }
 
+/** Feeds text (a fetched remote transcript, T36) to a parser line by line. */
+export function parseText<P extends { line(l: string): void }>(text: string, parser: P): P {
+  for (const line of text.split('\n')) parser.line(line.endsWith('\r') ? line.slice(0, -1) : line);
+  return parser;
+}
+
 async function parseFile<P extends { line(l: string): void }>(file: string, parser: P): Promise<P> {
   const stream = fs.createReadStream(file, { encoding: 'utf8' });
   const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
@@ -380,17 +397,23 @@ export function listRollouts(root = path.join(CODEX_HOME, 'sessions')): string[]
   return out;
 }
 
-const UUID_TAIL = /([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.jsonl$/i;
+export const UUID_TAIL = /([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.jsonl$/i;
 
 // ── Claude settings ────────────────────────────────────────────────────────────
 
 /** `cleanupPeriodDays` from Claude's settings.json in that config dir (read-only); 30 when unset. */
 export function cleanupDays(configDir: string): number {
   try {
-    const raw = JSON.parse(fs.readFileSync(path.join(configDir, 'settings.json'), 'utf8')) as {
-      cleanupPeriodDays?: unknown;
-    };
-    const n = raw.cleanupPeriodDays;
+    return parseCleanupDays(fs.readFileSync(path.join(configDir, 'settings.json'), 'utf8'));
+  } catch {
+    return DEFAULT_CLEANUP_DAYS;
+  }
+}
+
+/** `cleanupPeriodDays` from settings.json text; 30 when unset or unreadable. */
+export function parseCleanupDays(text: string): number {
+  try {
+    const n = (JSON.parse(text) as { cleanupPeriodDays?: unknown }).cleanupPeriodDays;
     return typeof n === 'number' && Number.isFinite(n) && n >= 0 ? n : DEFAULT_CLEANUP_DAYS;
   } catch {
     return DEFAULT_CLEANUP_DAYS;
@@ -404,7 +427,8 @@ export interface HistoryMeta {
   favorites: string[];
 }
 
-export const refKey = (r: HistoryRef) => `${r.agent}:${r.id}`;
+/** `agent:id`, plus `@host` for a session on an SSH host (T36). Also the key for names and favorites. */
+export const refKey = (r: HistoryRef) => `${r.agent}:${r.id}${r.host ? `@${r.host}` : ''}`;
 
 export function parseMeta(text: string): HistoryMeta {
   try {
@@ -534,6 +558,8 @@ interface Indexed {
   entry: HistoryEntry;
   /** Transcript file (Claude jsonl or codex rollout); absent for a codex thread without one. */
   file?: string;
+  /** The file is on this SSH host (T36). */
+  host?: RemoteHost;
   messages: TranscriptMessage[];
   truncated: boolean;
   /** Name, titles, first message and messages (and lower-cased): what full-text search looks in. */
@@ -553,6 +579,26 @@ interface Sources {
 }
 
 const DEFAULT_SOURCES: Sources = { codexHome: CODEX_HOME, metaFile: HISTORY_META_PATH };
+
+/** One SSH host's part of the index (T36): parsed heads of its transcripts, re-fetched when mtime/size change. */
+interface RemoteState {
+  host: RemoteHost;
+  /** `$HOME` on the host (remote project paths are `~/…`). */
+  home: string;
+  cache: Map<string, CacheItem>;
+  items: Map<string, Indexed>;
+  error?: string;
+  checkedAt?: number;
+  latencyMs?: number;
+}
+
+/** A fetched head (or whole file) → what the index keeps. A cut transcript still ends at the file's mtime. */
+function parseRemote(f: RemoteFile, text: string, full = false): ParsedSession | null {
+  const parsed = parseText(text, f.agent === 'claude' ? new ClaudeParser(full) : new CodexParser(full)).result(
+    f.mtimeMs,
+  );
+  return parsed && { ...parsed, updatedAt: Math.max(parsed.updatedAt, f.mtimeMs) };
+}
 
 async function mapLimit<T, R>(items: T[], limit: number, fn: (t: T) => Promise<R>): Promise<R[]> {
   const out = new Array<R>(items.length);
@@ -575,8 +621,15 @@ export class HistoryIndex {
   private cache = new Map<string, CacheItem>();
   private items = new Map<string, Indexed>();
   private building: Promise<HistoryList> | null = null;
+  private cleanup: Record<string, number> = {};
+  private remote = new Map<string, RemoteState>();
+  private remoteBuilding: Promise<HistoryList> | null = null;
 
-  constructor(private sources: Sources = DEFAULT_SOURCES) {}
+  /** `exec` runs scripts on SSH hosts (T36); without it remote hosts are never scanned. */
+  constructor(
+    private sources: Sources = DEFAULT_SOURCES,
+    private exec?: RemoteExec,
+  ) {}
 
   private async parseCached<P extends { line(l: string): void }>(
     file: string,
@@ -601,7 +654,10 @@ export class HistoryIndex {
     return parsed;
   }
 
-  /** Re-scans everything (cached files aren't re-read). Concurrent calls share one scan. */
+  /**
+   * Re-scans this Mac (cached files aren't re-read). Concurrent calls share one scan. SSH hosts are not contacted:
+   * their entries are the last `refreshRemote` result.
+   */
   list(config: Config): Promise<HistoryList> {
     this.building ??= this.build(config).finally(() => (this.building = null));
     return this.building;
@@ -723,8 +779,124 @@ export class HistoryIndex {
 
     for (const f of this.cache.keys()) if (!seenFiles.has(f)) this.cache.delete(f);
     this.items = items;
-    const entries = [...items.values()].map((i) => i.entry).sort((a, b) => b.updatedAt - a.updatedAt);
-    return { entries, cleanupDays: cleanup };
+    this.cleanup = cleanup;
+    return this.compose();
+  }
+
+  /** Local + remote entries, most recent first, with each host's scan state. */
+  private compose(): HistoryList {
+    const entries = [...this.all()].map((i) => i.entry).sort((a, b) => b.updatedAt - a.updatedAt);
+    const hosts: HistoryHost[] = [...this.remote.entries()].map(([alias, st]) => ({
+      alias,
+      ...(st.error ? { error: st.error } : {}),
+      ...(st.checkedAt ? { checkedAt: st.checkedAt } : {}),
+      ...(st.latencyMs !== undefined ? { latencyMs: st.latencyMs } : {}),
+    }));
+    return { entries, cleanupDays: this.cleanup, ...(hosts.length ? { hosts } : {}) };
+  }
+
+  private *all(): Iterable<Indexed> {
+    yield* this.items.values();
+    for (const st of this.remote.values()) yield* st.items.values();
+  }
+
+  private item(ref: HistoryRef): Indexed | undefined {
+    const key = refKey(ref);
+    return ref.host ? this.remote.get(ref.host)?.items.get(key) : this.items.get(key);
+  }
+
+  /** Scans the SSH hosts of the configured remote projects (in parallel; a host that fails keeps its old entries). */
+  refreshRemote(config: Config): Promise<HistoryList> {
+    this.remoteBuilding ??= this.buildRemote(config).finally(() => (this.remoteBuilding = null));
+    return this.remoteBuilding;
+  }
+
+  private async buildRemote(config: Config): Promise<HistoryList> {
+    const hosts = remoteHosts(config);
+    for (const alias of [...this.remote.keys()])
+      if (!hosts.some((h) => h.host.alias === alias)) this.remote.delete(alias);
+    if (this.exec) await Promise.all(hosts.map((h) => this.scanHost(config, h.host, h.claudeDirs)));
+    return this.compose();
+  }
+
+  private async scanHost(config: Config, host: RemoteHost, claudeDirs: string[]): Promise<void> {
+    const exec = this.exec;
+    if (!exec) return;
+    const alias = host.alias;
+    const state: RemoteState = this.remote.get(alias) ?? { host, home: '', cache: new Map(), items: new Map() };
+    state.host = host;
+    this.remote.set(alias, state);
+    try {
+      const started = Date.now();
+      const listing = await listRemote(exec, host, claudeDirs);
+      state.latencyMs = Date.now() - started;
+      state.home = listing.home;
+      const changed = listing.files.filter((f) => {
+        const hit = state.cache.get(f.path);
+        return !hit || hit.mtimeMs !== f.mtimeMs || hit.size !== f.size;
+      });
+      const texts = await fetchFiles(
+        exec,
+        host,
+        changed.map((f) => f.path),
+      );
+      for (const f of changed) {
+        const text = texts.get(f.path);
+        if (text === undefined) continue; // gone since the listing
+        let parsed: ParsedSession | null = null;
+        try {
+          parsed = parseRemote(f, text);
+        } catch (err) {
+          console.error('[history] unreadable', alias, f.path, err);
+        }
+        state.cache.set(f.path, { mtimeMs: f.mtimeMs, size: f.size, parsed });
+      }
+      const live = new Set(listing.files.map((f) => f.path));
+      for (const f of state.cache.keys()) if (!live.has(f)) state.cache.delete(f);
+
+      const meta = readMeta(this.sources.metaFile);
+      const names = parseCodexIndex(listing.codexIndex);
+      const days = listing.settings.map(parseCleanupDays);
+      const items = new Map<string, Indexed>();
+      for (const f of listing.files) {
+        const cached = state.cache.get(f.path)?.parsed;
+        if (!cached) continue;
+        const id =
+          f.agent === 'claude'
+            ? path.posix.basename(f.path, '.jsonl')
+            : UUID_TAIL.exec(f.path)?.[1]?.toLowerCase();
+        if (!id) continue;
+        const parsed = f.agent === 'codex' ? { ...cached, title: names.get(id) ?? cached.title } : cached;
+        if (!parsed.cwd || (!parsed.count && !parsed.firstMessage)) continue;
+        const ref: HistoryRef = { agent: f.agent, id, host: alias };
+        const key = refKey(ref);
+        const prev = items.get(key);
+        if (prev && prev.entry.updatedAt >= parsed.updatedAt) continue;
+        const d = f.agent === 'claude' ? (days[f.dir ?? 0] ?? DEFAULT_CLEANUP_DAYS) : 0;
+        items.set(key, {
+          ref,
+          file: f.path,
+          host,
+          messages: parsed.messages,
+          truncated: parsed.truncated || f.size > REMOTE_HEAD_BYTES,
+          entry: this.entry(config, meta, ref, parsed, {
+            expiresAt: d > 0 ? f.mtimeMs + d * DAY_MS : undefined,
+            projectId: matchRemoteProject(config, alias, listing.home, parsed.cwd) ?? null,
+          }),
+        });
+      }
+      state.items = items;
+      state.error = undefined;
+      state.checkedAt = Date.now();
+    } catch (err) {
+      state.error = (err as Error).message;
+    }
+  }
+
+  /** The SSH host a remote entry lives on, and that host's home (for matching / adding a project). */
+  remoteOf(ref: HistoryRef): { host: RemoteHost; home: string } | undefined {
+    const st = ref.host ? this.remote.get(ref.host) : undefined;
+    return st && this.item(ref) ? { host: st.host, home: st.home } : undefined;
   }
 
   private entry(
@@ -732,10 +904,11 @@ export class HistoryIndex {
     meta: HistoryMeta,
     ref: HistoryRef,
     p: ParsedSession,
-    extra: { account?: string; expiresAt?: number },
+    extra: { account?: string; expiresAt?: number; projectId?: string | null },
   ): HistoryEntry {
     const key = refKey(ref);
-    const projectId = matchProject(config, p.cwd);
+    // Remote entries come with their project already matched (null = none).
+    const projectId = extra.projectId !== undefined ? (extra.projectId ?? undefined) : matchProject(config, p.cwd);
     return {
       ...ref,
       cwd: p.cwd,
@@ -755,7 +928,7 @@ export class HistoryIndex {
   }
 
   get(ref: HistoryRef): HistoryEntry | undefined {
-    return this.items.get(refKey(ref))?.entry;
+    return this.item(ref)?.entry;
   }
 
   /** Full-text search (case-insensitive substring) over names, titles, first message and every indexed message. */
@@ -763,7 +936,7 @@ export class HistoryIndex {
     const q = query.trim().toLowerCase();
     if (!q) return [];
     const out: HistoryMatch[] = [];
-    for (const item of this.items.values()) {
+    for (const item of this.all()) {
       const e = item.entry;
       if (!item.text) {
         const head = [e.name, e.title, e.autoTitle, e.firstMessage].filter(Boolean).join('\n');
@@ -779,14 +952,20 @@ export class HistoryIndex {
   }
 
   transcript(ref: HistoryRef): HistoryTranscript {
-    const item = this.items.get(refKey(ref));
+    const item = this.item(ref);
     return item ? { messages: item.messages, truncated: item.truncated } : { messages: [], truncated: false };
   }
 
-  /** Every message, read again from disk (the index keeps only the first ~200k chars). */
+  /** Every message, read again from disk — or fetched whole from the host (the index keeps only the start). */
   async fullTranscript(ref: HistoryRef): Promise<TranscriptMessage[]> {
-    const item = this.items.get(refKey(ref));
+    const item = this.item(ref);
     if (!item?.file) return item?.messages ?? [];
+    if (item.host) {
+      if (!this.exec) return item.messages;
+      const text = (await fetchFiles(this.exec, item.host, [item.file], 0)).get(item.file);
+      const f: RemoteFile = { path: item.file, agent: ref.agent, mtimeMs: 0, size: 0 };
+      return (text !== undefined && parseRemote(f, text, true)?.messages) || item.messages;
+    }
     const parser = ref.agent === 'claude' ? new ClaudeParser(true) : new CodexParser(true);
     await parseFile(item.file, parser);
     return parser.result(0)?.messages ?? item.messages;
@@ -795,7 +974,7 @@ export class HistoryIndex {
   setMeta(ref: HistoryRef, change: { name?: string | null; favorite?: boolean }): HistoryEntry | undefined {
     const meta = applyMeta(readMeta(this.sources.metaFile), ref, change);
     writeMeta(meta, this.sources.metaFile);
-    const item = this.items.get(refKey(ref));
+    const item = this.item(ref);
     if (!item) return undefined;
     const key = refKey(ref);
     const entry: HistoryEntry = { ...item.entry, favorite: meta.favorites.includes(key) };

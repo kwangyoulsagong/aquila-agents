@@ -135,10 +135,26 @@ export const SSH_OPTIONS = [
   'ConnectTimeout=15',
 ];
 
+/**
+ * Connection sharing (T36): every ssh to a host — tabs, panels, kill — rides one master connection, so the changes
+ * panel and history don't pay a new handshake (or ask for a password a tab already gave). ssh expands `~` itself and
+ * `%C` is a 40-char hash, which keeps the socket path well under the 104-byte limit. The master lingers 2 min after
+ * the last client.
+ */
+export const CONTROL_DIR = '~/.aquila/ssh';
+export const MUX_OPTIONS = [
+  '-o',
+  'ControlMaster=auto',
+  '-o',
+  `ControlPath=${CONTROL_DIR}/%C`,
+  '-o',
+  'ControlPersist=120',
+];
+
 /** argv for the interactive session (pty). */
 export function sessionArgs(spec: RemoteSpawn): string[] {
   if (!validAlias(spec.host.alias)) throw new Error(`Invalid SSH host: ${spec.host.alias}`);
-  return ['-t', ...SSH_OPTIONS, spec.host.alias, '--', remoteScript(spec)];
+  return ['-t', ...SSH_OPTIONS, ...MUX_OPTIONS, spec.host.alias, '--', remoteScript(spec)];
 }
 
 /** argv to end a tab's tmux session when its tab is closed (non-interactive, never prompts). */
@@ -148,6 +164,7 @@ export function killArgs(alias: string, tabKey: string): string[] {
     '-o',
     'BatchMode=yes',
     ...SSH_OPTIONS,
+    ...MUX_OPTIONS,
     alias,
     '--',
     inLoginShell(`tmux -L ${TMUX_SOCKET} kill-session -t ${tmuxSession(tabKey)} 2>/dev/null; true`),

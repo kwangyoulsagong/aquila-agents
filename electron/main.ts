@@ -15,7 +15,7 @@ import {
 } from './config';
 import fs from 'node:fs';
 import { showContextMenu } from './menu';
-import { gitAction, gitChanges, treeOf, TreeWatcher } from './git';
+import { gitAction, gitChanges, localGit, localTrash, treeOf, TreeWatcher } from './git';
 import { ensureWorktree, worktreeInfo } from './worktrees';
 import { markGuideOffered, readGuideState } from './guide';
 import { displayTitle, HistoryIndex, matchProject, resumeWorktree, toMarkdown } from './history';
@@ -35,6 +35,9 @@ import { FIXTURE_NOW, fixtureFetcher, NewsService } from './news';
 import { DevUrlTracker, mergeTargets, PreviewViews, readLaunchJson } from './preview';
 import { SessionManager } from './sessions';
 import { checkRemote } from './remote/check';
+import { ensureControlDir, sshExec } from './remote/exec';
+import { remoteGit, remoteGitChanges, remoteTrash } from './remote/git';
+import { matchRemoteProject } from './remote/history';
 import { sshHosts } from './remote/hosts';
 import { CODEX_SESSIONS_DIR } from './codex';
 import { clipboardPaths, findClaudeTranscript, findRollout, lastReply, readTail } from './terminalHelpers';
@@ -404,6 +407,7 @@ app.whenReady().then(async () => {
     if (config.projects.find((p) => p.id === projectId)?.remote)
       throw new Error(translator(config.language)('remote.unsupported'));
   };
+  ensureControlDir();
   ipcMain.handle(IPC.remoteHosts, () => sshHosts());
   ipcMain.handle(IPC.remoteCheck, (_e, host: RemoteHost) =>
     checkRemote({
@@ -447,17 +451,18 @@ app.whenReady().then(async () => {
   // Changes panel (T25). The renderer names a project/session; paths and commits are resolved here, never taken from it.
   const worktreeFor = (projectId: string, sessionId?: string) =>
     sessionId ? s.worktreeOf(sessionId, projectId) : undefined;
+  // Remote projects (T36) read the same data over the shared SSH connection; the panel polls them (no watch).
   ipcMain.handle(IPC.gitChanges, (_e, { projectId, sessionId, scope }: GitTarget & { scope?: GitScope }) => {
-    localOnly(projectId);
-    return gitChanges(
-      loadConfig(),
-      projectId,
-      worktreeFor(projectId, sessionId),
-      scope === 'session' && sessionId ? s.startHeadOf(sessionId, projectId) || undefined : undefined,
-    );
+    const config = loadConfig();
+    const project = config.projects.find((p) => p.id === projectId);
+    const base =
+      scope === 'session' && sessionId ? s.startHeadOf(sessionId, projectId) || undefined : undefined;
+    if (project?.remote) return remoteGitChanges(sshExec, project.remote, project.path, base);
+    return gitChanges(config, projectId, worktreeFor(projectId, sessionId), base);
   });
   const treeWatcher = new TreeWatcher(() => win?.webContents.send(IPC.gitChanged));
   ipcMain.on(IPC.gitWatch, (_e, target: GitTarget | null) => {
+    // A remote project has nothing to watch here (localOnly throws → no watch); its panel polls.
     try {
       if (target) localOnly(target.projectId);
       treeWatcher.watch(
@@ -471,19 +476,32 @@ app.whenReady().then(async () => {
   });
   app.on('before-quit', () => treeWatcher.close());
   ipcMain.handle(IPC.gitAction, (_e, a: GitAction) => {
-    localOnly(a.projectId);
-    return gitAction(treeOf(loadConfig(), a.projectId, worktreeFor(a.projectId, a.sessionId)), a, (p) =>
-      shell.trashItem(p),
-    );
+    const config = loadConfig();
+    const remote = config.projects.find((p) => p.id === a.projectId)?.remote;
+    if (remote) {
+      const dir = config.projects.find((p) => p.id === a.projectId)?.path ?? '';
+      return gitAction(remoteGit(sshExec, remote, dir), a, remoteTrash(sshExec, remote, dir));
+    }
+    const cwd = treeOf(config, a.projectId, worktreeFor(a.projectId, a.sessionId));
+    return gitAction(localGit(cwd), a, localTrash(cwd, (p) => shell.trashItem(p)));
   });
   // Session history (T11): read-only over ~/.claude*/projects and ~/.codex; names and favorites in ~/.aquila.
-  const history = new HistoryIndex();
+  // Remote projects' hosts (T36) are scanned over SSH on request, after the local list is up.
+  const history = new HistoryIndex(undefined, sshExec);
   const known = (ref: HistoryRef) => {
-    const entry = ref && typeof ref.id === 'string' ? history.get(ref) : undefined;
+    const entry =
+      ref && typeof ref.id === 'string'
+        ? history.get({
+            agent: ref.agent,
+            id: ref.id,
+            ...(typeof ref.host === 'string' && ref.host ? { host: ref.host } : {}),
+          })
+        : undefined;
     if (!entry) throw new Error(translator(loadConfig().language)('history.error.notFound'));
     return entry;
   };
   ipcMain.handle(IPC.historyList, () => history.list(loadConfig()));
+  ipcMain.handle(IPC.historyRefreshRemote, () => history.refreshRemote(loadConfig()));
   ipcMain.handle(IPC.historySearch, (_e, query: string) => history.search(String(query ?? '')));
   ipcMain.handle(IPC.historyTranscript, (_e, ref: HistoryRef) => history.transcript(known(ref)));
   ipcMain.handle(
@@ -519,6 +537,31 @@ app.whenReady().then(async () => {
     async (_e, { ref, addProject }: { ref: HistoryRef; addProject: boolean }) => {
       const entry = known(ref);
       const t = translator(loadConfig().language);
+      // On an SSH host (T36): resume in a remote project on that host whose folder holds the session's folder.
+      const remote = history.remoteOf(entry);
+      if (remote) {
+        let config = loadConfig();
+        let added = false;
+        let projectId = matchRemoteProject(config, remote.host.alias, remote.home, entry.cwd);
+        if (!projectId && addProject) {
+          config = editProjects({
+            op: 'addProject',
+            path: entry.cwd,
+            name: '',
+            group: config.groups[0]?.id ?? 'work',
+            account: Object.keys(config.accounts)[0] ?? 'shared',
+            remote: remote.host,
+          });
+          added = true;
+          projectId = matchRemoteProject(config, remote.host.alias, remote.home, entry.cwd);
+        }
+        if (!projectId) throw new Error(t('history.error.noProject'));
+        const session =
+          entry.agent === 'claude'
+            ? s.create(config, projectId, 'claude', undefined, { resumeClaude: entry.id })
+            : s.create(config, projectId, 'codex', undefined, { resumeCodexId: entry.id });
+        return added ? { session, config } : { session };
+      }
       if (!fs.existsSync(entry.cwd)) throw new Error(t('history.error.folderGone', { path: entry.cwd }));
       let config = loadConfig();
       let added = false;

@@ -15,9 +15,11 @@ const SEARCH_DELAY_MS = 200;
  * The panel's data: the list (scanned when the panel opens — main caches parsed files), full-text hits for the
  * query, and the selected session's transcript.
  */
-export function useHistory(open: boolean, query: string, selected: HistoryRef | null) {
+export function useHistory(open: boolean, query: string, selected: HistoryRef | null, remote = false) {
   const [list, setList] = useState<HistoryList | null>(null);
   const [loading, setLoading] = useState(false);
+  /** SSH hosts are being scanned (T36): after the local list, which never waits for them. */
+  const [remoteLoading, setRemoteLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [matches, setMatches] = useState<Map<string, string>>(new Map());
   const [transcript, setTranscript] = useState<{ key: string; data: HistoryTranscript } | null>(null);
@@ -28,13 +30,24 @@ export function useHistory(open: boolean, query: string, selected: HistoryRef | 
     setLoading(true);
     api
       .historyList()
-      .then((l) => live && (setList(l), setError(null)))
+      .then((l) => {
+        if (!live) return;
+        setList(l);
+        setError(null);
+        if (!remote) return;
+        setRemoteLoading(true);
+        return api
+          .historyRefreshRemote()
+          .then((r) => live && setList(r))
+          .finally(() => live && setRemoteLoading(false));
+      })
       .catch((e: Error) => live && setError(e.message))
       .finally(() => live && setLoading(false));
     return () => {
       live = false;
+      setRemoteLoading(false);
     };
-  }, [open]);
+  }, [open, remote]);
 
   useEffect(() => {
     const q = query.trim();
@@ -80,6 +93,7 @@ export function useHistory(open: boolean, query: string, selected: HistoryRef | 
   return {
     list,
     loading,
+    remoteLoading,
     error,
     matches,
     transcript: transcript && transcript.key === selectedKey ? transcript.data : null,

@@ -18,7 +18,7 @@ import type {
 export const DIFF_CAP = 400 * 1024;
 const MAX_UNTRACKED_DIFFS = 20;
 
-interface Run {
+export interface Run {
   code: number;
   stdout: string;
   stderr: string;
@@ -289,64 +289,80 @@ function fail(r: Run, what: string): never {
   throw new Error(r.stderr.trim().split('\n')[0] || `git ${what} failed`);
 }
 
+/** Runs one git command in a tree (`input` on stdin): locally, or over SSH for a remote project (T36). */
+export type GitRun = (args: string[], input?: string) => Promise<Run>;
+
+export const localGit =
+  (cwd: string): GitRun =>
+  (args, input) =>
+    input === undefined ? git(cwd, args) : gitInput(cwd, args, input);
+
 /** Save the tracked state (index + worktree) as a stash entry without touching the tree; '' when clean. */
-export async function stashBackup(cwd: string, label: string): Promise<string> {
-  const created = await git(cwd, ['stash', 'create']);
+export async function stashBackup(run: GitRun, label: string): Promise<string> {
+  const created = await run(['stash', 'create']);
   const sha = created.stdout.trim();
   if (created.code !== 0 || !sha) return '';
-  const stored = await git(cwd, ['stash', 'store', '-m', `aquila: before revert ${label}`, sha]);
+  const stored = await run(['stash', 'store', '-m', `aquila: before revert ${label}`, sha]);
   if (stored.code !== 0) fail(stored, 'stash store');
   return sha;
 }
 
-/**
- * Stage / unstage / revert in `cwd`. Reverts back up first: tracked state to a stash entry, an untracked file to the
- * Trash (`trash` = Electron's shell.trashItem, injected so tests can stub it).
- */
+/** Moves an untracked file (path relative to the tree) out of the way; says where it went, if not the Trash. */
+export type TrashFile = (rel: string) => Promise<string | void>;
+
+/** Local trash: Electron's shell.trashItem (injected so tests can stub it), only for paths inside the tree. */
+export const localTrash =
+  (cwd: string, trash: (absPath: string) => Promise<void>): TrashFile =>
+  async (rel) => {
+    const abs = path.resolve(cwd, rel);
+    if (!abs.startsWith(path.resolve(cwd) + path.sep)) throw new Error('Path outside the tree');
+    await trash(abs);
+  };
+
+/** Stage / unstage / revert. Reverts back up first: tracked state to a stash entry, an untracked file to the trash. */
 export async function gitAction(
-  cwd: string,
+  run: GitRun,
   a: Pick<GitAction, 'action' | 'path' | 'origPath' | 'patch'>,
-  trash: (absPath: string) => Promise<void>,
+  trash: TrashFile,
 ): Promise<GitActionResult> {
   const paths = a.origPath ? [a.path, a.origPath] : [a.path];
   switch (a.action) {
     case 'stage-file': {
-      const r = await git(cwd, ['add', '-A', '--', ...paths]);
+      const r = await run(['add', '-A', '--', ...paths]);
       if (r.code !== 0) fail(r, 'add');
       return {};
     }
     case 'unstage-file': {
-      let r = await git(cwd, ['reset', '-q', 'HEAD', '--', ...paths]);
-      if (r.code !== 0) r = await git(cwd, ['rm', '-q', '--cached', '--', ...paths]); // no HEAD yet
+      let r = await run(['reset', '-q', 'HEAD', '--', ...paths]);
+      if (r.code !== 0) r = await run(['rm', '-q', '--cached', '--', ...paths]); // no HEAD yet
       if (r.code !== 0) fail(r, 'reset');
       return {};
     }
     case 'stage-hunk': {
       if (!a.patch) throw new Error('No hunk');
-      const r = await gitInput(cwd, ['apply', '--cached', '--whitespace=nowarn', '-'], a.patch);
+      const r = await run(['apply', '--cached', '--whitespace=nowarn', '-'], a.patch);
       if (r.code !== 0) fail(r, 'apply');
       return {};
     }
     case 'revert-hunk': {
       if (!a.patch) throw new Error('No hunk');
-      const check = await gitInput(cwd, ['apply', '-R', '--check', '--whitespace=nowarn', '-'], a.patch);
+      const check = await run(['apply', '-R', '--check', '--whitespace=nowarn', '-'], a.patch);
       if (check.code !== 0) fail(check, 'apply');
-      const stash = await stashBackup(cwd, a.path);
-      const r = await gitInput(cwd, ['apply', '-R', '--whitespace=nowarn', '-'], a.patch);
+      const stash = await stashBackup(run, a.path);
+      const r = await run(['apply', '-R', '--whitespace=nowarn', '-'], a.patch);
       if (r.code !== 0) fail(r, 'apply');
       return stash ? { stash } : {};
     }
     case 'revert-file': {
-      const st = await git(cwd, ['status', '--porcelain=v1', '-z', '--untracked-files=all', '--', a.path]);
+      const st = await run(['status', '--porcelain=v1', '-z', '--untracked-files=all', '--', a.path]);
       if (st.stdout.startsWith('??')) {
-        const abs = path.resolve(cwd, a.path);
-        if (!abs.startsWith(path.resolve(cwd) + path.sep)) throw new Error('Path outside the tree');
-        await trash(abs);
-        return { trashed: [a.path] };
+        const to = await trash(a.path);
+        return to ? { trashed: [a.path], trashedTo: to } : { trashed: [a.path] };
       }
-      if (!(await headSha(cwd))) throw new Error('No commits yet');
-      const stash = await stashBackup(cwd, a.path);
-      const r = await git(cwd, ['restore', '--source=HEAD', '--staged', '--worktree', '--', ...paths]);
+      const head = await run(['rev-parse', '--verify', '-q', 'HEAD']);
+      if (head.code !== 0 || !head.stdout.trim()) throw new Error('No commits yet');
+      const stash = await stashBackup(run, a.path);
+      const r = await run(['restore', '--source=HEAD', '--staged', '--worktree', '--', ...paths]);
       if (r.code !== 0) fail(r, 'restore');
       return stash ? { stash } : {};
     }
