@@ -499,6 +499,35 @@ async function checkRename(win: BrowserWindow, s: SessionManager, outDir: string
   const id = s.active;
   if (id) s.rename(id, '');
   await wait(200);
+  // ⌘K → "Rename session" opens the same input, and it keeps the focus the palette hands back.
+  press(win, 'K', process.platform === 'win32' ? ['control'] : ['meta']);
+  await wait(300);
+  await win.webContents.insertText('세션 이름 바꾸기');
+  await wait(200);
+  press(win, 'Return', []);
+  await wait(500);
+  const fromPalette: boolean = await js(`document.activeElement?.matches('.c-tab input') ?? false`);
+  press(win, 'Escape', []);
+  await wait(300);
+  // A tab that isn't selected: the first click selects it, the double-click opens its title.
+  const other: boolean = await js(`(() => {
+    const title = document.querySelector('.c-tab[aria-selected="false"] .c-tab__title');
+    if (!title) return false;
+    title.setAttribute('data-smoke-rename', '');
+    title.click();
+    return true;
+  })()`);
+  await wait(250);
+  await js(`document.querySelector('[data-smoke-rename]')?.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }))`);
+  await wait(500);
+  const otherEditing: boolean = await js(`document.activeElement?.matches('.c-tab input') ?? false`);
+  press(win, 'Escape', []);
+  await wait(300);
+  const closed: boolean = await js(`!document.querySelector('.c-tab input')`);
+  console.log(`[smoke] rename: from ⌘K ${fromPalette}, other tab ${other && otherEditing}, Esc closes ${closed}`);
+  if (!fromPalette) return 'rename: ⌘K "Rename session" did not leave the title input focused';
+  if (other && !otherEditing) return 'rename: double-click on another tab did not keep its input focused';
+  if (!closed) return 'rename: Esc did not close the input';
   if (shown.tab !== name) return `rename: the tab reads "${shown.tab}"`;
   if (!shown.head.includes(name)) return `rename: the pane head reads "${shown.head}"`;
   if (!saved) return 'rename: the title is not in the saved tabs';

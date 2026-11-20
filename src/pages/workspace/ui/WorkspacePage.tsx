@@ -55,6 +55,13 @@ export default function WorkspacePage() {
     setRenamingId(id);
     if (!id && prev) requestAnimationFrame(() => focusSession(prev));
   }, []);
+  // Another tab or project took over (its input may be gone without a blur): the edit is over.
+  useEffect(() => {
+    if (renamingRef.current && renamingRef.current !== ws.activeSessionId) {
+      renamingRef.current = null;
+      setRenamingId(null);
+    }
+  }, [ws.activeSessionId]);
   const trends = useTrends();
   const [worktreeOpen, setWorktreeOpen] = useState(false);
   const openWorktreeDialog = useCallback(() => setWorktreeOpen(true), []);
