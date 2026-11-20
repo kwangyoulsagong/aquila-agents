@@ -74,6 +74,7 @@
   --p-size-12: 12px;
   --p-size-16: 16px;
   --p-size-24: 24px;
+  --p-size-80: 80px; /* macOS traffic lights (x 16 + 3 buttons + gaps ≈ 68, on the grid) */
   --p-size-140: 140px; /* Windows caption buttons (3 × 46 at 100%, on the grid) */
   --p-radius-4: 4px;
   --p-radius-6: 6px;
@@ -176,6 +177,7 @@
   --size-titlebar: 40px;
   --size-tabbar: var(--size-titlebar);
   --size-window-controls: 0px; /* room the OS window buttons take at the top-right (Windows only, below) */
+  --size-traffic-lights: var(--p-size-80); /* room the macOS traffic lights take at the top-left of a title band */
   --size-pane-head: 28px;
   --size-focus-line: var(--p-size-2); /* accent under the focused pane's header */
   --size-split-handle: var(--p-size-8); /* grab area of a split divider, centred on the hairline */
@@ -216,6 +218,7 @@
 /* Windows (T19): titleBarOverlay puts the caption buttons over the top-right of the title-bar band. */
 :root[data-platform='win32'] {
   --size-window-controls: var(--p-size-140);
+  --size-traffic-lights: 0px;
 }
 
 :root[data-theme='light'] {

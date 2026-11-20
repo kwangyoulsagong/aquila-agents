@@ -60,7 +60,7 @@ export const GUIDE_ITEMS: readonly GuideItem[] = [
     bodyKey: 'guide.focus.body',
     shortcuts: ['focusLeft', 'focusRight', 'focusUp', 'focusDown'],
   },
-  { id: 'zoom', titleKey: 'guide.zoom.title', bodyKey: 'guide.zoom.body', shortcuts: ['zoomPane'] },
+  { id: 'zoom', titleKey: 'guide.zoom.title', bodyKey: 'guide.zoom.body', shortcuts: ['zoomPane', 'fullscreen'] },
   {
     id: 'resize',
     titleKey: 'guide.resize.title',

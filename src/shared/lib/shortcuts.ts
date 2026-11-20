@@ -26,6 +26,7 @@ export type ShortcutId =
   | 'focusUp'
   | 'focusDown'
   | 'zoomPane'
+  | 'fullscreen'
   | 'resizeLeft'
   | 'resizeRight'
   | 'resizeUp'
@@ -54,6 +55,8 @@ export const SHORTCUTS: Readonly<Record<ShortcutId, string>> = {
   focusUp: 'CommandOrControl+Alt+Up',
   focusDown: 'CommandOrControl+Alt+Down',
   zoomPane: 'CommandOrControl+Shift+Enter',
+  // Not ⌃⌘F: the default app menu's "Toggle Full Screen" takes that key before the page sees it. macOS only (T37).
+  fullscreen: 'CommandOrControl+Shift+F',
   resizeLeft: 'CommandOrControl+Alt+Shift+Left',
   resizeRight: 'CommandOrControl+Alt+Shift+Right',
   resizeUp: 'CommandOrControl+Alt+Shift+Up',

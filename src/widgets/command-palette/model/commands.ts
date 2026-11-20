@@ -14,6 +14,7 @@ export type ActionId =
   | 'splitRight'
   | 'splitDown'
   | 'zoomPane'
+  | 'fullscreen'
   | 'toggleChanges'
   | 'togglePreview'
   | 'history'
@@ -66,6 +67,7 @@ const ACTIONS: {
   { action: 'splitRight', label: (t) => t('palette.splitRight'), shortcut: 'splitRight' },
   { action: 'splitDown', label: (t) => t('palette.splitDown'), shortcut: 'splitDown' },
   { action: 'zoomPane', label: (t) => t('action.zoomPane'), shortcut: 'zoomPane' },
+  { action: 'fullscreen', label: (t) => t('fullscreen.toggle'), shortcut: 'fullscreen' },
   { action: 'toggleChanges', label: (t) => t('changes.toggle'), shortcut: 'toggleChanges' },
   { action: 'togglePreview', label: (t) => t('preview.toggle'), shortcut: 'togglePreview' },
   { action: 'history', label: (t) => t('history.title'), shortcut: 'history' },

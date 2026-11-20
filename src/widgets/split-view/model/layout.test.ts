@@ -6,6 +6,7 @@ import {
   drop,
   focus,
   focusedLeaf,
+  focusedOnly,
   fromSaved,
   leaves,
   MAX_PANES,
@@ -240,5 +241,18 @@ describe('zoom', () => {
     // Closing another pane keeps zoom; down to one pane drops it.
     expect(zoomed(closePane(z, 'p1'))?.id).toBe(z.zoomedId);
     expect(closePane(closePane(z, 'p1'), 'p2').zoomedId).toBeNull();
+  });
+});
+
+describe('focusedOnly (full window)', () => {
+  it('shows only the focused pane, without heads or dividers, and leaves the tree alone', () => {
+    const l = toggleZoom(threePanes());
+    const f = focusedOnly(l);
+    expect(f.root).toBe(focusedLeaf(l));
+    expect(f.root.kind).toBe('leaf');
+    expect(visibleRects(f)).toEqual([{ leaf: focusedLeaf(l), x: 0, y: 0, w: 1, h: 1 }]);
+    expect(dividers(f)).toEqual([]);
+    expect(zoomed(l)?.id).toBe(l.focusedId);
+    expect(focusedOnly(createLayout('a')).root).toMatchObject({ kind: 'leaf', sessionId: 'a' });
   });
 });

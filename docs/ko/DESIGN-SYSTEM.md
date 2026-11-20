@@ -92,6 +92,7 @@
 |---|---|---|
 | `--size-titlebar` = `--size-tabbar` | 40 | 사이드바·탭·패널을 가로지르는 한 줄 |
 | `--size-window-controls` | 0 / 140 | 오른쪽 위 OS 창 버튼 자리: macOS 0, `:root[data-platform='win32']`에서 140 (맨 오른쪽 열의 탭 바 / 패널 헤드가 그만큼 비움) |
+| `--size-traffic-lights` | 80 / 0 | 맨 타이틀 띠(`.c-titlebar`) 왼쪽의 macOS 신호등 버튼 자리; Windows는 0 |
 | `--size-row` | 32 | 사이드바 행, 탭도 32 (40 − 위 여백 8) |
 | `--size-control` | 28 | 버튼, 세그먼트 컨트롤 |
 | `--size-pane-head` | 28 | 분할 패널 헤더 |
@@ -121,6 +122,7 @@
 | `.c-badge--host`, `.c-badge__conn[data-conn=connecting\|connected\|reconnecting\|lost]` | 원격 호스트 이름(대문자로 안 바꿈)과 연결 점: 회색 / 초록 / 주황 깜빡임 / 빨강 (T29) |
 | `.c-term-overlay__banner` `__banner-text` `__banner-meta` | 터미널 위쪽을 가로지르는 클릭 가능한 바, 빨간 테두리: 연결 끊김 + 카운트다운 + 동작 (T29) |
 | `.c-term-overlay__chips` `__chips-group` `__chips-label` `__chips-close` | 터미널 위쪽을 가로지르는 클릭 가능한 바(CLI 입력창은 안 가림): 라벨 붙은 프롬프트 칩 그룹 + 닫기 (Figma 링크 붙여 넣기, T34) |
+| `.c-titlebar` `__title` `__actions` | 탭 바 높이의 맨 타이틀 띠, 드래그 가능, 왼쪽에 신호등 자리: 앞 요소 + 말줄임 제목 + 동작 (전체 창, T37) |
 | `.c-label` | 섹션 라벨 |
 | `.c-sidebar` `__drag` `__body` `__group` `__foot` `__lang` | 사이드바 (`__drag` = 상단 띠. 오른쪽 끝 컨트롤은 클릭 가능 — AI 트렌드) |
 | `.c-meter[data-tone=warn\|danger][data-unknown]` `__head` `__value` `__track` `__fill` `__caption` | 한도 대비 비율: 라벨 · 값, 4px 막대(회색 → 75% 이상 주황 → 90% 이상 빨강), 캡션. 한도를 모르면 테두리만 있는 빈 막대 (T30) |
@@ -175,6 +177,7 @@
 | `Dropzone` `over` (+ div 속성) | `.c-dropzone` |
 | `TermOverlay` (+ div 속성, `ref`), `TermJump` (Button 속성), `TermNote` `bar?`, `TermHint` `box` `label?` `typed?` | `.c-term-overlay`, `.c-term-overlay__jump`, `.c-term-overlay__note(--bar)`, `.c-term-hint` (터미널 위 도우미, T28) |
 | `TermBanner` `meta?` `action?` | `.c-term-overlay__banner` (연결 끊김, T29) |
+| `TitleBar` `lead?` `actions?` (+ div 속성) | `.c-titlebar` (전체 창, T37) |
 | `TermChips` `label` `closeLabel` `onClose`, `TermChipGroup` `label` | `.c-term-overlay__chips`, `.c-term-overlay__chips-group` (프롬프트 칩, T34) |
 | `Field` `label` `hint` `warning`, `FieldRow`, `FieldGrid`, `Input`, `Textarea`, `Select` `options` `onChange(value)` | `.c-field`, `.c-field__row`, `.c-field-grid`, `.c-input`, `.c-input--multiline`, `.c-select` |
 | `ChangeRow` `status` `path` | `.c-change` |
