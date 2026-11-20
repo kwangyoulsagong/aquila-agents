@@ -1,0 +1,22 @@
+{
+  "version": "0.3.2",
+  "date": "2026-11-20",
+  "headlines": [
+    {
+      "guideId": "preview",
+      "title": { "ko": "개발자 도구 창이 가려지지 않아요", "en": "DevTools stays in front" },
+      "body": {
+        "ko": "미리보기에서 {}로 연 개발자 도구가 다른 요소를 선택해도 앱 창 뒤로 숨지 않아요. {}를 다시 누르면 열린 창을 앞으로 가져와요.",
+        "en": "DevTools opened with {} in the preview no longer hides behind the app window when you pick another element. Press {} again to bring it forward."
+      }
+    },
+    {
+      "guideId": "changes",
+      "title": { "ko": "변경사항 헤더가 한 줄에 들어가요", "en": "The Changes head fits on one line" },
+      "body": {
+        "ko": "브랜치 이름이 길어도 제목과 파일 수가 줄바꿈되지 않고, 브랜치 이름만 …로 줄여요. 마우스를 올리면 전체 이름이 보여요.",
+        "en": "A long branch name no longer wraps the title and file count; only the branch is cut with an ellipsis. Hover it for the full name."
+      }
+    }
+  ]
+}
