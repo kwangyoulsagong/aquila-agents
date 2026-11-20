@@ -53,11 +53,13 @@
 |---|---|---|---|
 | working | `--color-status-working` (깜빡임) | 에이전트 작업 중 | OSC 7501 `working`, Claude hooks, 보고하지 않는 프로그램은 출력 활동 |
 | waiting | `--color-status-waiting` (후광) | 나를 기다림: 권한 승인이나 질문 | OSC 7501 `blocked`, Claude hook `PermissionRequest` / `Notification` |
-| done | `--color-status-done` | 끝났고 아직 안 봄 | OSC 7501 `done`, Claude hook `Stop` |
-| done (추정) | `--color-status-done-estimated` (`data-estimated`, 흐리게) | 아마 끝남: 출력이 조용해져서 추측 | 출력 활동 (보고하지 않는 codex/셸) |
-| error | `--color-status-error` | 실패: API 오류(사용량 제한·로그인·결제·서버)나 0이 아닌 종료. 이유는 점의 라벨 | OSC 7501 `error`, Claude hook `StopFailure`, pty 종료 코드 |
+| done | `--color-status-done` (체크가 뚫린 원) | 끝났고 아직 안 봄 | OSC 7501 `done`, Claude hook `Stop` |
+| done (추정) | `--color-status-done-estimated` (`data-estimated`, 흐린 체크) | 아마 끝남: 출력이 조용해져서 추측 | 출력 활동 (보고하지 않는 codex/셸) |
+| error | `--color-status-error` (`!`가 뚫린 둥근 사각형) | 실패: API 오류(사용량 제한·로그인·결제·서버)나 0이 아닌 종료. 이유는 점의 라벨 | OSC 7501 `error`, Claude hook `StopFailure`, pty 종료 코드 |
 | stopped | `--color-status-stopped` (고리) | 내가 멈춤(Esc / Ctrl+C) 또는 정상 종료 | 입력한 키, `SessionEnd`, 종료 코드 0 / 130 |
 | idle | `--color-status-idle` | 아무 일 없음 / 이미 봄 | 기본값 |
+
+상태마다 모양도 달라서 파랑·초록·빨강을 구분하지 못해도 읽힌다: 깜빡임, 후광, 체크, `!` 사각형, 고리, 그냥 원. 체크와 `!`는 알파 마스크로 뚫어서(뒤 배경이 비쳐 두 테마 모두 맞음) `--size-dot-sm`에서도 알아볼 수 있다. `preview.html`에 모든 상태를 두 크기, 컬러와 회색조로 보여 준다.
 
 프로젝트 행은 세션 중 가장 급한 상태를 보여줍니다: `waiting > error > working > done > stopped > idle`.
 
