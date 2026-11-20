@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button, TermChipGroup, TermChips, TermOverlay } from '@design-system/react';
-import { useTerminal } from '@/entities/session';
+import { safePaste, useTerminal } from '@/entities/session';
 import { useT } from '@/shared/i18n';
 import { chipPrompt, chipsFor, parseFigmaLink, type ChipGroup, type FigmaLink } from '../model/link';
 
@@ -58,7 +58,10 @@ export default function FigmaChips({ sessionId, kind }: { sessionId: string; kin
                   key={chip.id}
                   title={t(`figma.prompt.${chip.id}`)}
                   onClick={() => {
-                    term.paste(chipPrompt(chip, kind, t(`figma.prompt.${chip.id}`), t('figma.prompt.chromeCheck')));
+                    safePaste(
+                      term,
+                      chipPrompt(chip, kind, t(`figma.prompt.${chip.id}`), t('figma.prompt.chromeCheck')),
+                    );
                     term.focus();
                     setLink(null);
                   }}

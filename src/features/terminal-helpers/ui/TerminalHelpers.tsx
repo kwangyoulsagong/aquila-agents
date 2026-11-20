@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import type { Terminal } from '@xterm/xterm';
 import { Dropzone, TermHint, TermJump, TermNote, TermOverlay } from '@design-system/react';
-import { useTerminal } from '@/entities/session';
+import { safePaste, useTerminal } from '@/entities/session';
 import { api, type SessionKind } from '@/shared/api';
 import { useT } from '@/shared/i18n';
 import { SESSION_DRAG_TYPE } from '@/shared/lib/sessionDrag';
@@ -77,7 +77,7 @@ function useFileInput(term: Terminal | null, sessionId: string) {
     const type = (paths: string[]) => {
       const input = pathsInput(paths);
       if (!input) return false;
-      term.paste(input);
+      safePaste(term, input);
       term.focus();
       return true;
     };
@@ -91,7 +91,7 @@ function useFileInput(term: Terminal | null, sessionId: string) {
         .clipboardPaths()
         .catch(() => [] as string[])
         .then((paths) => {
-          if (!type(paths) && text) term.paste(text);
+          if (!type(paths) && text) safePaste(term, text);
         });
     };
     const onDragOver = (e: DragEvent) => {
@@ -228,7 +228,7 @@ function QuickSelect({
       closeQuickSelect();
       if (!text) return;
       if (e.shiftKey) {
-        term.paste(text);
+        safePaste(term, text);
         flash(sessionId, 'pasted');
       } else {
         api.copyText(text);

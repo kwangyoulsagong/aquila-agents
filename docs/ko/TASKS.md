@@ -358,7 +358,8 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
 - **담당:** `electron/remote/`, `src/features/remote-connection/`.
 
 ### T40 · 스크롤백 검색 + 안전한 붙여넣기
-- [ ] **목표:** 긴 에이전트 출력에서 에러나 파일명을 찾고, 붙여넣기가 명령을 실행하지 못하게 한다. (Ghostty 1.3, `docs/research/notes/ghostty.md` 참고)
+- [x] **목표:** 긴 에이전트 출력에서 에러나 파일명을 찾고, 붙여넣기가 명령을 실행하지 못하게 한다. (Ghostty 1.3, `docs/research/notes/ghostty.md` 참고)
+  _남은 것: 찾기 가이드 미디어는 아직 없음(`npm run capture` 다시 안 돌림; 가이드에 단축키는 있고 터미널 도우미 설명에 언급). 찾기는 마운트된 터미널의 스크롤백만 대상(아직 시작 안 한 복원 탭은 없음). 현재 일치 항목은 xterm이 선택 영역을 위에 그려서 호박색 위에 선택 색이 겹쳐 보임. Windows: 쓰지 않던 전체 창 키를 F11로 옮겨 Ctrl+Shift+F를 비움 — Windows에서 실행은 못 해봄._
 - **스펙:** ⌘F(Windows Ctrl+Shift+F, T13 맵에 추가)로 포커스된 pane에 찾기 바: 다음/이전, 일치 개수, 대소문자
   토글, Esc로 닫고 터미널로 포커스 복귀, 닫으면 하이라이트 제거. `@xterm/addon-search`는 바가 열려 있을 때만 로드.
   붙여넣기: pty에 쓰기 전에 bracketed paste를 일찍 끝낼 수 있는 제어 문자(`ESC[201~`, 탭/줄바꿈 외 C0/C1)를 제거 —

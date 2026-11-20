@@ -1,4 +1,11 @@
-import type { ComponentPropsWithRef, CSSProperties, HTMLAttributes, ReactNode } from 'react';
+import type {
+  ComponentPropsWithRef,
+  CSSProperties,
+  HTMLAttributes,
+  KeyboardEvent,
+  ReactNode,
+  Ref,
+} from 'react';
 import { Button, type ButtonProps } from './Button';
 import { cx } from './cx';
 
@@ -106,6 +113,98 @@ export function TermHint({ box, label, typed }: HintProps) {
           {label}
         </span>
       )}
+    </div>
+  );
+}
+
+interface FindProps {
+  /** Accessible name of the bar ("Find in terminal"). */
+  label: string;
+  query: string;
+  onQuery: (query: string) => void;
+  /** Enter / ⇧Enter / Esc are the caller's (next / previous / close). */
+  onKeyDown?: (e: KeyboardEvent<HTMLInputElement>) => void;
+  inputRef?: Ref<HTMLInputElement>;
+  placeholder?: string;
+  /** "3/17", "No results"; empty while there is no query. */
+  count?: ReactNode;
+  /** The query has no match (`data-empty`: count in the error color). */
+  empty?: boolean;
+  caseSensitive: boolean;
+  onToggleCase: () => void;
+  onPrev: () => void;
+  onNext: () => void;
+  onClose: () => void;
+  labels: { caseSensitive: string; prev: string; next: string; close: string };
+}
+
+/** `.c-term-find` — find bar at the top-right of a terminal (T40). */
+export function TermFind({
+  label,
+  query,
+  onQuery,
+  onKeyDown,
+  inputRef,
+  placeholder,
+  count,
+  empty,
+  caseSensitive,
+  onToggleCase,
+  onPrev,
+  onNext,
+  onClose,
+  labels,
+}: FindProps) {
+  const disabled = !query;
+  return (
+    <div role="search" aria-label={label} className="c-term-find">
+      <input
+        ref={inputRef}
+        type="text"
+        className="c-input c-term-find__input"
+        value={query}
+        placeholder={placeholder}
+        aria-label={label}
+        spellCheck={false}
+        onChange={(e) => onQuery(e.target.value)}
+        onKeyDown={onKeyDown}
+      />
+      <span className="c-term-find__count" role="status" data-empty={empty || undefined}>
+        {count}
+      </span>
+      <Button
+        variant="ghost"
+        icon
+        aria-pressed={caseSensitive}
+        onClick={onToggleCase}
+        title={labels.caseSensitive}
+        aria-label={labels.caseSensitive}
+      >
+        Aa
+      </Button>
+      <Button
+        variant="ghost"
+        icon
+        disabled={disabled}
+        onClick={onPrev}
+        title={labels.prev}
+        aria-label={labels.prev}
+      >
+        ↑
+      </Button>
+      <Button
+        variant="ghost"
+        icon
+        disabled={disabled}
+        onClick={onNext}
+        title={labels.next}
+        aria-label={labels.next}
+      >
+        ↓
+      </Button>
+      <Button variant="ghost" icon onClick={onClose} title={labels.close} aria-label={labels.close}>
+        ×
+      </Button>
     </div>
   );
 }

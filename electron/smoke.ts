@@ -116,6 +116,8 @@ export async function runSmoke(
     if (panesError) return fail(panesError);
     const fullscreenError = await checkFullscreen(win, outDir);
     if (fullscreenError) return fail(fullscreenError);
+    const findError = await checkPasteAndFind(win, outDir);
+    if (findError) return fail(findError);
     const onPath = (bin: string) =>
       (process.env.PATH ?? '').split(':').some((dir) => dir && fs.existsSync(path.join(dir, bin)));
     console.log(`[smoke] PATH has claude: ${onPath('claude')}, codex: ${onPath('codex')}`);
@@ -346,6 +348,69 @@ async function checkFullscreen(win: BrowserWindow, outDir: string): Promise<stri
   if (!off.sidebar || !off.tabbar || off.titlebar) return 'full window: ⇧⌘F did not bring the workspace back';
   if (back.length !== before.length || Math.abs(back[0].w - before[0].w) > 1)
     return 'full window: the split did not come back with the same sizes';
+  return null;
+}
+
+/**
+ * T40, on the focused shell: a paste with `ESC[201~` and Ctrl+C in it reaches the pty without them (it can't end
+ * bracketed paste early); ⌘F (Ctrl+Shift+F on Windows) opens the find bar with focus in it, typing finds the pasted
+ * text in the scrollback, Esc closes the bar and gives the terminal its keyboard back. Saves smoke-find.png.
+ */
+async function checkPasteAndFind(win: BrowserWindow, outDir: string): Promise<string | null> {
+  const js = <T>(code: string): Promise<T> => win.webContents.executeJavaScript(code) as Promise<T>;
+  let written = '';
+  const record = (_e: unknown, { data }: { id: string; data: string }) => (written += data);
+  ipcMain.on(IPC.sessionWrite, record);
+  try {
+    const pasted: boolean = await js(`(() => {
+      const ta = document.activeElement?.classList.contains('xterm-helper-textarea')
+        ? document.activeElement
+        : document.querySelector('.term-host:not([hidden]) .xterm-helper-textarea');
+      if (!ta) return false;
+      ta.focus();
+      const dt = new DataTransfer();
+      dt.setData('text/plain', "echo 'AQFIND AQFIND\\x1b[201~\\x03'");
+      ta.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
+      return true;
+    })()`);
+    if (!pasted) return 'paste: no terminal to paste into';
+    await wait(200);
+    console.log(`[smoke] paste wrote ${JSON.stringify(written)}`);
+    if (!written.includes("echo 'AQFIND AQFIND[201~'")) return 'paste: the pasted text did not reach the pty';
+    if (written.includes('\x03') || written.includes("\x1b[201~'"))
+      return 'paste: control characters from the clipboard reached the pty';
+    press(win, 'Return', []);
+    await wait(500);
+  } finally {
+    ipcMain.removeListener(IPC.sessionWrite, record);
+  }
+
+  press(win, 'F', process.platform === 'win32' ? ['control', 'shift'] : ['meta']);
+  await wait(400);
+  const opened: { bar: boolean; focused: boolean } = await js(`({
+    bar: !!document.querySelector('.c-term-find'),
+    focused: !!document.activeElement?.classList.contains('c-term-find__input'),
+  })`);
+  if (!opened.bar || !opened.focused)
+    return `find: the bar did not open with focus (${JSON.stringify(opened)})`;
+  const dbg = win.webContents.debugger;
+  if (!dbg.isAttached()) dbg.attach('1.3');
+  await dbg.sendCommand('Emulation.setFocusEmulationEnabled', { enabled: true });
+  await dbg.sendCommand('Input.insertText', { text: 'AQFIND' });
+  await wait(600);
+  const count: string = await js(`document.querySelector('.c-term-find__count')?.textContent ?? ''`);
+  console.log(`[smoke] find "AQFIND": ${count}`);
+  const m = /^(\d+)\/(\d+)$/.exec(count);
+  if (!m || Number(m[2]) < 2) return `find: expected matches for the pasted text, got "${count}"`;
+  fs.writeFileSync(path.join(outDir, 'smoke-find.png'), (await win.webContents.capturePage()).toPNG());
+  press(win, 'Escape', []);
+  await wait(300);
+  const closed: { bar: boolean; terminal: boolean } = await js(`({
+    bar: !!document.querySelector('.c-term-find'),
+    terminal: !!document.activeElement?.classList.contains('xterm-helper-textarea'),
+  })`);
+  if (closed.bar || !closed.terminal)
+    return `find: Esc did not close the bar back to the terminal (${JSON.stringify(closed)})`;
   return null;
 }
 

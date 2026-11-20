@@ -258,6 +258,37 @@
   </section>
 
   <section>
+    <h2>Terminal overlay · find bar (T40, ⌘F)</h2>
+    <div class="mock" style="position: relative; height: 120px; background: var(--color-terminal-bg); font: 13px/1.2 var(--font-family-mono); color: var(--color-terminal-fg); padding: 8px 12px;">
+      <div>&nbsp;</div><div>&nbsp;</div>
+      <div>Error: <span style="background: var(--color-terminal-match-active)">ENOENT</span>: no such file, open 'src/app.ts'</div>
+      <div>    at <span style="background: var(--color-terminal-match)">ENOENT</span> handler (node:fs:12)</div>
+      <div class="c-term-overlay">
+        <div class="c-term-find" role="search" aria-label="터미널에서 찾기">
+          <input class="c-input c-term-find__input" value="ENOENT" aria-label="터미널에서 찾기">
+          <span class="c-term-find__count" role="status">1/2</span>
+          <button class="c-btn c-btn--ghost c-btn--icon" aria-pressed="false" aria-label="대소문자 구분">Aa</button>
+          <button class="c-btn c-btn--ghost c-btn--icon" aria-label="이전">↑</button>
+          <button class="c-btn c-btn--ghost c-btn--icon" aria-label="다음">↓</button>
+          <button class="c-btn c-btn--ghost c-btn--icon" aria-label="닫기">×</button>
+        </div>
+      </div>
+    </div>
+    <div class="mock" style="position: relative; height: 56px; margin-top: 8px; background: var(--color-terminal-bg);">
+      <div class="c-term-overlay">
+        <div class="c-term-find" role="search" aria-label="터미널에서 찾기">
+          <input class="c-input c-term-find__input" value="segfault" aria-label="터미널에서 찾기">
+          <span class="c-term-find__count" role="status" data-empty>결과 없음</span>
+          <button class="c-btn c-btn--ghost c-btn--icon" aria-pressed="true" aria-label="대소문자 구분">Aa</button>
+          <button class="c-btn c-btn--ghost c-btn--icon" aria-label="이전">↑</button>
+          <button class="c-btn c-btn--ghost c-btn--icon" aria-label="다음">↓</button>
+          <button class="c-btn c-btn--ghost c-btn--icon" aria-label="닫기">×</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
     <h2>Title bar · full window (T37, ⇧⌘F)</h2>
     <div class="mock" style="display:flex; flex-direction:column; height:120px; background: var(--color-terminal-bg);">
       <div class="c-titlebar">

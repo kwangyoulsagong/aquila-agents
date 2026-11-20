@@ -374,7 +374,8 @@ Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-1
 - **Owns:** `electron/remote/`, `src/features/remote-connection/`.
 
 ### T40 · Scrollback search + safe paste
-- [ ] **Goal:** find an error or file name in long agent output, and never let a paste run a command. (Ghostty 1.3, see `docs/research/notes/ghostty.md`)
+- [x] **Goal:** find an error or file name in long agent output, and never let a paste run a command. (Ghostty 1.3, see `docs/research/notes/ghostty.md`)
+  _Left over: no guide media for find yet (`npm run capture` not rerun; the guide lists the shortcut and the terminal-helpers text mentions it). Find covers the scrollback of mounted terminals only (a dormant restored tab has none until started). The current match shows the selection tint over its amber (xterm draws the selection on top). Windows: full window's unused key moved to F11 so Ctrl+Shift+F is free — not run on Windows._
 - **Spec:** ⌘F (Windows Ctrl+Shift+F, in T13's map) opens a find bar on the focused pane: next/previous, match count,
   case toggle, Esc closes and returns focus to the terminal; highlights cleared on close. `@xterm/addon-search`, loaded
   only while the bar is open. Paste: strip control characters that can end bracketed paste early (`ESC[201~`, other

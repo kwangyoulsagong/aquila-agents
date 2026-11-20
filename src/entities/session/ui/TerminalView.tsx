@@ -10,6 +10,7 @@ import { gpuPool } from '../lib/gpuPool';
 import { createImeGuard } from '../lib/imeGuard';
 import { windowsCopyKey } from '../lib/windowsKeys';
 import { SNAPSHOT_MS, SNAPSHOT_SAVER_MS, snapshotText } from '../lib/snapshot';
+import { safePaste } from '../lib/paste';
 import { attach, registerPaste, registerTerminal } from '../lib/terminalBus';
 import { SCROLLBACK, sizeChanged } from '../model/terminal';
 
@@ -132,9 +133,20 @@ export default function TerminalView({ id, kind, visible, focused = visible }: P
     const detach = attach(id, (data, done) => term.write(data, done));
     const input = term.onData((data) => api.write(id, data));
     const unpaste = registerPaste(id, (text) => {
-      term.paste(text);
+      safePaste(term, text);
       term.focus();
     });
+    // ⌘V (T40): xterm's own paste handler would send control characters as-is. Capture on xterm's root runs
+    // before it; files on the clipboard are left to the terminal helpers (they type the paths, also through safePaste).
+    const root = term.element!;
+    const onPaste = (e: ClipboardEvent) => {
+      const data = e.clipboardData;
+      if (!data || data.types.includes('Files')) return;
+      e.preventDefault();
+      e.stopPropagation();
+      safePaste(term, data.getData('text/plain'));
+    };
+    root.addEventListener('paste', onPaste, true);
     const unregister = registerTerminal(id, term);
     // Hangul IME: keys the IME swallows while composing (Enter, Esc, Ctrl+C…) still reach the session, once.
     const ime = createImeGuard({ write: (data) => api.write(id, data) });
@@ -185,6 +197,7 @@ export default function TerminalView({ id, kind, visible, focused = visible }: P
       document.fonts.removeEventListener('loadingdone', scheduleFit);
       input.dispose();
       unpaste();
+      root.removeEventListener('paste', onPaste, true);
       unregister();
       term.textarea?.removeEventListener('compositionend', ime.onCompositionEnd);
       ime.dispose();

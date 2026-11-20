@@ -24,6 +24,7 @@
     "icon": "tsc -p tsconfig.electron.json && electron dist-electron/electron/tools/render-icon.js"
   },
   "dependencies": {
+    "@xterm/addon-search": "^0.16.0",
     "electron-updater": "^6.8.11",
     "node-pty": "^1.1.0"
   },

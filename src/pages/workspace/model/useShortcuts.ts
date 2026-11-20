@@ -28,6 +28,8 @@ interface Deps {
   /** Terminal helpers (T28) on the focused session. */
   copyLastReply: () => void;
   quickSelect: () => void;
+  /** Find bar on the focused session (T40). */
+  find: () => void;
 }
 
 /** Runs the shortcuts of `shared/lib/shortcuts.ts`. Capture phase so xterm doesn't eat them. */
@@ -51,6 +53,7 @@ export function useShortcuts({
   nextWaiting,
   copyLastReply,
   quickSelect,
+  find,
 }: Deps) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -90,6 +93,8 @@ export function useShortcuts({
           return copyLastReply();
         case 'quickSelect':
           return quickSelect();
+        case 'find':
+          return find();
         case 'splitRight':
           return splitFocused('row');
         case 'splitDown':
@@ -138,5 +143,6 @@ export function useShortcuts({
     nextWaiting,
     copyLastReply,
     quickSelect,
+    find,
   ]);
 }

@@ -237,6 +237,17 @@ so the terminal stays owned by the entity.
   the Korean input source doesn't matter.
 - Electron 45 has no `clipboard` module in the preload: `copyText` goes through `clipboard:write` in main.
 
+## Find + safe paste (T40)
+
+- `features/terminal-search`: ⌘F (Windows Ctrl+Shift+F, `find` in the shortcut map) or ⌘K → "Find in terminal" opens
+  a `TermFind` bar over the focused session (`openFind` store, one bar at a time). `@xterm/addon-search` is imported
+  and loaded only while the bar is open; matches are decorations in `--color-terminal-match(-active)`. Enter / ⇧Enter
+  next / previous, Esc closes, clears the highlights and gives the terminal its keyboard back.
+- `entities/session/lib/paste.ts`: `safePaste(term, text)` strips C0 (except tab, LF, CR), DEL and C1 before
+  `term.paste`, so a pasted `ESC[201~` can't end bracketed paste early. Every paste goes through it: ⌘V (a capture
+  listener on xterm's root runs before xterm's own handler; files are left to the terminal helpers), dropped paths,
+  quick select, `pasteIntoSession` (panels) and the Figma chips. Smoke checks both in the real app.
+
 ## Remote sessions (T29)
 
 A project can live on an SSH host: `project.remote = { alias, claudeConfigDir? }`, and `project.path` is then the
