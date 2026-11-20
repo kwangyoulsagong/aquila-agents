@@ -6,7 +6,7 @@ import { withShortcut } from '@/shared/lib/shortcuts';
 import { AccountSwitch } from '@/features/switch-account';
 import { SetupAccount } from '@/features/setup-account';
 import { OpenInWorktreeDialog } from '@/features/open-in-worktree';
-import { LanguageToggle } from '@/features/switch-language';
+import { SettingsMenu } from '@/features/switch-language';
 import { nextWaiting } from '@/features/next-waiting';
 import { copyLastReply, toggleQuickSelect } from '@/features/terminal-helpers';
 import { FirstRunChecklist, useFirstRun } from '@/features/first-run';
@@ -20,6 +20,7 @@ import { ChangesPanel } from '@/widgets/changes-panel';
 import { PreviewPanel } from '@/widgets/preview';
 import { HistoryPanel } from '@/widgets/history-panel';
 import { UsageGauge } from '@/widgets/usage-gauge';
+import { TrendsButton, TrendsModal, useTrends } from '@/widgets/trends';
 import { CommandPalette, type ActionId } from '@/widgets/command-palette';
 import { useWorkspace } from '../model/useWorkspace';
 import { useShortcuts } from '../model/useShortcuts';
@@ -34,6 +35,8 @@ export default function WorkspacePage() {
   const togglePalette = useCallback(() => setPaletteOpen((o) => !o), []);
   const [historyOpen, setHistoryOpen] = useState(false);
   const toggleHistory = useCallback(() => setHistoryOpen((o) => !o), []);
+  const [trendsOpen, setTrendsOpen] = useState(false);
+  const trends = useTrends();
   const [worktreeOpen, setWorktreeOpen] = useState(false);
   const openWorktreeDialog = useCallback(() => setWorktreeOpen(true), []);
   const firstRun = useFirstRun();
@@ -160,6 +163,12 @@ export default function WorkspacePage() {
           activeProjectId={ws.activeProjectId}
           onSelect={ws.selectProject}
           manage={manage}
+          top={
+            <TrendsButton
+              open={trendsOpen}
+              onClick={() => setTrendsOpen((o) => !o)}
+            />
+          }
           aboveFooter={
             <UsageGauge
               config={config}
@@ -170,7 +179,7 @@ export default function WorkspacePage() {
           }
           footer={
             <>
-              <LanguageToggle config={config} onChanged={ws.setConfig} />
+              <SettingsMenu config={config} onChanged={ws.setConfig} />
               <GuideButton open={guide.open} onClick={toggleGuide} />
             </>
           }
@@ -304,6 +313,13 @@ export default function WorkspacePage() {
         />
         <GuideOffer open={guide.offer} onTake={showGuide} onSkip={guide.dismissOffer} />
         <GuideModal open={guide.open} onClose={guide.close} language={config.language} />
+        <TrendsModal
+          open={trendsOpen}
+          onClose={() => setTrendsOpen(false)}
+          trends={trends}
+          language={config.language}
+          account={project && !project.remote ? project.account : undefined}
+        />
         <CommandPalette
           open={paletteOpen}
           onClose={() => setPaletteOpen(false)}

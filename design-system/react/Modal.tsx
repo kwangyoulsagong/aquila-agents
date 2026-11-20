@@ -176,3 +176,14 @@ export function ModalActions({
 export function ModalNote({ warn, children }: { warn?: boolean; children: ReactNode }) {
   return <p className={warn ? 'c-modal__note c-modal__note--warn' : 'c-modal__note'}>{children}</p>;
 }
+
+/** `.c-modal__bullets` — a short bulleted list in the detail (a release's "Added" lines). */
+export function ModalBullets({ items }: { items: ReactNode[] }) {
+  return (
+    <ul className="c-modal__bullets">
+      {items.map((item, i) => (
+        <li key={i}>{item}</li>
+      ))}
+    </ul>
+  );
+}

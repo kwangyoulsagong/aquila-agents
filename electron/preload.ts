@@ -88,6 +88,12 @@ const api: AquilaApi = {
   onPreviewNav: on(IPC.previewNav),
   previewPick: (slot) => ipcRenderer.invoke(IPC.previewPick, slot),
   previewPickCancel: (slot) => ipcRenderer.send(IPC.previewPickCancel, slot),
+  news: () => ipcRenderer.invoke(IPC.newsGet),
+  onNews: on(IPC.newsChanged),
+  newsRefresh: () => ipcRenderer.invoke(IPC.newsRefresh),
+  newsOpened: () => ipcRenderer.send(IPC.newsOpened),
+  newsOpen: (url) => ipcRenderer.send(IPC.newsOpen, url),
+  newsSummarize: (language, account) => ipcRenderer.invoke(IPC.newsSummarize, { language, account }),
 };
 
 contextBridge.exposeInMainWorld('aquila', api);

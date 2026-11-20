@@ -1,0 +1,408 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  addedLines,
+  cleanBullet,
+  cliNews,
+  compareVersions,
+  excerpt,
+  groupsOf,
+  industry,
+  mergeReleases,
+  NewsService,
+  parseCache,
+  parseChangelog,
+  parseFeed,
+  parseHn,
+  parseReleases,
+  plainText,
+  FRESH_MS,
+  htmlToMarkdown,
+  parseReleasesAtom,
+  SOURCES,
+  tagVersion,
+  type FetchReply,
+  type Fetcher,
+} from './news';
+import type { NewsItem } from '../src/shared/api/types';
+
+const fixture = (name: string) => fs.readFileSync(path.join(__dirname, 'fixtures', 'news', name), 'utf8');
+const NOW = Date.parse('2026-11-20T09:00:00Z');
+
+const dirs: string[] = [];
+const tmpFile = () => {
+  const d = fs.mkdtempSync(path.join(os.tmpdir(), 'aquila-news-'));
+  dirs.push(d);
+  return path.join(d, 'news-cache.json');
+};
+afterEach(() => {
+  for (const d of dirs.splice(0)) fs.rmSync(d, { recursive: true, force: true });
+});
+
+describe('versions', () => {
+  it('reads versions out of tags', () => {
+    expect(tagVersion('v2.1.329')).toBe('2.1.329');
+    expect(tagVersion('rust-v0.170.0')).toBe('0.170.0');
+    expect(tagVersion('rust-v0.172.0-alpha.2')).toBe('0.172.0-alpha.2');
+    expect(tagVersion('latest')).toBeNull();
+  });
+
+  it('compares numerically, pre-releases first', () => {
+    expect(compareVersions('2.1.10', '2.1.9')).toBeGreaterThan(0);
+    expect(compareVersions('0.170.0', '0.170.0')).toBe(0);
+    expect(compareVersions('0.172.0-alpha.1', '0.172.0')).toBeLessThan(0);
+    expect(compareVersions('1.2', '1.2.0')).toBe(0);
+  });
+});
+
+describe('text', () => {
+  it('turns double-escaped feed HTML into one plain line', () => {
+    expect(plainText('&lt;p&gt;&lt;strong&gt;Hi&lt;/strong&gt; &amp;amp; bye&lt;/p&gt;')).toBe('Hi & bye');
+    expect(plainText('<![CDATA[<p>One</p>\n<p>Two &#8217;s</p>]]>')).toBe('One Two ’s');
+  });
+
+  it('cuts excerpts on a word', () => {
+    const e = excerpt('word '.repeat(100), 40);
+    expect(e.length).toBeLessThanOrEqual(41);
+    expect(e.endsWith('word…')).toBe(true);
+  });
+
+  it('cleans markdown bullets', () => {
+    expect(cleanBullet('- Added `/foo` with [docs](https://x.y) (#61172)')).toBe('Added /foo with docs');
+    expect(cleanBullet('* **Bold** thing (#1, #2)')).toBe('Bold thing');
+  });
+});
+
+describe('releases', () => {
+  it('Codex Atom feed: skips pre-releases, takes the New Features bullets from the HTML', () => {
+    const r = parseReleasesAtom(fixture('codex-releases.atom'));
+    expect(r.map((x) => x.version)).toEqual(['0.171.0']);
+    expect(r[0].url).toBe('https://github.com/openai/codex/releases/tag/rust-v0.171.0');
+    expect(r[0].added[0]).toBe(
+      'Added GPT-6.2 Sol and Astra to model catalogs, with Sol as the default catalog selection.',
+    );
+    expect(r[0].added.every((l) => !/<|&lt;|\(#\d+\)/.test(l))).toBe(true);
+    expect(r[0].publishedAt).not.toBeNull();
+  });
+
+  it('Claude Code Atom feed: "Added" lines, newest first, at most five', () => {
+    const r = parseReleasesAtom(fixture('claude-releases.atom'));
+    expect(r.map((x) => x.version)).toEqual(['2.1.329', '2.1.328', '2.1.327']);
+    expect(r[0].added.length).toBeGreaterThanOrEqual(3);
+    expect(r[0].added.length).toBeLessThanOrEqual(5);
+    expect(r[0].added.every((l) => l.startsWith('Added'))).toBe(true);
+  });
+
+  it('REST /releases/latest (one object) and a list', () => {
+    const one = parseReleases(fixture('codex-latest.json'));
+    expect(one.map((x) => x.version)).toEqual(['0.171.0']);
+    expect(one[0].added.length).toBeGreaterThan(0);
+    const list = parseReleases(
+      JSON.stringify([
+        { tag_name: 'v1.0.0', html_url: 'https://x/1', body: '- Added a' },
+        { tag_name: 'v1.1.0-beta', html_url: 'https://x/2', prerelease: true },
+      ]),
+    );
+    expect(list.map((x) => x.version)).toEqual(['1.0.0']);
+  });
+
+  it('turns release HTML into bullets', () => {
+    expect(htmlToMarkdown('<h2>New Features</h2><ul><li>Added <code>x</code> (<a href="#">#1</a>)</li></ul>')).toBe(
+      '## New Features\n- Added x (#1)',
+    );
+  });
+
+  it('never throws on junk', () => {
+    expect(parseReleases('not json')).toEqual([]);
+    expect(parseReleases('{"message":"API rate limit exceeded"}')).toEqual([]);
+  });
+
+  it('falls back to the first bullets when there is no Added section', () => {
+    expect(addedLines('## Bug Fixes\n- Fixed a\n- Fixed b')).toEqual(['Fixed a', 'Fixed b']);
+  });
+
+  it('drops the cut-off last section of a ranged CHANGELOG read', () => {
+    const text = fixture('claude-changelog.md');
+    expect(parseChangelog(text, 20, true).map((x) => x.version)).toEqual(['2.1.329', '2.1.328']);
+  });
+
+  it('parses the CHANGELOG and merges it under the API releases', () => {
+    const log = parseChangelog(fixture('claude-changelog.md'));
+    expect(log.map((x) => x.version)).toEqual(['2.1.329', '2.1.328', '2.1.327']);
+    expect(log[0].added[0]).toBe(
+      "Added a trust dialog warning that says where a folder's hooks are declared",
+    );
+    expect(log[0].url).toContain('CHANGELOG.md#21329');
+    const api = [{ version: '2.1.329', url: 'https://gh/r', publishedAt: 1, added: [] }];
+    const merged = mergeReleases(api, log);
+    expect(merged[0]).toMatchObject({ version: '2.1.329', url: 'https://gh/r', publishedAt: 1 });
+    expect(merged[0].added).toEqual(log[0].added);
+    expect(merged).toHaveLength(3);
+  });
+
+  it('lists releases newer than the installed one, else the latest', () => {
+    const rel = parseChangelog(fixture('claude-changelog.md'));
+    expect(cliNews('claude', '2.1.327', rel)).toMatchObject({ upToDate: false });
+    expect(cliNews('claude', '2.1.327', rel).releases.map((r) => r.version)).toEqual(['2.1.329', '2.1.328']);
+    const cur = cliNews('claude', '2.1.329', rel);
+    expect(cur.upToDate).toBe(true);
+    expect(cur.releases.map((r) => r.version)).toEqual(['2.1.329']);
+    expect(cliNews('codex', null, rel).upToDate).toBe(false);
+    expect(cliNews('codex', '1.0.0', []).releases).toEqual([]);
+  });
+});
+
+describe('feeds', () => {
+  it('RSS with CDATA (OpenAI)', () => {
+    const items = parseFeed(fixture('openai.xml'), 'openai');
+    expect(items).toHaveLength(3);
+    expect(items[0]).toMatchObject({
+      source: 'openai',
+      title: 'How OpenAI’s Performance Factory keeps ChatGPT fast',
+      url: 'https://openai.com/index/how-openai-performance-factory-keeps-chatgpt-fast',
+      publishedAt: Date.parse('Thu, 19 Nov 2026 08:00:00 GMT'),
+    });
+    expect(items[0].excerpt).toMatch(/^Learn how OpenAI built/);
+  });
+
+  it('RSS without a description (Antigravity) and with escaped titles (Latent Space)', () => {
+    const ag = parseFeed(fixture('antigravity.xml'), 'antigravity');
+    expect(ag.map((i) => i.title)).toEqual([
+      'Gemini 4 Neon in Google Antigravity',
+      'Gemini 4 Hydrogen and Orchestrator',
+    ]);
+    expect(ag[0].excerpt).toBe('');
+    const ls = parseFeed(fixture('latent-space.xml'), 'latent-space');
+    expect(ls[1].title).toBe("[AINews] Gemini 4 Neon: GDM's Opus/Sol Contender");
+    expect(ls[0].excerpt.startsWith('>50% of tickets')).toBe(true);
+    const cursor = parseFeed(fixture('cursor.xml'), 'cursor');
+    expect(cursor[0]).toMatchObject({
+      title: 'Voice Chat with Agents',
+      url: 'https://cursor.com/changelog/voice-chat',
+    });
+  });
+
+  it('Atom (Simon Willison): alternate link, escaped HTML summary', () => {
+    const items = parseFeed(fixture('simonw.xml'), 'simonw');
+    expect(items.map((i) => i.title)).toEqual(['PostgreSQL 19 Released', 'llm-gemini 0.38']);
+    expect(items[0].url).toBe('https://simonwillison.net/2026/Nov/19/postgresql-19/');
+    expect(items[0].excerpt).toMatch(/^PostgreSQL 19 Released Most years/);
+    expect(items[0].excerpt).not.toMatch(/[<>]|&lt;/);
+    expect(items[0].excerpt.length).toBeLessThanOrEqual(221);
+  });
+
+  it('skips broken items and never throws', () => {
+    expect(parseFeed('<rss><item><title>x</title></item></rss>', 'openai')).toEqual([]);
+    expect(parseFeed('garbage', 'openai')).toEqual([]);
+  });
+
+  it('Hacker News: AI stories only, discussion link kept', () => {
+    const json = JSON.stringify({
+      hits: [
+        {
+          objectID: '1',
+          title: 'Claude Code hooks deep dive',
+          url: 'https://ex.com/a',
+          points: 300,
+          num_comments: 80,
+          created_at_i: 1795113317,
+        },
+        {
+          objectID: '2',
+          title: 'The 98% Slot Machine',
+          url: 'https://ex.com/b',
+          points: 181,
+          created_at_i: 1795113317,
+        },
+        { objectID: '3', title: 'Ask HN: Which LLM do you use?', points: 150, created_at_i: 1795113317 },
+      ],
+    });
+    const items = parseHn(json);
+    expect(items.map((i) => i.id)).toEqual(['hn:1', 'hn:3']);
+    expect(items[0]).toMatchObject({
+      url: 'https://ex.com/a',
+      discussion: 'https://news.ycombinator.com/item?id=1',
+    });
+    expect(items[0].excerpt).toBe('300 points · 80 comments');
+    expect(items[1].url).toBe('https://news.ycombinator.com/item?id=3');
+    expect(parseHn('nope')).toEqual([]);
+  });
+});
+
+describe('groups and unread', () => {
+  it('matches the keyword groups', () => {
+    expect(groupsOf('Parallel subagents and new hooks')).toEqual(['subagent', 'hook']);
+    expect(groupsOf('Cursor 3: the Agents Window')).toEqual(['agentView']);
+    expect(groupsOf('Is the ADE the new IDE?')).toEqual(['ade']);
+    expect(groupsOf('made a fade')).toEqual([]);
+    expect(groupsOf('Building an agent harness')).toEqual(['harness']);
+  });
+
+  const item = (over: Partial<NewsItem>): NewsItem => ({
+    id: 'x',
+    source: 'openai',
+    title: 't',
+    url: 'https://a/1',
+    excerpt: '',
+    publishedAt: NOW - 1000,
+    groups: [],
+    ...over,
+  });
+
+  it('keeps the last 30 days, one per link, newest first, groups set', () => {
+    const list = industry(
+      [
+        item({ id: 'old', url: 'https://a/old', publishedAt: NOW - 40 * 86_400_000 }),
+        item({ id: 'a1', url: 'https://a/1', publishedAt: NOW - 5000 }),
+        item({ id: 'a2', url: 'https://a/1', publishedAt: NOW - 2000, title: 'Subagents' }),
+        item({ id: 'b', url: 'https://a/2', publishedAt: NOW - 1000 }),
+      ],
+      NOW,
+    );
+    expect(list.map((i) => i.id)).toEqual(['b', 'a2']);
+    expect(list[1].groups).toEqual(['subagent']);
+  });
+
+  it('drops items seen in an earlier visit once they are a week old; unseen ones stay 30 days', () => {
+    const day = 86_400_000;
+    const prevSeenAt = NOW - 2 * day;
+    const list = industry(
+      [
+        item({ id: 'seen-old', url: 'https://a/1', publishedAt: NOW - 10 * day }),
+        item({ id: 'seen-fresh', url: 'https://a/2', publishedAt: NOW - 3 * day }),
+        item({ id: 'unseen', url: 'https://a/3', publishedAt: NOW - day }),
+      ],
+      NOW,
+      prevSeenAt,
+    );
+    expect(list.map((i) => i.id)).toEqual(['unseen', 'seen-fresh']);
+    // Never opened before: a 10-day-old item is still there.
+    expect(industry([item({ id: 'x', publishedAt: NOW - 10 * day })], NOW, 0)).toHaveLength(1);
+  });
+
+  it('feed groups come from the whole body, not just the excerpt', () => {
+    const xml = `<rss><channel><item><title>Release</title><link>https://a/b</link><pubDate>Thu, 19 Nov 2026 08:00:00 GMT</pubDate><description>${'word '.repeat(80)} now with subagents</description></item></channel></rss>`;
+    const [it] = parseFeed(xml, 'cursor');
+    expect(it.excerpt).not.toContain('subagents');
+    expect(it.groups).toEqual(['subagent']);
+    expect(industry([it], NOW)[0].groups).toEqual(['subagent']);
+  });
+});
+
+describe('cache', () => {
+  it('a broken or foreign file is a fresh cache with a week of "new"', () => {
+    for (const text of ['', 'nope', '{"v":2}', 'null']) {
+      const c = parseCache(text, NOW);
+      expect(c.fetchedAt).toBeNull();
+      expect(c.seenAt).toBe(NOW - 7 * 86_400_000);
+    }
+  });
+});
+
+describe('NewsService', () => {
+  const replyFor = (url: string): { status: number; body: string; etag?: string } => {
+    if (url.includes('claude-code/releases.atom'))
+      return { status: 200, body: fixture('claude-releases.atom'), etag: '"cc"' };
+    if (url.includes('CHANGELOG.md')) return { status: 206, body: fixture('claude-changelog.md') };
+    if (url.includes('codex/releases.atom')) return { status: 200, body: fixture('codex-releases.atom') };
+    if (url.includes('codex/releases/latest')) return { status: 200, body: fixture('codex-latest.json') };
+    if (url.includes('openai.com')) return { status: 200, body: fixture('openai.xml') };
+    if (url.includes('cursor.com')) return { status: 500, body: '' };
+    if (url.includes('antigravity')) return { status: 200, body: fixture('antigravity.xml') };
+    if (url.includes('simonwillison')) return { status: 200, body: fixture('simonw.xml') };
+    if (url.includes('latent.space')) return { status: 200, body: fixture('latent-space.xml') };
+    return { status: 200, body: '{"hits":[]}' };
+  };
+  type Call = { url: string; headers: Record<string, string> };
+  const makeFetcher = (calls: Call[], notModified = false): Fetcher =>
+    vi.fn(async (url: string, headers: Record<string, string>): Promise<FetchReply> => {
+      calls.push({ url, headers });
+      const r = replyFor(url);
+      const status = notModified && headers['If-None-Match'] ? 304 : r.status;
+      return { status, header: (n) => (n === 'etag' ? (r.etag ?? null) : null), text: async () => r.body };
+    });
+  const versions = async (tool: 'claude' | 'codex') => (tool === 'claude' ? '2.1.327' : '0.170.0');
+
+  it('fetches nothing by itself: only refresh() / opened() on a stale cache do', async () => {
+    const calls: Call[] = [];
+    const file = tmpFile();
+    let now = NOW;
+    const svc = new NewsService({ fetcher: makeFetcher(calls), onChange: () => {}, file, now: () => now, versions });
+    svc.state();
+    expect(calls).toHaveLength(0);
+    expect(svc.stale()).toBe(true);
+    svc.opened();
+    await vi.waitFor(() => expect(svc.state().loading).toBe(false));
+    expect(calls).toHaveLength(SOURCES.length);
+    // Opened again within 30 min: the cache, no request.
+    now += FRESH_MS - 1;
+    svc.opened();
+    expect(calls).toHaveLength(SOURCES.length);
+  });
+
+  it('parses every source, keeps failures out, caches, then uses ETags', async () => {
+    const file = tmpFile();
+    const calls: Call[] = [];
+    let now = NOW;
+    const svc = new NewsService({ fetcher: makeFetcher(calls), onChange: () => {}, file, now: () => now, versions });
+    const s = await svc.refresh();
+    expect(calls).toHaveLength(SOURCES.length);
+    expect(calls.find((c) => c.url.includes('CHANGELOG'))?.headers.Range).toBe('bytes=0-65535');
+    expect(s.failed).toEqual(['cursor']);
+    expect(s.cli[0]).toMatchObject({ tool: 'claude', installed: '2.1.327', upToDate: false });
+    expect(s.cli[0].releases.map((r) => r.version)).toEqual(['2.1.329', '2.1.328']);
+    expect(s.cli[1]).toMatchObject({ tool: 'codex', upToDate: false });
+    expect(s.cli[1].releases.map((r) => r.version)).toEqual(['0.171.0']);
+    expect(s.industry.length).toBeGreaterThan(5);
+    expect(svc.stale()).toBe(false);
+    expect(svc.isKnownUrl(s.industry[0].url)).toBe(true);
+    expect(svc.isKnownUrl('https://evil.example/')).toBe(false);
+    expect(svc.isKnownUrl('file:///etc/passwd')).toBe(false);
+
+    // Opened (first time): seen, persisted, nothing pruned yet.
+    expect(svc.opened().seenAt).toBe(now);
+    const again = new NewsService({ fetcher: makeFetcher([]), onChange: () => {}, file, now: () => now });
+    expect(again.state().seenAt).toBe(now);
+    expect(again.state().industry.length).toBe(s.industry.length);
+
+    // Later: conditional request, a 304 keeps the parsed releases.
+    now += FRESH_MS;
+    const calls2: Call[] = [];
+    const svc2 = new NewsService({ fetcher: makeFetcher(calls2, true), onChange: () => {}, file, now: () => now, versions });
+    const s2 = await svc2.refresh();
+    expect(calls2.find((c) => c.url.includes('claude-code/releases'))?.headers['If-None-Match']).toBe('"cc"');
+    expect(s2.cli[0].releases.map((r) => r.version)).toEqual(['2.1.329', '2.1.328']);
+  });
+
+  it('prunes items seen in an earlier visit from the cache file after a week', async () => {
+    const file = tmpFile();
+    const day = 86_400_000;
+    let now = NOW;
+    const svc = new NewsService({ fetcher: makeFetcher([]), onChange: () => {}, file, now: () => now, versions });
+    await svc.refresh();
+    const before = svc.state().industry.length;
+    svc.opened(); // visit 1
+    now += 10 * day;
+    svc.opened(); // visit 2: everything from visit 1 is now 10+ days old and seen
+    const cached = JSON.parse(fs.readFileSync(file, 'utf8')) as { sources: Record<string, { items?: unknown[] }> };
+    const left = Object.values(cached.sources).reduce((n, c) => n + (c.items?.length ?? 0), 0);
+    expect(before).toBeGreaterThan(0);
+    expect(left).toBe(0);
+    expect(svc.state().industry).toHaveLength(0);
+  });
+
+  it('runs one refresh at a time', async () => {
+    const calls: Call[] = [];
+    const svc = new NewsService({
+      fetcher: makeFetcher(calls),
+      onChange: () => {},
+      file: tmpFile(),
+      now: () => NOW,
+      versions: async () => null,
+    });
+    await Promise.all([svc.refresh(), svc.refresh()]);
+    expect(calls).toHaveLength(SOURCES.length);
+  });
+});

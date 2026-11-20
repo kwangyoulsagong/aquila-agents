@@ -1,6 +1,6 @@
 // Main process: window, config, pty sessions, Claude hook receiver.
 import path from 'node:path';
-import { app, BrowserWindow, clipboard, dialog, ipcMain, Notification, powerMonitor, shell } from 'electron';
+import { app, BrowserWindow, clipboard, dialog, ipcMain, net, Notification, powerMonitor, shell } from 'electron';
 import { restoreShellPath } from './env';
 import { accountsStatus, installShellFunction, prepareAccount, shellFunctionPreview } from './accounts';
 import {
@@ -31,6 +31,7 @@ import { LIVE_SOURCES, ratio, refreshDue, UsageTracker } from './usage';
 import { ContextWatcher, statusLineSources, userHasStatusLine } from './context';
 import { connect as figmaConnect, FIGMA_DOCS_URL, readProfiles as figmaProfiles } from './figma';
 import { PowerWatcher, type PowerSource } from './power';
+import { FIXTURE_NOW, fixtureFetcher, NewsService } from './news';
 import { DevUrlTracker, mergeTargets, PreviewViews, readLaunchJson } from './preview';
 import { SessionManager } from './sessions';
 import { checkRemote } from './remote/check';
@@ -281,6 +282,43 @@ app.whenReady().then(async () => {
       if (win && refreshDue(Date.now() - usage.lastRefresh, win.isFocused(), powerState().saver))
         void pushUsage(usage.refresh());
     }, 60_000);
+
+  // AI trends (T35): cached at ~/.aquila/news-cache.json. Fetched only when the modal opens (cache > 30 min) or on ↻:
+  // no startup fetch, no polling.
+  // Smoke and capture: fixture feeds, a throwaway cache, fixed versions and the fixtures' date (never the user's
+  // cache or the network; the guide media stay the same whenever they're captured).
+  const smokeNewsFile = path.join(app.getPath('temp'), `aquila-smoke-news-${process.pid}.json`);
+  const news = new NewsService({
+    fetcher: isSmoke
+      ? fixtureFetcher(path.join(__dirname, '..', '..', 'electron', 'fixtures', 'news'))
+      : async (url, headers) => {
+          const r = await net.fetch(url, { headers, signal: AbortSignal.timeout(20_000) });
+          return { status: r.status, header: (n) => r.headers.get(n), text: () => r.text() };
+        },
+    onChange: (state) => send(IPC.newsChanged, state),
+    ...(isSmoke
+      ? {
+          file: smokeNewsFile,
+          versions: async (tool) => (tool === 'claude' ? '2.1.327' : '0.170.0'),
+          now: () => FIXTURE_NOW,
+        }
+      : {}),
+  });
+  if (isSmoke) app.on('will-quit', () => fs.rmSync(smokeNewsFile, { force: true }));
+  ipcMain.handle(IPC.newsGet, () => news.state());
+  ipcMain.handle(IPC.newsRefresh, () => news.refresh());
+  ipcMain.on(IPC.newsOpened, () => void news.opened());
+  ipcMain.on(IPC.newsOpen, (_e, url: string) => {
+    if (typeof url === 'string' && news.isKnownUrl(url)) void shell.openExternal(url);
+  });
+  ipcMain.handle(
+    IPC.newsSummarize,
+    (_e, { language, account }: { language: Language; account?: string }) => {
+      const config = loadConfig();
+      const a = account ? config.accounts[account] : undefined;
+      return news.summarize(language, a?.claudeConfigDir && account ? claudeConfigDir(config, account) : undefined);
+    },
+  );
 
   // Tabs on screen in the saved layout are spawned now; the rest stay dormant until first shown (T21).
   let restored: { sessions: SessionInfo[]; keys: Map<string, string> } | null = null;

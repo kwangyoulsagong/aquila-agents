@@ -25,6 +25,7 @@
 │           usage-gauge                     │        │ usage.ts      계정별 5시간·주간 사용량 (T30)     │
 │                                           │        │ context.ts    탭별 컨텍스트 사용량 (T31)         │
 │                                           │        │ figma.ts      Figma MCP 인자 + whoami (T32)      │
+│           trends                          │        │ news.ts       CLI 릴리스 + AI 소식 피드 (T35)    │
 │           preview                         │        │ preview.ts    dev server, 프리뷰 뷰, 선택 (T33)  │
 │                                           │        │ detect.ts     CLI 점검, 첫 실행 상태 (T17)       │
 │                                           │        │ guide.ts      둘러보기 제안 한 번만 (T23)        │
@@ -330,6 +331,30 @@ import하지 않음).
   도구가 없어 MCP만 쓰는 프롬프트. 터미널의 Enter, 칩, ×로 닫힘. 프롬프트는 사전(ko / en).
 - **프리뷰:** Designer 레이아웃에서 Figma 링크가 열려 있으면 선택(T33)에 한 줄 추가: 프레임 URL과 "`get_screenshot`으로
   가져와 선택한 요소의 스크린샷과 비교" — 겹쳐 보기는 에이전트가 함.
+
+## AI 트렌드 (T35)
+
+`electron/news.ts` + `widgets/trends`: 사이드바 상단 띠 오른쪽 끝의 ✦가 가이드의 `Modal`을 제목만 바꿔 엶.
+- **필요할 때만 가져옴:** 모달을 열 때 캐시(`~/.aquila/news-cache.json`)가 30분보다 오래됐으면 가져오고, ↻는 바로
+  가져옴. 실행 시 요청·폴링·배지 없음(가져오지 않으면 셀 게 없음). 소스마다 `If-None-Match` / `If-Modified-Since`로
+  `net.fetch`(304면 파싱해 둔 항목 유지). 실패한 소스는 이전 항목을 남기고 푸터에 이름 표시. capture에서는 끔.
+- **소스:** claude-code·codex는 GitHub `releases.atom`(최근 10개, 각 약 300KB, API 한도 없음 — asset이 붙은 REST 목록은
+  30개에 약 10MB), codex는 REST `/releases/latest` 추가(피드 10개가 전부 alpha일 수 있음). `-접미사` 버전은 제외. Claude
+  Code `CHANGELOG.md`는 앞 64KB만(`Range`, 잘린 마지막 섹션은 버림). RSS/Atom: OpenAI News, Cursor changelog,
+  Antigravity blog, Simon Willison, Latent Space. HN Algolia(`points>100`, 최근 7일, AI 관련 제목만). 한 번에 약 3MB
+  (OpenAI·Latent Space는 `Range`를 무시). XML 파서는 의존성 없이 정규식으로.
+- **내 CLI:** `claude --version` / `codex --version`(지정한 바이너리)과 릴리스 비교: 더 새 것(최대 5개), 없으면 최신
+  하나. 각각 "Added" 줄 3~5개("Added"로 시작하는 항목 → "New Features" 섹션 → 앞쪽 항목 순).
+- **업계:** 소스당 최대 15개, 링크당 하나. 항목 본문 전체에 정규식 키워드 분류(subagent / multi-agent, hook, agent view
+  / background agents, ADE, harness), 첫 분류 아래에 표시, 나머지는 "최신". 제목·링크·220자 이하 발췌만. 분류되는
+  항목이 적은 건 키워드 탓이지 버그가 아님.
+- **보관 / 정리:** 아직 안 본 항목은 30일, 이전 방문(`prevSeenAt`) 때 이미 있던 항목은 7일 뒤 목록과 캐시 파일에서
+  지움. 지난 방문 이후 새 행에는 점.
+- **열기:** `news:open`은 현재 상태에 있는 http(s) 링크만 엶.
+- **요약(옵트인):** 누르면 숨은 `claude -p --model haiku --max-turns 1 --no-session-persistence`를 지금 프로젝트의
+  계정으로 실행, 프롬프트는 stdin(제목 + 발췌만). 상태와 함께 캐시.
+- **smoke / capture:** `electron/fixtures/news` 픽스처 피드, 임시 캐시, 고정 버전, 픽스처 날짜(`FIXTURE_NOW`). smoke는 열
+  때 가져오는지, 행·줄·업계 탭·Esc 확인, capture는 `trends` 가이드 항목을 녹화.
 
 ## 앱 내 프리뷰 (T33)
 

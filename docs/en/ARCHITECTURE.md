@@ -25,6 +25,7 @@
 │           usage-gauge                     │        │ usage.ts      5h / weekly usage per account (T30)│
 │                                           │        │ context.ts    context use per tab (T31)          │
 │                                           │        │ figma.ts      Figma MCP args + whoami (T32)      │
+│           trends                          │        │ news.ts       CLI releases + AI news feeds (T35) │
 │           preview                         │        │ preview.ts    dev server, preview view, pick(T33)│
 │                                           │        │ detect.ts     CLI checks, first-run state (T17)  │
 │                                           │        │ guide.ts      tour offered once (T23)            │
@@ -350,6 +351,34 @@ a project with Figma on — renderer only, no IPC.
   repeat. Codex has no Chrome tools and gets the MCP-only prompt. Enter in the terminal, a chip or × puts them away. Prompts live in the dictionary (ko / en).
 - **Preview:** a pick (T33) in the Designer layout with a Figma link open gets one more line: the frame URL and
   "`get_screenshot` it and compare with the picked element's screenshot" — the agent does the overlay.
+
+## AI trends (T35)
+
+`electron/news.ts` + `widgets/trends`: ✦ at the right end of the sidebar's top band opens the guide's `Modal` with its
+own title.
+- **Fetch only on demand:** opening the modal fetches when the cache (`~/.aquila/news-cache.json`) is older than
+  30 min; ↻ fetches now. No startup fetch, no polling, no badge (nothing to count without a fetch). `net.fetch` with
+  `If-None-Match` / `If-Modified-Since` per source (a 304 keeps the parsed items). A failed source keeps its last
+  items and is named in the footer. Off in capture runs.
+- **Sources:** GitHub's `releases.atom` for claude-code and codex (last 10, ~300 KB each, no API rate limit — the REST
+  list with assets was ~10 MB for 30), plus REST `/releases/latest` for codex (its 10 feed entries can all be alphas);
+  versions with a `-suffix` are skipped. Claude Code `CHANGELOG.md`, first 64 KB only (`Range`; the cut-off last section
+  is dropped). RSS/Atom: OpenAI News, Cursor changelog, Antigravity blog, Simon Willison, Latent Space; HN Algolia
+  (`points>100`, last 7 days, AI-looking titles only). ~3 MB per fetch (OpenAI and Latent Space ignore `Range`).
+  The XML parser is regex-based on purpose (no dependency).
+- **My CLIs:** `claude --version` / `codex --version` (the picked binary) vs. the releases: the newer ones (≤5), else
+  the latest; 3–5 "Added" lines each (bullets starting with "Added", else the "New Features" section, else the first bullets).
+- **Industry:** ≤15 per source, one per link; keyword groups by regex over the whole item body (subagent / multi-agent,
+  hook, agent view / background agents, ADE, harness), shown under their first group, the rest under "Latest". Titles,
+  links and ≤220-character excerpts only. Few items hit the groups; that's the keywords, not a bug.
+- **Kept / pruned:** items not seen yet stay 30 days; items already there at an earlier visit (`prevSeenAt`) go after
+  7 days — from the list and the cache file. Rows newer than the previous visit get a dot.
+- **Open:** `news:open` only opens http(s) links that are in the current state.
+- **Summary (opt-in):** a click runs a hidden `claude -p --model haiku --max-turns 1 --no-session-persistence` with the
+  current project's account, the prompt on stdin (titles + excerpts only); cached with the state.
+- **Smoke / capture:** fixture feeds from `electron/fixtures/news`, a temp cache, fixed versions and the fixtures' date
+  (`FIXTURE_NOW`); smoke checks that opening fetches, the rows, the lines, the Industry tab and Esc; capture records the
+  `trends` guide item.
 
 ## In-app preview (T33)
 

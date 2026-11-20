@@ -29,6 +29,7 @@ export {
   ModalTools,
   ModalActions,
   ModalNote,
+  ModalBullets,
 } from './Modal';
 export { MetaList, MetaRow } from './Meta';
 export { Transcript, TranscriptMessage } from './Transcript';

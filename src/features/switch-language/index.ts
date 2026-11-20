@@ -1,1 +1,1 @@
-export { default as LanguageToggle } from './ui/LanguageToggle';
+export { default as SettingsMenu } from './ui/SettingsMenu';
