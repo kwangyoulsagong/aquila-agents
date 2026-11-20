@@ -74,6 +74,18 @@ export function normalizeUrl(raw: string): string {
   return u.toString();
 }
 
+/**
+ * A dev server announces itself at its root or a base path (`/`, `/app/`); deeper paths are request logs and API
+ * calls (`GET http://localhost:8080/api/home/today`), not pages to preview.
+ */
+const isServerAddress = (url: string): boolean => {
+  try {
+    return new URL(url).pathname.split('/').filter(Boolean).length <= 1;
+  } catch {
+    return false;
+  }
+};
+
 /** Local dev-server addresses in a piece of terminal output (colors stripped: Vite bolds the port). */
 export function findDevUrls(text: string, ignorePorts: readonly number[] = []): string[] {
   const plain = text.replace(ANSI, '');
@@ -82,6 +94,7 @@ export function findDevUrls(text: string, ignorePorts: readonly number[] = []): 
     const port = Number(m[1]);
     if (port < 1 || port > 65535 || ignorePorts.includes(port)) continue;
     const u = normalizeUrl(m[0]);
+    if (!isServerAddress(u)) continue;
     if (!out.includes(u)) out.push(u);
   }
   return out;
@@ -292,6 +305,7 @@ interface SlotView {
   zoom: number;
   bounds: PreviewRect;
   error?: string;
+  errorUrl?: string;
 }
 
 /**
@@ -331,6 +345,7 @@ export class PreviewViews {
     if (state.url && state.url !== s.url) {
       s.url = state.url;
       s.error = undefined;
+      s.errorUrl = undefined;
       void s.view.webContents.loadURL(state.url).catch(() => {
         /* reported by did-fail-load */
       });
@@ -442,6 +457,7 @@ export class PreviewViews {
         title: wc.getTitle(),
         loading,
         error: s.error,
+        errorUrl: s.errorUrl,
         canGoBack: wc.navigationHistory.canGoBack(),
       });
     wc.setWindowOpenHandler(({ url }) => {
@@ -450,6 +466,7 @@ export class PreviewViews {
     });
     wc.on('did-start-loading', () => {
       s.error = undefined;
+      s.errorUrl = undefined;
       nav(true);
     });
     wc.on('did-stop-loading', () => nav(false));
@@ -464,6 +481,7 @@ export class PreviewViews {
       // -3 = aborted (a new navigation replaced this one).
       if (!isMainFrame || code === -3) return;
       s.error = `${description} (${url})`;
+      s.errorUrl = url;
       nav(false);
     });
     return s;

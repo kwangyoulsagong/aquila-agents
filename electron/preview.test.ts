@@ -47,6 +47,11 @@ describe('findDevUrls', () => {
     expect(findDevUrls('http://[::1]:8000')).toEqual(['http://localhost:8000/']);
   });
 
+  it('ignores request logs and API calls (deep paths)', () => {
+    const log = 'GET http://localhost:18080/api/home/today 200\nready on http://localhost:3100/app/\n';
+    expect(findDevUrls(log)).toEqual(['http://localhost:3100/app/']);
+  });
+
   it('ignores remote hosts, no port and ignored ports', () => {
     expect(findDevUrls('https://example.com:443 http://localhost/ http://localhost:7777')).toEqual([
       'http://localhost:7777/',

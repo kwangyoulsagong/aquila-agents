@@ -31,6 +31,14 @@ const withScheme = (raw: string) => {
   if (!v) return '';
   return /^[a-z][a-z0-9+.-]*:\/\//i.test(v) ? v : `http://${v}`;
 };
+/** Same page regardless of how it was written (`http://localhost:3000` vs `http://localhost:3000/`). */
+const sameUrl = (a: string, b: string) => {
+  try {
+    return new URL(a).href === new URL(b).href;
+  } catch {
+    return a === b;
+  }
+};
 const short = (url: string) => url.replace(/^https?:\/\//, '').replace(/\/$/, '');
 
 /** Address field: shows the page's current address, loads what's typed on Enter. */
@@ -98,12 +106,14 @@ export default function PreviewPanel({ project, session, onClose }: Props) {
   const [picking, setPicking] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
-  // First dev server found becomes the address when there's none yet — or when the remembered one no longer answers
-  // (a server restarted on another port) and a different one was found since.
+  // First dev server found becomes the address when there's none yet — or when the remembered address itself no
+  // longer answers (a server restarted on another port) and a different one was found since. A failed link inside
+  // the page is not a reason to leave it.
   const failed = !!nav?.error && !nav.loading;
+  const addressFailed = failed && !!nav?.errorUrl && sameUrl(nav.errorUrl, url);
   useEffect(() => {
-    if (targets[0] && (!url || (failed && targets[0] !== url))) setUrl(targets[0]);
-  }, [url, targets, failed, setUrl]);
+    if (targets[0] && (!url || (addressFailed && !sameUrl(targets[0], url)))) setUrl(targets[0]);
+  }, [url, targets, addressFailed, setUrl]);
 
   useEffect(() => {
     if (!notice) return;
@@ -221,7 +231,7 @@ export default function PreviewPanel({ project, session, onClose }: Props) {
         >
           ↻
         </Button>
-        <Address value={nav?.url || url} label={t('preview.address')} onGo={setUrl} />
+        <Address value={(failed && nav?.errorUrl) || nav?.url || url} label={t('preview.address')} onGo={setUrl} />
         {targets.length > 0 && (
           <Select
             aria-label={t('preview.targets')}
