@@ -6,3 +6,5 @@ export {
   type FigmaFeature,
   type FigmaReason,
 } from './model/profile';
+export { default as FigmaChips } from './ui/FigmaChips';
+export { parseFigmaLink, type FigmaLink } from './model/link';

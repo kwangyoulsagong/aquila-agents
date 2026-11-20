@@ -116,6 +116,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `.c-badge` `--claude` `--codex` `--shell` `--account-shared` `--account-personal` | Tags |
 | `.c-badge--host`, `.c-badge__conn[data-conn=connecting\|connected\|reconnecting\|lost]` | Remote host alias (not uppercased) with a connection dot: idle grey / green / orange pulsing / red (T29) |
 | `.c-term-overlay__banner` `__banner-text` `__banner-meta` | Bar across the top of a terminal that takes clicks, red edge: connection lost + countdown + an action (T29) |
+| `.c-term-overlay__chips` `__chips-group` `__chips-label` `__chips-close` | Bar across the top of a terminal that takes clicks (the CLI input stays uncovered): labelled groups of prompt chips + close (Figma link pasted, T34) |
 | `.c-label` | Section label |
 | `.c-sidebar` `__drag` `__body` `__group` `__foot` `__lang` | Sidebar |
 | `.c-meter[data-tone=warn\|danger][data-unknown]` `__head` `__value` `__track` `__fill` `__caption` | A share of a limit: label · value, 4px bar (grey → orange ≥ 75% → red ≥ 90%), caption; unknown limit = outlined empty bar (T30) |
@@ -170,6 +171,7 @@ from `src/` (ESLint enforces it). New primitive → add the class to `components
 | `Dropzone` `over` (+ div props) | `.c-dropzone` |
 | `TermOverlay` (+ div props, `ref`), `TermJump` (Button props), `TermNote` `bar?`, `TermHint` `box` `label?` `typed?` | `.c-term-overlay`, `.c-term-overlay__jump`, `.c-term-overlay__note(--bar)`, `.c-term-hint` (helpers over a terminal, T28) |
 | `TermBanner` `meta?` `action?` | `.c-term-overlay__banner` (connection lost, T29) |
+| `TermChips` `label` `closeLabel` `onClose`, `TermChipGroup` `label` | `.c-term-overlay__chips`, `.c-term-overlay__chips-group` (prompt chips, T34) |
 | `Field` `label` `hint` `warning`, `FieldRow`, `FieldGrid`, `Input`, `Textarea`, `Select` `options` `onChange(value)` | `.c-field`, `.c-field__row`, `.c-field-grid`, `.c-input`, `.c-input--multiline`, `.c-select` |
 | `ChangeRow` `status` `path` | `.c-change` |
 | `Palette` `open` `onClose` `label` `query` `onQueryChange` `listId` `activeId`, `PaletteList`, `PaletteItem` `selected` `label` `marks` `leading` `hint` `kbd`, `PaletteEmpty` | `.c-palette` (combobox + listbox) |

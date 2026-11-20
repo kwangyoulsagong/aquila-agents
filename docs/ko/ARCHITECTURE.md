@@ -304,6 +304,22 @@ import하지 않음).
   캐시된 플랜으로 툴팁 표시, 모르면 "Figma 문서 확인"(`figma:open-docs`가 Figma MCP 문서 열기). 사용량 제한은
   하드코딩하지 않음.
 
+## Figma 프롬프트 칩 (T34)
+
+`features/figma`(`FigmaChips`, `model/link.ts`)를 `widgets/split-view`가 Figma가 켜진 프로젝트의 Claude·Codex 터미널마다
+얹음 — 렌더러만, IPC 없음.
+
+- **트리거:** xterm 요소의 capture `paste` 리스너(`preventDefault` 안 함, 링크는 xterm이 그대로 붙여 넣음)가
+  `parseFigmaLink` 실행: `figma.com/{design,file,proto,make}/KEY` → 디자인 파일, `/board/KEY` → FigJam, `node-id` 보존.
+- **칩, 디자인 vs 구현:** 디자인 파일은 디자인 = "앱과 비교"(`get_screenshot`), "코멘트 → TODO"(`get_comments`), 구현 =
+  "컴포넌트·토큰으로 구현"(먼저 `get_variable_defs` → 우리 토큰, 그다음 `get_design_context`), "에셋 받기"
+  (`download_assets`). FigJam 보드는 "흐름 → 화면"(`get_figjam`, 화면 + 백엔드 TODO)과 코멘트. 칩은
+  링크 뒤에 ` <프롬프트>`(한 줄)를 `term.paste`, Enter는 안 누름. Claude 탭에서는 비교·구현 칩에 Claude in Chrome 단계 추가(`figma.prompt.chromeCheck`): 프레임(Dev Mode)과
+  실행 중인 앱을 열어 레이어별 Figma 속성 패널(디자인 시스템 컴포넌트·variant, 크기, 간격…) ↔ 앱의 컴포넌트·계산된 스타일 대조, 화면으로도 대조, MCP 데이터가 놓친 것(상태, 글꼴, 이미지, 넘침, 폭)까지 고치고 반복. Codex는 Chrome
+  도구가 없어 MCP만 쓰는 프롬프트. 터미널의 Enter, 칩, ×로 닫힘. 프롬프트는 사전(ko / en).
+- **프리뷰:** Designer 레이아웃에서 Figma 링크가 열려 있으면 선택(T33)에 한 줄 추가: 프레임 URL과 "`get_screenshot`으로
+  가져와 선택한 요소의 스크린샷과 비교" — 겹쳐 보기는 에이전트가 함.
+
 ## 앱 내 프리뷰 (T33)
 
 `electron/preview.ts` + `widgets/preview`(`PreviewPanel`, ⌘⇧P 또는 탭 바의 ◫ 버튼, 로컬 프로젝트만).

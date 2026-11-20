@@ -269,7 +269,8 @@ Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-1
 - **Owns:** `src/widgets/preview/`, `electron/preview.ts`.
 
 ### T34 · Figma prompt chips + Design vs Build
-- [ ] **Goal:** better design-to-code results with less typing. (#38)
+- [x] **Goal:** better design-to-code results with less typing. (#38)
+  _Left over: the "design changed" check (REST `/v1/files/:key` version polling with a token) is not built. The preview overlay is done by the agent (`get_screenshot` + the pick's screenshot), not drawn as an onion skin in the panel. Checked live in the app with Claude 2.1.329: chips on a real Figma link, chip → prompt after the link, Enter / × close them, FigJam chips, a Designer pick with the Figma line, and "Comments → TODOs" run end to end on a real file (via the user's claude.ai Figma connector; all six tool names confirmed in `/mcp`). Claude tabs: compare / implement also run a Claude in Chrome pass (Figma Dev Mode properties — component + variant, size, spacing… — against the app's components and computed styles, then on screen), checked pasted live; Codex gets the MCP-only prompt. Not checked in Codex (stopped at its own "Trust this folder?"). Found on the way (T32): with the claude.ai Figma connector already connected, our injected `figma` server stays "needs sign-in" and Claude warns "1 MCP server needs authentication". No in-app guide entry (needs captured media)._
 - **Spec:** pasting a Figma link offers prompt chips ("implement this frame with our components and tokens" — tokens
   first via `get_variable_defs`; assets via `download_assets`; `get_figjam` flows and `get_comments` → TODOs for backend);
   overlay Figma `get_screenshot` on the preview capture; optional "design changed" check by polling REST

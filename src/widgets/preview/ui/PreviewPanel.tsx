@@ -3,6 +3,7 @@ import { Button, EmptyState, Input, Segment, Select } from '@design-system/react
 import { api, type PickResult, type PreviewSlot, type Project, type Session } from '@/shared/api';
 import { kindLabel, useT } from '@/shared/i18n';
 import { pathsInput } from '@/features/terminal-helpers';
+import { parseFigmaLink } from '@/features/figma';
 import { focusSession, pasteIntoSession } from '@/entities/session';
 import { buildPickPrompt } from '../model/prompt';
 import {
@@ -117,7 +118,7 @@ export default function PreviewPanel({ project, session, onClose }: Props) {
     session && session.kind !== 'shell' && !session.dormant && !session.exited ? session : undefined;
 
   const deliver = (pick: PickResult) => {
-    const text = buildPickPrompt(pick, {
+    const prompt = buildPickPrompt(pick, {
       intro: t('preview.prompt.intro'),
       page: t('preview.prompt.page'),
       element: t('preview.prompt.element'),
@@ -128,6 +129,13 @@ export default function PreviewPanel({ project, session, onClose }: Props) {
       styles: t('preview.prompt.styles'),
       screenshot: t('preview.prompt.screenshot'),
     });
+    // Designer layout with a Figma frame open (T34): the agent compares the pick with the design's own screenshot.
+    const design = designer ? parseFigmaLink(figmaUrl) : null;
+    // Before "screenshot follows", which must stay last (the image is pasted right after it).
+    const lines = prompt.split('\n');
+    if (design)
+      lines.splice(pick.imagePath ? -1 : lines.length, 0, t('figma.prompt.pickDesign', { url: design.url }));
+    const text = lines.join('\n');
     // Two pastes: a paste that is only an image path is what Claude / Codex attach as an image.
     const image = pick.imagePath ? pathsInput([pick.imagePath]) : '';
     if (target && pasteIntoSession(target.id, `${text}\n`)) {
