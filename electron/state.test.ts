@@ -58,7 +58,14 @@ describe('readState / writeState', () => {
         account: 'shared',
         worktree: { path: '/tmp/a-wt/feat/x', branch: 'feat/x' },
       },
-      { key: K3, projectId: 'b', kind: 'codex', codexSessionId: CODEX },
+      {
+        key: K3,
+        projectId: 'b',
+        kind: 'codex',
+        codexSessionId: CODEX,
+        title: 'Mine',
+        prompt: 'Add dark mode',
+      },
     ];
     writeState(tabs, layout, file);
     expect(readState(file)).toEqual({ tabs, layout, legacy: false });
@@ -166,6 +173,36 @@ describe('hasClaudeTranscript', () => {
     expect(hasClaudeTranscript(configDir, ID)).toBe(false);
     fs.writeFileSync(path.join(project, `${ID}.jsonl`), '');
     expect(hasClaudeTranscript(configDir, ID)).toBe(true);
+  });
+});
+
+describe('saved titles (T43)', () => {
+  it('drops titles that are not one short line', () => {
+    const file = path.join(dir(), 'titles.json');
+    fs.writeFileSync(
+      file,
+      JSON.stringify({
+        version: 2,
+        tabs: [
+          { key: K1, projectId: 'a', kind: 'claude', title: 'two\nlines', prompt: 'x'.repeat(200) },
+          { key: K2, projectId: 'a', kind: 'shell', title: 'Server', prompt: 42 },
+        ],
+        layout: null,
+      }),
+    );
+    expect(readState(file).tabs).toEqual([
+      { key: K1, projectId: 'a', kind: 'claude' },
+      { key: K2, projectId: 'a', kind: 'shell', title: 'Server' },
+    ]);
+  });
+  it('carries them into the restore plan', () => {
+    const plan = planRestore(
+      { legacy: false, tabs: [{ key: K1, projectId: 'a', kind: 'shell', title: 'Server', prompt: 'p' }] },
+      config,
+    );
+    expect(plan).toEqual([
+      { key: K1, projectId: 'a', kind: 'shell', title: 'Server', prompt: 'p', cold: true },
+    ]);
   });
 });
 

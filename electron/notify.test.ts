@@ -75,6 +75,11 @@ describe('notificationBody', () => {
       'Claude · Still waiting after 10 min',
     );
   });
+  it('names the session by its title when it has one (T43)', () => {
+    expect(notificationBody({ t, kind: 'claude', title: 'Add dark mode', status: 'done' })).toBe(
+      'Add dark mode · Done',
+    );
+  });
 });
 
 describe('wantsAttention', () => {

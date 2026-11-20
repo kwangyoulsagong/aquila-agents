@@ -127,7 +127,19 @@ export type HookEvent = HookSignal & {
   sessionId?: string;
   /** PermissionRequest: `Bash: npm install`; Stop: first line of `last_assistant_message`; Notification: its message. */
   detail?: string;
+  /** UserPromptSubmit: the prompt's first line, cut for a tab title (T43); absent for slash commands. */
+  prompt?: string;
 };
+
+/** A tab title from the first prompt is about this long (T43). */
+export const PROMPT_TITLE_MAX = 40;
+
+/** First line of a prompt as a tab title; '' for slash commands (`/clear`, `/model`), which name nothing. */
+export function promptTitle(prompt: string | undefined): string {
+  const text = (prompt ?? '').trim();
+  if (!text || text.startsWith('/')) return '';
+  return firstLine(text, PROMPT_TITLE_MAX);
+}
 
 /** Notification context for the events that have some. */
 function hookDetail(event: string, json: Record<string, unknown>): string {
@@ -158,6 +170,7 @@ export function readHookBody(body: string): HookEvent | null {
   if (!event) return null;
   const sessionId = str('session_id');
   const detail = hookDetail(event, json ?? {});
+  const prompt = event === 'UserPromptSubmit' ? promptTitle(str('prompt')) : '';
   return {
     event,
     notificationType: str('notification_type'),
@@ -165,6 +178,7 @@ export function readHookBody(body: string): HookEvent | null {
     error: str('error'),
     ...(isSessionId(sessionId) ? { sessionId } : {}),
     ...(detail ? { detail } : {}),
+    ...(prompt ? { prompt } : {}),
   };
 }
 

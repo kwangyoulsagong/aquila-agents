@@ -50,6 +50,11 @@ export function Input({ className, type = 'text', ...rest }: InputHTMLAttributes
   return <input type={type} className={cx('c-input', className)} spellCheck={false} {...rest} />;
 }
 
+/** `.c-input--inline` — edits a title in place inside a line (a tab): the line's size and font. */
+export function InlineInput({ className, ...rest }: InputHTMLAttributes<HTMLInputElement>) {
+  return <Input className={cx('c-input--inline', className)} {...rest} />;
+}
+
 /** `.c-input--multiline` — a textarea with the input look (comments, notes). */
 export function Textarea({
   className,

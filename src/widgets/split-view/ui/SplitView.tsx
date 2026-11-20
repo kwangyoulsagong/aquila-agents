@@ -1,6 +1,6 @@
 import { useEffect, useState, type CSSProperties, type DragEvent, type PointerEvent } from 'react';
 import type { Config, Project, Session, SessionKind } from '@/shared/api';
-import { kindLabel, useT } from '@/shared/i18n';
+import { sessionTitle, useT } from '@/shared/i18n';
 import { draggedSession, endSessionDrag } from '@/shared/lib/sessionDrag';
 import { AccountBadge, HostBadge } from '@/entities/project';
 import { StatusDot, TerminalView } from '@/entities/session';
@@ -193,8 +193,8 @@ export default function SplitView({
                   <>
                     <StatusDot status={s.status} estimated={s.estimated} reason={s.reason} />
                     <span className="c-pane__title">
-                      {kindLabel(t, s.kind)} · {p?.name ?? s.projectId}
-                      {s.worktree && ` · ${s.worktree.branch}`}
+                      {sessionTitle(t, s)} · {p?.name ?? s.projectId}
+                      {s.worktree && s.worktree.branch !== sessionTitle(t, s) && ` · ${s.worktree.branch}`}
                     </span>
                     {s.account && <AccountBadge config={config} account={s.account} />}
                     {s.remote && <HostBadge host={s.remote} conn={s.connection ?? 'connecting'} />}

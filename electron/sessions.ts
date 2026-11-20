@@ -15,7 +15,7 @@ import { OutputBatcher } from './output';
 import { SAVER_TICK_MS, TICK_MS } from './power';
 import { Attention, firstLine, setDockBadge, type AttentionSession } from './notify';
 import { PORT_STEP, worktreeSlot } from './worktrees';
-import { formatRestored, newTabKey, type RestorePlan, type SavedTab } from './state';
+import { formatRestored, newTabKey, TITLE_MAX, type RestorePlan, type SavedTab } from './state';
 import { logStatus } from './status/log';
 import { OSC_7501_REPLY, OscScanner, parse7501 } from './status/osc';
 import { StatusTracker } from './status/tracker';
@@ -32,6 +32,7 @@ import {
   type SessionInfo,
   type SessionKind,
   type SessionStatus,
+  type SessionTitleUpdate,
   type StatusUpdate,
   type Worktree,
 } from '../src/shared/api/types';
@@ -75,6 +76,9 @@ interface LiveSession {
   claudeSessionId?: string;
   /** Codex session id: the one resumed, or captured from the rollout codex wrote (`codex.ts`). */
   codexSessionId?: string;
+  /** The user's title for the tab and the first prompt (T43). */
+  title?: string;
+  prompt?: string;
   /** Last Enter typed into a codex tab (matching it to its rollout). */
   lastSubmit?: number;
   /** Restored with `--resume` / `codex resume`: until then a failure shows the saved output. */
@@ -121,7 +125,7 @@ interface Deps {
 
 /** How to start a session that is being restored after a relaunch. */
 export type RestoreOptions = Partial<
-  Pick<RestorePlan, 'key' | 'resumeClaude' | 'resumeCodex' | 'resumeCodexId' | 'cold'>
+  Pick<RestorePlan, 'key' | 'resumeClaude' | 'resumeCodex' | 'resumeCodexId' | 'cold' | 'title' | 'prompt'>
 >;
 
 export class SessionManager {
@@ -197,6 +201,8 @@ export class SessionManager {
       ...(plan.kind === 'claude' && !project.remote ? { account: plan.account ?? project.account } : {}),
       ...(plan.worktree ? { worktree: plan.worktree } : {}),
       ...(project.remote ? { remote: project.remote.alias } : {}),
+      ...(plan.title ? { title: plan.title } : {}),
+      ...(plan.prompt ? { prompt: plan.prompt } : {}),
       dormant: true,
     };
   }
@@ -315,6 +321,8 @@ export class SessionManager {
       account: kind === 'claude' && !remote ? accountId : undefined,
       worktree,
       claudeSessionId,
+      ...(restore.title ? { title: restore.title } : {}),
+      ...(restore.prompt ? { prompt: restore.prompt } : {}),
       proc,
       // Claude has hooks as its fallback; codex and shells fall back to output activity. Remote Claude has no
       // hooks (they post to 127.0.0.1 here) and tmux drops OSC 7501, so it falls back to output activity too.
@@ -411,7 +419,28 @@ export class SessionManager {
       ...(s.account ? { account: s.account } : {}),
       ...(s.worktree ? { worktree: s.worktree } : {}),
       ...(s.remote ? { remote: s.remote.alias } : {}),
+      ...(s.title ? { title: s.title } : {}),
+      ...(s.prompt ? { prompt: s.prompt } : {}),
     };
+  }
+
+  /** Names a live or dormant tab (T43); '' (or only spaces) clears it back to the automatic title. */
+  rename(id: string, title: string): void {
+    const clean = title.replace(/\s+/g, ' ').trim().slice(0, TITLE_MAX).trim() || undefined;
+    const target = this.sessions.get(id) ?? this.dormant.get(id)?.plan;
+    if (!target || target.title === clean) return;
+    target.title = clean;
+    this.sendTitle(id, target);
+    this.tabsChanged();
+  }
+
+  private sendTitle(id: string, t: { title?: string; prompt?: string }): void {
+    const update: SessionTitleUpdate = {
+      id,
+      ...(t.title ? { title: t.title } : {}),
+      ...(t.prompt ? { prompt: t.prompt } : {}),
+    };
+    this.deps.send(IPC.sessionTitle, update);
   }
 
   /** Writes the tab's saved output (dimmed, with a banner) into its terminal, ahead of what comes next. */
@@ -512,6 +541,12 @@ export class SessionManager {
       s.claudeSessionId = hook.sessionId;
       this.tabsChanged();
     }
+    // The first prompt names the tab until the user does (T43). Later prompts and /clear keep it.
+    if (hook.event === 'UserPromptSubmit' && hook.prompt && !s.prompt) {
+      s.prompt = hook.prompt;
+      this.sendTitle(s.id, s);
+      this.tabsChanged();
+    }
     // Context for the notification. With 7501 the status may already have changed: refresh the pending one.
     const slot =
       hook.event === 'Stop'
@@ -540,6 +575,8 @@ export class SessionManager {
             ...(s.worktree ? { worktree: s.worktree } : {}),
             ...(s.claudeSessionId ? { claudeSessionId: s.claudeSessionId } : {}),
             ...(s.codexSessionId ? { codexSessionId: s.codexSessionId } : {}),
+            ...(s.title ? { title: s.title } : {}),
+            ...(s.prompt ? { prompt: s.prompt } : {}),
           },
         ];
       const p = this.dormant.get(id)?.plan;
@@ -553,6 +590,8 @@ export class SessionManager {
           ...(p.worktree ? { worktree: p.worktree } : {}),
           ...(p.resumeClaude ? { claudeSessionId: p.resumeClaude } : {}),
           ...(p.resumeCodexId ? { codexSessionId: p.resumeCodexId } : {}),
+          ...(p.title ? { title: p.title } : {}),
+          ...(p.prompt ? { prompt: p.prompt } : {}),
         },
       ];
     });
@@ -623,6 +662,7 @@ export class SessionManager {
       id: s.id,
       projectName: s.projectName,
       kind: s.kind,
+      ...(s.title || s.prompt ? { title: s.title || s.prompt } : {}),
       status,
       since: s.since,
       ...(reason ? { reason } : {}),

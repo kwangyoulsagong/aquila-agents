@@ -1,12 +1,13 @@
 import { Button } from '@design-system/react';
 import { useEffect, useRef, type ReactNode } from 'react';
 import { api, type Config, type Session, type SessionKind, type Worktree } from '@/shared/api';
-import { kindLabel, useT } from '@/shared/i18n';
+import { kindLabel, sessionTitle, useT } from '@/shared/i18n';
 import { endSessionDrag, startSessionDrag } from '@/shared/lib/sessionDrag';
 import { accelerator, withShortcut } from '@/shared/lib/shortcuts';
 import { parseWorktreeMenuId, worktreeMenuItems } from '@/features/open-in-worktree';
+import { SessionTitle } from '@/features/rename-session';
 import { AccountBadge, HostBadge } from '@/entities/project';
-import { ContextGauge, StatusDot, WaitingTime } from '@/entities/session';
+import { ContextGauge, KindBadge, StatusDot, WaitingTime } from '@/entities/session';
 
 interface Props {
   config: Config;
@@ -27,6 +28,9 @@ interface Props {
   };
   /** Right-aligned controls (account switch). */
   trailing?: ReactNode;
+  /** The tab whose title is being edited (T43), and how to start / end that. */
+  renamingId?: string | null;
+  onRename?: (id: string | null) => void;
 }
 
 /** Tooltip of + per default agent. */
@@ -46,6 +50,8 @@ export default function SessionTabs({
   defaultKind = 'claude',
   worktrees,
   trailing,
+  renamingId = null,
+  onRename = () => {},
 }: Props) {
   const t = useT();
   const newKind = NEW_BUTTON[defaultKind];
@@ -93,42 +99,57 @@ export default function SessionTabs({
   };
   return (
     <div ref={barRef} className="c-tabbar" role="tablist">
-      {sessions.map((s) => (
-        <div
-          key={s.id}
-          className="c-tab"
-          role="tab"
-          aria-selected={s.id === activeId}
-          data-status={s.status}
-          draggable
-          onDragStart={(e) => startSessionDrag(e, s.id)}
-          onDragEnd={endSessionDrag}
-          onClick={() => onSelect(s.id)}
-          onAuxClick={(e) => e.button === 1 && onClose(s.id)}
-        >
-          <StatusDot status={s.status} estimated={s.estimated} reason={s.reason} />
-          <span className="c-tab__title">{kindLabel(t, s.kind)}</span>
-          {s.worktree && (
-            <span className="c-tab__branch" title={s.worktree.path}>
-              {s.worktree.branch}
-            </span>
-          )}
-          {s.status === 'waiting' && <WaitingTime since={s.since} />}
-          {s.kind === 'claude' && !s.remote && <ContextGauge id={s.id} />}
-          {s.account && <AccountBadge config={config} account={s.account} />}
-          {s.remote && <HostBadge host={s.remote} conn={s.connection ?? 'connecting'} />}
-          <button
-            className="c-tab__close"
-            aria-label={t('action.closeSession')}
-            onClick={(e) => {
-              e.stopPropagation();
-              onClose(s.id);
-            }}
+      {sessions.map((s) => {
+        const title = sessionTitle(t, s);
+        const renaming = renamingId === s.id;
+        return (
+          <div
+            key={s.id}
+            className="c-tab"
+            role="tab"
+            aria-selected={s.id === activeId}
+            data-status={s.status}
+            draggable={!renaming}
+            onDragStart={(e) => startSessionDrag(e, s.id)}
+            onDragEnd={endSessionDrag}
+            onClick={() => onSelect(s.id)}
+            onAuxClick={(e) => e.button === 1 && onClose(s.id)}
           >
-            ×
-          </button>
-        </div>
-      ))}
+            <StatusDot status={s.status} estimated={s.estimated} reason={s.reason} />
+            {/* The kind is a badge in front of a title of its own; a tab titled by its kind needs no badge. */}
+            {(renaming || title !== kindLabel(t, s.kind)) && <KindBadge kind={s.kind} />}
+            <SessionTitle
+              className="c-tab__title"
+              session={s}
+              editing={renaming}
+              onEdit={() => {
+                onSelect(s.id);
+                onRename(s.id);
+              }}
+              onDone={() => onRename(null)}
+            />
+            {s.worktree && !renaming && s.worktree.branch !== title && (
+              <span className="c-tab__branch" title={s.worktree.path}>
+                {s.worktree.branch}
+              </span>
+            )}
+            {s.status === 'waiting' && <WaitingTime since={s.since} />}
+            {s.kind === 'claude' && !s.remote && <ContextGauge id={s.id} />}
+            {s.account && <AccountBadge config={config} account={s.account} />}
+            {s.remote && <HostBadge host={s.remote} conn={s.connection ?? 'connecting'} />}
+            <button
+              className="c-tab__close"
+              aria-label={t('action.closeSession')}
+              onClick={(e) => {
+                e.stopPropagation();
+                onClose(s.id);
+              }}
+            >
+              ×
+            </button>
+          </div>
+        );
+      })}
       <Button
         variant="ghost"
         icon

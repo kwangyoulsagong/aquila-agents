@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   hookSettings,
   parseClaudeVersion,
+  promptTitle,
   readHookBody,
   SESSION_HEADER,
   startHookServer,
@@ -55,7 +56,42 @@ describe('startHookServer', () => {
   });
 });
 
+describe('promptTitle', () => {
+  it('takes the first line of a prompt, cut for a tab title', () => {
+    expect(promptTitle('  Fix the login bug\nwith details')).toBe('Fix the login bug');
+    expect(promptTitle('a'.repeat(60))).toBe(`${'a'.repeat(39)}…`);
+  });
+  it('ignores slash commands and empty prompts', () => {
+    expect(promptTitle('/clear')).toBe('');
+    expect(promptTitle('   ')).toBe('');
+    expect(promptTitle(undefined)).toBe('');
+  });
+});
+
 describe('readHookBody', () => {
+  it('reads the prompt from the body Claude 2.1.329 posts (T43)', () => {
+    const body = {
+      session_id: ID,
+      transcript_path: '/tmp/t.jsonl',
+      cwd: '/tmp/work',
+      permission_mode: 'default',
+      hook_event_name: 'UserPromptSubmit',
+      prompt: 'Reply with just OK. (Aquila T43 hook check)',
+      prompt_id: 'a1',
+    };
+    const hook = readHookBody(JSON.stringify(body));
+    expect(hook).toMatchObject({ event: 'UserPromptSubmit', sessionId: ID });
+    expect(hook?.prompt).toBe('Reply with just OK. (Aquila T43 hook ch…');
+    expect(hook?.prompt).toHaveLength(40);
+  });
+  it('gives UserPromptSubmit the prompt title (T43)', () => {
+    expect(
+      readHookBody(JSON.stringify({ hook_event_name: 'UserPromptSubmit', prompt: 'Add dark mode' })),
+    ).toEqual({ event: 'UserPromptSubmit', prompt: 'Add dark mode' });
+    expect(
+      readHookBody(JSON.stringify({ hook_event_name: 'UserPromptSubmit', prompt: '/model' }))?.prompt,
+    ).toBe(undefined);
+  });
   it('still finds the event name in a body cut at the size cap', () => {
     expect(readHookBody('{"hook_event_name": "PostToolUse", "tool_input": {"content": "aaa')).toEqual({
       event: 'PostToolUse',

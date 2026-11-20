@@ -400,7 +400,8 @@ Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-1
 From the ADE UX research (calm attention, recognition over recall). Only what is uncomfortable today; no new features.
 
 ### T43 · Session titles
-- [ ] **Goal:** every tab says which session it is. Today two Claude tabs both read "Claude".
+- [x] **Goal:** every tab says which session it is. Today two Claude tabs both read "Claude".
+  Left over: the first prompt only comes from Claude's hook, so Codex and remote/WSL Claude tabs fall back to branch / kind; `Session.prompt` was added next to `Session.title`.
 - **Spec:**
   - The tab title is the first that exists: a user title → the first prompt (from the Claude `UserPromptSubmit` hook, first line, ~40 chars) → the worktree branch → the kind label.
   - The kind moves to a small badge in front of the title (reuse `KindBadge`).

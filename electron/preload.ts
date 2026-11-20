@@ -76,6 +76,8 @@ const api: AquilaApi = {
   onStatus: on(IPC.sessionStatus),
   onExit: on(IPC.sessionExit),
   onFocusSession: on(IPC.uiFocusSession),
+  renameSession: (id, title) => ipcRenderer.send(IPC.sessionRename, { id, title }),
+  onTitle: on(IPC.sessionTitle),
   sshHosts: () => ipcRenderer.invoke(IPC.remoteHosts),
   checkRemote: (host) => ipcRenderer.invoke(IPC.remoteCheck, host),
   reconnect: (id) => ipcRenderer.send(IPC.remoteReconnect, id),

@@ -384,7 +384,8 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
 ADE UX 조사(차분한 주의, 떠올리지 말고 알아보기)에서 나온 것. 지금 불편한 것만 다루고 새 기능은 넣지 않는다.
 
 ### T43 · 세션 제목
-- [ ] **목표:** 탭만 보고 어느 세션인지 안다. 지금은 Claude 탭 두 개가 모두 "Claude"로 보인다.
+- [x] **목표:** 탭만 보고 어느 세션인지 안다. 지금은 Claude 탭 두 개가 모두 "Claude"로 보인다.
+  남은 것: 첫 프롬프트는 Claude hook에서만 오므로 Codex와 원격/WSL Claude 탭은 브랜치 / 종류로 대체된다. `Session.title` 옆에 `Session.prompt`를 추가했다.
 - **스펙:**
   - 탭 제목은 있는 것 중 첫 번째를 쓴다: 사용자 제목 → 첫 프롬프트(Claude `UserPromptSubmit` hook, 첫 줄, 약 40자) → worktree 브랜치 → 종류 이름.
   - 종류는 제목 앞 작은 배지로 내린다(`KindBadge` 재사용).

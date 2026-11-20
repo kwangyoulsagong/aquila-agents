@@ -6,6 +6,8 @@ const ko = {
   'action.openClaude': 'Claude 열기',
   'action.openCodex': 'Codex 열기',
   'action.closeSession': '세션 닫기',
+  'action.renameSession': '세션 이름 바꾸기',
+  'session.renameHint': '두 번 클릭해 이름 바꾸기',
   'action.openConfig': '설정 파일 열기',
   'settings.menu': '설정',
   'settings.language': '언어',
@@ -568,6 +570,8 @@ const en = {
   'action.openClaude': 'Open Claude',
   'action.openCodex': 'Open Codex',
   'action.closeSession': 'Close session',
+  'action.renameSession': 'Rename session',
+  'session.renameHint': 'Double-click to rename',
   'action.openConfig': 'Open settings file',
   'settings.menu': 'Settings',
   'settings.language': 'Language',
@@ -1148,3 +1152,9 @@ export const groupLabel = (t: Translate, g: Group) => g.label ?? known(t, `group
 export const accountLabel = (t: Translate, id: string, a?: Account) =>
   a?.label ?? known(t, `account.${id}`) ?? id;
 export const kindLabel = (t: Translate, kind: SessionKind) => t(`kind.${kind}`);
+
+/** A tab's title (T43): the user's title → the first prompt → the worktree branch → the kind. */
+export const sessionTitle = (
+  t: Translate,
+  s: { kind: SessionKind; title?: string; prompt?: string; worktree?: { branch: string } },
+): string => s.title || s.prompt || s.worktree?.branch || kindLabel(t, s.kind);

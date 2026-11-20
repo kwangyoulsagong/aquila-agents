@@ -40,6 +40,8 @@ export function toolSummary(toolName: string | undefined, toolInput: unknown): s
 export interface NotifyInput {
   t: Translate;
   kind: SessionKind;
+  /** The tab's own title (T43: user title or first prompt); the kind label when absent. */
+  title?: string;
   status: SessionStatus;
   reason?: ErrorReason;
   /** Tool summary (waiting) or the first line of the last answer (done). */
@@ -49,14 +51,22 @@ export interface NotifyInput {
 }
 
 /** `Claude · Needs input — Bash: npm install` (the title is the project name). */
-export function notificationBody({ t, kind, status, reason, detail, remindMinutes }: NotifyInput): string {
+export function notificationBody({
+  t,
+  kind,
+  title,
+  status,
+  reason,
+  detail,
+  remindMinutes,
+}: NotifyInput): string {
   const what =
     remindMinutes !== undefined
       ? t('notify.stillWaiting', { minutes: String(remindMinutes) })
       : status === 'error'
         ? `${t('notify.error')}: ${t(`status.reason.${reason ?? 'other'}`)}`
         : t(status === 'done' ? 'notify.done' : 'notify.waiting');
-  const head = `${kindLabel(t, kind)} · ${what}`;
+  const head = `${title || kindLabel(t, kind)} · ${what}`;
   return detail ? `${head} — ${detail}` : head;
 }
 
@@ -86,6 +96,8 @@ export interface AttentionSession {
   id: string;
   projectName: string;
   kind: SessionKind;
+  /** User title or first prompt (T43). */
+  title?: string;
   status: SessionStatus;
   reason?: ErrorReason;
   /** When the current status started (ms). */
@@ -172,6 +184,7 @@ export class Attention {
     const body = notificationBody({
       t: this.deps.t(),
       kind: s.kind,
+      title: s.title,
       status: s.status,
       reason: s.reason,
       detail: s.detail,

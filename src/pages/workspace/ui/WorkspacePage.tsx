@@ -16,6 +16,7 @@ import { nextWaiting, summonTarget } from '@/features/next-waiting';
 import { GlobalShortcutDialog } from '@/features/global-shortcut';
 import { copyLastReply, toggleQuickSelect } from '@/features/terminal-helpers';
 import { openFind } from '@/features/terminal-search';
+import { focusSession } from '@/entities/session';
 import { FirstRunChecklist, useFirstRun } from '@/features/first-run';
 import { GuideButton, GuideModal, GuideOffer, guideMedia, useGuide } from '@/features/guide';
 import { ReleaseNotesModal, useReleaseNotes } from '@/features/release-notes';
@@ -45,6 +46,22 @@ export default function WorkspacePage() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const toggleHistory = useCallback(() => setHistoryOpen((o) => !o), []);
   const [trendsOpen, setTrendsOpen] = useState(false);
+  // T43: the tab whose title is being edited; when the edit ends, typing goes back to its terminal.
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const renamingRef = useRef<string | null>(null);
+  const renameTab = useCallback((id: string | null) => {
+    const prev = renamingRef.current;
+    renamingRef.current = id;
+    setRenamingId(id);
+    if (!id && prev) requestAnimationFrame(() => focusSession(prev));
+  }, []);
+  // Another tab or project took over (its input may be gone without a blur): the edit is over.
+  useEffect(() => {
+    if (renamingRef.current && renamingRef.current !== ws.activeSessionId) {
+      renamingRef.current = null;
+      setRenamingId(null);
+    }
+  }, [ws.activeSessionId]);
   const trends = useTrends();
   const [worktreeOpen, setWorktreeOpen] = useState(false);
   const openWorktreeDialog = useCallback(() => setWorktreeOpen(true), []);
@@ -166,6 +183,8 @@ export default function WorkspacePage() {
     a.addProject = () => void addProject();
     a.history = toggleHistory;
     if (activeSessionId) a.closeSession = () => closeSession(activeSessionId);
+    // Edited in its tab, which full window hides.
+    if (activeSessionId && !fullscreen.on) a.renameSession = () => renameTab(activeSessionId);
     if (waitingNext) a.nextWaiting = goNextWaiting;
     if (agentFocused) a.copyLastReply = copyReply;
     if (focusedSession && !focusedSession.dormant) {
@@ -194,6 +213,8 @@ export default function WorkspacePage() {
     toggleZoom,
     paneCount,
     fullscreen.available,
+    fullscreen.on,
+    renameTab,
     toggleFullscreen,
     toggleChanges,
     togglePreview,
@@ -265,6 +286,8 @@ export default function WorkspacePage() {
               onNew={ws.openSession}
               defaultKind={project?.defaultAgent}
               worktrees={tabWorktrees}
+              renamingId={renamingId}
+              onRename={renameTab}
               trailing={
                 project && (
                   <>

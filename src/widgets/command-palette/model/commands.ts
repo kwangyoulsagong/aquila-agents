@@ -1,5 +1,5 @@
 import type { Config, Project, Session, SessionKind, SessionStatus, Worktree } from '@/shared/api';
-import { groupLabel, kindLabel, type Translate } from '@/shared/i18n';
+import { groupLabel, kindLabel, sessionTitle, type Translate } from '@/shared/i18n';
 import { shortcutLabel, type ShortcutId } from '@/shared/lib/shortcuts';
 import { worktreeLabel, worktreeRef } from '@/features/open-in-worktree';
 
@@ -25,6 +25,7 @@ export type ActionId =
   | 'quickSelect'
   | 'find'
   | 'closeSession'
+  | 'renameSession'
   | 'switchLanguage'
   | 'globalShortcut'
   | 'firstRun'
@@ -91,6 +92,7 @@ const ACTIONS: {
   { action: 'quickSelect', label: (t) => t('term.quickSelect'), shortcut: 'quickSelect' },
   { action: 'find', label: (t) => t('term.find'), shortcut: 'find' },
   { action: 'closeSession', label: (t) => t('action.closeSession'), shortcut: 'closeSession' },
+  { action: 'renameSession', label: (t) => t('action.renameSession') },
   { action: 'switchLanguage', label: (t) => t('palette.switchLanguage') },
   { action: 'globalShortcut', label: (t) => t('globalShortcut.menu') },
   { action: 'firstRun', label: (t) => t('firstRun.checklist') },
@@ -143,23 +145,25 @@ export function buildCommands({
   const projectName = new Map(config.projects.map((p) => [p.id, p.name]));
   const activeProject = config.projects.find((p) => p.id === activeProjectId);
 
-  // "Claude · SALT", "Claude 2 · SALT" when a project has more than one of a kind.
+  // The tab title (T43): "Fix the login bug · SALT"; "Claude 1 · SALT", "Claude 2 · SALT" when titles repeat.
   const seen = new Map<string, number>();
   const counts = new Map<string, number>();
-  for (const s of sessions)
-    counts.set(`${s.projectId}/${s.kind}`, (counts.get(`${s.projectId}/${s.kind}`) ?? 0) + 1);
+  const keyOf = (s: Session) => `${s.projectId}/${sessionTitle(t, s)}`;
+  for (const s of sessions) counts.set(keyOf(s), (counts.get(keyOf(s)) ?? 0) + 1);
   const sessionCommands: Command[] = sessions
     .filter((s) => projectName.has(s.projectId))
     .map((s) => {
-      const key = `${s.projectId}/${s.kind}`;
+      const key = keyOf(s);
       const n = (seen.get(key) ?? 0) + 1;
       seen.set(key, n);
-      const kind = (counts.get(key) ?? 0) > 1 ? `${kindLabel(t, s.kind)} ${n}` : kindLabel(t, s.kind);
+      const title = sessionTitle(t, s);
+      const name = (counts.get(key) ?? 0) > 1 ? `${title} ${n}` : title;
+      const branch = s.worktree && s.worktree.branch !== title ? s.worktree.branch : undefined;
       return {
         type: 'session' as const,
         id: `session:${s.id}`,
         sessionId: s.id,
-        label: [kind, projectName.get(s.projectId), s.worktree?.branch].filter(Boolean).join(' · '),
+        label: [name, projectName.get(s.projectId), branch].filter(Boolean).join(' · '),
         kind: s.kind,
         status: s.status,
         account: s.account,

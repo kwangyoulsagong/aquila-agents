@@ -155,7 +155,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `.c-shortcuts` `__group` `__row` `__label` `__keys` | Shortcut sheet: grouped rows, label left, keys right |
 | `.c-checklist` `__item` `__lead` `__main` `__title` `__meta` `__actions` `__detail` `__command` | Bordered list of checks: dot on the title line · title (+ badge) / mono meta · buttons, then a full-width detail (install command with Copy, drop zone) |
 | `.c-dropzone[data-over]` | Dashed drop area; accent border + selected background while dragging over |
-| `.c-field` `__label` `__hint`, `.c-input` (`--multiline`), `.c-select` `__control` | Form field: label, text input / select (focus = blue border), monospace hint (`data-tone="warning"` = waiting orange) |
+| `.c-field` `__label` `__hint`, `.c-input` (`--multiline`, `--inline`), `.c-select` `__control` | Form field: label, text input / select (focus = blue border), monospace hint (`data-tone="warning"` = waiting orange). `--inline` edits a title in place inside a line (tab rename, T43): the line's font, no fixed height |
 | `.c-field__row`, `.c-field-grid` | A control with a button beside it (path + "Change…"); two short fields side by side |
 
 ## React components (`design-system/react/`)
@@ -184,7 +184,7 @@ from `src/` (ESLint enforces it). New primitive → add the class to `components
 | `TitleBar` `lead?` `actions?` (+ div props) | `.c-titlebar` (full window, T37) |
 | `TermChips` `label` `closeLabel` `onClose`, `TermChipGroup` `label` | `.c-term-overlay__chips`, `.c-term-overlay__chips-group` (prompt chips, T34) |
 | `TermFind` `label` `query` `onQuery` `onKeyDown?` `inputRef?` `placeholder?` `count?` `empty?` `caseSensitive` `onToggleCase` `onPrev` `onNext` `onClose` `labels` | `.c-term-find` (find in terminal, T40) |
-| `Field` `label` `hint` `warning`, `FieldRow`, `FieldGrid`, `Input`, `Textarea`, `Select` `options` `onChange(value)` | `.c-field`, `.c-field__row`, `.c-field-grid`, `.c-input`, `.c-input--multiline`, `.c-select` |
+| `Field` `label` `hint` `warning`, `FieldRow`, `FieldGrid`, `Input`, `InlineInput`, `Textarea`, `Select` `options` `onChange(value)` | `.c-field`, `.c-field__row`, `.c-field-grid`, `.c-input`, `.c-input--inline`, `.c-input--multiline`, `.c-select` |
 | `ChangeRow` `status` `path` | `.c-change` |
 | `Palette` `open` `onClose` `label` `query` `onQueryChange` `listId` `activeId`, `PaletteList`, `PaletteItem` `selected` `label` `marks` `leading` `hint` `kbd`, `PaletteEmpty` | `.c-palette` (combobox + listbox) |
 | `Modal` `open` `title` `onClose` `closeLabel` `aside` `footer` `wide`, `ModalSearch` (focused on open), `ModalList` `id` `label`, `ModalItem` `selected` `label` `meta` `trailing` `onSelect`, `ModalEmpty`, `ModalDetail` `heading` `text` `keys`, `ModalGroup` `label` `hint`, `ModalTools`, `ModalActions` `onSubmit?`, `ModalNote` `warn`, `ModalBullets` `items` | `.c-modal` |

@@ -1,6 +1,6 @@
 import { Button, TitleBar } from '@design-system/react';
 import type { Config, Session } from '@/shared/api';
-import { kindLabel, useT } from '@/shared/i18n';
+import { sessionTitle, useT } from '@/shared/i18n';
 import { withShortcut } from '@/shared/lib/shortcuts';
 import { StatusDot } from '@/entities/session';
 
@@ -28,7 +28,7 @@ export function FullscreenBar({ config, session: s, onExit }: Props) {
       }
     >
       {s
-        ? `${kindLabel(t, s.kind)} · ${project?.name ?? s.projectId}${s.worktree ? ` · ${s.worktree.branch}` : ''}`
+        ? `${sessionTitle(t, s)} · ${project?.name ?? s.projectId}${s.worktree && s.worktree.branch !== sessionTitle(t, s) ? ` · ${s.worktree.branch}` : ''}`
         : t('pane.empty')}
     </TitleBar>
   );

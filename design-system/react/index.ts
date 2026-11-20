@@ -25,7 +25,7 @@ export {
   TermChipGroup,
   TermFind,
 } from './TermOverlay';
-export { Field, FieldGrid, FieldRow, Input, Select, Textarea, type SelectOption } from './Field';
+export { Field, FieldGrid, FieldRow, InlineInput, Input, Select, Textarea, type SelectOption } from './Field';
 export { Palette, PaletteList, PaletteItem, PaletteEmpty } from './Palette';
 export {
   Modal,
