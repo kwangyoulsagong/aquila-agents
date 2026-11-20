@@ -143,21 +143,26 @@ body {
   width: var(--size-sidebar); flex: none; display: flex; flex-direction: column;
   background: var(--color-bg-surface); border-right: 1px solid var(--color-border-subtle);
 }
-.c-sidebar__drag { height: var(--size-titlebar); flex: none; -webkit-app-region: drag; }
+.c-sidebar__drag {
+  height: var(--size-titlebar); flex: none; -webkit-app-region: drag;
+  display: flex; align-items: center; justify-content: flex-end; padding: 0 var(--space-inset-sm);
+}
+/* Controls in the top band (AI trends) stay clickable; the traffic lights keep the left side. */
+.c-sidebar__drag > * { -webkit-app-region: no-drag; }
 .c-sidebar__body {
   flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-stack-md);
   padding: 0 var(--space-inset-sm) var(--space-inset-md);
 }
 .c-sidebar__group { display: flex; flex-direction: column; gap: 2px; }
 .c-sidebar__group > .c-label { height: var(--size-badge); display: flex; align-items: center; margin-bottom: var(--space-inline-xs); }
-.c-sidebar__lang { margin-left: auto; }
 .c-sidebar__foot {
   display: flex; align-items: center; gap: var(--space-inline-xs);
   padding: var(--space-inset-sm); border-top: 1px solid var(--color-border-subtle);
 }
-/* One line: buttons keep their label on one line; the first (text) button truncates if the footer runs out. */
+/* One line: buttons keep their label on one line; the first (text) button truncates if the footer runs out and
+   pushes the rest (?, +) to the right. */
 .c-sidebar__foot > .c-btn { flex: none; white-space: nowrap; }
-.c-sidebar__foot > .c-btn:first-child { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.c-sidebar__foot > .c-btn:first-child { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; margin-right: auto; }
 
 /* Usage gauge (T30): a band above the footer, one block per account with two meters side by side.
  * Content edge 20 like the rest of the sidebar (inset 8 + 12). */
@@ -605,6 +610,10 @@ body {
 .c-modal__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-inline-xs); }
 .c-modal__note { margin: 0; font-size: var(--font-size-caption); line-height: var(--line-height-body); color: var(--color-text-tertiary); }
 .c-modal__note--warn { color: var(--color-status-waiting); }
+.c-modal__bullets {
+  margin: 0; padding-left: var(--space-stack-md); display: flex; flex-direction: column; gap: var(--space-inline-xs);
+  line-height: var(--line-height-body);
+}
 
 /* ── Meta list (label · value rows) ───────────────────────── */
 .c-meta {

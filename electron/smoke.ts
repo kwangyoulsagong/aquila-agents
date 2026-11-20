@@ -118,6 +118,8 @@ export async function runSmoke(
     if (settingsError) return fail(settingsError);
     const guideError = await checkGuide(win, outDir);
     if (guideError) return fail(guideError);
+    const trendsError = await checkTrends(win, outDir);
+    if (trendsError) return fail(trendsError);
     const imeError = await checkIme(win);
     if (imeError) return fail(imeError);
     const previewError = previews ? await checkPreviewPick(previews) : 'no preview views';
@@ -387,6 +389,43 @@ async function checkProjectSettings(win: BrowserWindow, config: Config, out: str
     `!!document.querySelector('.c-dialog[open]')`,
   );
   return stillOpen ? 'Esc did not close project settings' : null;
+}
+
+/**
+ * T35: nothing is fetched until ✦ is clicked; opening the modal fetches the (fixture) feeds — Claude 2.1.327 installed
+ * → 2.1.329 and 2.1.328 newer. Checks the CLI rows and their "Added" lines, and the Industry tab.
+ */
+async function checkTrends(win: BrowserWindow, outDir: string): Promise<string | null> {
+  const js = <T>(code: string): Promise<T> => win.webContents.executeJavaScript(code) as Promise<T>;
+  const button = `document.querySelector('.c-sidebar__drag .c-btn')`;
+  if (!(await js<boolean>(`!!${button}`))) return 'trends: no ✦ button in the sidebar top band';
+  await js(`${button}.click()`);
+  await wait(300);
+  await js(`document.querySelectorAll('.c-modal[open] .c-segment__item')[0]?.click()`);
+  let rows: string[] = [];
+  for (let i = 0; i < 40 && !rows.some((r) => r.startsWith('2.1.329')); i++) {
+    await wait(250);
+    rows = await js<string[]>(
+      `[...document.querySelectorAll('.c-modal[open] .c-modal__item')].map((el) => el.textContent.trim())`,
+    );
+  }
+  if (!rows.some((r) => r.startsWith('2.1.329')) || !rows.some((r) => r.startsWith('2.1.328')))
+    return `trends: CLI tab rows ${JSON.stringify(rows)}, expected 2.1.329 and 2.1.328 after opening fetched`;
+  await js(`[...document.querySelectorAll('.c-modal[open] .c-modal__item')].find((el) => el.textContent.trim().startsWith('2.1.329'))?.click()`);
+  await wait(200);
+  const bullets = await js<number>(`document.querySelectorAll('.c-modal[open] .c-modal__bullets li').length`);
+  if (bullets < 3) return `trends: selected release shows ${bullets} "Added" lines, expected 3–5`;
+  await wait(300);
+  fs.writeFileSync(path.join(outDir, 'smoke-trends.png'), (await win.webContents.capturePage()).toPNG());
+  await js(`document.querySelectorAll('.c-modal[open] .c-segment__item')[1]?.click()`);
+  await wait(300);
+  const industry = await js<string>(`document.querySelector('.c-modal[open] .c-modal__heading')?.textContent ?? ''`);
+  if (!industry) return 'trends: Industry tab shows no detail';
+  fs.writeFileSync(path.join(outDir, 'smoke-trends-industry.png'), (await win.webContents.capturePage()).toPNG());
+  console.log(`[smoke] trends: fetched on open, ${rows.length} CLI rows, ${bullets} added lines, industry "${industry}"`);
+  press(win, 'Escape', []);
+  await wait(400);
+  return (await js<boolean>(`!!document.querySelector('.c-modal[open]')`)) ? 'Esc did not close AI trends' : null;
 }
 
 /**

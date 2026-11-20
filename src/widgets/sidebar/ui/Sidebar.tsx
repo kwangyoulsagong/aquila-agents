@@ -1,6 +1,6 @@
 import { Button, Label } from '@design-system/react';
 import type { ReactNode } from 'react';
-import { api, type Config, type Session } from '@/shared/api';
+import type { Config, Session } from '@/shared/api';
 import { groupLabel, useT } from '@/shared/i18n';
 import { AccountBadge, HostBadge, ProjectRow } from '@/entities/project';
 import { StatusDot, WaitingTime, mostUrgent } from '@/entities/session';
@@ -13,10 +13,12 @@ interface Props {
   onSelect: (projectId: string) => void;
   /** Project management (menus, drag, "+"); its dialogs are rendered by the page (the palette opens them too). */
   manage: ManageProjects;
-  /** Footer slot (language toggle, system meter…). */
+  /** Footer slot (settings menu, guide…), before the + button. */
   footer?: ReactNode;
   /** Band above the footer (usage gauge). */
   aboveFooter?: ReactNode;
+  /** Right end of the top band, next to the traffic lights (AI trends). */
+  top?: ReactNode;
 }
 
 const MAX_DOTS = 4;
@@ -29,12 +31,13 @@ export default function Sidebar({
   manage,
   footer,
   aboveFooter,
+  top,
 }: Props) {
   const t = useT();
 
   return (
     <aside className="c-sidebar">
-      <div className="c-sidebar__drag" />
+      <div className="c-sidebar__drag">{top}</div>
       <nav className="c-sidebar__body">
         {config.groups.map((group) => {
           const projects = config.projects.filter((p) => p.group === group.id);
@@ -96,9 +99,6 @@ export default function Sidebar({
       </nav>
       {aboveFooter}
       <div className="c-sidebar__foot">
-        <Button variant="ghost" onClick={() => api.openConfig()}>
-          {t('action.openConfig')}
-        </Button>
         {footer}
         <Button
           variant="ghost"

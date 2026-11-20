@@ -440,6 +440,79 @@ export interface HistoryResumeResult {
   config?: Config;
 }
 
+/** AI trends (T35): one CLI whose releases we follow. */
+export type CliTool = 'claude' | 'codex';
+
+/** One stable release of a CLI: its link and 3–5 "Added" lines. */
+export interface CliRelease {
+  version: string;
+  url: string;
+  /** null when only the CHANGELOG knew it. */
+  publishedAt: number | null;
+  added: string[];
+}
+
+/** "My CLI updates": releases newer than the installed version, or the latest one when none is newer. */
+export interface CliNews {
+  tool: CliTool;
+  /** `<tool> --version`; null when it isn't installed (or didn't answer). */
+  installed: string | null;
+  upToDate: boolean;
+  /** Newest first. */
+  releases: CliRelease[];
+}
+
+export type NewsSourceId =
+  | 'claude-code'
+  | 'claude-changelog'
+  | 'codex'
+  | 'codex-latest'
+  | 'openai'
+  | 'cursor'
+  | 'antigravity'
+  | 'simonw'
+  | 'latent-space'
+  | 'hn';
+
+/** Keyword groups of the "Industry" tab. */
+export type NewsGroup = 'subagent' | 'hook' | 'agentView' | 'ade' | 'harness';
+
+/** One industry item: title, link and a short excerpt only. */
+export interface NewsItem {
+  id: string;
+  source: NewsSourceId;
+  title: string;
+  url: string;
+  /** Hacker News: the discussion page (`url` is the story's link). */
+  discussion?: string;
+  excerpt: string;
+  publishedAt: number;
+  groups: NewsGroup[];
+}
+
+/** Opt-in LLM summary of the industry items (`claude -p`, the user's quota). */
+export interface NewsSummary {
+  text: string;
+  at: number;
+  language: Language;
+}
+
+/** What `news:get` / `news:changed` report (T35). */
+export interface NewsState {
+  /** Last fetch (epoch ms); null before the first one. */
+  fetchedAt: number | null;
+  loading: boolean;
+  summarizing: boolean;
+  cli: CliNews[];
+  /** Newest first, last 30 days. */
+  industry: NewsItem[];
+  /** The modal was last opened then; newer items get a "new" dot. */
+  seenAt: number;
+  /** Sources whose last fetch failed (their previous items are kept). */
+  failed: NewsSourceId[];
+  summary: NewsSummary | null;
+}
+
 export type Unsubscribe = () => void;
 
 /** API exposed on window.aquila by electron/preload.ts. */
@@ -579,6 +652,17 @@ export interface AquilaApi {
   /** Select mode: resolves with the element the user clicked in the preview (null on Esc / cancel). */
   previewPick(slot: PreviewSlot): Promise<PickResult | null>;
   previewPickCancel(slot: PreviewSlot): void;
+  /** AI trends (T35): cached CLI releases and industry news. Nothing is fetched in the background. */
+  news(): Promise<NewsState>;
+  onNews(cb: (s: NewsState) => void): Unsubscribe;
+  /** Fetch again now. */
+  newsRefresh(): Promise<NewsState>;
+  /** The trends modal was opened: marks everything seen, fetches if the cache is older than 30 min. */
+  newsOpened(): void;
+  /** Opens a link from the news state in the browser (others are ignored). */
+  newsOpen(url: string): void;
+  /** Opt-in: summarizes the industry items with a hidden `claude -p` (the account's quota). Rejects on failure. */
+  newsSummarize(language: Language, account?: string): Promise<NewsState>;
 }
 
 /** In-app preview (T33): the app, or Figma under it in the Designer layout. */
@@ -728,4 +812,10 @@ export const IPC = {
   previewNav: 'preview:nav',
   previewPick: 'preview:pick',
   previewPickCancel: 'preview:pick-cancel',
+  newsGet: 'news:get',
+  newsChanged: 'news:changed',
+  newsRefresh: 'news:refresh',
+  newsOpened: 'news:opened',
+  newsOpen: 'news:open',
+  newsSummarize: 'news:summarize',
 } as const;

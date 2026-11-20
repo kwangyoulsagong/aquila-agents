@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/" xml:lang="en-US">
+  <id>tag:github.com,2008:https://github.com/anthropics/claude-code/releases</id>
+  <link type="text/html" rel="alternate" href="https://github.com/anthropics/claude-code/releases"/>
+  <link type="application/atom+xml" rel="self" href="https://github.com/anthropics/claude-code/releases.atom"/>
+  <title>Release notes from claude-code</title>
+  <updated>2026-11-19T22:14:24Z</updated>
+  <entry>
+    <id>tag:github.com,2008:Repository/937253475/v2.1.329</id>
+    <updated>2026-11-19T22:14:41Z</updated>
+    <link rel="alternate" type="text/html" href="https://github.com/anthropics/claude-code/releases/tag/v2.1.329"/>
+    <title>v2.1.329</title>
+    <content type="html">&lt;h2&gt;What&#39;s changed&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Added a trust dialog warning that says where a folder&#39;s hooks are declared&lt;/li&gt;
+&lt;li&gt;Added a warning in the conversation, in Claude Desktop and other non-interactive hosts, when hooks in managed settings fail to load&lt;/li&gt;
+&lt;li&gt;Added this session&#39;s scheduled tasks, &lt;code&gt;/loop&lt;/code&gt; wakeups, the goal and this conversation&#39;s forks to &lt;code&gt;/tasks&lt;/code&gt;; x stops one after asking&lt;/li&gt;
+&lt;li&gt;Added a &quot;Server message&quot; row to a server&#39;s page in &lt;code&gt;/mcp&lt;/code&gt; that shows the JSON-RPC error message of a remote HTTP MCP server that refuses the connection&lt;/li&gt;
+&lt;li&gt;Added a &quot;Marketplace auto-update&quot; row to &lt;code&gt;/status&lt;/code&gt; that names managed marketplaces that get no automatic updates, and why&lt;/li&gt;
+&lt;li&gt;Added support for turning on Code Mode while OpenTelemetry events and metrics are enabled; each tool call the code makes sends its events; tracing still keeps it off&lt;/li&gt;
+&lt;li&gt;Fixed &lt;code&gt;~/.claude.json&lt;/code&gt; sometimes being reset to defaults when a network stall or file lock made it unreadable and cleared during a save&lt;/li&gt;
+&lt;li&gt;Fixed repeated sign-outs on macOS when Claude Code could read the Keychain but not save to it. That session now stops at expiry and says why, and other sessions stay signed in&lt;/li&gt;&lt;/ul&gt;</content>
+    <author>
+      <name>claude-code-publisher[bot]</name>
+    </author>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/76263028?s=60&amp;v=4"/>
+  </entry>
+<entry>
+    <id>tag:github.com,2008:Repository/937253475/v2.1.328</id>
+    <updated>2026-11-19T01:14:04Z</updated>
+    <link rel="alternate" type="text/html" href="https://github.com/anthropics/claude-code/releases/tag/v2.1.328"/>
+    <title>v2.1.328</title>
+    <content type="html">&lt;h2&gt;What&#39;s changed&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Added auto mode for Claude Opus 4.6 and Sonnet 4.6 on Amazon Bedrock, Google Cloud&#39;s Agent Platform, Microsoft Foundry and Claude apps gateway; interactive sessions with no permission mode start in it&lt;/li&gt;
+&lt;li&gt;Added &lt;code&gt;&quot;onFailure&quot;: &quot;block&quot;&lt;/code&gt; for &lt;code&gt;mcp_tool&lt;/code&gt; hooks, as for command and HTTP hooks: a hook whose call fails blocks the action&lt;/li&gt;
+&lt;li&gt;Added a warning when a message from a session that skips permission prompts may be held and dropped by a cloud session&lt;/li&gt;
+&lt;li&gt;Added a notice in &lt;code&gt;/status&lt;/code&gt; and &lt;code&gt;claude doctor&lt;/code&gt; when an OpenTelemetry exporter has no endpoint and its data would likely be lost&lt;/li&gt;
+&lt;li&gt;Added &lt;code&gt;CLAUDE_CODE_DISABLE_DEFERRED_TOOL_RESUME&lt;/code&gt;, which lets a host stop &lt;code&gt;claude -p --resume&lt;/code&gt; and &lt;code&gt;--continue&lt;/code&gt; from running a tool call that a hook deferred&lt;/li&gt;
+&lt;li&gt;Added support for apps that embed Claude Code to switch on the policy plugin&#39;s &lt;code&gt;allowManagedModsOnly&lt;/code&gt; option; an admin&#39;s managed settings still win&lt;/li&gt;
+&lt;li&gt;Added a startup warning to the Claude apps gateway when a policy&#39;s &lt;code&gt;maxEffortLevel&lt;/code&gt; is not a valid effort level&lt;/li&gt;
+&lt;li&gt;Self-hosted runner: Added &lt;code&gt;--repository-folder&lt;/code&gt; to name the folder that sessions use for a repository at &lt;code&gt;--capacity 1&lt;/code&gt;, in place of its path under the base folder, which can&#39;t be a symbolic link&lt;/li&gt;&lt;/ul&gt;</content>
+    <author>
+      <name>claude-code-publisher[bot]</name>
+    </author>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/76263028?s=60&amp;v=4"/>
+  </entry>
+<entry>
+    <id>tag:github.com,2008:Repository/937253475/v2.1.327</id>
+    <updated>2026-11-17T23:17:45Z</updated>
+    <link rel="alternate" type="text/html" href="https://github.com/anthropics/claude-code/releases/tag/v2.1.327"/>
+    <title>v2.1.327</title>
+    <content type="html">&lt;h2&gt;What&#39;s changed&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Added a confirmation before &lt;code&gt;/install-github-app&lt;/code&gt; changes a repository&lt;/li&gt;
+&lt;li&gt;Added &lt;code&gt;claude mcp add-json &amp;lt;name&amp;gt; -&lt;/code&gt; to read the server&#39;s JSON from stdin, so tokens can stay off the command line; not available inside a Claude Code session&lt;/li&gt;
+&lt;li&gt;Added a line when a resumed session&#39;s earlier messages can&#39;t be loaded&lt;/li&gt;
+&lt;li&gt;Added a list in &lt;code&gt;/status&lt;/code&gt; of broken agent, skill, command and output style files, keybinding errors, an unavailable sandbox, ignored permission settings and hook matchers that never match&lt;/li&gt;
+&lt;li&gt;Added a note in &lt;code&gt;/config&lt;/code&gt; when other settings override a row&lt;/li&gt;
+&lt;li&gt;Added &lt;code&gt;x-claude-code-managed-settings-checksum&lt;/code&gt; to the gateway hint headers; sent where managed settings set &lt;code&gt;CLAUDE_CODE_GATEWAY_HINT_HEADERS=1&lt;/code&gt;, including where they already do&lt;/li&gt;
+&lt;li&gt;Added support for naming a session&#39;s billing group with the &lt;code&gt;attributionProject&lt;/code&gt; setting, for Claude apps gateways that set &lt;code&gt;admin.billing_group_tag&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;Added &lt;code&gt;/tui classic&lt;/code&gt; as the name for the non-fullscreen renderer; &lt;code&gt;/tui default&lt;/code&gt; still works&lt;/li&gt;&lt;/ul&gt;</content>
+    <author>
+      <name>claude-code-publisher[bot]</name>
+    </author>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/76263028?s=60&amp;v=4"/>
+  </entry>
+</feed>

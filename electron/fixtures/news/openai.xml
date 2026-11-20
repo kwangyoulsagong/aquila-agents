@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
+    <channel>
+        <title><![CDATA[OpenAI News]]></title>
+        <description><![CDATA[The OpenAI blog]]></description>
+        <link>https://openai.com/news</link>
+        <image>
+            <url>https://openai.com/apple-icon.png</url>
+            <title>OpenAI News</title>
+            <link>https://openai.com/news</link>
+        </image>
+        <generator>OpenAI</generator>
+        <lastBuildDate>Fri, 20 Nov 2026 00:39:42 GMT</lastBuildDate>
+        <atom:link href="https://openai.com/news/rss.xml" rel="self" type="application/rss+xml"/>
+        <language><![CDATA[en-US]]></language>
+        <item>
+            <title><![CDATA[How OpenAI’s Performance Factory keeps ChatGPT fast]]></title>
+            <description><![CDATA[Learn how OpenAI built the Performance Factory, a system of Codex-powered workflows that finds and fixes performance issues to help keep ChatGPT fast.]]></description>
+            <link>https://openai.com/index/how-openai-performance-factory-keeps-chatgpt-fast</link>
+            <guid isPermaLink="true">https://openai.com/index/how-openai-performance-factory-keeps-chatgpt-fast</guid>
+            <category><![CDATA[Engineering]]></category>
+            <pubDate>Thu, 19 Nov 2026 08:00:00 GMT</pubDate>
+        </item>
+<item>
+            <title><![CDATA[Deploying Daybreak Red]]></title>
+            <description><![CDATA[Explore a reference architecture for supervised security investigations with Daybreak Red, including safety controls, setup, and monitoring.]]></description>
+            <link>https://openai.com/business/learn/deploying-daybreak-red</link>
+            <guid isPermaLink="true">https://openai.com/business/learn/deploying-daybreak-red</guid>
+            <category><![CDATA[Guides]]></category>
+            <pubDate>Thu, 19 Nov 2026 00:00:00 GMT</pubDate>
+        </item>
+<item>
+            <title><![CDATA[See PR scans in action]]></title>
+            <description><![CDATA[Watch a walkthrough of PR scans and see how the presenter reviews scan results in a pull request workflow.]]></description>
+            <link>https://openai.com/business/learn/pr-scans-demo</link>
+            <guid isPermaLink="true">https://openai.com/business/learn/pr-scans-demo</guid>
+            <category><![CDATA[Demos]]></category>
+            <pubDate>Thu, 19 Nov 2026 00:00:00 GMT</pubDate>
+        </item>
+</channel></rss>

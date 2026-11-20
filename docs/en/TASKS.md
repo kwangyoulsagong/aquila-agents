@@ -279,7 +279,8 @@ Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-1
 - **Owns:** `src/features/figma/` (chips, overlay).
 
 ### T35 · AI trends button
-- [ ] **Goal:** see what's new in my CLIs and in the field without leaving the app. (#39)
+- [x] **Goal:** see what's new in my CLIs and in the field without leaving the app. (#39)
+  _Left over: fetched only when the modal opens (cache > 30 min) or on ↻ — owner's call over the spec's startup + 6 h, so no unread badge. Releases via GitHub's Atom feeds + codex `/releases/latest` (the REST list was ~10 MB), CHANGELOG first 64 KB; a fetch is ~3 MB (OpenAI / Latent Space ignore Range). Keyword groups match few items (4 of 70 live) — the rest are under "Latest". Seen items are pruned after 7 days, unseen after 30. Checked live: all sources parse (Codex 0.171.0 flagged newer than the installed 0.170.0); the opt-in summary ran once (haiku, ~5 s). Also on this branch: the footer's bare "English"/"한국어" button became ⚙ Settings (native menu: Language ▸ 한국어 / English, settings file); guide media recaptured with a `trends` item (capture/smoke run the news service on the fixture feeds at the fixtures' date). Capture: video 900 → 450 kbps, stills WebP 0.85 → 0.75 (media 3.0 → 2.4 MB, text still legible), and `capturePage` retries Chromium's occasional "UnknownVizError" (it failed 2 runs of 4 at `preview`). The "What's new" modal is T27._
 - **Spec:** main fetches at startup and every 6 h into `~/.aquila/news-cache.json`, sent over a new IPC channel. Sources:
   GitHub Releases (claude-code, codex; ETag, 60 req/h limit, skip prereleases), Claude Code CHANGELOG, OpenAI News RSS,
   Cursor changelog RSS, Antigravity blog RSS, Simon Willison, Latent Space, HN Algolia (`points%3E100`). Tab 1 "My CLI

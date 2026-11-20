@@ -266,7 +266,8 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
 - **담당:** `src/features/figma/`(칩, 오버레이).
 
 ### T35 · AI 트렌드 버튼
-- [ ] **목표:** 앱을 떠나지 않고 내 CLI와 업계의 새 소식 보기. (#39)
+- [x] **목표:** 앱을 떠나지 않고 내 CLI와 업계의 새 소식 보기. (#39)
+  _남은 것: 모달을 열 때(캐시 30분 초과)나 ↻일 때만 가져옴 — 명세의 시작 시 + 6시간 대신 오너 결정이라 미확인 배지 없음. 릴리스는 GitHub Atom 피드 + codex `/releases/latest`(REST 목록은 약 10MB였음), CHANGELOG는 앞 64KB. 한 번에 약 3MB(OpenAI·Latent Space는 Range 무시). 키워드 분류는 실제로 70개 중 4개만 — 나머지는 "최신". 본 항목은 7일, 안 본 항목은 30일 뒤 정리. 실제 확인: 모든 소스 파싱(설치된 0.170.0보다 새 Codex 0.171.0 표시), 옵트인 요약 1회(haiku, 약 5초). 이 브랜치에서 함께: 하단의 "English"/"한국어" 버튼을 ⚙ 설정으로(네이티브 메뉴: 언어 ▸ 한국어 / English, 설정 파일), `trends` 항목을 넣어 가이드 미디어 다시 캡처(capture·smoke는 픽스처 피드와 픽스처 날짜로 뉴스 서비스 실행). capture: 영상 900 → 450kbps, 스틸 WebP 0.85 → 0.75(미디어 3.0 → 2.4MB, 글자는 그대로 읽힘), Chromium의 간헐적 "UnknownVizError"는 `capturePage` 재시도(`preview`에서 4번 중 2번 실패했음). "새로운 기능" 모달은 T27._
 - **명세:** Main이 시작 시와 6시간마다 가져와 `~/.aquila/news-cache.json`에 캐시, 새 IPC 채널로 전달. 소스: GitHub
   Releases(claude-code, codex. ETag, 60 req/h 한도, prerelease 제외), Claude Code CHANGELOG, OpenAI News RSS, Cursor
   changelog RSS, Antigravity blog RSS, Simon Willison, Latent Space, HN Algolia(`points%3E100`). 탭 1 "내 CLI 업데이트":

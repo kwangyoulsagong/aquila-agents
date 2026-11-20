@@ -92,6 +92,7 @@ export const GUIDE_ITEMS: readonly GuideItem[] = [
     bodyKey: 'guide.history.body',
     shortcuts: ['history'],
   },
+  { id: 'trends', titleKey: 'guide.trends.title', bodyKey: 'guide.trends.body' },
   { id: 'accounts', titleKey: 'guide.accounts.title', bodyKey: 'guide.accounts.body' },
   { id: 'restore', titleKey: 'guide.restore.title', bodyKey: 'guide.restore.body' },
   { id: 'power', titleKey: 'guide.power.title', bodyKey: 'guide.power.body' },

@@ -17,9 +17,10 @@ const WIN = { width: 1440, height: 900 };
 /** Output size: 2× the ~480 px wide media frame in the guide. */
 const OUT = { width: 960, height: 600 };
 const FPS = 12;
-/** Budget: loops 3–5 s, files small enough to bundle (17 items × 2 languages). */
+/** Budget: loops 3–5 s, files small enough to bundle (21 items × 2 languages). */
 export const CAPTURE_BUDGET = { maxClipMs: 5000, maxVideoBytes: 700 * 1024, maxStillBytes: 250 * 1024 };
-const VIDEO_KBPS = 900;
+/** Mostly still UI: 450 kbps keeps 11 px text legible at about half the size of 900. */
+const VIDEO_KBPS = 450;
 
 const FULL: Rectangle = { x: 0, y: 0, ...WIN };
 const TOP_LEFT: Rectangle = { x: 0, y: 0, width: 960, height: 600 };
@@ -328,6 +329,25 @@ export async function runCapture(
       },
       after: () => press('Escape', [], 400),
     },
+    {
+      // AI trends (T35): ✦ fetches the fixture feeds on open; the CLI tab, then the Industry tab.
+      id: 'trends',
+      rect: FULL,
+      ms: 4500,
+      act: async () => {
+        await wait(400);
+        await click('.c-sidebar__drag .c-btn');
+        await waitFor(`!!document.querySelector('.c-modal[open] .c-modal__bullets li')`);
+        await wait(1200);
+        await js(
+          `[...document.querySelectorAll('.c-modal[open] .c-modal__item')].find((e) => e.textContent.trim().startsWith('2.1.328'))?.click()`,
+        );
+        await wait(1000);
+        await click('.c-modal[open] .c-segment__item', t('trends.tab.industry'));
+        await wait(1400);
+      },
+      after: () => press('Escape', [], 400),
+    },
     { id: 'restore', rect: FULL },
     { id: 'power', rect: TOP_LEFT },
     {
@@ -335,20 +355,23 @@ export async function runCapture(
       rect: FULL,
       poster: 'first', // the last frame is in the other language
       ms: 3200,
+      // The ⚙ menu is native (not in the page's pixels): switch through the palette instead.
       act: async () => {
         await wait(700);
-        await click('.c-sidebar__lang');
+        await press('K', ['meta'], 500);
+        await click('.c-palette__item', t('palette.switchLanguage'));
         await wait(1800);
       },
       after: async () => {
-        await click('.c-sidebar__lang');
+        await press('K', ['meta'], 500);
+        await click('.c-palette__item', translator(lang === 'ko' ? 'en' : 'ko')('palette.switchLanguage'));
         await wait(800);
       },
     },
   ];
 
   const grab = async (rect: Rectangle) =>
-    (await withViews(await win.webContents.capturePage(rect), rect, previews))
+    (await retryViz(async () => withViews(await win.webContents.capturePage(rect), rect, previews)))
       .resize({ ...OUT, quality: 'best' })
       .toPNG();
 
@@ -432,6 +455,22 @@ export async function runCapture(
 }
 
 /**
+ * Chromium's compositor sometimes rejects a `capturePage` with "UnknownVizError" (seen on the preview's native view):
+ * try again a few times before failing the whole run.
+ */
+async function retryViz<T>(fn: () => Promise<T>, tries = 3): Promise<T> {
+  for (let i = 1; ; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (i >= tries || !String(err).includes('UnknownVizError')) throw err;
+      console.log(`[capture] capturePage: UnknownVizError, retry ${i}/${tries - 1}`);
+      await wait(150 * i);
+    }
+  }
+}
+
+/**
  * Native preview views (T33) aren't part of the page `capturePage` sees: copy their pixels in at their bounds.
  * Same display, so both images share one scale factor.
  */
@@ -467,7 +506,7 @@ async function encodeStill(encoder: BrowserWindow, png: Buffer): Promise<Buffer>
     const img = await createImageBitmap(await (await fetch('data:image/png;base64,${png.toString('base64')}')).blob());
     const c = new OffscreenCanvas(img.width, img.height);
     c.getContext('2d').drawImage(img, 0, 0);
-    const blob = await c.convertToBlob({ type: 'image/webp', quality: 0.85 });
+    const blob = await c.convertToBlob({ type: 'image/webp', quality: 0.75 });
     const bytes = new Uint8Array(await blob.arrayBuffer());
     let s = '';
     for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));

@@ -117,7 +117,7 @@
 | `.c-term-overlay__banner` `__banner-text` `__banner-meta` | 터미널 위쪽을 가로지르는 클릭 가능한 바, 빨간 테두리: 연결 끊김 + 카운트다운 + 동작 (T29) |
 | `.c-term-overlay__chips` `__chips-group` `__chips-label` `__chips-close` | 터미널 위쪽을 가로지르는 클릭 가능한 바(CLI 입력창은 안 가림): 라벨 붙은 프롬프트 칩 그룹 + 닫기 (Figma 링크 붙여 넣기, T34) |
 | `.c-label` | 섹션 라벨 |
-| `.c-sidebar` `__drag` `__body` `__group` `__foot` `__lang` | 사이드바 |
+| `.c-sidebar` `__drag` `__body` `__group` `__foot` `__lang` | 사이드바 (`__drag` = 상단 띠. 오른쪽 끝 컨트롤은 클릭 가능 — AI 트렌드) |
 | `.c-meter[data-tone=warn\|danger][data-unknown]` `__head` `__value` `__track` `__fill` `__caption` | 한도 대비 비율: 라벨 · 값, 4px 막대(회색 → 75% 이상 주황 → 90% 이상 빨강), 캡션. 한도를 모르면 테두리만 있는 빈 막대 (T30) |
 | `.c-usage` `__head` `__est` `__account` `__bars` | 사이드바 푸터 위 사용량 띠: 계정마다 한 블록, 미터 두 개 나란히 (T30) |
 | `.c-ring[data-tone=warn\|danger]` `__svg` `__track` `__fill` `__value` | 탭에 들어가는 12px 원형 미터, 값 글자는 선택; 회색 → 주황 → 빨강 (컨텍스트 게이지, T31) |
@@ -136,7 +136,7 @@
 | `.c-dialog` `__title` `__body` `__actions` `__check` `__code` `__form` | 모달 다이얼로그 (네이티브 `<dialog>`, 아래에서 떠오름) |
 | `.c-palette` `__input` `__list` `__item[aria-selected]` `__leading` `__label` `__mark` `__hint` `__empty` `__foot` | 명령 팔레트 (화면 위쪽 네이티브 `<dialog>`, 떠오름): 입력칸은 타이틀 바 높이, 줄 32px, 매치된 글자 굵게 |
 | `.c-dialog--wide` | 체크리스트용 넓은 다이얼로그 |
-| `.c-modal--wide`, `__tools` `__group-label` `__item-meta` `__actions` `__note` (`--warn`) | 넓은 모달(세션 기록): 검색 아래 필터 줄, 행 묶음 위 폴더 이름, 행 끝 캡션(시간), 상세의 버튼 줄, 캡션 한 줄(주황 = 사라질 수 있는 것) |
+| `.c-modal--wide`, `__tools` `__group-label` `__item-meta` `__actions` `__note` (`--warn`) `__bullets` | 넓은 모달(세션 기록): 검색 아래 필터 줄, 행 묶음 위 폴더 이름, 행 끝 캡션(시간), 상세의 버튼 줄, 캡션 한 줄(주황 = 사라질 수 있는 것), 짧은 글머리 목록(릴리스의 "Added" 줄, T35) |
 | `.c-meta` `__label` `__value` (`--mono`) | 이름 · 값 행 (폴더, 브랜치, ID) |
 | `.c-transcript` `__message[data-role]` `__role` `__text` | 읽기 전용 대화: 누가, 그다음 쓴 그대로의 텍스트(줄바꿈); 사용자 메시지는 primary 색 |
 | `.c-modal` `__head` `__title` `__body` `__aside` `__search` `__list` `__item[aria-selected]` `__item-label` `__empty` `__main` `__heading` `__text` `__keys` `__foot` | 큰 목록 + 상세 모달 (네이티브 `<dialog>`, 떠오름): 머리와 검색칸은 타이틀 바 높이, 왼쪽 검색 목록, 오른쪽 상세 (가이드; 릴리즈 노트·트렌드와 공유) |
@@ -174,7 +174,7 @@
 | `Field` `label` `hint` `warning`, `FieldRow`, `FieldGrid`, `Input`, `Textarea`, `Select` `options` `onChange(value)` | `.c-field`, `.c-field__row`, `.c-field-grid`, `.c-input`, `.c-input--multiline`, `.c-select` |
 | `ChangeRow` `status` `path` | `.c-change` |
 | `Palette` `open` `onClose` `label` `query` `onQueryChange` `listId` `activeId`, `PaletteList`, `PaletteItem` `selected` `label` `marks` `leading` `hint` `kbd`, `PaletteEmpty` | `.c-palette` (combobox + listbox) |
-| `Modal` `open` `title` `onClose` `closeLabel` `aside` `footer` `wide`, `ModalSearch` (열 때 포커스), `ModalList` `id` `label`, `ModalItem` `selected` `label` `meta` `trailing` `onSelect`, `ModalEmpty`, `ModalDetail` `heading` `text` `keys`, `ModalGroup` `label` `hint`, `ModalTools`, `ModalActions` `onSubmit?`, `ModalNote` `warn` | `.c-modal` |
+| `Modal` `open` `title` `onClose` `closeLabel` `aside` `footer` `wide`, `ModalSearch` (열 때 포커스), `ModalList` `id` `label`, `ModalItem` `selected` `label` `meta` `trailing` `onSelect`, `ModalEmpty`, `ModalDetail` `heading` `text` `keys`, `ModalGroup` `label` `hint`, `ModalTools`, `ModalActions` `onSubmit?`, `ModalNote` `warn`, `ModalBullets` `items` | `.c-modal` |
 | `MetaList`, `MetaRow` `label` `mono` | `.c-meta` |
 | `Transcript` `label`, `TranscriptMessage` `role` `label` | `.c-transcript` |
 | `Media` `src` `kind` `poster` `alt` `still` `placeholder` | `.c-media` (reduced motion이나 `still`이면 영상 대신 포스터) |
