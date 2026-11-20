@@ -38,6 +38,8 @@ body {
 .c-btn:hover { background: var(--color-bg-pressed); }
 .c-btn--primary { background: var(--color-action-primary); border-color: var(--color-action-primary); color: var(--color-text-on-accent); }
 .c-btn--primary:hover { background: var(--color-action-primary-hover); }
+/* A shortcut chip on a primary button follows the button's text: grey tertiary on the accent was unreadable. */
+.c-btn--primary .c-kbd { color: inherit; border-color: currentColor; }
 .c-btn--ghost { background: transparent; border-color: transparent; color: var(--color-text-secondary); }
 .c-btn--ghost:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
 .c-btn--icon { width: var(--size-control); padding: 0; justify-content: center; }
