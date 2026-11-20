@@ -647,6 +647,16 @@ export class SessionManager {
     this.activeId = id;
   }
 
+  /** The tab the renderer has focused (smoke checks where the global shortcut landed, T41). */
+  get active(): string | null {
+    return this.activeId;
+  }
+
+  /** Live session ids, oldest first. */
+  ids(): string[] {
+    return [...this.sessions.keys()];
+  }
+
   /** The renderer wrote one `session:data` batch into xterm. */
   ack(id: string): void {
     this.sessions.get(id)?.output.ack();

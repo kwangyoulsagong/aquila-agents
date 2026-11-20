@@ -523,6 +523,8 @@ command + `curl` posting the same JSON. Raw 7501 reports and hook event names go
   reported and the old one stays. Unregistered on `will-quit`; smoke never reads, writes or registers it. Pressing it
   shows the window and sends `global-shortcut:fired { wasFocused }`: from another app the renderer goes to the head
   of the attention queue, from Aquila it cycles like ⌘J; with nothing in the queue it only shows the window.
+  `AQUILA_SMOKE_GLOBAL=1 npm run smoke` presses the real key from Finder (System Events; needs Accessibility for the
+  terminal) and checks the window comes up on a shell that reported waiting; plain smoke skips that step.
 
 ## Config (`~/.aquila/config.json`)
 

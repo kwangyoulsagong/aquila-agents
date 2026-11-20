@@ -5,6 +5,7 @@
 // headlines with media, "How to use" opens the guide at that item), run the Korean IME scenarios (real composition
 // events through Chromium's IME path via CDP; checks the exact bytes the terminal sends), then quit with exit code 0 (ok) or 1 (fail).
 // Agents use this to verify their change actually runs.
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { app, ipcMain, type BrowserWindow } from 'electron';
@@ -24,6 +25,9 @@ const OSC_CHECK =
   'case "$r" in *states=*) echo AQUILA_7501_$((40+2));; esac; ' +
   "printf '\\033]7501;state=working:app=smoke\\007'\r";
 /** `yes` floods the pty; after Ctrl+C the shell must answer within YES_BUDGET_MS (flow control keeps it responsive). */
+/** T41: query 7501, then report "waiting" (a question), from a plain shell. */
+const SUMMON_WAITING =
+  "printf '\\033]7501;?\\007'; IFS= read -rs -t 2 -d '\\' r; printf '\\033]7501;state=blocked:app=smoke:kind=question\\007'\r";
 const YES_MARKER = 'AQUILA_YES_2';
 const YES_FLOOD_MS = 1000;
 const YES_BUDGET_MS = 3000;
@@ -131,6 +135,8 @@ export async function runSmoke(
       path.join(outDir, 'smoke-global-shortcut.png'),
     );
     if (shortcutError) return fail(shortcutError);
+    const summonError = await checkSummonFromOtherApp(win, sessions);
+    if (summonError) return fail(summonError);
     const guideError = await checkGuide(win, outDir);
     if (guideError) return fail(guideError);
     const notesError = await checkWhatsNew(win, config, path.join(outDir, 'smoke-whats-new.png'));
@@ -461,6 +467,59 @@ async function checkFirstRun(win: BrowserWindow, config: Config, out: string): P
     `!!document.querySelector('.c-dialog[open]')`,
   );
   return stillOpen ? 'Esc did not close the first-run checklist' : null;
+}
+
+/**
+ * The real global key from another app (T41), opt-in with AQUILA_SMOKE_GLOBAL=1: needs Accessibility for the terminal
+ * (System Events sends the key). Two new shells, the unfocused one reports waiting over OSC 7501; register ⌃⌥⌘J
+ * through the app's own API (smoke never saves it), bring Finder to the front, press the key: the window must come
+ * back focused on the waiting shell. The key is unregistered after.
+ */
+async function checkSummonFromOtherApp(win: BrowserWindow, s: SessionManager): Promise<string | null> {
+  if (process.env.AQUILA_SMOKE_GLOBAL !== '1') {
+    console.log(
+      '[smoke] global shortcut from another app: skipped (AQUILA_SMOKE_GLOBAL=1, needs Accessibility)',
+    );
+    return null;
+  }
+  win.show();
+  win.focus();
+  const before = new Set(s.ids());
+  press(win, 'T', ['meta', 'alt']);
+  await wait(1500);
+  press(win, 'T', ['meta', 'alt']);
+  await wait(1500);
+  const [waiting, other] = s.ids().filter((id) => !before.has(id));
+  if (!waiting || !other) return 'global shortcut: could not open two shells';
+  if (s.active !== other) return `global shortcut: expected the second shell focused, got ${s.active}`;
+  s.write(waiting, SUMMON_WAITING);
+  await wait(1500);
+  const set = (acc: string | null): Promise<{ active: boolean; error?: string }> =>
+    win.webContents.executeJavaScript(`window.aquila.setGlobalShortcut(${JSON.stringify(acc)})`);
+  const reg = await set('Control+Alt+Command+J');
+  if (!reg.active) return `global shortcut: ⌃⌥⌘J not registered (${reg.error ?? 'unknown'})`;
+  try {
+    execFileSync('open', ['-a', 'Finder']);
+    await wait(1200);
+    if (win.isFocused()) return 'global shortcut: Aquila still focused after opening Finder';
+    try {
+      // key code 38 = J
+      execFileSync('osascript', [
+        '-e',
+        'tell application "System Events" to key code 38 using {control down, option down, command down}',
+      ]);
+    } catch (err) {
+      return `global shortcut: System Events could not send the key (Accessibility?): ${(err as Error).message}`;
+    }
+    for (let i = 0; i < 20 && !(win.isFocused() && s.active === waiting); i++) await wait(100);
+    if (!win.isFocused()) return 'global shortcut: the key did not bring the window to the front';
+    if (s.active !== waiting)
+      return `global shortcut: focused ${s.active}, expected the waiting shell ${waiting}`;
+    console.log('[smoke] global shortcut from Finder: window up, focused the waiting shell');
+    return null;
+  } finally {
+    await set(null);
+  }
 }
 
 /**

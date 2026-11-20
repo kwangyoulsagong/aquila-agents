@@ -342,8 +342,10 @@ const ko = {
   'guide.status.body':
     '주황은 입력 필요, 빨강은 오류, 파랑은 작업 중, 초록은 완료예요. 흐린 초록은 출력이 멈춘 걸로 추정한 완료예요.',
   'guide.attention.title': '다음 대기 세션',
-  'guide.attention.body':
-    '입력을 기다리는 세션으로 바로 가요. 오래 기다린 순서로 돌아요. ⚙ 설정 → 전역 단축키를 정하면 다른 앱에서도 돼요.',
+  'guide.attention.body': '입력을 기다리는 세션으로 바로 가요. 오래 기다린 순서로 돌아요.',
+  'guide.globalShortcut.title': '전역 단축키',
+  'guide.globalShortcut.body':
+    '다른 앱을 쓰다가 누르면 Aquila가 앞으로 오고 가장 오래 기다린 세션이 열려요. ⚙ 설정 → 전역 단축키에서 키를 정해요. 처음엔 꺼져 있어요.',
   'guide.notify.title': '알림 · Dock 배지',
   'guide.notify.body': '다른 화면에 있을 때 완료·입력 필요·오류를 알려요. Dock 배지는 기다리는 세션 수예요.',
   'guide.split.title': '화면 분할',
@@ -901,7 +903,10 @@ const en = {
     'Orange needs input, red is an error, blue is working, green is done. Faded green = probably done, guessed from quiet output.',
   'guide.attention.title': 'Next waiting session',
   'guide.attention.body':
-    'Jump to the session that waits for you. Repeats cycle through them, longest wait first. Set a key in ⚙ Settings → Global shortcut to do it from any app.',
+    'Jump to the session that waits for you. Repeats cycle through them, longest wait first.',
+  'guide.globalShortcut.title': 'Global shortcut',
+  'guide.globalShortcut.body':
+    'Press it from any app: Aquila comes to the front on the session that has waited longest. Pick the key in ⚙ Settings → Global shortcut. Off until you do.',
   'guide.notify.title': 'Notifications · Dock badge',
   'guide.notify.body':
     "Done, needs input and errors are notified when you're looking elsewhere. The Dock badge counts waiting sessions.",
