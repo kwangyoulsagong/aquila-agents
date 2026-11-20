@@ -1,0 +1,38 @@
+{
+  "version": "0.3.0",
+  "date": "2026-11-20",
+  "headlines": [
+    {
+      "guideId": "terminal",
+      "title": { "ko": "지난 출력에서 찾기", "en": "Find in past output" },
+      "body": {
+        "ko": "⌘F로 긴 출력에서 에러나 파일 이름을 찾아요. 붙여 넣은 글의 제어 문자는 빼고 보내서 붙여 넣기만으로 명령이 실행되지 않아요. 우클릭 메뉴에서도 붙여 넣어요.",
+        "en": "⌘F finds an error or a file name in long output. Pastes lose their control characters, so a paste alone never runs a command. Paste from the right-click menu too."
+      }
+    },
+    {
+      "guideId": "globalShortcut",
+      "title": { "ko": "어디서든 기다리는 세션으로", "en": "The waiting session, from any app" },
+      "body": {
+        "ko": "전역 단축키를 정하면 다른 앱에서 눌러도 Aquila가 앞으로 오고 가장 오래 기다린 세션이 열려요.",
+        "en": "Pick a global shortcut and press it from any app: Aquila comes up on the session that has waited longest."
+      }
+    },
+    {
+      "guideId": "zoom",
+      "title": { "ko": "전체 창", "en": "Full window" },
+      "body": {
+        "ko": "⇧⌘F로 사이드바와 탭을 숨기고 지금 분할만 크게 봐요. 같은 키로 나가면 분할이 그대로예요.",
+        "en": "⇧⌘F hides the sidebar and tabs and shows only the focused pane. The same key brings your splits back."
+      }
+    },
+    {
+      "guideId": "worktree",
+      "title": { "ko": "있는 워크트리 쓰기 · 정리", "en": "Use and clean up worktrees" },
+      "body": {
+        "ko": "이미 있는 워크트리에서 Claude · Codex · 셸을 열고, 병합된 워크트리는 확인 후 지워요. 새 워크트리에는 .worktreeinclude의 파일을 복사해요.",
+        "en": "Open Claude, Codex or a shell in a worktree you already have, and remove merged ones after you confirm. New worktrees get the files in .worktreeinclude."
+      }
+    }
+  ]
+}
