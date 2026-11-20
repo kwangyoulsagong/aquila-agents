@@ -412,7 +412,8 @@ From the ADE UX research (calm attention, recognition over recall). Only what is
 - **Done:** two Claude tabs with different prompts show different titles; a rename survives a restart.
 
 ### T44 · Status by shape, not only colour
-- [ ] **Goal:** status can be read without telling blue, green and red apart (colour vision, 6px sidebar dots).
+- [x] **Goal:** status can be read without telling blue, green and red apart (colour vision, 6px sidebar dots).
+  Also: with motion off (reduced motion, power saver) `working` can't pulse, so it shows a static half-filled disc and never reads as `idle`.
 - **Spec:**
   - `done` shows a check and `error` shows `!` (or a square).
   - `waiting` (halo), `stopped` (ring) and `working` (pulse) stay as they are.

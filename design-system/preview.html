@@ -19,6 +19,9 @@
   .mock main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
   .term { font: var(--font-size-body)/1.45 var(--font-family-mono); color: var(--color-text-primary); white-space: pre; padding: 8px 12px; }
   .term .m { color: var(--color-text-secondary); } .term .a { color: var(--color-action-primary); } .term .w { color: var(--color-status-waiting); }
+  .status-grid { display: flex; flex-direction: column; gap: 12px; }
+  .status-row--sm .c-dot { width: var(--size-dot-sm); height: var(--size-dot-sm); }
+  .status-row--grey { filter: grayscale(1); }
 </style>
 </head>
 <body>
@@ -32,14 +35,45 @@
 
   <section>
     <h2>Status</h2>
-    <div class="line">
-      <span class="line"><i class="c-dot" data-status="working"></i>working</span>
-      <span class="line"><i class="c-dot" data-status="waiting"></i>waiting</span>
-      <span class="line"><i class="c-dot" data-status="done"></i>done</span>
-      <span class="line"><i class="c-dot" data-status="done" data-estimated></i>done (estimated)</span>
-      <span class="line"><i class="c-dot" data-status="error"></i>error</span>
-      <span class="line"><i class="c-dot" data-status="stopped"></i>stopped</span>
-      <span class="line"><i class="c-dot" data-status="idle"></i>idle</span>
+    <!-- Each row: --size-dot (8) then --size-dot-sm (6), in colour and in greyscale (T44: shape, not only colour). Motion off = what reduced motion and power saver show (working gets a static half disc). -->
+    <label class="line" style="margin-bottom: 12px"><input type="checkbox" onchange="document.documentElement.dataset.power = this.checked ? 'saver' : ''"> Motion off (power saver)</label>
+    <div class="status-grid">
+      <div class="line status-row">
+        <span class="line"><i class="c-dot" data-status="working"></i>working</span>
+        <span class="line"><i class="c-dot" data-status="waiting"></i>waiting</span>
+        <span class="line"><i class="c-dot" data-status="done"></i>done</span>
+        <span class="line"><i class="c-dot" data-status="done" data-estimated></i>done (estimated)</span>
+        <span class="line"><i class="c-dot" data-status="error"></i>error</span>
+        <span class="line"><i class="c-dot" data-status="stopped"></i>stopped</span>
+        <span class="line"><i class="c-dot" data-status="idle"></i>idle</span>
+      </div>
+      <div class="line status-row status-row--sm">
+        <span class="line"><i class="c-dot" data-status="working"></i>working</span>
+        <span class="line"><i class="c-dot" data-status="waiting"></i>waiting</span>
+        <span class="line"><i class="c-dot" data-status="done"></i>done</span>
+        <span class="line"><i class="c-dot" data-status="done" data-estimated></i>done (estimated)</span>
+        <span class="line"><i class="c-dot" data-status="error"></i>error</span>
+        <span class="line"><i class="c-dot" data-status="stopped"></i>stopped</span>
+        <span class="line"><i class="c-dot" data-status="idle"></i>idle</span>
+      </div>
+      <div class="line status-row status-row--grey">
+        <span class="line"><i class="c-dot" data-status="working"></i>working</span>
+        <span class="line"><i class="c-dot" data-status="waiting"></i>waiting</span>
+        <span class="line"><i class="c-dot" data-status="done"></i>done</span>
+        <span class="line"><i class="c-dot" data-status="done" data-estimated></i>done (estimated)</span>
+        <span class="line"><i class="c-dot" data-status="error"></i>error</span>
+        <span class="line"><i class="c-dot" data-status="stopped"></i>stopped</span>
+        <span class="line"><i class="c-dot" data-status="idle"></i>idle</span>
+      </div>
+      <div class="line status-row status-row--sm status-row--grey">
+        <span class="line"><i class="c-dot" data-status="working"></i>working</span>
+        <span class="line"><i class="c-dot" data-status="waiting"></i>waiting</span>
+        <span class="line"><i class="c-dot" data-status="done"></i>done</span>
+        <span class="line"><i class="c-dot" data-status="done" data-estimated></i>done (estimated)</span>
+        <span class="line"><i class="c-dot" data-status="error"></i>error</span>
+        <span class="line"><i class="c-dot" data-status="stopped"></i>stopped</span>
+        <span class="line"><i class="c-dot" data-status="idle"></i>idle</span>
+      </div>
     </div>
   </section>
 
