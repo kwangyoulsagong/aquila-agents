@@ -69,8 +69,7 @@ export async function runCapture(
   const t = translator(lang);
   const fail = (why: string) => {
     console.error(`[capture] FAIL (${lang}): ${why}`);
-    sessions.killAll();
-    app.exit(1);
+    void sessions.killAll().finally(() => app.exit(1));
   };
   if (!outDir || !fs.existsSync(outDir)) return fail(`no output folder: ${outDir}`);
   setTimeout(() => fail('timeout'), TIMEOUT_MS).unref();
@@ -450,8 +449,7 @@ export async function runCapture(
     encoder.destroy();
   }
   console.log(`[capture] OK (${lang}): ${scenarios.length} items → ${outDir}`);
-  sessions.killAll();
-  app.exit(0);
+  void sessions.killAll().finally(() => app.exit(0));
 }
 
 /**
@@ -474,7 +472,11 @@ async function retryViz<T>(fn: () => Promise<T>, tries = 3): Promise<T> {
  * Native preview views (T33) aren't part of the page `capturePage` sees: copy their pixels in at their bounds.
  * Same display, so both images share one scale factor.
  */
-async function withViews(base: NativeImage, rect: Rectangle, previews?: PreviewViews | null): Promise<NativeImage> {
+async function withViews(
+  base: NativeImage,
+  rect: Rectangle,
+  previews?: PreviewViews | null,
+): Promise<NativeImage> {
   const views = previews?.visible() ?? [];
   if (!views.length) return base;
   // capturePage images are in device pixels: the scale is pixels per DIP of what was captured.

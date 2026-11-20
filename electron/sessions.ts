@@ -20,6 +20,7 @@ import { logStatus } from './status/log';
 import { OSC_7501_REPLY, OscScanner, parse7501 } from './status/osc';
 import { StatusTracker } from './status/tracker';
 import { isWindows, KILL_GAP_MS, KillQueue, platform, type SessionCommand } from './platform';
+import { waitForExits } from './exitWait';
 import { sshExec } from './remote/exec';
 import { remoteHeadSha } from './remote/git';
 import { Reconnector } from './remote/reconnect';
@@ -265,7 +266,14 @@ export class SessionManager {
     const figma = !!project.figma && !remote && !wsl && kind !== 'shell';
     if (figma) ensureMcpConfig();
     const command: SessionCommand = {
-      argv: this.commandFor(kind, claudeSessionId, restore, { cwd, configDir: env.CLAUDE_CONFIG_DIR }, figma, wsl),
+      argv: this.commandFor(
+        kind,
+        claudeSessionId,
+        restore,
+        { cwd, configDir: env.CLAUDE_CONFIG_DIR },
+        figma,
+        wsl,
+      ),
       // A failed resume prints our marker, then the tab drops to the shell as usual (cold restore).
       ...(resuming ? { onFail: RESUME_FAILED } : {}),
       // The setup script runs in the same shell (the user's PATH), visibly, once; the program starts either way.
@@ -750,16 +758,26 @@ export class SessionManager {
     this.kills.kill(proc, () => s.exited === true || s.proc !== proc);
   }
 
-  killAll(): void {
+  /** Set by the first killAll: later calls (a re-run quit) get the same wait. */
+  private killingAll: Promise<void> | null = null;
+
+  /**
+   * Ends every session for a quit. Resolves once their ptys have exited (bounded, see exitWait.ts): exit the app
+   * only after that, or node-pty's exit callback can land in a torn-down Node and abort the process.
+   */
+  killAll(): Promise<void> {
+    if (this.killingAll) return this.killingAll;
     this.closing = true;
     clearInterval(this.timer);
     for (const t of this.codexScans) clearTimeout(t);
     this.attention.dispose();
     const pids: number[] = [];
+    const procs: pty.IPty[] = [];
     for (const s of this.sessions.values()) {
       s.remote?.reconnector.dispose();
       if (s.exited) continue;
       pids.push(s.proc.pid);
+      procs.push(s.proc);
       try {
         s.proc.kill();
       } catch {
@@ -777,6 +795,8 @@ export class SessionManager {
       } catch {
         // some were already gone
       }
+    this.killingAll = waitForExits(procs, isWindows ? {} : { forceSignal: 'SIGKILL' });
+    return this.killingAll;
   }
 }
 

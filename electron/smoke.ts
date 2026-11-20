@@ -59,9 +59,12 @@ export async function runSmoke(
 ) {
   if (process.env.AQUILA_PERF === '1') return runPerf(win, sessions);
   if (process.env.AQUILA_CAPTURE) return runCapture(win, sessions, config, previews);
+  let failed = false;
   const fail = (why: string) => {
+    if (failed) return;
+    failed = true;
     console.error(`[smoke] FAIL: ${why}`);
-    app.exit(1);
+    void sessions.killAll().finally(() => app.exit(1));
   };
   const timer = setTimeout(() => fail('timeout'), TIMEOUT_MS);
 
@@ -75,6 +78,7 @@ export async function runSmoke(
   let step: 'echo' | 'osc' | 'yes' | 'interrupted' = 'echo';
   let interruptedAt = 0;
   const poll = setInterval(async () => {
+    if (failed) return clearInterval(poll);
     if (step === 'echo') {
       if (!output.buffer.includes(MARKER)) return;
       step = 'osc';
@@ -134,8 +138,7 @@ export async function runSmoke(
     console.log(
       `[smoke] OK — pty round-trip, OSC 7501, Ctrl+C under load, Korean IME, preview pick and remote reconnect work, screenshot: ${out}`,
     );
-    sessions.killAll();
-    app.exit(0);
+    void sessions.killAll().finally(() => app.exit(0));
   }, 200);
 }
 

@@ -123,6 +123,5 @@ export async function runPerf(win: BrowserWindow, sessions: SessionManager) {
   console.log(
     `[perf] ${JSON.stringify({ sessions: ids.length, visible, idle, streaming, flood: { ...flood, ctrlCMs } })}`,
   );
-  sessions.killAll();
-  app.exit(0);
+  void sessions.killAll().finally(() => app.exit(0));
 }
