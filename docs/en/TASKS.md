@@ -346,3 +346,26 @@ Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-1
   company + Artifact Signing / unsigned + winget/scoop + SmartScreen note / MSIX — check MSIX file-system limits).
   NSIS x64 + arm64, electron-updater (also for macOS).
 - **Owns:** `electron-builder.yml`, `build/`, update code in `electron/updater.ts`.
+
+## Next
+
+### T37 · Fullscreen toggle + scrollback per kind
+- [ ] **Goal:** read a long Claude session full-window without re-splitting, and keep memory down for chatty sessions. (#40)
+- **Spec:** toggle that hides sidebar + tab bar for the focused pane (macOS only; off on Windows because of the Hangul
+  paste bug); same shortcut to leave, Esc does not (it belongs to the CLI). Scrollback differs per session kind
+  (claude/codex vs shell), set from one place.
+- **Owns:** `src/features/fullscreen/`, scrollback setting in `entities/session`.
+
+### T38 · Worktree sessions v2
+- [ ] **Goal:** use the worktrees you already have, and clean them up from the app. (#31 + T7 leftovers)
+- **Spec:** list existing worktrees (`git worktree list --porcelain`) in the open-session menu and ⌘K; open
+  claude/codex/shell in any of them. New worktrees copy the files listed in `.worktreeinclude` (gitignored files like
+  `.env`), nothing else. Never force a worktree — "in worktree" stays opt-in. Cleanup: suggest removing worktrees that
+  are merged and clean, remove only after confirmation (`git worktree remove`, never a silent `--force`).
+- **Owns:** `electron/worktrees.ts`, `src/features/open-in-worktree/`.
+
+### T39 · Remote sessions v2
+- [ ] **Goal:** remote sessions that feel local on slow or flaky links. (#46 + T29/T36 leftovers)
+- **Spec:** optional helper binary on the host (hash-verified, never installed without asking), mosh as a transport
+  option, tmux `-CC` control mode. Plain ssh + tmux stays the default.
+- **Owns:** `electron/remote/`, `src/features/remote-connection/`.
