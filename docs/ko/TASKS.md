@@ -336,6 +336,7 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
 
 ### T37 · 풀스크린 토글 + 종류별 스크롤백
 - [ ] **목표:** 다시 나누지 않고 긴 Claude 세션을 창 전체로 읽고, 출력이 많은 세션의 메모리를 줄인다. (#40)
+  _참고: 종류별 스크롤백은 이미 있음(`entities/session/model/terminal.ts`의 `SCROLLBACK`: claude/codex 5000, 셸 10000) — 숫자만 다시 볼 것._
 - **스펙:** 포커스된 pane만 남기고 사이드바 + 탭 바를 숨기는 토글(macOS만; Windows는 한글 붙여넣기 버그로 끔). 같은
   단축키로 나가고 Esc는 쓰지 않음(CLI 몫). 스크롤백은 세션 종류(claude/codex vs 셸)별로 다르게, 한 곳에서 설정.
 - **담당:** `src/features/fullscreen/`, `entities/session`의 스크롤백 설정.
@@ -353,3 +354,18 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
 - **스펙:** 호스트에 선택형 헬퍼 바이너리(해시 검증, 묻지 않고 설치하지 않음), 전송 옵션으로 mosh, tmux `-CC`
   컨트롤 모드. 기본은 계속 ssh + tmux.
 - **담당:** `electron/remote/`, `src/features/remote-connection/`.
+
+### T40 · 스크롤백 검색 + 안전한 붙여넣기
+- [ ] **목표:** 긴 에이전트 출력에서 에러나 파일명을 찾고, 붙여넣기가 명령을 실행하지 못하게 한다. (Ghostty 1.3, `docs/research/notes/ghostty.md` 참고)
+- **스펙:** ⌘F(Windows Ctrl+Shift+F, T13 맵에 추가)로 포커스된 pane에 찾기 바: 다음/이전, 일치 개수, 대소문자
+  토글, Esc로 닫고 터미널로 포커스 복귀, 닫으면 하이라이트 제거. `@xterm/addon-search`는 바가 열려 있을 때만 로드.
+  붙여넣기: pty에 쓰기 전에 bracketed paste를 일찍 끝낼 수 있는 제어 문자(`ESC[201~`, 탭/줄바꿈 외 C0/C1)를 제거 —
+  ⌘V, 드래그 앤 드롭 경로, quick select에 같은 규칙.
+- **담당:** `src/features/terminal-search/`, `src/entities/session/lib/terminalBus.ts`의 붙여넣기 경로.
+
+### T41 · 전역 단축키: Aquila 호출 + 다음 대기 세션
+- [ ] **목표:** 어떤 앱에서든 나를 기다리는 세션으로 바로 간다. (Ghostty quick terminal 변형)
+- **스펙:** 시스템 전역 단축키 하나(`globalShortcut`, 사용자가 설정에서 키를 고르기 전에는 꺼짐; 이미 쓰는 키면
+  분명한 오류 표시). 누르면 창을 띄우고 다음 대기 세션(T15 순서)에 포커스; 대기 세션이 없으면 창만 띄움. 켜져
+  있을 때만 등록하고 종료 시 해제.
+- **담당:** `electron/globalShortcut.ts`, `src/features/global-shortcut/`의 설정 UI.
