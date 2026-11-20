@@ -5,7 +5,9 @@ import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   capText,
-  gitAction,
+  gitAction as gitActionIn,
+  localGit,
+  localTrash,
   gitChanges,
   headSha,
   ignoredPath,
@@ -15,7 +17,14 @@ import {
   statusLetter,
   TreeWatcher,
 } from './git';
-import type { Config } from '../src/shared/api/types';
+import type { Config, GitAction } from '../src/shared/api/types';
+
+/** The local runner + trash, as main wires them. */
+const gitAction = (
+  dir: string,
+  a: Pick<GitAction, 'action' | 'path' | 'origPath' | 'patch'>,
+  trash: (abs: string) => Promise<void>,
+) => gitActionIn(localGit(dir), a, localTrash(dir, trash));
 
 describe('parseBranchLine', () => {
   it('reads branch, upstream and ahead/behind', () => {

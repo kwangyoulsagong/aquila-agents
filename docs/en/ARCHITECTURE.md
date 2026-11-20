@@ -251,9 +251,25 @@ simple `Include`s), folder, name, group, optional `CLAUDE_CONFIG_DIR` on the hos
   `oauthAccount` in `.claude.json`), the package manager (for the install hint) and systemd-logind
   `KillUserProcesses` (+ linger). Install commands are only shown, with Copy. A host that needs a password or a new host
   key fails here with ssh's message; the session itself is a real pty and can ask.
-- Uses the user's `~/.ssh/config` and ssh-agent; nothing secret is stored. Local-only for now (refused with one
-  message by main, hidden in the UI): worktrees, changes panel, session history/resume, "Open in", copy last response,
-  port base, setup script, the local account switch.
+- Uses the user's `~/.ssh/config` and ssh-agent; nothing secret is stored. Local-only (refused with one message by
+  main, hidden in the UI): worktrees, preview, "Open in", copy last response, port base, setup script, the local
+  account switch.
+- **Shared connection (T36):** every ssh — tabs, kill, panels — adds `ControlMaster=auto`, `ControlPath=~/.aquila/ssh/%C`,
+  `ControlPersist=120` (`MUX_OPTIONS`), so panels ride one master per host and a host that asked a tab for a password
+  works for them too. main creates `~/.aquila/ssh` (0700) at startup — ssh exits 255 when the dir is missing.
+  `electron/remote/exec.ts` runs a POSIX `sh` script on the host (`BatchMode`, login shell → `sh -c`, stdin for input),
+  records the round trip in ms, and splits output on a random boundary (`\n<boundary> <name>\n`), dropping login noise.
+- **Changes panel over SSH (T36, `electron/remote/git.ts`):** one round trip per refresh — status, HEAD, name-status since
+  a base, the diff and up to 20 untracked diffs, each `head -c`-capped on the host. No watch: the panel polls every 10 s
+  (and on focus / ↻) and shows `ssh <host> · … · n ms`. Stage / revert reuse `gitAction` through a `GitRun` that runs
+  `git` on the host (patches on stdin); an untracked file is moved to `~/.aquila/trash/<time>/` on the host. A remote
+  tab's start commit is read over SSH for "since session start".
+- **History over SSH (T36, `electron/remote/history.ts`):** `history:list` stays local (cached remote entries
+  included); `history:refresh-remote` lists each remote host's `<CLAUDE_CONFIG_DIR>/projects/*/*.jsonl` and
+  `$CODEX_HOME/sessions/**/rollout-*.jsonl` with mtime + size (GNU or BSD `stat`), then fetches only new / changed
+  files — their first 256 KB, gzipped, paths on stdin, 64 per round trip. Refs and name/favorite keys carry
+  `@<host>`; groups are per host + folder. Resume runs in a remote project on that host whose folder holds the
+  session's cwd (or adds one). Export fetches the whole file. Nothing is written on the host.
 - **Smoke** (`electron/remote/smoke.ts`): fake `ssh` / `tmux` on PATH run the real script locally: first attempt refused
   → reconnecting → connected; a typed marker comes back; a dropped link (exit 255) → reconnect → output again; closing
   the tab sends `kill-session`.

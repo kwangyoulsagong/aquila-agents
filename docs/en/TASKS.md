@@ -291,7 +291,8 @@ Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-1
 - **Owns:** `electron/news.ts` (+ tests for feed parsing), `src/widgets/trends/`.
 
 ### T36 · Remote panels
-- [ ] **Goal:** changes panel and history for remote projects. (#45)
+- [x] **Goal:** changes panel and history for remote projects. (#45)
+  _Left over: no SSH host was available here, so nothing ran against a real host — every remote script is tested end to end through a fake `ssh` that runs it with the local `sh` (macOS BSD userland; the GNU `stat` branch is untested), and the remote UI wasn't seen live. Latency is shown (`n ms` in the panel bar and history footer) but not yet measured on a real link. Remote changes poll every 10 s (no watch); remote history reads each transcript's first 256 KB (search, preview and message count cover that; export fetches all), not Codex's SQLite (archived threads rely on codex moving them out of `sessions/`). Resuming a Claude session whose cwd is a subfolder of the remote project fails like locally (claude resumes per folder). ControlMaster masters linger 2 min after quit. Smoke failed once on the guide check (timing) and passed on rerun._
 - **Spec:** run `git` / history reads over the same SSH connection (ControlMaster); measure latency; 
 - **Owns:** `electron/remote/`, remote adapters for `git.ts` / `history.ts`.
 

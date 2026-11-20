@@ -42,6 +42,7 @@ const api: AquilaApi = {
   onGitChanged: on(IPC.gitChanged),
   gitAction: (action) => ipcRenderer.invoke(IPC.gitAction, action),
   historyList: () => ipcRenderer.invoke(IPC.historyList),
+  historyRefreshRemote: () => ipcRenderer.invoke(IPC.historyRefreshRemote),
   historySearch: (query) => ipcRenderer.invoke(IPC.historySearch, query),
   historyTranscript: (ref) => ipcRenderer.invoke(IPC.historyTranscript, ref),
   historySetMeta: (ref, change) => ipcRenderer.invoke(IPC.historySetMeta, { ref, change }),

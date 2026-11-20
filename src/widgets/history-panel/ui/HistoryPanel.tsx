@@ -29,6 +29,7 @@ import {
   groupHistory,
   historyTitle,
   matchesListed,
+  parseRefKey,
   refKey,
   relativeTime,
   type HistoryFilter,
@@ -52,7 +53,8 @@ const PREVIEW_MESSAGES = 60;
 /**
  * ⌘Y: every past Claude / Codex session, grouped by the folder it ran in. Search covers names, first messages and
  * the conversation text. Resume by id in a new tab, name, favorite, copy the id, export as Markdown. Read-only
- * towards the CLIs: names and favorites are ours (~/.aquila).
+ * towards the CLIs: names and favorites are ours (~/.aquila). Remote projects' SSH hosts are scanned too (T36),
+ * after the local list is shown.
  */
 export default function HistoryPanel({ open, onClose, config, onResumed, onError }: Props) {
   const t = useT();
@@ -72,12 +74,9 @@ export default function HistoryPanel({ open, onClose, config, onResumed, onError
     }
   }, [open]);
 
-  const selectedRef = useMemo(() => {
-    if (!selectedKey) return null;
-    const i = selectedKey.indexOf(':');
-    return { agent: selectedKey.slice(0, i) as HistoryEntry['agent'], id: selectedKey.slice(i + 1) };
-  }, [selectedKey]);
-  const history = useHistory(open, query, selectedRef);
+  const selectedRef = useMemo(() => (selectedKey ? parseRefKey(selectedKey) : null), [selectedKey]);
+  const hasRemote = config.projects.some((p) => p.remote);
+  const history = useHistory(open, query, selectedRef, hasRemote);
   const all = history.list?.entries ?? NO_ENTRIES;
   const results = useMemo(
     () => filterHistory(all, query, filter, history.matches),
@@ -119,7 +118,7 @@ export default function HistoryPanel({ open, onClose, config, onResumed, onError
 
   const setMeta = (entry: HistoryEntry, change: { name?: string | null; favorite?: boolean }) =>
     api
-      .historySetMeta({ agent: entry.agent, id: entry.id }, change)
+      .historySetMeta({ agent: entry.agent, id: entry.id, host: entry.host }, change)
       .then((e) => e && history.update(e))
       .catch((err: Error) => onError(err.message));
 
@@ -146,6 +145,19 @@ export default function HistoryPanel({ open, onClose, config, onResumed, onError
           <span>{t('history.footer.resume')}</span>
           <span>{t('palette.close')}</span>
           {Number.isFinite(cleanup) && <span>{t('history.cleanup', { n: String(cleanup) })}</span>}
+          {history.remoteLoading && <span>{t('history.hosts.checking')}</span>}
+          {!history.remoteLoading &&
+            history.list?.hosts?.map((h) =>
+              h.error ? (
+                <span key={h.alias} title={h.error}>
+                  {t('history.host.error', { host: h.alias })}
+                </span>
+              ) : (
+                <span key={h.alias}>
+                  {t('history.host.ok', { host: h.alias, ms: String(h.latencyMs ?? 0) })}
+                </span>
+              ),
+            )}
         </>
       }
       aside={
@@ -171,7 +183,7 @@ export default function HistoryPanel({ open, onClose, config, onResumed, onError
               <ModalEmpty>{all.length ? t('palette.empty') : t('history.empty')}</ModalEmpty>
             )}
             {groups.map((g) => (
-              <ModalGroup key={g.cwd} label={g.label} hint={g.cwd}>
+              <ModalGroup key={g.key} label={g.label} hint={g.host ? `${g.host}:${g.cwd}` : g.cwd}>
                 {g.entries.map((e) => (
                   <ModalItem
                     key={refKey(e)}
@@ -298,7 +310,7 @@ function Detail({
         <Button
           onClick={() =>
             api
-              .historyExport({ agent: entry.agent, id: entry.id })
+              .historyExport({ agent: entry.agent, id: entry.id, host: entry.host })
               .then((path) => path && setNote(t('history.exported', { path })))
               .catch((e: Error) => onError(e.message))
           }
@@ -325,6 +337,11 @@ function Detail({
         <MetaRow label={t('history.meta.last')}>{date(entry.updatedAt)}</MetaRow>
         <MetaRow label={t('history.meta.started')}>{date(entry.startedAt)}</MetaRow>
         {project && <MetaRow label={t('history.meta.project')}>{project.name}</MetaRow>}
+        {entry.host && (
+          <MetaRow label={t('history.meta.host')} mono>
+            {entry.host}
+          </MetaRow>
+        )}
         <MetaRow label={t('history.meta.folder')} mono>
           {entry.cwd}
         </MetaRow>

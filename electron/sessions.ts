@@ -19,6 +19,8 @@ import { formatRestored, newTabKey, type RestorePlan, type SavedTab } from './st
 import { logStatus } from './status/log';
 import { OSC_7501_REPLY, OscScanner, parse7501 } from './status/osc';
 import { StatusTracker } from './status/tracker';
+import { sshExec } from './remote/exec';
+import { remoteHeadSha } from './remote/git';
 import { Reconnector } from './remote/reconnect';
 import { killArgs, sessionArgs, SSH_FAILED } from './remote/ssh';
 import { translator } from '../src/shared/i18n/dictionary';
@@ -317,7 +319,9 @@ export class SessionManager {
     };
     this.sessions.set(id, s);
     if (!this.order.includes(id)) this.order.push(id);
+    // "Diff since session start" (T25); a remote tab asks the host (T36).
     if (!remote) void headSha(cwd).then((h) => (s.startHead = h));
+    else void remoteHeadSha(sshExec, remote, project.path).then((h) => (s.startHead = h));
     s.output.setSaver(this.saver);
     // Cold restore: the last output, read-only, above the fresh shell. A remote tab reattaches to tmux instead.
     if (restore.cold && !remote) this.showSaved(s, config, 'restore.previous');

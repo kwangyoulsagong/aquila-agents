@@ -5,6 +5,7 @@ import {
   daysLeft,
   filterHistory,
   groupHistory,
+  parseRefKey,
   historyTitle,
   matchesListed,
   refKey,
@@ -95,5 +96,25 @@ describe('history panel model', () => {
     expect(daysLeft({ ...a, expiresAt: NOW + 20 * DAY }, NOW)).toBeNull();
     expect(daysLeft({ ...a, expiresAt: NOW + 3.5 * DAY }, NOW)).toBe(3);
     expect(daysLeft({ ...a, expiresAt: NOW - DAY }, NOW)).toBe(0);
+  });
+});
+
+describe('remote sessions (T36)', () => {
+  it('keys carry the host and parse back', () => {
+    const r = { agent: 'claude' as const, id: 'abc', host: 'devbox' };
+    expect(refKey(r)).toBe('claude:abc@devbox');
+    expect(parseRefKey(refKey(r))).toEqual(r);
+    expect(parseRefKey('codex:x-1')).toEqual({ agent: 'codex', id: 'x-1' });
+  });
+
+  it('the same folder on this Mac and on a host are two groups', () => {
+    const groups = groupHistory(
+      [entry({ id: 'a', cwd: '/work/zz' }), entry({ id: 'b', cwd: '/work/zz', host: 'devbox' })],
+      config,
+    );
+    expect(groups.map((g) => [g.key, g.label])).toEqual([
+      ['/work/zz', 'work/zz'],
+      ['devbox:/work/zz', 'devbox · zz'],
+    ]);
   });
 });

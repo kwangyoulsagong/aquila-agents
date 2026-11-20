@@ -239,8 +239,24 @@ xterm 인스턴스는 `useTerminal(id)`(`entities/session`, `TerminalView`가 �
   `.claude.json`의 `oauthAccount`), 패키지 관리자(설치 안내용), systemd-logind `KillUserProcesses`(+ linger). 설치 명령은
   복사 버튼과 함께 보여주기만 해요. 비밀번호나 새 호스트 키가 필요한 호스트는 여기서 ssh 메시지로 실패하지만, 세션은 진짜
   pty라 물어볼 수 있어요.
-- 사용자의 `~/.ssh/config`와 ssh-agent를 써요. 비밀은 저장하지 않아요. 아직 로컬 전용(메인이 메시지 하나로 거절, UI에선
-  숨김): 워크트리, 변경사항 패널, 세션 기록/이어하기, "열 앱", 마지막 응답 복사, 포트, 셋업 스크립트, 로컬 계정 전환.
+- 사용자의 `~/.ssh/config`와 ssh-agent를 써요. 비밀은 저장하지 않아요. 로컬 전용(메인이 메시지 하나로 거절, UI에선
+  숨김): 워크트리, 미리보기, "열 앱", 마지막 응답 복사, 포트, 셋업 스크립트, 로컬 계정 전환.
+- **공유 연결 (T36):** 모든 ssh(탭, kill, 패널)에 `ControlMaster=auto`, `ControlPath=~/.aquila/ssh/%C`,
+  `ControlPersist=120`(`MUX_OPTIONS`)을 붙여서 패널은 호스트마다 마스터 하나를 같이 쓰고, 탭에서 비밀번호를 넣은 호스트도
+  패널에서 돼요. main이 시작할 때 `~/.aquila/ssh`(0700)를 만들어요 — 폴더가 없으면 ssh가 exit 255. `electron/remote/exec.ts`는
+  호스트에서 POSIX `sh` 스크립트를 실행하고(`BatchMode`, 로그인 셸 → `sh -c`, 입력은 stdin) 왕복 시간(ms)을 기록하고,
+  출력을 무작위 경계(`\n<경계> <이름>\n`)로 나눠 로그인 잡음을 버려요.
+- **SSH 변경사항 패널 (T36, `electron/remote/git.ts`):** 새로고침 한 번 = 왕복 한 번 — status, HEAD, 기준 커밋 이후
+  name-status, diff, 추적 안 되는 파일 최대 20개의 diff를 각각 호스트에서 `head -c`로 잘라서. 감시는 없고 패널이 10초마다
+  (그리고 포커스 / ↻에) 가져오며 `ssh <호스트> · … · n ms`를 보여요. 스테이지/되돌리기는 호스트에서 `git`을 실행하는
+  `GitRun`으로 `gitAction`을 그대로 써요(패치는 stdin). 추적 안 되는 파일은 호스트의 `~/.aquila/trash/<시각>/`으로 옮겨요.
+  원격 탭의 시작 커밋도 SSH로 읽어서 "세션 시작 이후"가 돼요.
+- **SSH 세션 기록 (T36, `electron/remote/history.ts`):** `history:list`는 로컬만(캐시된 원격 항목 포함),
+  `history:refresh-remote`가 원격 호스트마다 `<CLAUDE_CONFIG_DIR>/projects/*/*.jsonl`과
+  `$CODEX_HOME/sessions/**/rollout-*.jsonl`을 mtime + 크기와 함께 나열하고(GNU 또는 BSD `stat`), 새로 생기거나 바뀐
+  파일만 앞 256KB를 gzip으로 가져와요(경로는 stdin, 왕복당 64개). ref와 이름/즐겨찾기 키에 `@<호스트>`가 붙고, 그룹은
+  호스트 + 폴더별이에요. 이어하기는 그 호스트에서 세션 폴더를 담은 원격 프로젝트로(없으면 추가). 내보내기는 파일 전체를
+  가져와요. 호스트에는 아무것도 쓰지 않아요.
 - **스모크** (`electron/remote/smoke.ts`): PATH의 가짜 `ssh` / `tmux`가 실제 스크립트를 로컬에서 실행: 첫 시도 거부 →
   다시 연결 중 → 연결됨, 입력한 표식이 돌아옴, 링크 끊김(exit 255) → 재연결 → 다시 출력, 탭 닫으면 `kill-session`.
 

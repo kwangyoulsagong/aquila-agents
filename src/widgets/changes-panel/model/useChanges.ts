@@ -4,14 +4,21 @@ import { usePollInterval } from '@/shared/lib/usePowerSaver';
 
 /** Safety net only: main's fs.watch (debounced) drives refreshes; this catches what it misses (e.g. a worktree's index). */
 const POLL_MS = 45_000;
+/** A remote project (T36) has no watcher: poll it (one SSH round trip each) while the panel is open and visible. */
+const REMOTE_POLL_MS = 10_000;
 
 /**
  * Git changes for a project — or for one of its sessions (`sessionId`: its worktree, and with scope 'session' the
  * commit it started at). Refreshed when main's watcher reports a change, on window focus, and every 45 s as a safety
- * net. The panel only mounts while open, so watching stops when it closes.
+ * net. The panel only mounts while open, so watching stops when it closes. A remote project is polled every 10 s.
  */
-export function useChanges(projectId: string | null, sessionId?: string, scope: GitScope = 'worktree') {
-  const pollMs = usePollInterval(POLL_MS);
+export function useChanges(
+  projectId: string | null,
+  sessionId?: string,
+  scope: GitScope = 'worktree',
+  remote = false,
+) {
+  const pollMs = usePollInterval(remote ? REMOTE_POLL_MS : POLL_MS);
   const [changes, setChanges] = useState<GitChanges | null>(null);
   const [error, setError] = useState<string | null>(null);
   const inFlight = useRef(false);

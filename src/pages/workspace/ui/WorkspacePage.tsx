@@ -99,10 +99,10 @@ export default function WorkspacePage() {
       a.openCodex = () => openSession('codex');
       a.openShell = () => openSession('shell');
       a.projectSettings = () => openSettings(project);
-      // Worktrees, the changes panel and "Open in" are local-only for now (T29; remote panels are T36).
+      // The changes panel works over SSH too (T36); worktrees, preview and "Open in" are local-only.
+      a.toggleChanges = toggleChanges;
       if (!project.remote) {
         a.openWorktree = openWorktreeDialog;
-        a.toggleChanges = toggleChanges;
         a.togglePreview = togglePreview;
         a.openProjectIn = () => void openIn(project);
       }
@@ -204,18 +204,16 @@ export default function WorkspacePage() {
                   {!project.remote && (
                     <AccountSwitch config={config} project={project} onChanged={ws.setConfig} />
                   )}
-                  {!project.remote && (
-                    <Button
-                      variant="ghost"
-                      icon
-                      aria-pressed={changesOpen}
-                      onClick={toggleChanges}
-                      title={withShortcut(t('changes.toggle'), 'toggleChanges')}
-                      aria-label={t('changes.toggle')}
-                    >
-                      ±
-                    </Button>
-                  )}
+                  <Button
+                    variant="ghost"
+                    icon
+                    aria-pressed={changesOpen}
+                    onClick={toggleChanges}
+                    title={withShortcut(t('changes.toggle'), 'toggleChanges')}
+                    aria-label={t('changes.toggle')}
+                  >
+                    ±
+                  </Button>
                   {!project.remote && (
                     <Button
                       variant="ghost"
@@ -272,7 +270,7 @@ export default function WorkspacePage() {
             onOpen={ws.openWorktreeSession}
           />
         )}
-        {changesOpen && !project?.remote && (
+        {changesOpen && (
           <ChangesPanel
             project={project}
             session={ws.sessions.find((x) => x.id === activeSessionId)}

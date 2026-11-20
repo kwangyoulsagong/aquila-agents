@@ -58,6 +58,9 @@ describe('command lines', () => {
     const at = args.indexOf('devbox');
     expect(args[at + 1]).toBe('--');
     expect(args.length).toBe(at + 3);
+    // One shared master connection per host (T36).
+    expect(args).toContain('ControlMaster=auto');
+    expect(args).toContain('ControlPath=~/.aquila/ssh/%C');
     expect(() => sessionArgs(spec({ host: { alias: '-x' } }))).toThrow();
   });
 
@@ -84,6 +87,7 @@ describe('command lines', () => {
   it('closing a tab kills its session without prompting', () => {
     const args = killArgs('devbox', 'k1');
     expect(args).toContain('BatchMode=yes');
+    expect(args).toContain('ControlMaster=auto');
     expect(args.at(-1)).toBe(`exec "$SHELL" -l -c 'tmux -L aquila kill-session -t aq-k1 2>/dev/null; true'`);
   });
 
