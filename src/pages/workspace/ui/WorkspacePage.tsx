@@ -14,9 +14,10 @@ import { GuideButton, GuideModal, GuideOffer, guideMedia, useGuide } from '@/fea
 import { ReleaseNotesModal, useReleaseNotes } from '@/features/release-notes';
 import { ManageProjectsDialog, useManageProjects } from '@/features/manage-projects';
 import { FigmaSettings } from '@/features/figma';
+import { FullscreenBar, FullscreenButton, useFullscreen } from '@/features/fullscreen';
 import { Sidebar } from '@/widgets/sidebar';
 import { SessionTabs } from '@/widgets/session-tabs';
-import { SplitView } from '@/widgets/split-view';
+import { SplitView, focusedOnly } from '@/widgets/split-view';
 import { ChangesPanel } from '@/widgets/changes-panel';
 import { PreviewPanel } from '@/widgets/preview';
 import { HistoryPanel } from '@/widgets/history-panel';
@@ -45,6 +46,8 @@ export default function WorkspacePage() {
   const guide = useGuide();
   const { toggle: toggleGuide, show: showGuide } = guide;
   const notes = useReleaseNotes();
+  const fullscreen = useFullscreen();
+  const { toggle: toggleFullscreen } = fullscreen;
   const { showAll: showNotes } = notes;
   const { sessions, activeSessionId: focusedId, selectSession } = ws;
   const waitingNext = nextWaiting(sessions, focusedId);
@@ -68,6 +71,7 @@ export default function WorkspacePage() {
     splitFocused: ws.split.splitFocused,
     moveFocus: ws.split.moveFocus,
     toggleZoom: ws.split.toggleZoom,
+    toggleFullscreen,
     nudgePane: ws.split.nudgeFocused,
     closePane: ws.split.closePane,
     toggleChanges,
@@ -97,6 +101,7 @@ export default function WorkspacePage() {
       splitDown: () => splitFocused('column'),
     };
     if (paneCount > 1) a.zoomPane = toggleZoom;
+    if (fullscreen.available) a.fullscreen = toggleFullscreen;
     if (project) {
       a.openClaude = () => openSession('claude');
       a.openCodex = () => openSession('codex');
@@ -136,6 +141,8 @@ export default function WorkspacePage() {
     splitFocused,
     toggleZoom,
     paneCount,
+    fullscreen.available,
+    toggleFullscreen,
     toggleChanges,
     togglePreview,
     openWorktreeDialog,
@@ -162,79 +169,81 @@ export default function WorkspacePage() {
   return (
     <I18nContext.Provider value={t}>
       <div className="app">
-        <Sidebar
-          config={config}
-          sessions={ws.sessions}
-          activeProjectId={ws.activeProjectId}
-          onSelect={ws.selectProject}
-          manage={manage}
-          top={
-            <TrendsButton
-              open={trendsOpen}
-              onClick={() => setTrendsOpen((o) => !o)}
-            />
-          }
-          aboveFooter={
-            <UsageGauge
-              config={config}
-              onOpenWith={
-                project && !project.remote ? (account) => void openSession('claude', account) : undefined
-              }
-            />
-          }
-          footer={
-            <>
-              <SettingsMenu config={config} onChanged={ws.setConfig} />
-              <GuideButton open={guide.open} onClick={toggleGuide} onWhatsNew={showNotes} />
-            </>
-          }
-        />
-        <main className="app__main">
-          <SessionTabs
+        {!fullscreen.on && (
+          <Sidebar
             config={config}
-            sessions={ws.projectSessions}
-            activeId={ws.activeSessionId}
-            onSelect={ws.selectSession}
-            onClose={ws.closeSession}
-            onNew={ws.openSession}
-            defaultKind={project?.defaultAgent}
-            onNewInWorktree={project && !project.remote ? openWorktreeDialog : undefined}
-            trailing={
-              project && (
-                <>
-                  <SetupAccount
-                    config={config}
-                    onOpenClaude={(account) => ws.openSession('claude', account)}
-                  />
-                  {!project.remote && (
-                    <AccountSwitch config={config} project={project} onChanged={ws.setConfig} />
-                  )}
-                  <Button
-                    variant="ghost"
-                    icon
-                    aria-pressed={changesOpen}
-                    onClick={toggleChanges}
-                    title={withShortcut(t('changes.toggle'), 'toggleChanges')}
-                    aria-label={t('changes.toggle')}
-                  >
-                    ±
-                  </Button>
-                  {!project.remote && (
+            sessions={ws.sessions}
+            activeProjectId={ws.activeProjectId}
+            onSelect={ws.selectProject}
+            manage={manage}
+            top={<TrendsButton open={trendsOpen} onClick={() => setTrendsOpen((o) => !o)} />}
+            aboveFooter={
+              <UsageGauge
+                config={config}
+                onOpenWith={
+                  project && !project.remote ? (account) => void openSession('claude', account) : undefined
+                }
+              />
+            }
+            footer={
+              <>
+                <SettingsMenu config={config} onChanged={ws.setConfig} />
+                <GuideButton open={guide.open} onClick={toggleGuide} onWhatsNew={showNotes} />
+              </>
+            }
+          />
+        )}
+        <main className="app__main">
+          {fullscreen.on ? (
+            <FullscreenBar config={config} session={focusedSession} onExit={toggleFullscreen} />
+          ) : (
+            <SessionTabs
+              config={config}
+              sessions={ws.projectSessions}
+              activeId={ws.activeSessionId}
+              onSelect={ws.selectSession}
+              onClose={ws.closeSession}
+              onNew={ws.openSession}
+              defaultKind={project?.defaultAgent}
+              onNewInWorktree={project && !project.remote ? openWorktreeDialog : undefined}
+              trailing={
+                project && (
+                  <>
+                    <SetupAccount
+                      config={config}
+                      onOpenClaude={(account) => ws.openSession('claude', account)}
+                    />
+                    {!project.remote && (
+                      <AccountSwitch config={config} project={project} onChanged={ws.setConfig} />
+                    )}
                     <Button
                       variant="ghost"
                       icon
-                      aria-pressed={previewOpen}
-                      onClick={togglePreview}
-                      title={withShortcut(t('preview.toggle'), 'togglePreview')}
-                      aria-label={t('preview.toggle')}
+                      aria-pressed={changesOpen}
+                      onClick={toggleChanges}
+                      title={withShortcut(t('changes.toggle'), 'toggleChanges')}
+                      aria-label={t('changes.toggle')}
                     >
-                      ◫
+                      ±
                     </Button>
-                  )}
-                </>
-              )
-            }
-          />
+                    {!project.remote && (
+                      <Button
+                        variant="ghost"
+                        icon
+                        aria-pressed={previewOpen}
+                        onClick={togglePreview}
+                        title={withShortcut(t('preview.toggle'), 'togglePreview')}
+                        aria-label={t('preview.toggle')}
+                      >
+                        ◫
+                      </Button>
+                    )}
+                    {fullscreen.available && <FullscreenButton onClick={toggleFullscreen} />}
+                  </>
+                )
+              }
+            />
+          )}
           {ws.error && (
             <div className="app__error" role="alert" onClick={ws.clearError}>
               {ws.error}
@@ -243,7 +252,7 @@ export default function WorkspacePage() {
           <SplitView
             config={config}
             sessions={ws.sessions}
-            layout={ws.split.layout}
+            layout={fullscreen.on ? focusedOnly(ws.split.layout) : ws.split.layout}
             project={project}
             onOpen={ws.openSession}
             onFocusPane={ws.split.focusPane}
@@ -275,7 +284,8 @@ export default function WorkspacePage() {
             onOpen={ws.openWorktreeSession}
           />
         )}
-        {changesOpen && (
+        {/* Full window hides the side panels too; their open state is kept for when it ends. */}
+        {changesOpen && !fullscreen.on && (
           <ChangesPanel
             project={project}
             session={ws.sessions.find((x) => x.id === activeSessionId)}
@@ -283,7 +293,7 @@ export default function WorkspacePage() {
           />
         )}
         {/* Last column: the native preview view only has to follow its own size and the window. */}
-        {previewOpen && project && !project.remote && (
+        {previewOpen && !fullscreen.on && project && !project.remote && (
           <PreviewPanel
             key={project.id}
             project={project}

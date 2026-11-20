@@ -35,3 +35,4 @@ export { MetaList, MetaRow } from './Meta';
 export { Transcript, TranscriptMessage } from './Transcript';
 export { Media } from './Media';
 export { ShortcutSheet, type ShortcutSheetGroup } from './ShortcutSheet';
+export { TitleBar } from './TitleBar';

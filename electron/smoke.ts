@@ -110,6 +110,8 @@ export async function runSmoke(
     fs.writeFileSync(out, (await win.webContents.capturePage()).toPNG());
     const panesError = await checkPaneResizeAndZoom(win, outDir);
     if (panesError) return fail(panesError);
+    const fullscreenError = await checkFullscreen(win, outDir);
+    if (fullscreenError) return fail(fullscreenError);
     const onPath = (bin: string) =>
       (process.env.PATH ?? '').split(':').some((dir) => dir && fs.existsSync(path.join(dir, bin)));
     console.log(`[smoke] PATH has claude: ${onPath('claude')}, codex: ${onPath('codex')}`);
@@ -301,6 +303,46 @@ async function checkPaneResizeAndZoom(win: BrowserWindow, outDir: string): Promi
   const back = await paneBoxes(win);
   if (back.length !== 2 || Math.abs(back[0].w - nudged[0].w) > 1)
     return 'panes: zoom did not toggle back to the same sizes';
+  return null;
+}
+
+/**
+ * T37, on the split smoke leaves (macOS only): ⇧⌘F hides the sidebar, tab bar and the other pane (one terminal
+ * fills the window under a title band); Esc doesn't leave (it's the CLI's); ⇧⌘F brings the split back as it was.
+ * Saves smoke-fullscreen.png. Returns an error or null.
+ */
+async function checkFullscreen(win: BrowserWindow, outDir: string): Promise<string | null> {
+  if (process.platform !== 'darwin') return null;
+  const chrome = (): Promise<{ sidebar: boolean; tabbar: boolean; titlebar: boolean }> =>
+    win.webContents.executeJavaScript(`({
+      sidebar: !!document.querySelector('.c-sidebar'),
+      tabbar: !!document.querySelector('.c-tabbar'),
+      titlebar: !!document.querySelector('.c-titlebar'),
+    })`);
+  const before = await paneBoxes(win);
+  press(win, 'F', ['meta', 'shift']);
+  await wait(500);
+  const on = await chrome();
+  const panes = await paneBoxes(win);
+  const onScreen = (await terminals(win)).filter((t) => t.visible).length;
+  console.log(
+    `[smoke] full window: ${JSON.stringify(on)}, panes ${JSON.stringify(panes)}, terminals ${onScreen}`,
+  );
+  if (on.sidebar || on.tabbar || !on.titlebar)
+    return 'full window: ⇧⌘F did not swap sidebar + tab bar for the title band';
+  if (panes.length !== 1 || panes[0].x !== 0 || onScreen !== 1)
+    return 'full window: the focused pane does not fill the window alone';
+  fs.writeFileSync(path.join(outDir, 'smoke-fullscreen.png'), (await win.webContents.capturePage()).toPNG());
+  press(win, 'Escape', []);
+  await wait(200);
+  if (!(await chrome()).titlebar) return 'full window: Esc left it (Esc belongs to the CLI)';
+  press(win, 'F', ['meta', 'shift']);
+  await wait(500);
+  const off = await chrome();
+  const back = await paneBoxes(win);
+  if (!off.sidebar || !off.tabbar || off.titlebar) return 'full window: ⇧⌘F did not bring the workspace back';
+  if (back.length !== before.length || Math.abs(back[0].w - before[0].w) > 1)
+    return 'full window: the split did not come back with the same sizes';
   return null;
 }
 

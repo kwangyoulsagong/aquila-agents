@@ -350,7 +350,8 @@ Source: [`docs/research/`](../research/README.md) (usability research, 2026-11-1
 ## Next
 
 ### T37 · Fullscreen toggle + scrollback per kind
-- [ ] **Goal:** read a long Claude session full-window without re-splitting, and keep memory down for chatty sessions. (#40)
+- [x] **Goal:** read a long Claude session full-window without re-splitting, and keep memory down for chatty sessions. (#40)
+  _Done: ⇧⌘F (not ⌃⌘F — the default app menu's Toggle Full Screen takes it) hides sidebar, tab bar and side panels and shows only the focused pane under a title band (traffic lights + exit); the split tree is untouched, so leaving restores it. Also in ⌘K, the tab bar (⛶) and the guide; checked in smoke. Left over: not native macOS full screen (stays in the window); the changes panel loses its state while hidden; scrollback numbers kept (5000 agents / 10000 shell) — no memory measurement with real Claude sessions yet._
   _Note: per-kind scrollback already exists (`SCROLLBACK` in `entities/session/model/terminal.ts`: claude/codex 5000, shell 10000) — only revisit the numbers._
 - **Spec:** toggle that hides sidebar + tab bar for the focused pane (macOS only; off on Windows because of the Hangul
   paste bug); same shortcut to leave, Esc does not (it belongs to the CLI). Scrollback differs per session kind

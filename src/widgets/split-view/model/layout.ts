@@ -95,6 +95,15 @@ export function toggleZoom(layout: Layout): Layout {
   return { ...layout, zoomedId: focusedLeaf(layout).id };
 }
 
+/**
+ * Full window (T37): a view of the layout with only the focused pane — no head, no dividers. Display only: the
+ * tree itself (and its zoom) is untouched, so leaving full window brings the split back as it was.
+ */
+export function focusedOnly(layout: Layout): Layout {
+  const leaf = focusedLeaf(layout);
+  return { root: leaf, focusedId: leaf.id, zoomedId: null };
+}
+
 /** The zoomed pane, if it still exists. */
 export function zoomed(layout: Layout): Leaf | null {
   return (layout.zoomedId && leaves(layout.root).find((l) => l.id === layout.zoomedId)) || null;

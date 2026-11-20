@@ -12,6 +12,8 @@ interface Deps {
   splitFocused: (dir: SplitDir) => void;
   moveFocus: (edge: Edge) => void;
   toggleZoom: () => void;
+  /** Full window (T37); a no-op where it isn't offered. */
+  toggleFullscreen: () => void;
   /** Keyboard resize of the focused pane's divider. */
   nudgePane: (edge: Edge) => void;
   /** Close the focused pane (close-session shortcut on an empty pane). */
@@ -38,6 +40,7 @@ export function useShortcuts({
   splitFocused,
   moveFocus,
   toggleZoom,
+  toggleFullscreen,
   nudgePane,
   closePane,
   toggleChanges,
@@ -101,6 +104,8 @@ export function useShortcuts({
           return moveFocus('bottom');
         case 'zoomPane':
           return toggleZoom();
+        case 'fullscreen':
+          return toggleFullscreen();
         case 'resizeLeft':
           return nudgePane('left');
         case 'resizeRight':
@@ -122,6 +127,7 @@ export function useShortcuts({
     splitFocused,
     moveFocus,
     toggleZoom,
+    toggleFullscreen,
     nudgePane,
     closePane,
     toggleChanges,

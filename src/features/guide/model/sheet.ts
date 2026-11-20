@@ -46,6 +46,7 @@ export const SHEET: readonly { titleKey: Key; rows: readonly SheetRow[] }[] = [
         ids: ['focusLeft', 'focusRight', 'focusUp', 'focusDown'],
       },
       { id: 'zoomPane', labelKey: 'action.zoomPane', ids: ['zoomPane'] },
+      { id: 'fullscreen', labelKey: 'fullscreen.toggle', ids: ['fullscreen'] },
       {
         id: 'resize',
         labelKey: 'shortcut.resize',
