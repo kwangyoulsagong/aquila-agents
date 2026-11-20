@@ -35,7 +35,8 @@
 
   <section>
     <h2>Status</h2>
-    <!-- Each row: --size-dot (8) then --size-dot-sm (6), in colour and in greyscale (T44: shape, not only colour). -->
+    <!-- Each row: --size-dot (8) then --size-dot-sm (6), in colour and in greyscale (T44: shape, not only colour). Motion off = what reduced motion and power saver show (working gets a static half disc). -->
+    <label class="line" style="margin-bottom: 12px"><input type="checkbox" onchange="document.documentElement.dataset.power = this.checked ? 'saver' : ''"> Motion off (power saver)</label>
     <div class="status-grid">
       <div class="line status-row">
         <span class="line"><i class="c-dot" data-status="working"></i>working</span>

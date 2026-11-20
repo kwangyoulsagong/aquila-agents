@@ -52,7 +52,7 @@ Check: `grep -rn -- '--p-' src design-system/components.css` returns only the ru
 
 | Status | Token | Meaning | Source |
 |---|---|---|---|
-| working | `--color-status-working` (pulses) | Agent is running | OSC 7501 `working`; Claude hooks; output activity for programs that don't report |
+| working | `--color-status-working` (pulses; half-filled disc when motion is off) | Agent is running | OSC 7501 `working`; Claude hooks; output activity for programs that don't report |
 | waiting | `--color-status-waiting` (halo) | Needs you: permission or question | OSC 7501 `blocked`; Claude hook `PermissionRequest` / `Notification` |
 | done | `--color-status-done` (disc with a check) | Finished, not yet viewed | OSC 7501 `done`; Claude hook `Stop` |
 | done (estimated) | `--color-status-done-estimated` (`data-estimated`, dimmed check) | Probably finished: guessed from output going quiet | output activity (codex/shell that don't report) |
@@ -60,7 +60,7 @@ Check: `grep -rn -- '--p-' src design-system/components.css` returns only the ru
 | stopped | `--color-status-stopped` (ring) | You interrupted it (Esc / Ctrl+C) or it exited normally | keys typed; `SessionEnd`; exit 0 / 130 |
 | idle | `--color-status-idle` | Nothing happening / seen | default |
 
-Every status also has a shape, so it reads without telling blue, green and red apart: pulse, halo, check, `!` square, ring, plain disc. The check and `!` are cut out with an alpha mask (the background shows through, so both themes work) and stay legible at `--size-dot-sm`. `preview.html` shows every status at both sizes, in colour and greyscale.
+Every status also has a shape, so it reads without telling blue, green and red apart: pulse, halo, check, `!` square, ring, plain disc. With motion off (reduced motion, power saver) working can't pulse, so it shows a half-filled disc instead. The check and `!` are cut out with an alpha mask (the background shows through, so both themes work) and stay legible at `--size-dot-sm`. `preview.html` shows every status at both sizes, in colour and greyscale, with a Motion off toggle.
 
 A project row shows its most urgent session: `waiting > error > working > done > stopped > idle`.
 

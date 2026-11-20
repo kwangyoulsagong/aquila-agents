@@ -413,7 +413,7 @@ From the ADE UX research (calm attention, recognition over recall). Only what is
 
 ### T44 · Status by shape, not only colour
 - [x] **Goal:** status can be read without telling blue, green and red apart (colour vision, 6px sidebar dots).
-  Left over: under reduced motion (or power saver) `working` loses its pulse and reads like `idle` in greyscale; the spec kept `working` as is.
+  Also: with motion off (reduced motion, power saver) `working` can't pulse, so it shows a static half-filled disc and never reads as `idle`.
 - **Spec:**
   - `done` shows a check and `error` shows `!` (or a square).
   - `waiting` (halo), `stopped` (ring) and `working` (pulse) stay as they are.
