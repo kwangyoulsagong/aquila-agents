@@ -41,6 +41,7 @@ Check: `grep -rn -- '--p-' src design-system/components.css` returns only the ru
 | `--color-bg-scrim` | Backdrop behind a dialog |
 | `--color-border-subtle` / `-default` / `-focus` | Hairlines / control edges / focus ring |
 | `--color-text-primary` / `-secondary` / `-tertiary` / `-on-accent` | Text levels (tertiary = hints only) |
+| `--color-meter-track` / `-outline` | Usage gauge: empty track / outline of an unknown limit (darker on light, where bg-pressed and border-subtle fade into the sidebar) |
 | `--color-action-primary(-hover)` | Primary button |
 | `--color-agent-claude` / `-codex` / `-shell` | Session kind |
 | `--color-account-shared` / `-personal` | Claude account badge (`claude` / `claude-personal`) |
