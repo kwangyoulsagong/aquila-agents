@@ -331,3 +331,25 @@ hooks 기반 Claude 상태, 그 외 세션은 출력 기반 상태, 알림, 프�
   미서명 + winget/scoop + SmartScreen 안내 / MSIX — MSIX 파일시스템 제약 확인). NSIS x64 + arm64, electron-updater
   (macOS도).
 - **담당:** `electron-builder.yml`, `build/`, `electron/updater.ts`.
+
+## 다음
+
+### T37 · 풀스크린 토글 + 종류별 스크롤백
+- [ ] **목표:** 다시 나누지 않고 긴 Claude 세션을 창 전체로 읽고, 출력이 많은 세션의 메모리를 줄인다. (#40)
+- **스펙:** 포커스된 pane만 남기고 사이드바 + 탭 바를 숨기는 토글(macOS만; Windows는 한글 붙여넣기 버그로 끔). 같은
+  단축키로 나가고 Esc는 쓰지 않음(CLI 몫). 스크롤백은 세션 종류(claude/codex vs 셸)별로 다르게, 한 곳에서 설정.
+- **담당:** `src/features/fullscreen/`, `entities/session`의 스크롤백 설정.
+
+### T38 · 워크트리 세션 v2
+- [ ] **목표:** 이미 있는 워크트리를 쓰고, 앱에서 정리한다. (#31 + T7 남은 것)
+- **스펙:** 기존 워크트리(`git worktree list --porcelain`)를 세션 열기 메뉴와 ⌘K에 표시, 어디서든 claude/codex/셸
+  열기. 새 워크트리는 `.worktreeinclude`에 적힌 파일(`.env` 같은 gitignore 파일)만 복사. 워크트리를 강제하지 않음 —
+  "워크트리에서"는 계속 선택. 정리: 머지됐고 깨끗한 워크트리 삭제를 제안하고 확인 후에만 삭제(`git worktree remove`,
+  `--force`를 몰래 쓰지 않음).
+- **담당:** `electron/worktrees.ts`, `src/features/open-in-worktree/`.
+
+### T39 · 원격 세션 v2
+- [ ] **목표:** 느리거나 끊기는 연결에서도 로컬처럼 쓰는 원격 세션. (#46 + T29/T36 남은 것)
+- **스펙:** 호스트에 선택형 헬퍼 바이너리(해시 검증, 묻지 않고 설치하지 않음), 전송 옵션으로 mosh, tmux `-CC`
+  컨트롤 모드. 기본은 계속 ssh + tmux.
+- **담당:** `electron/remote/`, `src/features/remote-connection/`.
