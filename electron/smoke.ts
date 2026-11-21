@@ -35,6 +35,9 @@ const SUMMON_WAITING =
 const RISKY_WAITING =
   "printf '\\033]7501;?\\007'; IFS= read -rs -t 2 -d '\\' r; printf '\\033]7501;state=blocked:app=smoke:kind=permission:msg=QmFzaDogcm0gLXJmIGRpc3Q=\\007'\r";
 const RISKY_DONE = "printf '\\033]7501;state=idle:app=smoke\\007'\r";
+/** T58: a turn that runs, then finishes. */
+const TURN_DONE =
+  "printf '\\033]7501;?\\007'; IFS= read -rs -t 2 -d '\\' r; printf '\\033]7501;state=working:app=smoke\\007'; sleep 0.3; printf '\\033]7501;state=done:app=smoke\\007'\r";
 const YES_MARKER = 'AQUILA_YES_2';
 const YES_FLOOD_MS = 1000;
 const YES_BUDGET_MS = 3000;
@@ -164,6 +167,8 @@ export async function runSmoke(
     if (trendsError) return fail(trendsError);
     const imeError = await checkIme(win);
     if (imeError) return fail(imeError);
+    const reviewError = await checkReviewQueue(win, sessions, outDir);
+    if (reviewError) return fail(reviewError);
     const previewError = previews ? await checkPreviewPick(previews) : 'no preview views';
     if (previewError) return fail(previewError);
     const remoteError = await checkRemoteSession(sessions, config, output);
@@ -708,6 +713,43 @@ async function checkWaitingReason(
   if (!seen.risk || !seen.mark) return 'waiting reason: rm -rf was not marked as destructive';
   if (!seen.tooltip.includes('rm -rf dist')) return 'waiting reason: the tab tooltip has no reason';
   if (!cleared) return 'waiting reason: the line stayed after the session stopped waiting';
+  return null;
+}
+
+/**
+ * T58: every shell runs a turn and finishes. The ones on screen never join the review queue; the hidden ones do.
+ * Clicking the first entry shows that tab and removes only it. Screenshot, then the shells go back to idle.
+ */
+async function checkReviewQueue(
+  win: BrowserWindow,
+  s: SessionManager,
+  outDir: string,
+): Promise<string | null> {
+  const js = <T>(code: string): Promise<T> => win.webContents.executeJavaScript(code) as Promise<T>;
+  const ids = s.ids();
+  const hidden = (await terminals(win)).filter((t) => !t.visible).length;
+  if (!hidden) return 'review queue: no hidden tab to finish in the background';
+  for (const id of ids) s.write(id, TURN_DONE);
+  const count = () => js<number>(`document.querySelectorAll('.c-sidebar .c-queue').length`);
+  let before = await count();
+  for (let i = 0; i < 40 && before < hidden; i++) {
+    await wait(100);
+    before = await count();
+  }
+  fs.writeFileSync(path.join(outDir, 'smoke-review.png'), (await win.webContents.capturePage()).toPNG());
+  const title = await js<string>(`document.querySelector('.c-sidebar .c-queue__title')?.textContent ?? ''`);
+  await js(`document.querySelector('.c-sidebar .c-queue')?.click()`);
+  await wait(500);
+  const after = await count();
+  const selected = await js<string>(
+    `document.querySelector('.c-tab[aria-selected="true"]')?.textContent ?? ''`,
+  );
+  for (const id of ids) s.write(id, RISKY_DONE);
+  console.log(
+    `[smoke] review queue: ${hidden} hidden, ${before} queued, "${title}" shown → ${after} left (tab "${selected}")`,
+  );
+  if (before !== hidden) return `review queue: ${before} entries for ${hidden} hidden finished tabs`;
+  if (after !== before - 1) return 'review queue: showing one entry did not remove only that one';
   return null;
 }
 

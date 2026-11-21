@@ -126,6 +126,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `.c-kbd` | Shortcut hint |
 | `.c-elapsed` | How long a session has waited ("12m", mono, waiting color) on a tab or project row |
 | `.c-reason` | What a waiting session waits on ("Bash: npm install"), one mono caption line under its project row (aligned with the name); a button that shows the session. `data-risk` = possibly destructive: error color + `.c-risk` |
+| `.c-queue`, `__lead` `__text` `__title` `__meta` | A sidebar queue entry (review queue, T58): dot, title and a mono caption meta line, both ellipsised; same edges as `.c-row`; a button |
 | `.c-risk` | Warning glyph (⚠) in the error color for a possibly destructive command — on the reason line and the tab |
 | `.c-badge` `--claude` `--codex` `--shell` `--account-shared` `--account-personal` `--risk` | Tags (`--risk`: a changed file worth a second look, waiting colour — T57) |
 | `.c-badge--host`, `.c-badge__conn[data-conn=connecting\|connected\|reconnecting\|lost]` | Remote host alias (not uppercased) with a connection dot: idle grey / green / orange pulsing / red (T29) |
@@ -182,6 +183,7 @@ from `src/` (ESLint enforces it). New primitive → add the class to `components
 | `Kbd`, `Label` | `.c-kbd`, `.c-label` |
 | `Elapsed` `title?` | `.c-elapsed` |
 | `Reason` `text` `risk?` `riskLabel?` `onClick?` | `.c-reason` |
+| `QueueItem` `leading?` `title` `meta?` `tooltip?` `onClick?` | `.c-queue` |
 | `RiskMark` `label` | `.c-risk` |
 | `Meter` `label` `value` `fraction` (null = unknown) `tone?` `caption?` `title?` | `.c-meter` |
 | `Ring` `fraction` `label` `valueText` `showValue?` `tone?` `title?` | `.c-ring` |

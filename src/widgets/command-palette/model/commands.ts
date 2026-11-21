@@ -23,6 +23,7 @@ export type ActionId =
   | 'togglePreview'
   | 'history'
   | 'nextWaiting'
+  | 'nextReview'
   | 'copyLastReply'
   | 'quickSelect'
   | 'find'
@@ -92,6 +93,7 @@ const ACTIONS: {
   { action: 'togglePreview', label: (t) => t('preview.toggle'), shortcut: 'togglePreview' },
   { action: 'history', label: (t) => t('history.title'), shortcut: 'history' },
   { action: 'nextWaiting', label: (t) => t('attention.next'), shortcut: 'nextWaiting' },
+  { action: 'nextReview', label: (t) => t('review.next') },
   { action: 'copyLastReply', label: (t) => t('term.copyLastReply'), shortcut: 'copyLastReply' },
   { action: 'quickSelect', label: (t) => t('term.quickSelect'), shortcut: 'quickSelect' },
   { action: 'find', label: (t) => t('term.find'), shortcut: 'find' },

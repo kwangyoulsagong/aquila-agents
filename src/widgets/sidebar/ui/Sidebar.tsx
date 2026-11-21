@@ -18,6 +18,8 @@ interface Props {
   manage: ManageProjects;
   /** Footer slot (settings, news, guide). */
   footer?: ReactNode;
+  /** Under the project list (review queue, T58); a group of its own, hidden when it renders nothing. */
+  belowProjects?: ReactNode;
   /** Band above the footer (usage gauge). */
   aboveFooter?: ReactNode;
   /** Right end of the top band, next to the traffic lights (empty today). */
@@ -44,6 +46,7 @@ export default function Sidebar({
   onShowSession,
   manage,
   footer,
+  belowProjects,
   aboveFooter,
   top,
 }: Props) {
@@ -129,6 +132,7 @@ export default function Sidebar({
         >
           <span aria-hidden="true">+</span> {t('projects.add')}
         </button>
+        {belowProjects && <div className="c-sidebar__group">{belowProjects}</div>}
       </nav>
       {aboveFooter}
       <div className="c-sidebar__foot">{footer}</div>

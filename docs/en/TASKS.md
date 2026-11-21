@@ -559,7 +559,8 @@ The P1 rows of the persona report: review what finished, see what ran, and run t
 - **Done:** a diff touching `prisma/schema.prisma` and `package-lock.json` shows both badged and on top.
 
 ### T58 · Review queue
-- [ ] **Goal:** finished sessions I haven't looked at are gathered apart from the waiting ones.
+- [x] **Goal:** finished sessions I haven't looked at are gathered apart from the waiting ones.
+  _Left over: "opening Changes" clears an entry only through its tab being shown (the panel follows the focused tab, so there's no separate path). Branch and file count are read once when the session joins (one `git:changes`), not kept live. No shortcut (⌘K only), no guide item; merged-branch dimming isn't done. Codex/shell tabs join only when their status engine reports `done` (heuristic tabs guess it). Checked by unit tests and a smoke step (a hidden shell reports a finished turn over OSC 7501 → one entry, clicking it shows the tab and empties the queue, `smoke-review.png`)._
 - **Spec:**
   - A session that turns `done` while not on screen is "to review" until its tab is shown or its Changes are opened.
   - ⌘K "Next to review" and a sidebar section (under the project list, hidden when empty): title, project, branch, changed files count.
