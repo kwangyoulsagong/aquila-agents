@@ -47,6 +47,7 @@ export const GUIDE_ITEMS: readonly GuideItem[] = [
     bodyKey: 'guide.attention.body',
     shortcuts: ['nextWaiting'],
   },
+  { id: 'review', titleKey: 'guide.review.title', bodyKey: 'guide.review.body' },
   { id: 'globalShortcut', titleKey: 'guide.globalShortcut.title', bodyKey: 'guide.globalShortcut.body' },
   { id: 'notify', titleKey: 'guide.notify.title', bodyKey: 'guide.notify.body' },
   {
@@ -87,6 +88,7 @@ export const GUIDE_ITEMS: readonly GuideItem[] = [
   },
   { id: 'run', titleKey: 'guide.run.title', bodyKey: 'guide.run.body', shortcuts: ['toggleRun'] },
   { id: 'figma', titleKey: 'guide.figma.title', bodyKey: 'guide.figma.body' },
+  { id: 'designer', titleKey: 'guide.designer.title', bodyKey: 'guide.designer.body' },
   {
     id: 'terminal',
     titleKey: 'guide.terminal.title',
@@ -101,6 +103,7 @@ export const GUIDE_ITEMS: readonly GuideItem[] = [
     bodyKey: 'guide.history.body',
     shortcuts: ['history'],
   },
+  { id: 'commands', titleKey: 'guide.commands.title', bodyKey: 'guide.commands.body' },
   { id: 'trends', titleKey: 'guide.trends.title', bodyKey: 'guide.trends.body' },
   { id: 'accounts', titleKey: 'guide.accounts.title', bodyKey: 'guide.accounts.body' },
   { id: 'restore', titleKey: 'guide.restore.title', bodyKey: 'guide.restore.body' },

@@ -23,6 +23,8 @@ export const CAPTURE_BUDGET = { maxClipMs: 5000, maxVideoBytes: 700 * 1024, maxS
 const VIDEO_KBPS = 450;
 
 const FULL: Rectangle = { x: 0, y: 0, ...WIN };
+/** The demo shop capture.sh serves; its `design.html` stands in for a Figma frame (T62). */
+const DESIGN_URL = 'http://127.0.0.1:47173/';
 const TOP_LEFT: Rectangle = { x: 0, y: 0, width: 960, height: 600 };
 const TOP_RIGHT: Rectangle = { x: 480, y: 0, width: 960, height: 600 };
 const SIDEBAR: Rectangle = { x: 0, y: 0, width: 640, height: 400 };
@@ -174,6 +176,15 @@ export async function runCapture(
         await wait(700);
         await press('J', ['meta'], 1700);
         await press('J', ['meta'], 1500);
+      },
+    },
+    {
+      // Review queue (T58): the demo sessions that finished off screen in "status" are gathered in the sidebar.
+      id: 'review',
+      rect: TOP_LEFT,
+      stage: async () => {
+        await waitFor(`!!document.querySelector('.c-queue')`);
+        await wait(300);
       },
     },
     {
@@ -368,6 +379,48 @@ export async function runCapture(
       after: () => press('Escape', [], 500),
     },
     {
+      // Designer compare (T62): Figma switched on through settings (saved: the demo HOME is throwaway), a local
+      // "design" page standing in for the Figma frame (no Figma login in the demo). Side by side, then the overlay
+      // captures both and switches to Difference.
+      id: 'designer',
+      rect: FULL,
+      ms: 5000,
+      stage: async () => {
+        await press('1', ['meta'], 300);
+        await openPalette();
+        await type('Figma', 60);
+        await wait(300);
+        await click('.c-palette__item', t('figma.connectAction'));
+        await wait(800);
+        await click('.c-dialog[open] button[type="submit"]');
+        await waitFor(`!document.querySelector('.c-dialog[open]')`);
+        await press('P', ['meta', 'shift'], 300);
+        await waitFor(`!!document.querySelector('.c-preview .c-panel__head .c-row__meta')`);
+        await click('.c-preview .c-btn', t('preview.designer'));
+        await waitFor(`!!document.querySelector('.c-preview__figma-bar .c-input')`);
+        // Select what's there (a remembered address) so the typed one replaces it.
+        await js(`(() => { const el = document.querySelector('.c-preview__figma-bar .c-input'); el?.focus(); el?.select(); })()`);
+        await type(`${DESIGN_URL}design.html`, 10);
+        await press('Enter', [], 300);
+        await click('.c-preview__figma-bar .c-segment__item', t('preview.compare.side'));
+        await wait(1800);
+      },
+      act: async () => {
+        await wait(900);
+        await click('.c-preview__figma-bar .c-segment__item', t('preview.compare.overlay'));
+        await waitFor(`!!document.querySelector('.c-preview__shot')`);
+        await wait(1300);
+        await click('.c-preview__compare-bar .c-btn', t('preview.compare.diff'));
+        await wait(1300);
+      },
+      after: async () => {
+        await click('.c-preview__compare-bar .c-btn', t('preview.compare.diff'));
+        await click('.c-preview__figma-bar .c-segment__item', t('preview.compare.stacked'));
+        await click('.c-preview .c-btn', t('preview.designer'));
+        await press('P', ['meta', 'shift'], 400);
+      },
+    },
+    {
       // Remote servers (T56): ⌘K "Add remote server…", a host typed in. No host in the demo HOME, so no check runs.
       id: 'remote',
       rect: FULL,
@@ -409,6 +462,21 @@ export async function runCapture(
         await press('Y', ['meta'], 1400);
         await type(lang === 'ko' ? '쿠폰' : 'coupon', lang === 'ko' ? 160 : 90);
         await wait(1200);
+      },
+      after: () => press('Escape', [], 400),
+    },
+    {
+      // Commands timeline (T59): the coupon session's Bash calls (capture.sh) in its history detail.
+      id: 'commands',
+      rect: FULL,
+      stage: async () => {
+        await press('Y', ['meta'], 900);
+        const title = lang === 'ko' ? '쿠폰 할인' : 'Coupon discount';
+        await js(`[...document.querySelectorAll('.c-modal[open] .c-modal__item')]
+          .find((e) => e.textContent.includes(${JSON.stringify(title)}))?.click()`);
+        await waitFor(`!!document.querySelector('.c-modal[open] .c-commands')`);
+        await js(`document.querySelector('.c-modal[open] .c-commands')?.scrollIntoView({ block: 'center' })`);
+        await wait(500);
       },
       after: () => press('Escape', [], 400),
     },
