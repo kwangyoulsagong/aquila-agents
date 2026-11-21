@@ -3,10 +3,11 @@
 # each runner's own architecture — a broken native build fails here, not on a user's machine.
 name: ci
 
+# Manual only (Actions tab → ci → Run workflow): the macOS job repeats the local `npm run check` and the
+# Windows jobs matter only for a Windows release, while each run eats the private repo's free minutes
+# (macOS counts 10×, Windows 2×). Run it before a Windows release or after touching native/platform code.
 on:
-  push:
-    branches: [main]
-  pull_request:
+  workflow_dispatch:
 
 jobs:
   check:
