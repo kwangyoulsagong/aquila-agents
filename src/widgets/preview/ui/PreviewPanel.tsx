@@ -1,11 +1,12 @@
 import { useEffect, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { Button, EmptyState, Input, Segment, Select } from '@design-system/react';
 import { api, type PickResult, type PreviewSlot, type Project, type Session } from '@/shared/api';
-import { kindLabel, useT } from '@/shared/i18n';
+import { sessionTitle, useT } from '@/shared/i18n';
 import { pathsInput } from '@/features/terminal-helpers';
 import { parseFigmaLink } from '@/features/figma';
 import { focusSession, pasteIntoSession } from '@/entities/session';
 import { buildPickPrompt } from '../model/prompt';
+import { pickTarget } from '../model/pickTarget';
 import {
   DEVICES,
   deviceWidth,
@@ -124,8 +125,8 @@ export default function PreviewPanel({ project, session, onClose }: Props) {
   // Leaving Select mode with the panel (closed, or another project).
   useEffect(() => () => api.previewPickCancel('app'), [project.id]);
 
-  const target =
-    session && session.kind !== 'shell' && !session.dormant && !session.exited ? session : undefined;
+  const target = pickTarget(session);
+  const targetName = target.kind === 'none' ? '' : sessionTitle(t, target.session);
 
   const deliver = (pick: PickResult) => {
     const prompt = buildPickPrompt(pick, {
@@ -148,13 +149,21 @@ export default function PreviewPanel({ project, session, onClose }: Props) {
     const text = lines.join('\n');
     // Two pastes: a paste that is only an image path is what Claude / Codex attach as an image.
     const image = pick.imagePath ? pathsInput([pick.imagePath]) : '';
-    if (target && pasteIntoSession(target.id, `${text}\n`)) {
-      if (image) pasteIntoSession(target.id, image);
-      focusSession(target.id);
-      setNotice(t('preview.pick.pasted', { name: kindLabel(t, target.kind) }));
+    // Read the status at delivery time: the tab may have hit a prompt while the user was picking.
+    const now = pickTarget(session);
+    if (now.kind === 'paste' && pasteIntoSession(now.session.id, `${text}\n`)) {
+      if (image) pasteIntoSession(now.session.id, image);
+      focusSession(now.session.id);
+      setNotice(t('preview.pick.pasted', { name: sessionTitle(t, now.session) }));
       return;
     }
     api.copyText(pick.imagePath ? `${text}\n${pick.imagePath}` : text);
+    if (now.kind === 'busy') {
+      // Show the question it's waiting on; the user answers first, then pastes.
+      focusSession(now.session.id);
+      setNotice(t('preview.pick.busy', { name: sessionTitle(t, now.session) }));
+      return;
+    }
     setNotice(t('preview.pick.copied'));
   };
 
@@ -258,6 +267,13 @@ export default function PreviewPanel({ project, session, onClose }: Props) {
           >
             {'{}'}
           </Button>
+          <span className="c-row__meta" title={t('preview.pick.targetHint')}>
+            {target.kind === 'none'
+              ? t('preview.pick.toClipboard')
+              : target.kind === 'busy'
+                ? t('preview.pick.toBusy', { name: targetName })
+                : t('preview.pick.to', { name: targetName })}
+          </span>
           <Button
             variant={picking ? 'primary' : 'default'}
             aria-pressed={picking}
