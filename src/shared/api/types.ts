@@ -105,6 +105,14 @@ export interface ConnectionUpdate {
 
 export type RemoteToolId = 'claude' | 'codex' | 'tmux' | 'git';
 
+/** Folders in one directory on an SSH host (T56 folder picker). */
+export interface RemoteDirList {
+  /** Absolute path on the host (`~` resolved); as asked when it doesn't exist. */
+  path: string;
+  exists: boolean;
+  dirs: { name: string; repo: boolean }[];
+}
+
 /** What `remote:check` found on a host. Install commands are only shown, never run. */
 export interface RemoteCheck {
   /** ssh connected without asking for anything (BatchMode). */
@@ -735,6 +743,8 @@ export interface AquilaApi {
   sshHosts(): Promise<string[]>;
   /** Connects once (BatchMode) and reports OS, CLIs, tmux, git and the Claude login on the host. */
   checkRemote(host: RemoteHost): Promise<RemoteCheck>;
+  /** Folders in `path` on the host (read-only `ls`, T56); `~` or blank = home. Rejects with ssh's error. */
+  listRemoteDirs(host: RemoteHost, path: string): Promise<RemoteDirList>;
   /** Retry a remote session's connection now instead of waiting for the backoff. */
   reconnect(id: string): void;
   onConnection(cb: (p: ConnectionUpdate) => void): Unsubscribe;
@@ -934,6 +944,7 @@ export const IPC = {
   uiFocusSession: 'ui:focus-session',
   remoteHosts: 'remote:hosts',
   remoteCheck: 'remote:check',
+  remoteList: 'remote:list',
   remoteReconnect: 'remote:reconnect',
   sessionConnection: 'session:connection',
   powerGet: 'power:get',

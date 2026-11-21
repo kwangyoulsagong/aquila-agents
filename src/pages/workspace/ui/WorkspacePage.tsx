@@ -177,7 +177,7 @@ export default function WorkspacePage() {
     onRemoved: ws.forgetProject,
     onError: showError,
   });
-  const { addProject, openSettings, openIn } = manage;
+  const { addProject, addRemote, openSettings, openIn } = manage;
   menuRef.current = {
     settings: () => {
       if (config)
@@ -223,6 +223,7 @@ export default function WorkspacePage() {
       }
     }
     a.addProject = () => void addProject();
+    a.addRemote = addRemote;
     a.history = toggleHistory;
     if (activeSessionId) a.closeSession = () => closeSession(activeSessionId);
     // Edited in its tab, which full window hides.
@@ -272,6 +273,7 @@ export default function WorkspacePage() {
     showNotes,
     toggleHistory,
     addProject,
+    addRemote,
     openSettings,
     openIn,
     agentFocused,

@@ -343,6 +343,21 @@ export async function runCapture(
       after: () => press('Escape', [], 500),
     },
     {
+      // Remote servers (T56): ⌘K "Add remote server…", a host typed in. No host in the demo HOME, so no check runs.
+      id: 'remote',
+      rect: FULL,
+      stage: async () => {
+        await openPalette();
+        await type(lang === 'ko' ? '원격' : 'remote', 60);
+        await wait(300);
+        await click('.c-palette__item', t('remote.addAction'));
+        await wait(600);
+        await type('devbox', 50);
+        await wait(500);
+      },
+      after: () => press('Escape', [], 500),
+    },
+    {
       id: 'worktree',
       rect: FULL,
       ms: 5000,

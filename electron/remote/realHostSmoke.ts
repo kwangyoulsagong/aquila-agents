@@ -14,6 +14,7 @@ import type { SessionManager } from '../sessions';
 import type { Config, ConnectionUpdate, RemoteHost } from '../../src/shared/api/types';
 import { HistoryIndex } from '../history';
 import { gitAction } from '../git';
+import { listRemoteDirs } from './browse';
 import { checkRemote } from './check';
 import { sshExec } from './exec';
 import { remoteGit, remoteGitChanges, remoteTrash } from './git';
@@ -70,6 +71,16 @@ export async function checkRealHost(
     if (!tool('tmux')?.path || !tool('git')?.path)
       return `real ssh host: check found no tmux/git: ${JSON.stringify(check.tools)}`;
     log.push(`check ${check.system} tmux ${tool('tmux')?.version ?? '?'} git ${tool('git')?.version ?? '?'}`);
+
+    // 1b. Browse (T56): the folder picker's read-only listing finds the repo; a missing folder reads as missing.
+    const parent = DIR.replace(/\/[^/]+$/, '') || '/';
+    const listed = await listRemoteDirs(host, parent);
+    const repoName = DIR.slice(parent.length + 1);
+    if (!listed.dirs.some((d) => d.name === repoName && d.repo))
+      return `real ssh host: browse ${parent} didn't list the repo ${repoName}: ${JSON.stringify(listed)}`;
+    if ((await listRemoteDirs(host, `${DIR}/no-such-folder`)).exists)
+      return 'real ssh host: browse found a folder that is not there';
+    log.push(`browse ${parent} → ${listed.dirs.length} folders`);
 
     // 2. A shell tab over ssh + tmux.
     const s = sessions.create(remoteConfig, project.id, 'shell');

@@ -295,6 +295,8 @@ export function useManageProjects({
     dialog,
     closeDialog: () => setDialog(null),
     addProject,
+    /** ⌘K "Add remote server…" (T56). */
+    addRemote: () => setDialog({ kind: 'addRemote' }),
     openSettings: (project: Project, focus?: 'figma') =>
       setDialog(focus ? { kind: 'settings', project, focus } : { kind: 'settings', project }),
     openIn,

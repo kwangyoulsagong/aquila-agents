@@ -1,10 +1,11 @@
 import { useId, useState } from 'react';
 import { Button, Dialog, DialogForm, Field, FieldGrid, FieldRow, Input } from '@design-system/react';
-import { REMOTE_GROUP, type RemoteHost } from '@/shared/api';
+import { api, REMOTE_GROUP, type RemoteHost } from '@/shared/api';
 import { useT } from '@/shared/i18n';
-import { remoteName, toHost, validHost } from '../model/remote';
+import { addBlocker, remoteName, toHost, validHost } from '../model/remote';
 import { useRemoteCheck } from '../model/useRemoteCheck';
 import RemoteCheckView from './RemoteCheckView';
+import RemoteFolderPicker from './RemoteFolderPicker';
 
 export interface RemoteProjectValues {
   name: string;
@@ -18,7 +19,11 @@ interface Props {
   onAdd: (values: RemoteProjectValues) => Promise<void>;
 }
 
-/** Add a project on an SSH host (T29): host alias, folder there, optional remote Claude config dir, "Check host". */
+/**
+ * Add a project on an SSH host (T29): host alias, folder there, optional remote Claude config dir, "Check host".
+ * Safe by default (T56): Add checks the host first and stops with the next step when it can't connect or has no tmux,
+ * and refuses a folder that isn't there; Browse picks the folder from the host.
+ */
 export default function RemoteProjectDialog({ onClose, onAdd }: Props) {
   const t = useT();
   const formId = useId();
@@ -29,6 +34,7 @@ export default function RemoteProjectDialog({ onClose, onAdd }: Props) {
   const [claudeDir, setClaudeDir] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [browsing, setBrowsing] = useState(false);
   const { hosts, check, checking, start } = useRemoteCheck(alias);
 
   const hostOk = validHost(alias);
@@ -39,7 +45,21 @@ export default function RemoteProjectDialog({ onClose, onAdd }: Props) {
     if (!ready) return;
     setBusy(true);
     setError(null);
+    const host = toHost(alias, claudeDir);
     try {
+      // The check shown is for this alias (it's cleared when the alias changes); a failed one runs again.
+      const result = check && !addBlocker(check) ? check : await start(host);
+      if (!result) return setBusy(false);
+      const blocker = addBlocker(result);
+      if (blocker) {
+        setError(t(blocker === 'unreachable' ? 'remote.blockedUnreachable' : 'remote.blockedTmux'));
+        return setBusy(false);
+      }
+      const folder = await api.listRemoteDirs(host, path.trim());
+      if (!folder.exists) {
+        setError(t('remote.folderMissing', { path: path.trim() }));
+        return setBusy(false);
+      }
       await onAdd({
         name: name.trim() || remoteName(path, alias),
         // Always the built-in Remote group (main enforces it too).
@@ -65,7 +85,7 @@ export default function RemoteProjectDialog({ onClose, onAdd }: Props) {
             {t('action.cancel')}
           </Button>
           <Button variant="primary" type="submit" form={formId} disabled={!ready}>
-            {t('action.add')}
+            {busy && checking ? t('remote.addChecking') : t('action.add')}
           </Button>
         </>
       }
@@ -98,12 +118,17 @@ export default function RemoteProjectDialog({ onClose, onAdd }: Props) {
         {check && <RemoteCheckView check={check} host={alias.trim()} />}
         <FieldGrid>
           <Field label={t('remote.path')}>
-            <Input
-              value={path}
-              onChange={(e) => setPath(e.target.value)}
-              placeholder="~/code/app"
-              spellCheck={false}
-            />
+            <FieldRow>
+              <Input
+                value={path}
+                onChange={(e) => setPath(e.target.value)}
+                placeholder="~/code/app"
+                spellCheck={false}
+              />
+              <Button aria-expanded={browsing} disabled={!hostOk} onClick={() => setBrowsing((b) => !b)}>
+                {t('remote.browse')}
+              </Button>
+            </FieldRow>
           </Field>
           <Field label={t('projects.name')}>
             <Input
@@ -113,6 +138,17 @@ export default function RemoteProjectDialog({ onClose, onAdd }: Props) {
             />
           </Field>
         </FieldGrid>
+        {browsing && hostOk && (
+          <RemoteFolderPicker
+            key={alias.trim()}
+            host={toHost(alias, claudeDir)}
+            start={path}
+            onPick={(picked) => {
+              setPath(picked);
+              setBrowsing(false);
+            }}
+          />
+        )}
         <FieldGrid>
           <Field label={t('remote.claudeDir')} hint={t('remote.claudeDirHint')}>
             <Input

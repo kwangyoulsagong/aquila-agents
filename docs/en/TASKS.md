@@ -539,7 +539,8 @@ The P0 rows of the persona report that were left under **Nice to have**: tools t
 - **Owns:** the Figma chips code (T34).
 
 ### T56 · Remote add: safe by default
-- [ ] **Goal:** adding a remote project can't end in a broken row.
+- [x] **Goal:** adding a remote project can't end in a broken row.
+  _Left over: Add stops on "can't connect" and "no tmux" only; a missing Claude or login is shown but doesn't block (a shell or Codex tab still works). The folder check and Browse are `cd` + a glob over the same BatchMode connection (`remote:list`), so a host that needs a password fails until a tab's interactive ssh has opened the shared connection — the error says so. Hidden folders aren't listed, and at most 500 per folder. Checked by unit tests (script run with the local sh), the Docker host smoke step (browse /work finds the repo, a missing folder reads as missing) and the guide capture (`CAPTURE_ONLY=remote`); the dialog's Browse list was not clicked through against the Docker host by hand._
 - **Spec:** Add runs Check host first and, on failure, says the next step in plain words; a simple remote folder browser (`ls` over the existing connection); shorter ko/en copy; ⌘K "Add remote server…" and a guide item.
 - **Owns:** the remote part of `src/features/manage-projects/`, `electron/remote/` (read-only `ls`).
 

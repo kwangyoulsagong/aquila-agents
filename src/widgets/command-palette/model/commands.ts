@@ -14,6 +14,7 @@ export type ActionId =
   | 'projectSettings'
   | 'openProjectIn'
   | 'connectFigma'
+  | 'addRemote'
   | 'splitRight'
   | 'splitDown'
   | 'zoomPane'
@@ -82,6 +83,7 @@ const ACTIONS: {
   { action: 'openProjectIn', label: (t, p) => t('settings.openInAction', { app: p?.openIn || 'Finder' }) },
   { action: 'connectFigma', label: (t) => t('figma.connectAction') },
   { action: 'addProject', label: (t) => t('projects.add') },
+  { action: 'addRemote', label: (t) => t('remote.addAction') },
   { action: 'splitRight', label: (t) => t('palette.splitRight'), shortcut: 'splitRight' },
   { action: 'splitDown', label: (t) => t('palette.splitDown'), shortcut: 'splitDown' },
   { action: 'zoomPane', label: (t) => t('action.zoomPane'), shortcut: 'zoomPane' },

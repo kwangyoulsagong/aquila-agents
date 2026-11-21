@@ -130,6 +130,13 @@
       <h2 class="c-dialog__title">시작하기 전에</h2>
       <div class="c-dialog__body">
         <p>Aquila는 이 Mac에 설치된 CLI를 그대로 실행해요. 필요한 것만 확인할게요.</p>
+        <div class="c-pick" role="group" aria-label="호스트의 폴더" style="margin-bottom: var(--space-stack-md)">
+          <div class="c-pick__head"><span class="c-pick__path">/home/dev</span><button class="c-btn c-btn--ghost">위로</button><button class="c-btn">이 폴더 사용</button></div>
+          <ul class="c-pick__list">
+            <li><button class="c-pick__item"><span class="c-pick__label">app</span><span class="c-badge">git</span></button></li>
+            <li><button class="c-pick__item"><span class="c-pick__label">notes</span></button></li>
+          </ul>
+        </div>
         <ul class="c-checklist">
           <li class="c-checklist__item"><span class="c-checklist__lead"><i class="c-dot" data-status="waiting"></i></span><div class="c-checklist__main"><div class="c-checklist__title">셸 PATH를 못 읽었어요</div><div class="c-checklist__meta">시스템 PATH로 찾아요. 아래에서 못 찾으면 경로를 직접 지정하세요.</div></div><span></span></li>
           <li class="c-checklist__item"><span class="c-checklist__lead"><i class="c-dot" data-status="waiting"></i></span><div class="c-checklist__main"><div class="c-checklist__title">Claude Code</div><div class="c-checklist__meta">찾을 수 없어요</div></div><div class="c-checklist__actions"><button class="c-btn c-btn--ghost">경로 지정…</button></div>

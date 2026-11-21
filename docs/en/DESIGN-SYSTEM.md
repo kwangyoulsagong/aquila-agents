@@ -108,6 +108,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `--size-sidebar` / `--size-panel` | 248 / 416 | |
 | `--size-panel-wide` | 720 | Changes panel in side-by-side mode (capped at half the window) |
 | `--size-panel-min` / `--size-stage-min` | 288 / 480 | Narrowest a side panel gets / width the terminal column keeps; panels shrink first (T49) |
+| `--size-pick-list` | 224 | A pick list's height before it scrolls (seven rows; remote folders, T56) |
 | `--size-diff-gutter` / `--size-diff-comment` | 40 / 384 | One line-number column in a diff / a line-comment box |
 | `--size-dialog` / `--size-dialog-wide` | 440 / 560 | Dialog width / with a checklist (first run) |
 | `--size-palette` / `--size-palette-list` | 560 / 352 | Command palette width / list height before it scrolls (11 rows) |
@@ -160,6 +161,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `.c-transcript` `__message[data-role]` `__role` `__text` | Read-only conversation: who, then the text as written (wrapped); the user's messages in primary text |
 | `.c-media` `__frame` `__placeholder` | 16:10 frame for a screenshot or a short loop; placeholder while there is none |
 | `.c-shortcuts` `__group` `__row` `__label` `__keys` | Shortcut sheet: grouped rows, label left, keys right |
+| `.c-pick` `__head` `__path` `__list` `__item` `__label` `__empty` | Pick list inside a dialog: mono path head with buttons, then rows to click (remote folder picker, T56) |
 | `.c-checklist` `__item` `__lead` `__main` `__title` `__meta` `__actions` `__detail` `__command` | Bordered list of checks: dot on the title line · title (+ badge) / mono meta · buttons, then a full-width detail (install command with Copy, drop zone) |
 | `.c-dropzone[data-over]` | Dashed drop area; accent border + selected background while dragging over |
 | `.c-field` `__label` `__hint`, `.c-input` (`--multiline`, `--inline`), `.c-select` `__control` | Form field: label, text input / select (focus = blue border), monospace hint (`data-tone="warning"` = waiting orange). `--inline` edits a title in place inside a line (tab rename, T43): the line's font, no fixed height |
@@ -187,6 +189,7 @@ from `src/` (ESLint enforces it). New primitive → add the class to `components
 | `ResizeHandle` `onChange` `onReset` `edge` `label` | `.c-resize` (measures its parent: start width, `min-width`, room its flexible siblings can give) |
 | `EmptyState` `title` `path` `actions` | `.c-empty` |
 | `Dialog` `open` `title` `onClose` `actions` `wide`, `DialogCheck`, `DialogCode`, `DialogForm` `id` `onSubmit`, `DialogGroup` `ref?` | `.c-dialog` (`DialogGroup` = `.c-dialog__group`, fields kept together and scrolled to) |
+| `PickList` `label` `path` `actions` `empty`, `PickItem` `onClick` `trailing` | `.c-pick` |
 | `Checklist` `label`, `ChecklistItem` `leading` `title` `tag` `meta` `actions`, `ChecklistCommand` `command` `action` | `.c-checklist` |
 | `Dropzone` `over` (+ div props) | `.c-dropzone` |
 | `TermOverlay` (+ div props, `ref`), `TermJump` (Button props), `TermNote` `bar?`, `TermHint` `box` `label?` `typed?` | `.c-term-overlay`, `.c-term-overlay__jump`, `.c-term-overlay__note(--bar)`, `.c-term-hint` (helpers over a terminal, T28) |

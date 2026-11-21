@@ -107,6 +107,7 @@
 | `--size-sidebar` / `--size-panel` | 248 / 416 | |
 | `--size-panel-wide` | 720 | 나란히 보기 때 변경사항 패널(창의 절반까지) |
 | `--size-panel-min` / `--size-stage-min` | 288 / 480 | 옆 패널의 최소 폭 / 터미널 열이 지키는 폭. 패널이 먼저 줄어든다(T49) |
+| `--size-pick-list` | 224 | 고르기 목록이 스크롤되기 전 높이(7줄, 원격 폴더, T56) |
 | `--size-diff-gutter` / `--size-diff-comment` | 40 / 384 | diff의 줄 번호 칸 하나 / 줄 코멘트 상자 |
 | `--size-dialog` / `--size-dialog-wide` | 440 / 560 | 다이얼로그 너비 / 체크리스트가 있는 다이얼로그(첫 실행) |
 | `--size-palette` / `--size-palette-list` | 560 / 352 | 명령 팔레트 너비 / 스크롤 전 목록 높이(11줄) |
@@ -159,6 +160,7 @@
 | `.c-modal` `__head` `__title` `__subtitle` `__body` `__aside` `__search` `__list` `__item[aria-selected]` `__item-label` `__empty` `__main` `__heading` `__text` `__keys` `__foot` | 큰 목록 + 상세 모달 (네이티브 `<dialog>`, 떠오름): 머리와 검색칸은 타이틀 바 높이, 왼쪽 검색 목록, 오른쪽 상세 (가이드; 릴리즈 노트·트렌드와 공유) |
 | `.c-media` `__frame` `__placeholder` | 스크린샷이나 짧은 루프용 16:10 틀, 없으면 자리표시 |
 | `.c-shortcuts` `__group` `__row` `__label` `__keys` | 단축키 시트: 그룹별 줄, 왼쪽 이름, 오른쪽 키 |
+| `.c-pick` `__head` `__path` `__list` `__item` `__label` `__empty` | 대화상자 안의 고르기 목록: 버튼이 있는 모노 경로 머리, 아래에 누를 행(원격 폴더 고르기, T56) |
 | `.c-checklist` `__item` `__lead` `__main` `__title` `__meta` `__actions` `__detail` `__command` | 테두리 있는 점검 목록: 제목 줄의 점 · 제목(+ 배지) / 모노 메타 · 버튼, 아래에 전체 폭 상세(복사 버튼 있는 설치 명령, 드롭 영역) |
 | `.c-dropzone[data-over]` | 점선 드롭 영역. 끌어 올리는 동안 강조 테두리 + 선택 배경 |
 | `.c-field` `__label` `__hint`, `.c-input` (`--multiline`, `--inline`), `.c-select` `__control` | 폼 필드: 라벨, 텍스트 입력 / 선택 (포커스 = 파란 테두리), 모노스페이스 힌트 (`data-tone="warning"` = 대기 주황). `--inline`은 줄 안에서 제목을 바로 고친다(탭 이름 바꾸기, T43): 그 줄의 글꼴, 고정 높이 없음 |
@@ -186,6 +188,7 @@
 | `ResizeHandle` `onChange` `onReset` `edge` `label` | `.c-resize` (부모를 직접 잼: 시작 폭, `min-width`, 유연한 형제가 내줄 수 있는 폭) |
 | `EmptyState` `title` `path` `actions` | `.c-empty` |
 | `Dialog` `open` `title` `onClose` `actions` `wide`, `DialogCheck`, `DialogCode`, `DialogForm` `id` `onSubmit`, `DialogGroup` `ref?` | `.c-dialog` (`DialogGroup` = `.c-dialog__group`, fields kept together and scrolled to) |
+| `PickList` `label` `path` `actions` `empty`, `PickItem` `onClick` `trailing` | `.c-pick` |
 | `Checklist` `label`, `ChecklistItem` `leading` `title` `tag` `meta` `actions`, `ChecklistCommand` `command` `action` | `.c-checklist` |
 | `Dropzone` `over` (+ div 속성) | `.c-dropzone` |
 | `TermOverlay` (+ div 속성, `ref`), `TermJump` (Button 속성), `TermNote` `bar?`, `TermHint` `box` `label?` `typed?` | `.c-term-overlay`, `.c-term-overlay__jump`, `.c-term-overlay__note(--bar)`, `.c-term-hint` (터미널 위 도우미, T28) |

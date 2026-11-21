@@ -93,6 +93,7 @@ export const GUIDE_ITEMS: readonly GuideItem[] = [
     shortcuts: ['copyLastReply', 'quickSelect', 'find'],
   },
   { id: 'worktree', titleKey: 'guide.worktree.title', bodyKey: 'guide.worktree.body' },
+  { id: 'remote', titleKey: 'guide.remote.title', bodyKey: 'guide.remote.body' },
   {
     id: 'history',
     titleKey: 'guide.history.title',
