@@ -49,6 +49,8 @@ import {
   detectClaudeVersion,
   startHookServer,
   supportsHttpHooks,
+  pruneStaleHookSettings,
+  removeClaudeHookSettings,
   writeClaudeHookSettings,
   type HookEvent,
 } from './hooks';
@@ -196,7 +198,12 @@ app.whenReady().then(async () => {
     sessions?.onHook(tabId, hook);
     onUsageHook?.(tabId, hook);
   });
+  // Per instance (the port is in the file): dev / smoke / capture no longer repoint the running app's tabs.
   const hookFiles = writeClaudeHookSettings(hookPort);
+  // `exit` too: smoke / capture / perf end with app.exit(), which skips will-quit. Leftovers are pruned next start.
+  app.on('will-quit', () => removeClaudeHookSettings(hookFiles));
+  process.on('exit', () => removeClaudeHookSettings(hookFiles));
+  void pruneStaleHookSettings(hookPort).catch((err: unknown) => console.error('[hooks] prune failed', err));
   // Context gauge (T31): our statusline drops Claude's statusline JSON per tab into ~/.aquila/context/.
   const context = new ContextWatcher((u) => win?.webContents.send(IPC.contextChanged, u));
   if (!isSmoke) safe('context watch', () => context.start());

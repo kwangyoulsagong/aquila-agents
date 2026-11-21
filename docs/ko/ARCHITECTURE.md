@@ -477,8 +477,11 @@ import하지 않음).
 | 출력 활동 | 보고하지 않는 codex / 셸 | 3초 넘게 출력 → working, 이후 3초 조용 → done, `estimated`(흐린 점)로 표시 |
 | 종료 코드 | 전부 | 0, 130, 시그널 → stopped, 그 밖 → error (`reason: exit`) |
 
-hook은 `~/.aquila/claude-hooks.json`의 `type: "http"`입니다 (`url` = 로컬 수신기, `allowedEnvVars`로
-`X-Aquila-Session: $AQUILA_TAB_ID`, `timeout: 5`, `onFailure: "continue"`). 수신기는 본문 없이 204로 답하므로
+hook은 `~/.aquila/claude-hooks.<port>.json`(과 `claude-hooks-status.<port>.json`)의 `type: "http"`입니다 (`url` = 로컬 수신기, `allowedEnvVars`로
+`X-Aquila-Session: $AQUILA_TAB_ID`, `timeout: 5`, `onFailure: "continue"`). 포트가 파일에 들어가므로 실행 중인
+인스턴스마다 자기 파일 쌍을 쓰고 종료할 때 지웁니다. 포트가 더 이상 응답하지 않는 파일 쌍은 시작할 때 정리합니다.
+(예전에는 공유 파일 하나를 모든 인스턴스 — `npm run dev`, smoke, capture — 가 덮어썼고, Claude는 바뀐 설정 파일을 다시
+읽기 때문에 앱의 열린 탭이 죽은 포트로 보냈습니다: "hook failed · ECONNREFUSED".) legacy 파일은 `$AQUILA_PORT`를 읽으므로 공유합니다. 수신기는 본문 없이 204로 답하므로
 `PermissionRequest`에 결정을 돌려주지 않습니다. Claude는 `SessionStart`에서 http hook을 건너뛰므로 그것만
 command + `curl`로 둡니다. 2.1.295보다 오래된 Claude(시작할 때 `claude --version`)는 `claude-hooks-legacy.json`을 받는데,
 전부 같은 JSON을 보내는 command + `curl`입니다. 7501 원본 보고와 hook 이벤트 이름은 `~/.aquila/status.log`에
