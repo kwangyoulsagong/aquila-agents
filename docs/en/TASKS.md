@@ -580,7 +580,7 @@ The P1 rows of the persona report: review what finished, see what ran, and run t
 
 ### T60 · Run slot
 - [x] **Goal:** start a dev server or test watcher apart from the agent, see its log and whether it's up.
-  _Left over: "healthy again" is a fixed list of watcher lines (Vite `hmr update` / `ready in`, `compiled successfully`, tsc `Found 0 errors`, …) — a tool that prints none of them stays red until restarted. Restored runs start without asking. Output is a pipe, not a pty (tools that only colour or prompt on a TTY behave as in CI; `FORCE_COLOR=1` is set). Checked by unit tests (real processes: PORT, address, tree kill, error → healthy again), smoke (a fixture server shown in the panel: green dot, live log, "Open in preview", Stop leaves nothing) and the guide capture._
+  _Left over: "healthy again" is a fixed list of watcher lines (Vite `hmr update` / `ready in`, `compiled successfully`, tsc `Found 0 errors`, …) plus, per command, a `# ready: text` of your own in settings (T60b; a changed ready text applies on the next start). Restored runs start without asking. Output is a pipe, not a pty (tools that only colour or prompt on a TTY behave as in CI; `FORCE_COLOR=1` is set). Checked by unit tests (real processes: PORT, address, tree kill, error → healthy again), smoke (a fixture server shown in the panel: green dot, live log, "Open in preview", Stop leaves nothing) and the guide capture._
 - **Spec:**
   - Per project (and per worktree): named commands in project settings (default: `npm run dev` when `package.json` has it).
   - "Run" starts it in its own process group with the worktree's `PORT`; a log pane (read-only xterm) and a status dot: running, exited, error (`Error`, `EADDRINUSE`, `OOM`, `NaN` in output or a non-zero exit).

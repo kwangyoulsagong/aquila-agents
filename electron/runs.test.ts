@@ -37,6 +37,17 @@ describe('cleanRunCommands', () => {
   });
   it('ignores anything but an array', () => {
     expect(cleanRunCommands({ name: 'x', command: 'y' })).toEqual([]);
+    expect(
+      cleanRunCommands([
+        { name: 'api', command: 'go run .', ready: '  Listening on  ' },
+        { name: 'web', command: 'vite', ready: '' },
+        { name: 'job', command: 'make', ready: 42 },
+      ]),
+    ).toEqual([
+      { name: 'api', command: 'go run .', ready: 'Listening on' },
+      { name: 'web', command: 'vite' },
+      { name: 'job', command: 'make' },
+    ]);
   });
 });
 
@@ -94,6 +105,16 @@ describe('output scan', () => {
     expect(lastVerdict(['ready in 300 ms', 'Error: boom'])).toEqual({ error: 'Error: boom' });
     expect(lastVerdict(['webpack compiled with 1 error'])).toBeNull();
     expect(lastVerdict(['GET / 200'])).toBeNull();
+  });
+
+  it("counts the command's own ready text as healthy, case-insensitive, even over the error pattern", () => {
+    expect(lastVerdict(['Error: boom', 'Server listening on :8080'], 'Listening on')).toBe('ok');
+    expect(lastVerdict(['Server listening on :8080', 'Error: boom'], 'Listening on')).toEqual({
+      error: 'Error: boom',
+    });
+    expect(lastVerdict(['pytest: 0 Errors, 12 passed'], '12 passed')).toBe('ok');
+    expect(lastVerdict(['Server listening on :8080'])).toBeNull();
+    expect(lastVerdict(['Server listening on :8080'], '  ')).toBeNull();
   });
   it('sets PORT only when there is one', () => {
     expect(runEnv(3010)).toEqual({ PORT: '3010', AQUILA_PORT_BASE: '3010' });
@@ -216,6 +237,16 @@ describe('RunManager (real processes)', () => {
     expect(m.list('p', undefined, commands).runs[0].reason).toBe('TypeError: x');
     await until(() => m.list('p', undefined, commands).runs[0].state === 'running');
     expect(m.list('p', undefined, commands).runs[0]).not.toHaveProperty('reason');
+  }, 15000);
+
+  it("turns back to running on the command's own ready text", async () => {
+    const dir = tmp();
+    const { m } = make();
+    const command = 'echo "Error: db down"; sleep 0.3; echo "API listening on :9000"; sleep 30';
+    const commands = [{ name: 'api', command, ready: 'listening on' }];
+    await m.start({ projectId: 'p', name: 'api', command, ready: 'listening on', cwd: dir });
+    await until(() => m.list('p', undefined, commands).runs[0].state === 'error');
+    await until(() => m.list('p', undefined, commands).runs[0].state === 'running');
   }, 15000);
 
   it('restarts a running command and keeps a removed one listed while it runs', async () => {

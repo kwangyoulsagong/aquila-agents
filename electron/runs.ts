@@ -18,6 +18,7 @@ const FLUSH_MS = 50;
 const KILL_GRACE_MS = 2000;
 const NAME_MAX = 40;
 const COMMAND_MAX = 2000;
+const READY_MAX = 200;
 const MAX_COMMANDS = 12;
 
 // eslint-disable-next-line no-control-regex -- terminal escapes are control characters
@@ -38,12 +39,13 @@ export function cleanRunCommands(list: unknown): RunCommand[] {
   const out: RunCommand[] = [];
   for (const item of list as unknown[]) {
     if (!item || typeof item !== 'object') continue;
-    const { name, command } = item as { name?: unknown; command?: unknown };
+    const { name, command, ready } = item as { name?: unknown; command?: unknown; ready?: unknown };
     if (typeof command !== 'string' || !command.trim() || command.length > COMMAND_MAX) continue;
     const cmd = command.trim();
     const n = (typeof name === 'string' && name.trim() ? name.trim() : cmd).slice(0, NAME_MAX);
     if (out.some((c) => c.name === n)) continue;
-    out.push({ name: n, command: cmd });
+    const r = typeof ready === 'string' ? ready.trim().slice(0, READY_MAX) : '';
+    out.push({ name: n, command: cmd, ...(r ? { ready: r } : {}) });
     if (out.length >= MAX_COMMANDS) break;
   }
   return out;
@@ -95,9 +97,15 @@ export function findRunError(lines: readonly string[]): string | null {
   return hit === undefined ? null : hit.trim().slice(0, 200);
 }
 
-/** What the latest telling line says: trouble (with the line), healthy again, or nothing either way. */
-export function lastVerdict(lines: readonly string[]): { error: string } | 'ok' | null {
+/**
+ * What the latest telling line says: trouble (with the line), healthy again, or nothing either way. `ready` is the
+ * command's own "healthy" text (case-insensitive substring), checked before the error pattern so a ready line that
+ * happens to contain "Error" (`0 Errors`) still counts as healthy.
+ */
+export function lastVerdict(lines: readonly string[], ready?: string): { error: string } | 'ok' | null {
+  const mine = ready?.trim().toLowerCase();
   for (let i = lines.length - 1; i >= 0; i--) {
+    if (mine && lines[i].toLowerCase().includes(mine)) return 'ok';
     if (ERROR_LINE.test(lines[i])) return { error: lines[i].trim().slice(0, 200) };
     if (RECOVERED_LINE.test(lines[i])) return 'ok';
   }
@@ -153,6 +161,8 @@ interface Run {
   worktree?: string;
   name: string;
   command: string;
+  /** The command's own "healthy again" text (settings `# ready:`). */
+  ready?: string;
   info: RunInfo;
   child: ChildProcess | null;
   /** Process group id (= the shell's pid). */
@@ -240,6 +250,7 @@ export class RunManager {
     worktree?: string;
     name: string;
     command: string;
+    ready?: string;
     cwd: string;
     port?: number;
   }): Promise<void> {
@@ -252,6 +263,7 @@ export class RunManager {
       worktree: opts.worktree,
       name: opts.name,
       command: opts.command,
+      ready: opts.ready,
       info: {
         id,
         name: opts.name,
@@ -378,7 +390,7 @@ export class RunManager {
     if (!lines.length) return;
     let changed = false;
     // An error line turns it red; a watcher that's healthy again afterwards (fixed compile error) turns it back.
-    const verdict = lastVerdict(lines);
+    const verdict = lastVerdict(lines, run.ready);
     if (verdict && verdict !== 'ok' && run.info.state === 'running') {
       run.info = { ...run.info, state: 'error', reason: verdict.error };
       changed = true;

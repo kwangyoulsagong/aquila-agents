@@ -317,7 +317,15 @@ app.whenReady().then(async () => {
       const { p, wt, dir, commands } = runDir(projectId, worktree);
       const c = commands.find((x) => x.name === name);
       if (!c) throw new Error(`No run command named ${name}`);
-      await runManager.start({ projectId, worktree: wt, name, command: c.command, cwd: dir, port: portFor(p, wt) });
+      await runManager.start({
+        projectId,
+        worktree: wt,
+        name,
+        command: c.command,
+        ready: c.ready,
+        cwd: dir,
+        port: portFor(p, wt),
+      });
       return runList(projectId, wt);
     },
   );
@@ -338,6 +346,7 @@ app.whenReady().then(async () => {
             worktree: wt,
             name: r.name,
             command: c.command,
+            ready: c.ready,
             cwd: dir,
             port: portFor(p, wt),
           });

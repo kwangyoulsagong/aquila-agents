@@ -33,6 +33,13 @@ describe('project settings form', () => {
     ]);
     expect(parseRunCommands(formatRunCommands(list))).toEqual(list);
     expect(parseRunCommands('웹 서버: pnpm dev')).toEqual([{ name: '웹 서버', command: 'pnpm dev' }]);
+    const ready = parseRunCommands('api: go run .  # ready: Listening on\npython serve.py #READY: Uvicorn running\ncurl http://x/#a');
+    expect(ready).toEqual([
+      { name: 'api', command: 'go run .', ready: 'Listening on' },
+      { name: 'python serve.py', command: 'python serve.py', ready: 'Uvicorn running' },
+      { name: 'curl http://x/#a', command: 'curl http://x/#a' },
+    ]);
+    expect(parseRunCommands(formatRunCommands(ready))).toEqual(ready);
     const remote: Project = { ...project, remote: { alias: 'devbox' } };
     expect(toSettings({ ...toForm(remote), runCommands: 'npm run dev' }, remote)).not.toHaveProperty('runCommands');
   });
