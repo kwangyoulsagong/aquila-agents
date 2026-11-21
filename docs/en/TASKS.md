@@ -496,13 +496,21 @@ From the persona research (`reports/디자이너 개발자 ADE 사용성.md`: fr
 - **Spec:** "Open in browser" in the preview head opens the current address in Google Chrome when installed, else the default browser. A full-window toggle shows only the preview (like ⇧⌘F for a pane).
 - **Owns:** `src/widgets/preview/`, one IPC for "open in browser".
 
+### T52 · Waiting reason on the row
+- [x] **Goal:** see what a session waits on without opening it, and spot a destructive command at a glance.
+  _Left over: smoke stages the reason over OSC 7501 from a shell; a real Claude `PermissionRequest` was checked by a unit test, not live. Only the longest-waiting session's reason is on the row (others are on their tab tooltips). The tooltip is on the tab, not its title (the title keeps its rename hint). Detection is a pattern list, so wrapped commands (`sh -c "…"` with odd quoting) can slip through._
+- **Spec:**
+  - `session:status` carries the notification detail (`detail`, waiting / done); re-sent when it arrives late.
+  - The project row shows the longest-waiting session's reason on a line under it; clicking it shows that session. Tabs show it in their tooltip.
+  - `rm -rf`, `push --force`, `reset --hard`, `clean -f`, `branch -D`, `DROP`/`TRUNCATE`, `DELETE FROM` without `WHERE`, `migrate reset`, `terraform destroy`, `kubectl delete`, `--force`… get a ⚠ in the error colour on the line and the tab.
+- **Owns:** `src/shared/lib/risk.ts` (+ test), `design-system/react/Reason.tsx` + `.c-reason`/`.c-risk`, the row in `src/widgets/sidebar/`, the tab in `src/widgets/session-tabs/`; `detail` on `StatusUpdate`/`Session` (additive).
+
 ### Remote check on a real host (on hold)
 - [ ] On hold until an SSH host is available: add a remote project, open tabs, Changes, history and reconnect on a real host, fix only what breaks (T29/T36 leftovers).
 
 ### Nice to have (not planned)
 - Text labels on the tab-bar panel buttons (`±` `◫` `{}`), like T46.
 - Figma in ⌘K / menu / guide, and a login button that walks through `/mcp`; chips also on typed or dropped links.
-- Waiting reason on the sidebar row (the notification summary), red mark on destructive commands.
 - Run slot: dev server / tests / long jobs as processes apart from the agent, with a log pane and a status dot.
 - Review queue: sessions done but not looked at, with changed files and push state.
 - Commands timeline per session from the read-only transcript.

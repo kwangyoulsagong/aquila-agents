@@ -1,7 +1,8 @@
-import { Button } from '@design-system/react';
+import { Button, RiskMark } from '@design-system/react';
 import { useEffect, useRef, type ReactNode } from 'react';
 import { api, type Config, type Session, type SessionKind, type Worktree } from '@/shared/api';
 import { kindLabel, sessionTitle, useT } from '@/shared/i18n';
+import { isDestructive } from '@/shared/lib/risk';
 import { endSessionDrag, startSessionDrag } from '@/shared/lib/sessionDrag';
 import { accelerator, withShortcut } from '@/shared/lib/shortcuts';
 import { parseWorktreeMenuId, worktreeMenuItems } from '@/features/open-in-worktree';
@@ -102,6 +103,9 @@ export default function SessionTabs({
       {sessions.map((s) => {
         const title = sessionTitle(t, s);
         const renaming = renamingId === s.id;
+        // T52: what it waits on (or the last answer) on hover; a destructive command gets a mark.
+        const detail = s.status === 'waiting' || s.status === 'done' ? s.detail : undefined;
+        const risky = s.status === 'waiting' && isDestructive(detail);
         return (
           <div
             key={s.id}
@@ -109,6 +113,7 @@ export default function SessionTabs({
             role="tab"
             aria-selected={s.id === activeId}
             data-status={s.status}
+            title={detail && !renaming ? `${title} — ${detail}` : undefined}
             draggable={!renaming}
             onDragStart={(e) => startSessionDrag(e, s.id)}
             onDragEnd={endSessionDrag}
@@ -133,6 +138,7 @@ export default function SessionTabs({
                 {s.worktree.branch}
               </span>
             )}
+            {risky && <RiskMark label={t('attention.risky')} />}
             {s.status === 'waiting' && <WaitingTime since={s.since} />}
             {s.kind === 'claude' && !s.remote && <ContextGauge id={s.id} />}
             {s.account && <AccountBadge config={config} account={s.account} />}

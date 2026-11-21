@@ -277,6 +277,7 @@ export default function WorkspacePage() {
             sessions={ws.sessions}
             activeProjectId={ws.activeProjectId}
             onSelect={ws.selectProject}
+            onShowSession={ws.selectSession}
             manage={manage}
             aboveFooter={
               <UsageGauge

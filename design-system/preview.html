@@ -78,6 +78,16 @@
   </section>
 
   <section>
+    <h2>Reason (T52)</h2>
+    <div class="c-sidebar" style="width: 248px; position: static; height: auto">
+      <div class="c-row"><i class="c-dot" data-status="waiting"></i><span class="c-row__name">web-app</span><span class="c-elapsed">12m</span></div>
+      <button type="button" class="c-reason" title="Bash: npm install"><span class="c-reason__text">Bash: npm install</span></button>
+      <div class="c-row"><i class="c-dot" data-status="waiting"></i><span class="c-row__name">api</span><span class="c-elapsed">3m</span></div>
+      <button type="button" class="c-reason" data-risk="true" title="Bash: rm -rf dist"><span class="c-risk" role="img" aria-label="Possibly destructive command">&#x26A0;&#xFE0E;</span><span class="c-reason__text">Bash: rm -rf dist</span></button>
+    </div>
+  </section>
+
+  <section>
     <h2>Controls</h2>
     <div class="line">
       <button class="c-btn c-btn--primary">Claude 열기<span class="c-kbd">⌘T</span></button>
@@ -86,6 +96,7 @@
       <button class="c-btn c-btn--icon" aria-label="분할">⫽</button>
       <span class="c-kbd">⌘T</span>
       <span class="c-elapsed" title="Waiting for 12m">12m</span>
+      <span class="c-risk" role="img" aria-label="Possibly destructive command">&#x26A0;&#xFE0E;</span>
       <span class="c-badge c-badge--claude">claude</span>
       <span class="c-badge c-badge--codex">codex</span>
       <span class="c-badge">개인</span>

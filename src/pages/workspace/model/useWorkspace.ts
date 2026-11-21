@@ -33,9 +33,17 @@ export function useWorkspace() {
         if (!tabs.length) return;
         setSessions((list) => [
           ...list,
-          ...tabs.filter((r) => !list.some((s) => s.id === r.id)).map((r): Session => ({ ...r, status: 'idle' })),
+          ...tabs
+            .filter((r) => !list.some((s) => s.id === r.id))
+            .map((r): Session => ({ ...r, status: 'idle' })),
         ]);
-        if (!layout || !restoreLayout(layout, tabs.map((r) => r.id)))
+        if (
+          !layout ||
+          !restoreLayout(
+            layout,
+            tabs.map((r) => r.id),
+          )
+        )
           placeInFocused((tabs.find((r) => !r.dormant) ?? tabs[0]).id);
       })
       .catch((e: unknown) => setError((e as Error).message))
@@ -48,8 +56,10 @@ export function useWorkspace() {
   }, [restored, split.layout]);
 
   useEffect(() => {
-    const offStatus = api.onStatus(({ id, status, estimated, reason, since }) =>
-      setSessions((list) => list.map((s) => (s.id === id ? { ...s, status, estimated, reason, since } : s))),
+    const offStatus = api.onStatus(({ id, status, estimated, reason, since, detail }) =>
+      setSessions((list) =>
+        list.map((s) => (s.id === id ? { ...s, status, estimated, reason, since, detail } : s)),
+      ),
     );
     // Main already sent the exit status (stopped / error) on session:status.
     const offExit = api.onExit(({ id }) =>
