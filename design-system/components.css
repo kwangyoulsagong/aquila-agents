@@ -57,6 +57,12 @@ body {
 .c-btn--ghost { background: transparent; border-color: transparent; color: var(--color-text-secondary); }
 .c-btn--ghost:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
 .c-btn--icon { width: var(--size-control); padding: 0; justify-content: center; }
+/* A small "something new" mark on an icon button's corner (the News update). Not a status dot. */
+.c-btn--icon { position: relative; }
+.c-btn__badge {
+  position: absolute; top: var(--space-inline-xs); right: var(--space-inline-xs);
+  width: var(--size-dot-sm); height: var(--size-dot-sm); border-radius: 50%; background: var(--color-action-primary);
+}
 .c-btn--ghost[aria-pressed='true'] { background: var(--color-bg-pressed); color: var(--color-text-primary); }
 
 /* ── Segmented control ────────────────────────────────────── */
@@ -212,6 +218,17 @@ body {
 .c-row[data-drop='after'] { box-shadow: inset 0 -2px 0 var(--color-border-focus); }
 .c-row[data-dragging='true'] { opacity: 0.4; }
 .c-sidebar__group[data-drop='true'] > .c-label { color: var(--color-text-primary); }
+/* "+ Add project" (T46): a text row under the list, so it isn't mistaken for the tab bar's + (new session). */
+.c-sidebar__add {
+  display: flex; align-items: center; gap: var(--space-inline-sm); width: 100%; flex: none;
+  height: var(--size-row); padding: 0 var(--space-inset-md); border: 0; border-radius: var(--radius-control);
+  background: transparent; color: var(--color-text-tertiary); font: var(--font-size-label) var(--font-family-ui);
+  text-align: left; cursor: pointer; transition: background var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease);
+}
+.c-sidebar__add:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
+.c-sidebar__add:focus-visible { outline: none; box-shadow: inset 0 0 0 1px var(--color-border-focus); }
+/* A folder from Finder dragged over the sidebar. */
+.c-sidebar[data-drop-folder='true'] { box-shadow: inset 0 0 0 1px var(--color-border-focus); }
 /* An empty group still shows a line, so projects can be dropped into it. */
 .c-sidebar__empty {
   height: var(--size-row); display: flex; align-items: center; padding: 0 var(--space-inset-md);
@@ -608,6 +625,7 @@ body {
   border-bottom: 1px solid var(--color-border-subtle);
 }
 .c-modal__title { flex: 1; min-width: 0; margin: 0; font-size: var(--font-size-title); font-weight: 600; }
+.c-modal__subtitle { margin-left: var(--space-inline-sm); font-size: var(--font-size-caption); font-weight: 400; color: var(--color-text-tertiary); }
 .c-modal__body { flex: 1; min-height: 0; display: flex; }
 .c-modal__aside {
   width: var(--size-modal-aside); flex: none; display: flex; flex-direction: column;

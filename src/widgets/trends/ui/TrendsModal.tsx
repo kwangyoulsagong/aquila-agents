@@ -248,7 +248,8 @@ export default function TrendsModal({ open, onClose, trends, language, account }
     <Modal
       open={open}
       onClose={onClose}
-      title={`✦ ${t('trends.title')}`}
+      title={t('trends.title')}
+      subtitle={t('trends.subtitle')}
       closeLabel={t('action.close')}
       footer={footer}
       aside={

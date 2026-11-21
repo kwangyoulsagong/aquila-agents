@@ -76,7 +76,7 @@ export function useManageProjects({
     }
   };
 
-  /** "+": a local folder or a folder on an SSH host. */
+  /** "+ Add project": a folder on this Mac or a folder on an SSH host. */
   const addProject = async () => {
     const choice = await api.showContextMenu([
       { id: 'local', label: t('projects.addLocal') },
@@ -206,6 +206,36 @@ export function useManageProjects({
     onRemoved(dialog.project.id, next);
   };
 
+  // ── Drop a folder from Finder on the sidebar (T46) ──
+  const [folderOver, setFolderOver] = useState(false);
+  const isFileDrag = (e: DragEvent) => !draggedProject(e) && e.dataTransfer.types.includes('Files');
+
+  /** On the whole sidebar: a dropped folder opens the add dialog (the first one, if several). Files are ignored. */
+  const folderDrop = {
+    'data-drop-folder': folderOver || undefined,
+    onDragOver: (e: DragEvent) => {
+      if (!isFileDrag(e)) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+      setFolderOver(true);
+    },
+    onDragLeave: (e: DragEvent) => {
+      // Leaving for a child still counts as over.
+      if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFolderOver(false);
+    },
+    onDrop: (e: DragEvent) => {
+      if (!isFileDrag(e)) return;
+      e.preventDefault();
+      setFolderOver(false);
+      const folder = [...e.dataTransfer.items]
+        .filter((item) => item.kind === 'file' && item.webkitGetAsEntry()?.isDirectory)
+        .map((item) => item.getAsFile())
+        .find((f): f is File => f !== null);
+      const path = folder ? api.pathForFile(folder) : '';
+      if (path) setDialog({ kind: 'add', path });
+    },
+  };
+
   // ── Drag to reorder ──
   const endDrag = () => {
     endProjectDrag();
@@ -274,5 +304,6 @@ export function useManageProjects({
     submitRemove,
     rowDrag,
     groupDrop,
+    folderDrop,
   };
 }

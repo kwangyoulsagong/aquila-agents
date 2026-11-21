@@ -30,7 +30,7 @@ import { ChangesPanel } from '@/widgets/changes-panel';
 import { PreviewPanel } from '@/widgets/preview';
 import { HistoryPanel } from '@/widgets/history-panel';
 import { UsageGauge } from '@/widgets/usage-gauge';
-import { TrendsButton, TrendsModal, useTrends } from '@/widgets/trends';
+import { TrendsButton, TrendsModal, hasCliUpdate, useTrends } from '@/widgets/trends';
 import { CommandPalette, type ActionId } from '@/widgets/command-palette';
 import { useWorkspace } from '../model/useWorkspace';
 import { useShortcuts } from '../model/useShortcuts';
@@ -252,7 +252,6 @@ export default function WorkspacePage() {
             activeProjectId={ws.activeProjectId}
             onSelect={ws.selectProject}
             manage={manage}
-            top={<TrendsButton open={trendsOpen} onClick={() => setTrendsOpen((o) => !o)} />}
             aboveFooter={
               <UsageGauge
                 config={config}
@@ -267,6 +266,11 @@ export default function WorkspacePage() {
                   config={config}
                   onChanged={ws.setConfig}
                   onGlobalShortcut={() => setGlobalShortcutOpen(true)}
+                />
+                <TrendsButton
+                  open={trendsOpen}
+                  onClick={() => setTrendsOpen((o) => !o)}
+                  update={hasCliUpdate(trends.state)}
                 />
                 <GuideButton open={guide.open} onClick={toggleGuide} onWhatsNew={showNotes} />
               </>

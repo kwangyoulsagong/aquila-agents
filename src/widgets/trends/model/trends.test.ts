@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { CliNews, NewsItem } from '@/shared/api';
 import { translator } from '@/shared/i18n';
-import { bucketIndustry, filterCli, relativeTime, rowIds, SUMMARY_ID, summaryLines } from './trends';
+import { bucketIndustry, filterCli, hasCliUpdate, relativeTime, rowIds, SUMMARY_ID, summaryLines } from './trends';
 
 const item = (id: string, over: Partial<NewsItem> = {}): NewsItem => ({
   id,
@@ -54,5 +54,20 @@ describe('trends model', () => {
     const t = translator('en');
     expect(relativeTime(0, 3 * 3_600_000, t, 'en-US')).toBe(t('history.ago.hour', { n: '3' }));
     expect(summaryLines('- one\n\n* two\nthree')).toEqual(['one', 'two', 'three']);
+  });
+});
+
+describe('hasCliUpdate', () => {
+  const rel = { version: '2.2.0', publishedAt: 0, url: 'https://x', added: [] };
+  const news = (over: Partial<CliNews>): CliNews => ({ tool: 'claude', installed: '2.1.0', upToDate: false, releases: [rel], ...over });
+
+  it('is on only for a known installed version with a newer release', () => {
+    expect(hasCliUpdate(null)).toBe(false);
+    expect(hasCliUpdate({ cli: [] })).toBe(false);
+    expect(hasCliUpdate({ cli: [news({})] })).toBe(true);
+    expect(hasCliUpdate({ cli: [news({ upToDate: true })] })).toBe(false);
+    // Not installed: the latest release is shown, but it isn't an update.
+    expect(hasCliUpdate({ cli: [news({ installed: null })] })).toBe(false);
+    expect(hasCliUpdate({ cli: [news({ releases: [] })] })).toBe(false);
   });
 });

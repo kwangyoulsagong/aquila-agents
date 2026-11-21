@@ -4,6 +4,8 @@ import { Button } from './Button';
 interface Props {
   open: boolean;
   title: ReactNode;
+  /** Quiet line after the title (what the modal holds). */
+  subtitle?: ReactNode;
   onClose: () => void;
   /** Accessible name of the × button in the head. */
   closeLabel: string;
@@ -22,7 +24,7 @@ interface Props {
  * title and ×, a searchable list on the left, the detail on the right. Shell of the guide, release notes and trends.
  * Opening focuses the element marked `data-autofocus` (`ModalSearch`), else the dialog's first control.
  */
-export function Modal({ open, title, onClose, closeLabel, aside, footer, wide, children }: Props) {
+export function Modal({ open, title, subtitle, onClose, closeLabel, aside, footer, wide, children }: Props) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
 
@@ -47,6 +49,7 @@ export function Modal({ open, title, onClose, closeLabel, aside, footer, wide, c
       <div className="c-modal__head">
         <h2 id={titleId} className="c-modal__title">
           {title}
+          {subtitle && <span className="c-modal__subtitle">{subtitle}</span>}
         </h2>
         <Button variant="ghost" icon onClick={onClose} aria-label={closeLabel} title={closeLabel}>
           ×
