@@ -43,7 +43,14 @@ import {
 import { markGuideOffered, readGuideState } from './guide';
 import { releaseNotesState, usedBefore, writeLastSeen } from './releaseNotes';
 import { startUpdater } from './updater';
-import { displayTitle, HistoryIndex, matchProject, resumeWorktree, toMarkdown } from './history';
+import {
+  displayTitle,
+  HistoryIndex,
+  matchProject,
+  readClaudeCommands,
+  resumeWorktree,
+  toMarkdown,
+} from './history';
 import { binaryFor, finishFirstRun, firstRunReport, loadOverrides, setBinaryPath } from './detect';
 import {
   detectClaudeVersion,
@@ -479,6 +486,13 @@ app.whenReady().then(async () => {
         ? findClaudeTranscript(claudeConfigDir(loadConfig(), src.account), src.sessionId)
         : findRollout(CODEX_SESSIONS_DIR, src.sessionId);
     return file ? lastReply(readTail(file), src.agent) : null;
+  });
+  // T59: a live Claude tab's Bash commands, read whole from its transcript (output is never read).
+  ipcMain.handle(IPC.sessionCommands, async (_e, id: string) => {
+    const src = s.replySource(id);
+    if (src?.agent !== 'claude') return null;
+    const file = findClaudeTranscript(claudeConfigDir(loadConfig(), src.account), src.sessionId);
+    return file ? readClaudeCommands(file) : [];
   });
   ipcMain.handle(
     IPC.sessionCreate,

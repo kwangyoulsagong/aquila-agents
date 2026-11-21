@@ -51,6 +51,7 @@ const api: AquilaApi = {
   historyRefreshRemote: () => ipcRenderer.invoke(IPC.historyRefreshRemote),
   historySearch: (query) => ipcRenderer.invoke(IPC.historySearch, query),
   historyTranscript: (ref) => ipcRenderer.invoke(IPC.historyTranscript, ref),
+  sessionCommands: (id) => ipcRenderer.invoke(IPC.sessionCommands, id),
   historySetMeta: (ref, change) => ipcRenderer.invoke(IPC.historySetMeta, { ref, change }),
   historyExport: (ref) => ipcRenderer.invoke(IPC.historyExport, ref),
   historyResume: (ref, addProject) =>

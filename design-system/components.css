@@ -131,6 +131,25 @@ body {
   margin-bottom: var(--space-inline-xs);
 }
 
+/* ── Commands ─────────────────────────────────────────────── */
+/* Commands an agent ran (T59): how it ended (shape + colour), the command (mono, one line), marks, time. */
+.c-commands { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
+.c-command {
+  display: flex; align-items: center; gap: var(--space-inline-sm); min-width: 0;
+  height: var(--size-row); padding: 0 var(--space-inset-sm); border-radius: var(--radius-control);
+  font-size: var(--font-size-label); color: var(--color-text-secondary);
+}
+.c-command:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
+.c-command__state { flex: none; width: 1ch; text-align: center; font-weight: 600; color: var(--color-text-tertiary); }
+.c-command[data-state='ok'] .c-command__state { color: var(--color-status-done); }
+.c-command[data-state='error'] .c-command__state { color: var(--color-status-error); }
+.c-command[data-state='pending'] .c-command__state { color: var(--color-status-waiting); }
+.c-command__text {
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font: var(--font-size-label) var(--font-family-mono);
+}
+.c-command__time { flex: none; font: var(--font-size-caption) var(--font-family-mono); color: var(--color-text-tertiary); }
+
 /* ── Queue item ───────────────────────────────────────────── */
 /* An entry of a sidebar queue (review queue, T58): dot, title, and a dimmed meta line under it. Same edges as .c-row. */
 .c-queue {

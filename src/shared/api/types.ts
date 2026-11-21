@@ -508,6 +508,18 @@ export interface TranscriptMessage {
 export interface HistoryTranscript {
   messages: TranscriptMessage[];
   truncated: boolean;
+  /** Bash commands the agent ran (Claude only, T59), oldest first. */
+  commands?: CommandRun[];
+}
+
+/**
+ * One Bash command from a transcript (T59): the command as run (secrets masked), when, and how it ended. Output is
+ * never read or kept. `pending` = no result yet (still running, or the transcript stops there).
+ */
+export interface CommandRun {
+  command: string;
+  at?: number;
+  state: 'ok' | 'error' | 'interrupted' | 'pending';
 }
 
 /** A resumed past session; `config` when its folder was added as a project first. */
@@ -682,6 +694,8 @@ export interface AquilaApi {
   /** Full-text search over the indexed transcripts. */
   historySearch(query: string): Promise<HistoryMatch[]>;
   historyTranscript(ref: HistoryRef): Promise<HistoryTranscript>;
+  /** Bash commands of a live Claude tab, read fresh from its transcript (T59); null when it has none to read. */
+  sessionCommands(id: string): Promise<CommandRun[] | null>;
   /** Name (empty = back to the CLI's name) or favorite, saved in ~/.aquila/history.json. */
   historySetMeta(
     ref: HistoryRef,
@@ -918,6 +932,7 @@ export const IPC = {
   historyRefreshRemote: 'history:refresh-remote',
   historySearch: 'history:search',
   historyTranscript: 'history:transcript',
+  sessionCommands: 'session:commands',
   historySetMeta: 'history:set-meta',
   historyExport: 'history:export',
   historyResume: 'history:resume',

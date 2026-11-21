@@ -569,7 +569,8 @@ The P1 rows of the persona report: review what finished, see what ran, and run t
 - **Done:** two sessions finishing in the background show up in the queue; viewing one removes only that one.
 
 ### T59 · Commands timeline
-- [ ] **Goal:** see which commands a Claude session ran, without scrolling the terminal.
+- [x] **Goal:** see which commands a Claude session ran, without scrolling the terminal.
+  _Left over: Claude only (Codex rollouts and remote tabs aren't read; ⌘K shows only for a local Claude tab). "Error" is Claude's `is_error` on the tool result, not an exit code (the transcript has none). The ⌘K list is read once when it opens (no live follow); the history panel uses its index (rescans on open). Up to 500 commands kept, the latest 200 shown. Masking is pattern-based (`NAME=` with a secret-sounding name, `--token`/`--password` flags, `Authorization:` headers, `user:pass@`). Checked by unit tests (fixture: ok / error / interrupted / pending, masking, output never kept) and a headless render of the rows; the modal wasn't opened on a live Claude tab (smoke has none)._
 - **Spec:**
   - From the read-only transcript (T11's reader): each Bash `tool_use` with its command, time, and exit state from the matching `tool_result` (ok / error).
   - A list in the history panel's session view and ⌘K "Commands in this session" for the focused tab; destructive commands get T52's ⚠, tests and migrations a badge.

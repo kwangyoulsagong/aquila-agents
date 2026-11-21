@@ -33,6 +33,7 @@ import type {
   RemoteHost,
   TranscriptMessage,
   Worktree,
+  CommandRun,
 } from '../src/shared/api/types';
 
 export const HISTORY_META_PATH = path.join(APP_DIR, 'history.json');
@@ -67,6 +68,81 @@ export interface ParsedSession {
   messages: TranscriptMessage[];
   /** `messages` stopped at the cap. */
   truncated: boolean;
+  /** Bash commands (Claude, T59): the last MAX_COMMANDS, oldest first. */
+  commands?: CommandRun[];
+}
+
+// ── Commands (T59) ─────────────────────────────────────────────────────────────
+
+/** Kept per session (the latest ones). */
+export const MAX_COMMANDS = 500;
+const COMMAND_CHARS = 2_000;
+const MASK = '•••';
+const SECRET_NAME = /(?:token|secret|key|passw(?:or)?d|pass|pwd|auth|credential|cookie|session)/i;
+
+/**
+ * Masks what looks like a secret in a command: `NAME=value` when NAME sounds secret (TOKEN, API_KEY, PASSWORD…),
+ * `--token x` / `--password=x` style flags, `Authorization: Bearer x` headers, and `user:pass@` in URLs.
+ */
+export function maskSecrets(command: string): string {
+  return command
+    .replace(/\b([A-Za-z_][A-Za-z0-9_]*)=("[^"]*"|'[^']*'|\S+)/g, (m, name: string) =>
+      SECRET_NAME.test(name) ? `${name}=${MASK}` : m,
+    )
+    .replace(
+      /(--?[A-Za-z0-9-]*(?:token|secret|key|password|passwd|auth|credential)[A-Za-z0-9-]*)(=|\s+)("[^"]*"|'[^']*'|[^\s-]\S*)/gi,
+      (_m, flag: string, sep: string) => `${flag}${sep}${MASK}`,
+    )
+    .replace(/(authorization:\s*(?:bearer|basic|token)?\s*)[^\s'"]+/gi, `$1${MASK}`)
+    .replace(/(\/\/[^/\s:@]+):[^@\s/]+@/g, `$1:${MASK}@`);
+}
+
+type ToolBlock = {
+  type?: unknown;
+  id?: unknown;
+  name?: unknown;
+  input?: { command?: unknown };
+  tool_use_id?: unknown;
+  is_error?: unknown;
+};
+
+/** Bash `tool_use` blocks and their `tool_result`s, in order. Only the command and how it ended are kept. */
+class CommandCollector {
+  commands: (CommandRun & { id?: string })[] = [];
+
+  assistant(content: unknown, at: number | undefined): void {
+    if (!Array.isArray(content)) return;
+    for (const b of content as ToolBlock[]) {
+      if (b?.type !== 'tool_use' || b.name !== 'Bash' || typeof b.input?.command !== 'string') continue;
+      const command = cut(maskSecrets(b.input.command.trim()), COMMAND_CHARS);
+      if (!command) continue;
+      this.commands.push({
+        command,
+        state: 'pending',
+        ...(typeof b.id === 'string' ? { id: b.id } : {}),
+        ...(at !== undefined ? { at } : {}),
+      });
+      if (this.commands.length > MAX_COMMANDS) this.commands.shift();
+    }
+  }
+
+  user(content: unknown, interrupted: boolean): void {
+    if (!Array.isArray(content)) return;
+    for (const b of content as ToolBlock[]) {
+      if (b?.type !== 'tool_result' || typeof b.tool_use_id !== 'string') continue;
+      const run = [...this.commands].reverse().find((c) => c.id === b.tool_use_id);
+      if (!run) continue;
+      run.state = interrupted ? 'interrupted' : b.is_error === true ? 'error' : 'ok';
+    }
+  }
+
+  result(): CommandRun[] {
+    return this.commands.map((c): CommandRun => ({
+      command: c.command,
+      state: c.state,
+      ...(c.at !== undefined ? { at: c.at } : {}),
+    }));
+  }
 }
 
 const oneLine = (s: string) => s.replace(/\s+/g, ' ').trim();
@@ -135,6 +211,7 @@ class Collector {
 /** Line-by-line parser of a Claude transcript (`<id>.jsonl`). */
 export class ClaudeParser {
   private c: Collector;
+  private runs = new CommandCollector();
   /** `full`: no caps (Markdown export). */
   constructor(full = false) {
     this.c = full ? new Collector(Infinity, Infinity) : new Collector();
@@ -172,6 +249,11 @@ export class ClaudeParser {
     if (o.isMeta === true || o.isCompactSummary === true) return;
     const message = o.message as { content?: unknown } | undefined;
     if (!message) return;
+    if (type === 'assistant') this.runs.assistant(message.content, at);
+    else {
+      const r = o.toolUseResult as { interrupted?: unknown } | undefined;
+      this.runs.user(message.content, !!r && typeof r === 'object' && r.interrupted === true);
+    }
     if (type === 'user') {
       const text = textOf(message.content, ['text']);
       if (!isClaudeNoise(text)) this.c.add('user', text, at);
@@ -194,8 +276,19 @@ export class ClaudeParser {
       count: this.c.count,
       messages: this.c.messages,
       truncated: this.c.truncated,
+      commands: this.runs.result(),
     };
   }
+
+  /** The Bash commands alone, even when there's no conversation to index yet. */
+  commands(): CommandRun[] {
+    return this.runs.result();
+  }
+}
+
+/** Bash commands of one Claude transcript, read whole (a live tab's ⌘K list, T59). */
+export async function readClaudeCommands(file: string): Promise<CommandRun[]> {
+  return (await parseFile(file, new ClaudeParser(true))).commands();
 }
 
 /** Line-by-line parser of a codex rollout (`rollout-<time>-<id>.jsonl`). */
@@ -562,6 +655,8 @@ interface Indexed {
   host?: RemoteHost;
   messages: TranscriptMessage[];
   truncated: boolean;
+  /** Bash commands (Claude, T59). */
+  commands?: CommandRun[];
   /** Name, titles, first message and messages (and lower-cased): what full-text search looks in. */
   text?: { original: string; lower: string };
 }
@@ -715,6 +810,7 @@ export class HistoryIndex {
           file,
           messages: parsed.messages,
           truncated: parsed.truncated,
+          commands: parsed.commands,
           entry: this.entry(config, meta, ref, parsed, {
             account,
             expiresAt: days > 0 ? mtime + days * DAY_MS : undefined,
@@ -960,7 +1056,12 @@ export class HistoryIndex {
 
   transcript(ref: HistoryRef): HistoryTranscript {
     const item = this.item(ref);
-    return item ? { messages: item.messages, truncated: item.truncated } : { messages: [], truncated: false };
+    if (!item) return { messages: [], truncated: false };
+    return {
+      messages: item.messages,
+      truncated: item.truncated,
+      ...(item.commands?.length ? { commands: item.commands } : {}),
+    };
   }
 
   /** Every message, read again from disk — or fetched whole from the host (the index keeps only the start). */

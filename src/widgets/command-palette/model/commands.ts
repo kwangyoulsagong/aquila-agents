@@ -24,6 +24,7 @@ export type ActionId =
   | 'history'
   | 'nextWaiting'
   | 'nextReview'
+  | 'sessionCommands'
   | 'copyLastReply'
   | 'quickSelect'
   | 'find'
@@ -94,6 +95,7 @@ const ACTIONS: {
   { action: 'history', label: (t) => t('history.title'), shortcut: 'history' },
   { action: 'nextWaiting', label: (t) => t('attention.next'), shortcut: 'nextWaiting' },
   { action: 'nextReview', label: (t) => t('review.next') },
+  { action: 'sessionCommands', label: (t) => t('commands.action') },
   { action: 'copyLastReply', label: (t) => t('term.copyLastReply'), shortcut: 'copyLastReply' },
   { action: 'quickSelect', label: (t) => t('term.quickSelect'), shortcut: 'quickSelect' },
   { action: 'find', label: (t) => t('term.find'), shortcut: 'find' },

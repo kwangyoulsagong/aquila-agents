@@ -14,6 +14,7 @@ import {
 import { SettingsMenu, openSettingsMenu } from '@/features/switch-language';
 import { nextWaiting, summonTarget } from '@/features/next-waiting';
 import { ReviewQueue, useReviewQueue } from '@/features/review-queue';
+import { SessionCommandsModal } from '@/features/session-commands';
 import { GlobalShortcutDialog } from '@/features/global-shortcut';
 import { copyLastReply, toggleQuickSelect } from '@/features/terminal-helpers';
 import { openFind } from '@/features/terminal-search';
@@ -48,6 +49,7 @@ export default function WorkspacePage() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const toggleHistory = useCallback(() => setHistoryOpen((o) => !o), []);
   const [trendsOpen, setTrendsOpen] = useState(false);
+  const [commandsOpen, setCommandsOpen] = useState(false);
   // T43: the tab whose title is being edited; when the edit ends, typing goes back to its terminal.
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const renamingRef = useRef<string | null>(null);
@@ -238,6 +240,9 @@ export default function WorkspacePage() {
     if (waitingNext) a.nextWaiting = goNextWaiting;
     if (reviewNext) a.nextReview = goNextReview;
     if (agentFocused) a.copyLastReply = copyReply;
+    // T59: local Claude tabs (remote transcripts live on the host).
+    if (agentFocused && focusedSession.kind === 'claude' && !focusedSession.remote)
+      a.sessionCommands = () => setCommandsOpen(true);
     if (focusedSession && !focusedSession.dormant) {
       a.quickSelect = quickSelect;
       a.find = find;
@@ -449,6 +454,13 @@ export default function WorkspacePage() {
           <CleanupWorktreesDialog key={project.id} project={project} onClose={() => setCleanupOpen(false)} />
         )}
         {globalShortcutOpen && <GlobalShortcutDialog onClose={() => setGlobalShortcutOpen(false)} />}
+        {commandsOpen && focusedSession && (
+          <SessionCommandsModal
+            key={focusedSession.id}
+            session={focusedSession}
+            onClose={() => setCommandsOpen(false)}
+          />
+        )}
         {/* Full window hides the side panels too; their open state is kept for when it ends. */}
         {changesOpen && !fullscreen.on && !previewFull && (
           <ChangesPanel
