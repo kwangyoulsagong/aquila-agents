@@ -489,7 +489,8 @@ From the persona research (`reports/디자이너 개발자 ADE 사용성.md`: fr
 - **Owns:** `src/widgets/preview/`, `electron/preview.ts`.
 
 ### T51 · Open the preview in Chrome / full window
-- [ ] **Goal:** look at the app large, with real browser tools.
+- [x] **Goal:** look at the app large, with real browser tools.
+  _Left over: no shortcut for preview full window (button only, so the shortcut map, menu and guide list stay as they are). Links the previewed page opens in a new window also go to Chrome now. Chrome is found with `open -b com.google.Chrome`; the fallback to the default browser and the full-window layout were not seen live (guide media shows the head buttons only)._
 - **Spec:** "Open in browser" in the preview head opens the current address in Google Chrome when installed, else the default browser. A full-window toggle shows only the preview (like ⇧⌘F for a pane).
 - **Owns:** `src/widgets/preview/`, one IPC for "open in browser".
 

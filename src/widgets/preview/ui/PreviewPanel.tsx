@@ -23,6 +23,9 @@ interface Props {
   project: Project;
   /** Focused session: a picked element is pasted into it when it's Claude or Codex. */
   session?: Session;
+  /** Alone in the window (T51). */
+  full: boolean;
+  onToggleFull: () => void;
   onClose: () => void;
 }
 
@@ -93,7 +96,7 @@ function Stage({
  * element and its selector, text, style, component and a screenshot are pasted into the focused Claude/Codex tab.
  * Designer layout (Figma on): Figma under the app.
  */
-export default function PreviewPanel({ project, session, onClose }: Props) {
+export default function PreviewPanel({ project, session, full, onToggleFull, onClose }: Props) {
   const t = useT();
   const targets = useTargets(project.id);
   const [url, setUrl] = useStored(`aquila.preview.url.${project.id}`);
@@ -189,7 +192,7 @@ export default function PreviewPanel({ project, session, onClose }: Props) {
   const deviceOptions = DEVICES.map((d) => ({ value: d, label: d === 'fit' ? t('preview.device.fit') : d }));
 
   return (
-    <aside className="c-panel c-panel--wide c-preview" aria-label={t('preview.title')}>
+    <aside className={`c-panel ${full ? 'c-panel--full' : 'c-panel--wide'} c-preview`} aria-label={t('preview.title')}>
       <div className="c-panel__head">
         <span>{t('preview.title')}</span>
         {nav?.title && (
@@ -208,6 +211,26 @@ export default function PreviewPanel({ project, session, onClose }: Props) {
               {t('preview.designer')}
             </Button>
           )}
+          <Button
+            variant="ghost"
+            icon
+            disabled={!ready}
+            onClick={() => api.previewCommand('app', 'browser')}
+            title={t('preview.openBrowser')}
+            aria-label={t('preview.openBrowser')}
+          >
+            ↗
+          </Button>
+          <Button
+            variant="ghost"
+            icon
+            aria-pressed={full}
+            onClick={onToggleFull}
+            title={full ? t('preview.full.exit') : t('preview.full.enter')}
+            aria-label={full ? t('preview.full.exit') : t('preview.full.enter')}
+          >
+            ⛶
+          </Button>
           <Button
             variant="ghost"
             icon

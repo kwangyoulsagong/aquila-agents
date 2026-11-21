@@ -73,6 +73,7 @@ import {
   type SavedTab,
 } from './state';
 import { isSmoke, runSmoke, SMOKE_BUFFER_BYTES, watchOutput } from './smoke';
+import { openInBrowser } from './browser';
 import { accountLabel, translator } from '../src/shared/i18n/dictionary';
 import {
   IPC,
@@ -217,7 +218,7 @@ app.whenReady().then(async () => {
   previews = new PreviewViews(
     () => win,
     (nav) => win?.webContents.send(IPC.previewNav, nav),
-    (url) => void shell.openExternal(url),
+    openInBrowser,
   );
   ipcMain.handle(IPC.previewTargets, (_e, projectId: string) => targetsOf(projectId));
   ipcMain.on(IPC.previewSet, (_e, { slot, state }: { slot: PreviewSlot; state: PreviewState | null }) =>

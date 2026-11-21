@@ -223,6 +223,9 @@ const ko = {
   'preview.pick.busy': '{name} 탭이 답을 기다리고 있어 클립보드에 복사했어요. 먼저 답한 뒤 ⌘V로 붙여 넣으세요.',
   'preview.pick.to': '→ {name}',
   'preview.pick.toClipboard': '→ 클립보드',
+  'preview.openBrowser': '브라우저에서 열기 (Chrome이 있으면 Chrome)',
+  'preview.full.enter': '프리뷰만 크게 보기',
+  'preview.full.exit': '원래대로',
   'preview.pick.toBusy': '→ 클립보드 ({name} 답 대기 중)',
   'preview.pick.targetHint': '선택한 요소를 보낼 곳: 포커스된 Claude·Codex 탭, 없으면 클립보드',
   'preview.empty': '개발 서버를 찾지 못했어요',
@@ -374,7 +377,7 @@ const ko = {
     '에이전트가 바꾼 파일과 diff를 오른쪽에서 봐요. 저장하면 바로 갱신되고, 줄을 눌러 코멘트를 남기면 세션 입력창에 붙여넣어요. 파일·부분 단위로 스테이지하거나 되돌릴 수 있어요(먼저 백업).',
   'guide.preview.title': '미리보기 + 요소 선택',
   'guide.preview.body':
-    '실행 중인 앱을 오른쪽에서 봐요. 주소는 .claude/launch.json과 터미널에 나온 localhost 주소에서 찾아요. 390·768·1440 너비로 바꿔 보고, 요소 선택으로 클릭하면 선택자·텍스트·스타일·컴포넌트 이름과 스크린샷이 선택한 Claude·Codex 탭에 붙어요. Figma를 켠 프로젝트는 디자이너 보기로 아래에 Figma를 띄울 수 있어요.',
+    '실행 중인 앱을 오른쪽에서 봐요. 주소는 .claude/launch.json과 터미널에 나온 localhost 주소에서 찾아요. 390·768·1440 너비로 바꿔 보고, 요소 선택으로 클릭하면 선택자·텍스트·스타일·컴포넌트 이름과 스크린샷이 선택한 Claude·Codex 탭에 붙어요(답을 기다리는 탭이면 클립보드로). ↗는 Chrome(없으면 기본 브라우저)으로 열고, ⛶는 프리뷰만 크게 보여 줘요. Figma를 켠 프로젝트는 디자이너 보기로 아래에 Figma를 띄울 수 있어요.',
   'guide.worktree.title': '워크트리에서 열기',
   'guide.worktree.body':
     '탭 바의 +를 오른쪽 클릭하거나 {palette}에서 열어요. 브랜치마다 ../<저장소>-wt/<브랜치>에 따로 작업하고, 이미 있는 워크트리에서도 Claude·Codex·셸을 열 수 있어요. 새 워크트리에는 .worktreeinclude에 적은 무시된 파일(.env 등)만 복사해요. 병합되고 깨끗한 워크트리는 "워크트리 정리"에서 확인 후 지워요.',
@@ -827,6 +830,9 @@ const en = {
   'preview.pick.busy': '{name} is waiting for an answer, so this was copied instead. Answer first, then paste with ⌘V.',
   'preview.pick.to': '→ {name}',
   'preview.pick.toClipboard': '→ Clipboard',
+  'preview.openBrowser': 'Open in browser (Chrome when installed)',
+  'preview.full.enter': 'Preview only, full window',
+  'preview.full.exit': 'Back to the workspace',
   'preview.pick.toBusy': '→ Clipboard ({name} is waiting)',
   'preview.pick.targetHint': 'Where a picked element goes: the focused Claude or Codex tab, else the clipboard',
   'preview.empty': 'No dev server found',
@@ -980,7 +986,7 @@ const en = {
     "See the files and diff the agent changed, on the right; it updates as files are saved. Click a line to comment, then paste the comments into the session's input. Stage or revert a file or hunk (backed up first).",
   'guide.preview.title': 'Preview + select element',
   'guide.preview.body':
-    'See the running app on the right. The address comes from .claude/launch.json and the localhost addresses your terminals print. Switch between 390, 768 and 1440 wide; Select element and click: its selector, text, style, component name and a screenshot are pasted into the focused Claude or Codex tab. With Figma on, Designer shows Figma under the app.',
+    'See the running app on the right. The address comes from .claude/launch.json and the localhost addresses your terminals print. Switch between 390, 768 and 1440 wide; Select element and click: its selector, text, style, component name and a screenshot are pasted into the focused Claude or Codex tab (copied instead when that tab is waiting for an answer). ↗ opens the page in Chrome (else your default browser); ⛶ shows only the preview. With Figma on, Designer shows Figma under the app.',
   'guide.worktree.title': 'Open in worktree',
   'guide.worktree.body':
     'Right-click + in the tab bar, or use {palette}. Each branch gets its own folder at ../<repo>-wt/<branch>; Claude, Codex or a shell can also open in a worktree you already have. A new worktree gets only the ignored files listed in .worktreeinclude (like .env). Clean up worktrees suggests merged, clean ones and removes them after you confirm.',

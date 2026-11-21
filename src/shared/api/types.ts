@@ -780,7 +780,8 @@ export type MenuCommand = ShortcutId | 'settings' | 'addProject' | 'whatsNew';
 
 /** In-app preview (T33): the app, or Figma under it in the Designer layout. */
 export type PreviewSlot = 'app' | 'figma';
-export type PreviewCommand = 'reload' | 'back' | 'devtools';
+/** `browser`: the slot's current page in Chrome (else the default browser), T51. */
+export type PreviewCommand = 'reload' | 'back' | 'devtools' | 'browser';
 
 export interface PreviewRect {
   x: number;
