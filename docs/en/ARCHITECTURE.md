@@ -28,6 +28,7 @@
 │                                           │        │ figma.ts      Figma MCP args + whoami (T32)      │
 │           trends                          │        │ news.ts       CLI releases + AI news feeds (T35) │
 │           preview                         │        │ preview.ts    dev server, preview view, pick(T33)│
+│           run-slot                        │        │ runs.ts       run slot: dev server / watcher(T60)│
 │                                           │        │ detect.ts     CLI checks, first-run state (T17)  │
 │                                           │        │ guide.ts      tour offered once (T23)            │
 │                                           │        │ releaseNotes  last version shown (T27)           │
@@ -474,6 +475,30 @@ own title.
   (log in to Figma inside it once; the partition keeps it).
 - Smoke loads a page with a fake React fiber and checks selector, component chain, style, screenshot and cancel;
   capture composites the native views into its frames (`withViews`) and serves a demo shop from web-shop's launch.json.
+
+## Run slot (T60)
+
+- Tab bar ▶ Run (⌘⇧R, or ⌘K "Show run panel") opens `features/run-slot` on the right for local projects. It follows the
+  focused tab's worktree, like the preview: each worktree has its own runs and `PORT`.
+- Commands: the project's `runCommands` (settings → "Run commands", one per line, `name: command`); none → the `dev`
+  script when the folder's `package.json` has one, run with the package manager of `packageManager` or the lockfile
+  (`pnpm dev`, `yarn dev`, `bun run dev`, else `npm run dev`). Several commands → one row each with its dot; the
+  selected one's log shows below.
+- Main (`runs.ts`, `RunManager`): `$SHELL -l -c <command>` spawned `detached` (its own process group) in the project dir
+  or worktree, with `PORT` / `AQUILA_PORT_BASE` as its tabs get them and `FORCE_COLOR=1`. Output (stdout + stderr, a
+  pipe, not a pty) is kept as a 256 KB tail (`run:log`) and sent in 50 ms batches (`run:data`); the log pane is a
+  read-only xterm (`convertEol`).
+- State: `running` → `exited` (exit 0 / stopped) or `error` (non-zero exit, or an output line with `Error`,
+  `EADDRINUSE`, `OOM`, `out of memory`, `NaN` — the line is shown). A later "healthy again" line from a watcher that's
+  still up (`hmr update`, `ready in`, `compiled successfully`, `Found 0 errors`, …) turns it back to `running`.
+  The dot: green disc (`live`), ring, `!` square.
+- Stop: SIGTERM to the group, SIGKILL after 2 s; when the shell exits on its own the group is SIGKILLed too, so
+  nothing is left. Quitting stops every run (before-quit, next to the ptys) and `process.on('exit')` SIGKILLs any
+  group still there. Removing a project stops its runs.
+- Restore: `~/.aquila/runs.json` lists the runs that are up (rewritten on every change, frozen once quitting starts);
+  the next launch starts them again if the project, the command and the folder are still there. Smoke/capture skip it.
+- A local address in the output (same scan as the preview) becomes the run's `url` and also feeds the preview's
+  address list; "Open in preview" opens the preview panel on it.
 
 ## Shortcuts
 

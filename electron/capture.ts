@@ -295,6 +295,31 @@ export async function runCapture(
       },
     },
     {
+      // Run slot (T60): web-shop's two fixture commands (a dev server and a test watcher, canned output) started from
+      // the panel; both dots green, the dev server's log with "Open in preview".
+      id: 'run',
+      rect: FULL,
+      stage: async () => {
+        await press('1', ['meta'], 300);
+        await press('R', ['meta', 'shift'], 400);
+        await click('.c-runs__item', `test${t('run.state.idle')}`);
+        await click('.c-run .c-panel__bar .c-btn', t('run.start'));
+        await waitFor(`document.querySelector('.c-run__state .c-dot')?.dataset.status === 'live'`);
+        await click('.c-runs__item', `web${t('run.state.idle')}`);
+        await click('.c-run .c-panel__bar .c-btn', t('run.start'));
+        await waitFor(`(document.querySelector('.c-run .xterm-rows')?.textContent ?? '').includes('Local')`);
+        await wait(500);
+      },
+      after: async () => {
+        for (const name of ['web', 'test']) {
+          await click('.c-runs__item', `${name}${t('run.state.running')}`);
+          await click('.c-run .c-panel__bar .c-btn', t('run.stop'));
+          await waitFor(`document.querySelector('.c-run__state .c-dot')?.dataset.status !== 'live'`);
+        }
+        await press('R', ['meta', 'shift'], 400);
+      },
+    },
+    {
       // Terminal helpers (T28): quick select labels the paths on screen; typing one copies it. Then find (T40):
       // ⌘F, a word on screen, Enter to the next match — the loop ends on the bar with its count.
       id: 'terminal',

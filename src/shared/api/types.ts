@@ -77,6 +77,14 @@ export interface Project {
   remote?: RemoteHost;
   /** Sessions get the official Figma MCP (T32). Local projects only. */
   figma?: boolean;
+  /** Run slot (T60): named commands started apart from the agent. None = `npm run dev` when package.json has it. */
+  runCommands?: RunCommand[];
+}
+
+/** A named command of the run slot (T60), e.g. `{ name: 'web', command: 'npm run dev' }`. */
+export interface RunCommand {
+  name: string;
+  command: string;
 }
 
 /** Where a remote project runs (T29). Uses the user's `~/.ssh/config` and ssh-agent; nothing secret is stored. */
@@ -148,6 +156,8 @@ export interface ProjectSettings {
   remote?: { alias: string; claudeConfigDir: string };
   /** Figma MCP on/off (T32). */
   figma?: boolean;
+  /** Run slot commands (T60); empty = the default. */
+  runCommands?: RunCommand[];
 }
 
 export interface Config {
@@ -788,6 +798,16 @@ export interface AquilaApi {
   /** Select mode: resolves with the element the user clicked in the preview (null on Esc / cancel). */
   previewPick(slot: PreviewSlot): Promise<PickResult | null>;
   previewPickCancel(slot: PreviewSlot): void;
+  /** Run slot (T60), local projects only: the commands of a project dir / worktree with their state. */
+  runList(projectId: string, worktree?: string): Promise<RunList>;
+  onRunsChanged(cb: (l: RunList) => void): Unsubscribe;
+  /** Starts a command (restarts it when running). */
+  runStart(projectId: string, worktree: string | undefined, name: string): Promise<RunList>;
+  /** Stops its process group. */
+  runStop(id: string): Promise<void>;
+  /** Output kept so far (tail) of a run. */
+  runLog(id: string): Promise<string>;
+  onRunData(cb: (d: { id: string; data: string }) => void): Unsubscribe;
   /** AI trends (T35): cached CLI releases and industry news. Nothing is fetched in the background. */
   news(): Promise<NewsState>;
   onNews(cb: (s: NewsState) => void): Unsubscribe;
@@ -832,6 +852,36 @@ export interface PreviewState {
   width: number;
   /** Kept loaded but not drawn (a dialog is open: the native view would cover it). */
   hidden?: boolean;
+}
+
+/** Run slot state (T60): never started (or stopped and cleared), up, ended, or failed (error in output / exit ≠ 0). */
+export type RunState = 'idle' | 'running' | 'exited' | 'error';
+
+/** One command of the run slot of a project dir or worktree. */
+export interface RunInfo {
+  /** Opaque key: project + worktree + name. */
+  id: string;
+  name: string;
+  command: string;
+  state: RunState;
+  /** The process group is still alive (an `error` run can still be up, e.g. a compile error). */
+  alive: boolean;
+  /** When the current / last run started (ms since epoch); changes on every start (the log restarts). */
+  startedAt?: number;
+  exitCode?: number | null;
+  /** The output line that made it `error`, or why it couldn't start. */
+  reason?: string;
+  /** Last local address it printed (`http://localhost:5173/`). */
+  url?: string;
+  /** `PORT` it was started with. */
+  port?: number;
+}
+
+export interface RunList {
+  projectId: string;
+  /** Worktree path; absent = the project dir. */
+  worktree?: string;
+  runs: RunInfo[];
 }
 
 export interface PreviewTargets {
@@ -978,6 +1028,12 @@ export const IPC = {
   previewNav: 'preview:nav',
   previewPick: 'preview:pick',
   previewPickCancel: 'preview:pick-cancel',
+  runList: 'run:list',
+  runsChanged: 'run:changed',
+  runStart: 'run:start',
+  runStop: 'run:stop',
+  runLog: 'run:log',
+  runData: 'run:data',
   newsGet: 'news:get',
   newsChanged: 'news:changed',
   newsRefresh: 'news:refresh',

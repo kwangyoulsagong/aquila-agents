@@ -28,6 +28,7 @@
 │                                           │        │ figma.ts      Figma MCP 인자 + whoami (T32)      │
 │           trends                          │        │ news.ts       CLI 릴리스 + AI 소식 피드 (T35)    │
 │           preview                         │        │ preview.ts    dev server, 프리뷰 뷰, 선택 (T33)  │
+│           run-slot                        │        │ runs.ts       Run 슬롯: dev 서버 / 워처 (T60)    │
 │                                           │        │ detect.ts     CLI 점검, 첫 실행 상태 (T17)       │
 │                                           │        │ guide.ts      둘러보기 제안 한 번만 (T23)        │
 │                                           │        │ releaseNotes  마지막으로 본 버전 (T27)           │
@@ -444,6 +445,26 @@ import하지 않음).
   로그인하면 파티션이 유지).
 - smoke는 가짜 React fiber가 있는 페이지로 selector, 컴포넌트 체인, 스타일, 스크린샷, 취소를 확인. capture는 네이티브 뷰를
   프레임에 합성(`withViews`)하고 web-shop의 launch.json이 가리키는 데모 쇼핑 페이지를 띄움.
+
+## Run 슬롯 (T60)
+
+- 탭 바의 ▶ 실행(⌘⇧R, 또는 ⌘K "실행 패널 보기")이 로컬 프로젝트에서 오른쪽에 `features/run-slot`을 연다. 프리뷰처럼
+  포커스된 탭의 워크트리를 따라간다: 워크트리마다 실행과 `PORT`가 따로 있다.
+- 명령: 프로젝트의 `runCommands`(설정 → "실행 명령", 한 줄에 하나, `이름: 명령`). 없으면 폴더의 `package.json`에
+  `dev` 스크립트가 있을 때 그것을 `packageManager`나 락파일의 패키지 매니저로 실행(`pnpm dev`, `yarn dev`,
+  `bun run dev`, 아니면 `npm run dev`). 명령이 여럿이면 한 줄씩 점과 함께 보이고, 고른 것의 로그가 아래에 나온다.
+- 메인(`runs.ts`, `RunManager`): `$SHELL -l -c <명령>`을 `detached`(자기 프로세스 그룹)로 프로젝트 폴더나 워크트리에서
+  띄운다. `PORT` / `AQUILA_PORT_BASE`는 탭과 같고 `FORCE_COLOR=1`. 출력(stdout + stderr, pty가 아닌 파이프)은 256 KB
+  꼬리로 보관하고(`run:log`) 50 ms 묶음으로 보낸다(`run:data`). 로그 팬은 읽기 전용 xterm(`convertEol`).
+- 상태: `running` → `exited`(종료 코드 0 / 정지) 또는 `error`(0이 아닌 종료, 또는 `Error`, `EADDRINUSE`, `OOM`,
+  `out of memory`, `NaN`이 있는 출력 줄 — 그 줄을 보여 준다). 아직 떠 있는 워처가 나중에 "다시 정상" 줄(`hmr update`,
+  `ready in`, `compiled successfully`, `Found 0 errors` 등)을 찍으면 `running`으로 돌아간다. 점: 초록 원(`live`), 고리, `!` 사각형.
+- 정지: 그룹에 SIGTERM, 2초 뒤 SIGKILL. 셸이 스스로 끝나도 그룹을 SIGKILL해서 남는 게 없다. 앱 종료 시 모든 실행을
+  멈추고(before-quit, pty와 함께) `process.on('exit')`가 남은 그룹을 SIGKILL한다. 프로젝트를 지우면 그 실행도 멈춘다.
+- 복원: `~/.aquila/runs.json`에 떠 있는 실행을 적는다(바뀔 때마다 다시 쓰고, 종료가 시작되면 고정). 다음 실행 때
+  프로젝트·명령·폴더가 그대로면 다시 시작한다. smoke/capture는 건너뛴다.
+- 출력의 로컬 주소(프리뷰와 같은 스캔)는 실행의 `url`이 되고 프리뷰 주소 목록에도 들어간다. "프리뷰에서 열기"는
+  그 주소로 프리뷰 패널을 연다.
 
 ## 단축키
 

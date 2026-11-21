@@ -20,6 +20,7 @@ export const SHEET: readonly { titleKey: Key; rows: readonly SheetRow[] }[] = [
       { id: 'nextWaiting', labelKey: 'attention.next', ids: ['nextWaiting'] },
       { id: 'toggleChanges', labelKey: 'changes.toggle', ids: ['toggleChanges'] },
       { id: 'togglePreview', labelKey: 'preview.toggle', ids: ['togglePreview'] },
+      { id: 'toggleRun', labelKey: 'run.toggle', ids: ['toggleRun'] },
       { id: 'history', labelKey: 'history.title', ids: ['history'] },
     ],
   },

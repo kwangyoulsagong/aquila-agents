@@ -46,6 +46,7 @@
         <span class="line"><i class="c-dot" data-status="error"></i>error</span>
         <span class="line"><i class="c-dot" data-status="stopped"></i>stopped</span>
         <span class="line"><i class="c-dot" data-status="idle"></i>idle</span>
+        <span class="line"><i class="c-dot" data-status="live"></i>live (run)</span>
       </div>
       <div class="line status-row status-row--sm">
         <span class="line"><i class="c-dot" data-status="working"></i>working</span>
@@ -55,6 +56,7 @@
         <span class="line"><i class="c-dot" data-status="error"></i>error</span>
         <span class="line"><i class="c-dot" data-status="stopped"></i>stopped</span>
         <span class="line"><i class="c-dot" data-status="idle"></i>idle</span>
+        <span class="line"><i class="c-dot" data-status="live"></i>live (run)</span>
       </div>
       <div class="line status-row status-row--grey">
         <span class="line"><i class="c-dot" data-status="working"></i>working</span>
@@ -64,6 +66,7 @@
         <span class="line"><i class="c-dot" data-status="error"></i>error</span>
         <span class="line"><i class="c-dot" data-status="stopped"></i>stopped</span>
         <span class="line"><i class="c-dot" data-status="idle"></i>idle</span>
+        <span class="line"><i class="c-dot" data-status="live"></i>live (run)</span>
       </div>
       <div class="line status-row status-row--sm status-row--grey">
         <span class="line"><i class="c-dot" data-status="working"></i>working</span>
@@ -73,6 +76,7 @@
         <span class="line"><i class="c-dot" data-status="error"></i>error</span>
         <span class="line"><i class="c-dot" data-status="stopped"></i>stopped</span>
         <span class="line"><i class="c-dot" data-status="idle"></i>idle</span>
+        <span class="line"><i class="c-dot" data-status="live"></i>live (run)</span>
       </div>
     </div>
   </section>
@@ -255,6 +259,11 @@
             <li class="c-command" data-state="error"><span class="c-command__state">✕</span><code class="c-command__text">rm -rf dist</code><span class="c-risk">⚠︎</span><span class="c-command__time">10:01</span></li>
             <li class="c-command" data-state="interrupted"><span class="c-command__state">■</span><code class="c-command__text">GITHUB_TOKEN=••• npx prisma migrate dev --name init --skip-generate --preview-feature</code><span class="c-badge c-badge--risk">마이그레이션</span><span class="c-command__time">10:02</span></li>
             <li class="c-command" data-state="pending"><span class="c-command__state">…</span><code class="c-command__text">npm run dev</code><span class="c-command__time">10:03</span></li></ol>
+<div class="c-modal__group-label">Run 슬롯 (T60)</div><ul class="c-runs" aria-label="명령">
+            <li><button type="button" class="c-runs__item" aria-current="true"><i class="c-dot" data-status="live"></i><span class="c-runs__name">web</span><span class="c-runs__state">실행 중</span></button></li>
+            <li><button type="button" class="c-runs__item"><i class="c-dot" data-status="error"></i><span class="c-runs__name">api</span><span class="c-runs__state">오류</span></button></li>
+            <li><button type="button" class="c-runs__item"><i class="c-dot" data-status="stopped"></i><span class="c-runs__name">test</span><span class="c-runs__state">종료됨</span></button></li>
+            <li><button type="button" class="c-runs__item"><i class="c-dot" data-status="idle"></i><span class="c-runs__name">storybook</span><span class="c-runs__state">꺼짐</span></button></li></ul>
             <section class="c-transcript">
               <article class="c-transcript__message" data-role="user"><div class="c-transcript__role">나</div><p class="c-transcript__text">장바구니 합계에 쿠폰 할인을 넣어줘</p></article>
               <article class="c-transcript__message" data-role="assistant"><div class="c-transcript__role">Claude</div><p class="c-transcript__text">total()에 coupon 인자를 추가하고 0 미만이 되지 않게 했어요.</p></article>

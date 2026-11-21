@@ -58,6 +58,7 @@
 | error | `--color-status-error` (`!`가 뚫린 둥근 사각형) | 실패: API 오류(사용량 제한·로그인·결제·서버)나 0이 아닌 종료. 이유는 점의 라벨 | OSC 7501 `error`, Claude hook `StopFailure`, pty 종료 코드 |
 | stopped | `--color-status-stopped` (고리) | 내가 멈춤(Esc / Ctrl+C) 또는 정상 종료 | 입력한 키, `SessionEnd`, 종료 코드 0 / 130 |
 | idle | `--color-status-idle` | 아무 일 없음 / 이미 봄 | 기본값 |
+| live | `--color-status-done` (그냥 원) | 떠 있는 프로세스 — Run 슬롯 전용(T60), 세션 상태는 아님 | 실행 시작, 아직 안 끝남 |
 
 상태마다 모양도 달라서 파랑·초록·빨강을 구분하지 못해도 읽힌다: 깜빡임, 후광, 체크, `!` 사각형, 고리, 그냥 원. 동작이 꺼지면(동작 줄이기, 절전) working은 깜빡일 수 없어서 대신 반쯤 찬 원으로 보인다. 체크와 `!`는 알파 마스크로 뚫어서(뒤 배경이 비쳐 두 테마 모두 맞음) `--size-dot-sm`에서도 알아볼 수 있다. `preview.html`에 모든 상태를 두 크기, 컬러와 회색조로 보여 주고, 동작 끄기 토글이 있다.
 
@@ -158,6 +159,7 @@
 | `.c-modal--wide`, `__tools` `__group-label` `__item-meta` `__actions` `__note` (`--warn`) `__bullets` | 넓은 모달(세션 기록): 검색 아래 필터 줄, 행 묶음 위 폴더 이름, 행 끝 캡션(시간), 상세의 버튼 줄, 캡션 한 줄(주황 = 사라질 수 있는 것), 짧은 글머리 목록(릴리스의 "Added" 줄, T35) |
 | `.c-meta` `__label` `__value` (`--mono`) | 이름 · 값 행 (폴더, 브랜치, ID) |
 | `.c-commands`, `.c-command[data-state=ok\|error\|interrupted\|pending]` `__state` `__text` `__time` | 에이전트가 실행한 명령(T59): 끝난 방식을 모양과 색으로(✓ ✕ ■ …), 명령은 고정폭 한 줄(말줄임), 표시, 시간 |
+| `.c-runs`, `.c-runs__item[aria-current]` `__name` `__state` | Run 슬롯 명령(T60): 한 줄에 하나, 점(`live` / 고리 / `!` / idle), 고정폭 이름, 상태. 현재 것은 강조. `.c-run`(패널), `__state`, `__reason`, `__log`가 패널 배치 |
 | `.c-transcript` `__message[data-role]` `__role` `__text` | 읽기 전용 대화: 누가, 그다음 쓴 그대로의 텍스트(줄바꿈); 사용자 메시지는 primary 색 |
 | `.c-modal` `__head` `__title` `__subtitle` `__body` `__aside` `__search` `__list` `__item[aria-selected]` `__item-label` `__empty` `__main` `__heading` `__text` `__keys` `__foot` | 큰 목록 + 상세 모달 (네이티브 `<dialog>`, 떠오름): 머리와 검색칸은 타이틀 바 높이, 왼쪽 검색 목록, 오른쪽 상세 (가이드; 릴리즈 노트·트렌드와 공유) |
 | `.c-media` `__frame` `__placeholder` | 스크린샷이나 짧은 루프용 16:10 틀, 없으면 자리표시 |
@@ -206,6 +208,7 @@
 | `MetaList`, `MetaRow` `label` `mono` | `.c-meta` |
 | `Transcript` `label`, `TranscriptMessage` `role` `label` | `.c-transcript` |
 | `CommandList` `label`, `CommandRow` `state` `stateLabel` `command` `time?` `marks?` | `.c-commands`, `.c-command` |
+| `RunList` `label`, `RunItem` `name` `status` `state` `current` `title?` `onClick` | `.c-runs`, `.c-runs__item` |
 | `Media` `src` `kind` `poster` `alt` `still` `placeholder` | `.c-media` (reduced motion이나 `still`이면 영상 대신 포스터) |
 | `ShortcutSheet` `groups` | `.c-shortcuts` |
 

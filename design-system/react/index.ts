@@ -9,6 +9,7 @@ export { Elapsed } from './Elapsed';
 export { Reason, RiskMark } from './Reason';
 export { QueueItem } from './QueueItem';
 export { CommandList, CommandRow, type CommandState } from './CommandRow';
+export { RunList, RunItem } from './RunRow';
 export { Meter, type MeterProps, type MeterTone } from './Meter';
 export { Ring, type RingProps } from './Ring';
 export { Label } from './Label';

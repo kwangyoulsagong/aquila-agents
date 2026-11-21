@@ -3,6 +3,7 @@ import {
   PORT_BASE_MIN,
   type Project,
   type ProjectSettings,
+  type RunCommand,
   type SessionKind,
 } from '@/shared/api';
 
@@ -40,6 +41,26 @@ export interface SettingsForm {
   remoteClaudeDir: string;
   /** Figma MCP (T32), local projects only. */
   figma: boolean;
+  /** Run slot commands (T60), one per line: `name: command` or just `command`. */
+  runCommands: string;
+}
+
+/** `web: npm run dev` → named; a line without a `name: ` prefix is named after itself (`npm run dev:web` stays whole). */
+const NAMED = /^([\p{L}\p{N}][\p{L}\p{N} ._-]{0,39}):\s+(\S.*)$/u;
+
+export function parseRunCommands(text: string): RunCommand[] {
+  return text
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const m = NAMED.exec(line);
+      return m ? { name: m[1].trim(), command: m[2].trim() } : { name: line, command: line };
+    });
+}
+
+export function formatRunCommands(list: readonly RunCommand[] | undefined): string {
+  return (list ?? []).map((c) => (c.name === c.command ? c.command : `${c.name}: ${c.command}`)).join('\n');
 }
 
 export function toForm(p: Project): SettingsForm {
@@ -56,6 +77,7 @@ export function toForm(p: Project): SettingsForm {
     remoteAlias: p.remote?.alias ?? '',
     remoteClaudeDir: p.remote?.claudeConfigDir ?? '',
     figma: !!p.figma,
+    runCommands: formatRunCommands(p.runCommands),
   };
 }
 
@@ -81,7 +103,7 @@ export function toSettings(form: SettingsForm, original: Project): ProjectSettin
     setupScript: form.setupScript,
     portBase: port ?? null,
     openIn: form.openIn,
-    ...(original.remote ? {} : { figma: form.figma }),
+    ...(original.remote ? {} : { figma: form.figma, runCommands: parseRunCommands(form.runCommands) }),
     ...(original.remote
       ? { remote: { alias: form.remoteAlias.trim(), claudeConfigDir: form.remoteClaudeDir.trim() } }
       : {}),

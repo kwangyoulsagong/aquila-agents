@@ -59,6 +59,7 @@ Check: `grep -rn -- '--p-' src design-system/components.css` returns only the ru
 | error | `--color-status-error` (rounded square with `!`) | Failed: API error (rate limit, auth, billing, server) or non-zero exit; the reason is the dot's label | OSC 7501 `error`; Claude hook `StopFailure`; pty exit code |
 | stopped | `--color-status-stopped` (ring) | You interrupted it (Esc / Ctrl+C) or it exited normally | keys typed; `SessionEnd`; exit 0 / 130 |
 | idle | `--color-status-idle` | Nothing happening / seen | default |
+| live | `--color-status-done` (plain disc) | A process that is up — run slot only (T60), not a session status | run started, not exited |
 
 Every status also has a shape, so it reads without telling blue, green and red apart: pulse, halo, check, `!` square, ring, plain disc. With motion off (reduced motion, power saver) working can't pulse, so it shows a half-filled disc instead. The check and `!` are cut out with an alpha mask (the background shows through, so both themes work) and stay legible at `--size-dot-sm`. `preview.html` shows every status at both sizes, in colour and greyscale, with a Motion off toggle.
 
@@ -160,6 +161,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `.c-modal--wide`, `__tools` `__group-label` `__item-meta` `__actions` `__note` (`--warn`) `__bullets` | Wide modal (session history); a filter row under the search, a folder label over a group of rows, a caption at a row's end (time), the detail's buttons, a caption line (orange = something will be lost), a short bulleted list (a release's "Added" lines, T35) |
 | `.c-meta` `__label` `__value` (`--mono`) | Label · value rows (folder, branch, id) |
 | `.c-commands`, `.c-command[data-state=ok\|error\|interrupted\|pending]` `__state` `__text` `__time` | Commands an agent ran (T59): how it ended by shape and colour (✓ ✕ ■ …), the command on one mono ellipsised line, marks, time |
+| `.c-runs`, `.c-runs__item[aria-current]` `__name` `__state` | Run slot commands (T60): one row each with its dot (`live` / ring / `!` / idle), mono name, state; the current one is highlighted. `.c-run` (panel), `__state`, `__reason`, `__log` lay out the panel |
 | `.c-transcript` `__message[data-role]` `__role` `__text` | Read-only conversation: who, then the text as written (wrapped); the user's messages in primary text |
 | `.c-media` `__frame` `__placeholder` | 16:10 frame for a screenshot or a short loop; placeholder while there is none |
 | `.c-shortcuts` `__group` `__row` `__label` `__keys` | Shortcut sheet: grouped rows, label left, keys right |
@@ -207,6 +209,7 @@ from `src/` (ESLint enforces it). New primitive → add the class to `components
 | `MetaList`, `MetaRow` `label` `mono` | `.c-meta` |
 | `Transcript` `label`, `TranscriptMessage` `role` `label` | `.c-transcript` |
 | `CommandList` `label`, `CommandRow` `state` `stateLabel` `command` `time?` `marks?` | `.c-commands`, `.c-command` |
+| `RunList` `label`, `RunItem` `name` `status` `state` `current` `title?` `onClick` | `.c-runs`, `.c-runs__item` |
 | `Media` `src` `kind` `poster` `alt` `still` `placeholder` | `.c-media` (video → poster under reduced motion or `still`) |
 | `ShortcutSheet` `groups` | `.c-shortcuts` |
 

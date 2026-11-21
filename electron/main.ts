@@ -17,6 +17,7 @@ import { restoreShellPath } from './env';
 import { isWindows, platform } from './platform';
 import { accountsStatus, installShellFunction, prepareAccount, shellFunctionPreview } from './accounts';
 import {
+  APP_DIR,
   CONFIG_PATH,
   editProjects,
   expand,
@@ -91,6 +92,7 @@ import {
 } from './state';
 import { isSmoke, runSmoke, SMOKE_BUFFER_BYTES, watchOutput } from './smoke';
 import { openInBrowser } from './browser';
+import { defaultRunCommands, readSavedRuns, RunManager, writeSavedRuns } from './runs';
 import { accountLabel, translator } from '../src/shared/i18n/dictionary';
 import {
   IPC,
@@ -119,6 +121,10 @@ const isDev = process.env.AQUILA_DEV === '1';
 let win: BrowserWindow | null = null;
 let sessions: SessionManager | null = null;
 let previews: PreviewViews | null = null;
+let runs: RunManager | null = null;
+/** Runs up at quit start again next launch (T60); written as they change, frozen once quitting starts. */
+const RUNS_PATH = path.join(APP_DIR, 'runs.json');
+let quitting = false;
 
 /** = --color-bg-canvas per theme (--p-slate-950 / --p-paper-0); the renderer follows the same nativeTheme. */
 const windowBackground = () => (nativeTheme.shouldUseDarkColors ? '#0e1014' : '#ffffff');
@@ -225,22 +231,25 @@ app.whenReady().then(async () => {
     return figmaConnect(account, a.claudeConfigDir ? claudeConfigDir(config, account) : undefined);
   });
   ipcMain.handle(IPC.figmaOpenDocs, () => shell.openExternal(FIGMA_DOCS_URL));
+  const send = (channel: string, payload: unknown) => win?.webContents.send(channel, payload);
   // In-app preview (T33): dev server addresses from launch.json + the project's terminals; one native view per slot.
   // Per worktree (T50): its own launch.json, the addresses its tabs printed, and its PORT (as sessions.ts sets it).
   const slots = new Map<string, number>();
+  /** A worktree's `PORT` (as sessions.ts sets it): the base + 10 per position in `git worktree list`. */
+  const portFor = (p: { portBase?: number }, worktree?: string): number | undefined => {
+    if (!p.portBase) return undefined;
+    let slot = 0;
+    if (worktree) {
+      slot = slots.get(worktree) ?? worktreeSlot(worktree);
+      slots.set(worktree, slot);
+    }
+    return p.portBase + PORT_STEP * slot;
+  };
   const targetsOf = (projectId: string, worktree?: string): PreviewTargets => {
     const p = loadConfig().projects.find((x) => x.id === projectId);
     if (!p || p.remote) return { projectId, ...(worktree ? { worktree } : {}), urls: [] };
     const dir = worktree ?? expand(p.path);
-    let port: number | undefined;
-    if (p.portBase) {
-      let slot = 0;
-      if (worktree) {
-        slot = slots.get(worktree) ?? worktreeSlot(worktree);
-        slots.set(worktree, slot);
-      }
-      port = p.portBase + PORT_STEP * slot;
-    }
+    const port = portFor(p, worktree);
     const order = orderTargets(readLaunchJson(dir), devUrls.urls(projectId, worktree), port, PORT_STEP);
     return { projectId, ...(worktree ? { worktree } : {}), ...order };
   };
@@ -264,13 +273,85 @@ app.whenReady().then(async () => {
   );
   ipcMain.handle(IPC.previewPick, (_e, slot: PreviewSlot) => previews?.pick(slot) ?? null);
   ipcMain.on(IPC.previewPickCancel, (_e, slot: PreviewSlot) => previews?.cancelPick(slot));
+  // Run slot (T60): dev servers / watchers apart from the agent, local projects only. Their addresses feed the
+  // preview like a tab's would.
+  const runDir = (projectId: unknown, worktree: unknown) => {
+    const p = loadConfig().projects.find((x) => x.id === projectId);
+    if (!p || p.remote) throw new Error('Run is for local projects only');
+    const wt = typeof worktree === 'string' && worktree ? worktree : undefined;
+    const dir = wt ?? expand(p.path);
+    if (!fs.statSync(dir, { throwIfNoEntry: false })?.isDirectory()) throw new Error(`Folder not found: ${dir}`);
+    const commands = p.runCommands?.length ? p.runCommands : defaultRunCommands(dir);
+    return { p, wt, dir, commands };
+  };
+  const runList = (projectId: string, worktree?: string) => {
+    try {
+      const { wt, commands } = runDir(projectId, worktree);
+      return runs!.list(projectId, wt, commands);
+    } catch {
+      return runs!.list(projectId, worktree, []);
+    }
+  };
+  const saveRuns = () => {
+    if (isSmoke || quitting || !runs) return;
+    safe('runs save', () => writeSavedRuns(RUNS_PATH, runs!.active()));
+  };
+  runs = new RunManager({
+    onChange: (projectId, worktree) => {
+      send(IPC.runsChanged, runList(projectId, worktree));
+      saveRuns();
+    },
+    onData: (id, data) => send(IPC.runData, { id, data }),
+    onOutput: (projectId, worktree, id, data) => devUrls.feed(projectId, worktree, id, data),
+    ignorePorts: [hookPort],
+    windows: isWindows,
+  });
+  const runManager = runs;
+  ipcMain.handle(IPC.runList, (_e, { projectId, worktree }: { projectId: string; worktree?: string }) =>
+    runList(projectId, worktree),
+  );
+  ipcMain.handle(
+    IPC.runStart,
+    async (_e, { projectId, worktree, name }: { projectId: string; worktree?: string; name: string }) => {
+      const { p, wt, dir, commands } = runDir(projectId, worktree);
+      const c = commands.find((x) => x.name === name);
+      if (!c) throw new Error(`No run command named ${name}`);
+      await runManager.start({ projectId, worktree: wt, name, command: c.command, cwd: dir, port: portFor(p, wt) });
+      return runList(projectId, wt);
+    },
+  );
+  ipcMain.handle(IPC.runStop, async (_e, id: string) => {
+    await runManager.stop(id);
+    saveRuns();
+  });
+  ipcMain.handle(IPC.runLog, (_e, id: string) => runManager.log(id));
+  // Restore (T60): what was up when the app last quit, if its project, command and folder are still there.
+  if (!isSmoke && !process.env.AQUILA_CAPTURE)
+    for (const r of readSavedRuns(RUNS_PATH)) {
+      try {
+        const { p, wt, dir, commands } = runDir(r.projectId, r.worktree);
+        const c = commands.find((x) => x.name === r.name);
+        if (c)
+          void runManager.start({
+            projectId: r.projectId,
+            worktree: wt,
+            name: r.name,
+            command: c.command,
+            cwd: dir,
+            port: portFor(p, wt),
+          });
+      } catch {
+        /* project or folder gone: dropped on the next save */
+      }
+    }
+  // Last resort (smoke / capture end with app.exit, which skips before-quit): no server outlives the app.
+  process.on('exit', () => runManager.killAllNow());
   // http hooks unless `claude --version` says it's older than they need (then command + curl).
   let httpHooks = true;
   const detectHooks = () =>
     detectClaudeVersion(process.env, binaryFor('claude')).then((v) => (httpHooks = supportsHttpHooks(v)));
   void detectHooks();
   const smokeOutput = { buffer: '', statuses: [] as string[], connections: [] as ConnectionUpdate[] };
-  const send = (channel: string, payload: unknown) => win?.webContents.send(channel, payload);
   sessions = new SessionManager({
     send: isSmoke
       ? watchOutput(
@@ -450,7 +531,10 @@ app.whenReady().then(async () => {
     (_e, { projectId, account }: { projectId: string; account: string }) =>
       setProjectAccount(projectId, account),
   );
-  ipcMain.handle(IPC.configEditProjects, (_e, edit: ProjectEdit) => appMenu.refresh(editProjects(edit)));
+  ipcMain.handle(IPC.configEditProjects, (_e, edit: ProjectEdit) => {
+    if (edit.op === 'removeProject') void runs?.stopProject(edit.id);
+    return appMenu.refresh(editProjects(edit));
+  });
   ipcMain.handle(IPC.dialogPickFolder, async () => {
     const options: Electron.OpenDialogOptions = { properties: ['openDirectory', 'createDirectory'] };
     const r = win ? await dialog.showOpenDialog(win, options) : await dialog.showOpenDialog(options);
@@ -800,7 +884,7 @@ app.whenReady().then(async () => {
     safe('updater', () => startUpdater(() => translator(loadConfig().language)));
   if (isSmoke && win) {
     const w = win;
-    w.webContents.once('did-finish-load', () => runSmoke(w, s, loadConfig(), smokeOutput, previews));
+    w.webContents.once('did-finish-load', () => runSmoke(w, s, loadConfig(), smokeOutput, previews, runs));
   }
   app.on('activate', () => BrowserWindow.getAllWindows().length === 0 && createWindow());
 });
@@ -811,7 +895,9 @@ let ptysDone = false;
 app.on('before-quit', (e) => {
   if (ptysDone || !sessions) return;
   e.preventDefault();
-  void sessions.killAll().finally(() => {
+  quitting = true; // runs.json keeps what was up; stopping them now must not empty it
+  // Runs (T60) are detached process groups: quitting must stop them, or a dev server outlives the app.
+  void Promise.allSettled([sessions.killAll(), runs?.stopAll()]).finally(() => {
     ptysDone = true;
     app.quit();
   });

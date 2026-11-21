@@ -18,6 +18,7 @@ import {
   type SessionKind,
 } from '../src/shared/api/types';
 import { validAlias } from './remote/ssh';
+import { cleanRunCommands } from './runs';
 import { translator } from '../src/shared/i18n/dictionary';
 
 const HOME = os.homedir();
@@ -259,6 +260,11 @@ export function applySettings(
   // Figma MCP (T32): local projects only; off = key removed.
   if (s.figma === true && !p.remote) next.figma = true;
   else if (s.figma === false) next = dropKey(next, 'figma');
+  // Run slot (T60): local projects only; none = the default (`npm run dev`).
+  if (s.runCommands !== undefined && !p.remote) {
+    const commands = cleanRunCommands(s.runCommands);
+    next = commands.length ? { ...next, runCommands: commands } : dropKey(next, 'runCommands');
+  }
   return next;
 }
 
