@@ -126,7 +126,7 @@
 | `.c-elapsed` | 세션이 기다린 시간("12분", 고정폭, 대기 색) — 탭·프로젝트 행 |
 | `.c-reason` | 대기 중인 세션이 기다리는 것("Bash: npm install"). 프로젝트 행 아래 한 줄(고정폭 캡션, 이름과 정렬). 누르면 그 세션을 보여 주는 버튼. `data-risk` = 파괴적일 수 있음: 오류 색 + `.c-risk` |
 | `.c-risk` | 파괴적일 수 있는 명령의 경고 기호(⚠, 오류 색) — 대기 이유 줄과 탭 |
-| `.c-badge` `--claude` `--codex` `--shell` `--account-shared` `--account-personal` | 태그 |
+| `.c-badge` `--claude` `--codex` `--shell` `--account-shared` `--account-personal` `--risk` | 태그 (`--risk`: 한 번 더 볼 변경 파일, 대기 색 — T57) |
 | `.c-badge--host`, `.c-badge__conn[data-conn=connecting\|connected\|reconnecting\|lost]` | 원격 호스트 이름(대문자로 안 바꿈)과 연결 점: 회색 / 초록 / 주황 깜빡임 / 빨강 (T29) |
 | `.c-term-overlay__banner` `__banner-text` `__banner-meta` | 터미널 위쪽을 가로지르는 클릭 가능한 바, 빨간 테두리: 연결 끊김 + 카운트다운 + 동작 (T29) |
 | `.c-term-find` `__input` `__count[data-empty]` | 터미널 오른쪽 위의 클릭 가능한 찾기 바: 검색어 · 개수(일치 없으면 빨강) · 대소문자 토글(`aria-pressed`) · 이전 · 다음 · 닫기; 비활성 버튼은 tertiary 색 (T40) |
@@ -197,7 +197,7 @@
 | `TermChips` `label` `closeLabel` `onClose`, `TermChipGroup` `label` | `.c-term-overlay__chips`, `.c-term-overlay__chips-group` (프롬프트 칩, T34) |
 | `TermFind` `label` `query` `onQuery` `onKeyDown?` `inputRef?` `placeholder?` `count?` `empty?` `caseSensitive` `onToggleCase` `onPrev` `onNext` `onClose` `labels` | `.c-term-find` (터미널에서 찾기, T40) |
 | `Field` `label` `hint` `warning`, `FieldRow`, `FieldGrid`, `Input`, `InlineInput`, `Textarea`, `Select` `options` `onChange(value)` | `.c-field`, `.c-field__row`, `.c-field-grid`, `.c-input`, `.c-input--inline`, `.c-input--multiline`, `.c-select` |
-| `ChangeRow` `status` `path` | `.c-change` |
+| `ChangeRow` `status` `path` `badge?` | `.c-change` |
 | `Palette` `open` `onClose` `label` `query` `onQueryChange` `listId` `activeId`, `PaletteList`, `PaletteItem` `selected` `label` `marks` `leading` `hint` `kbd`, `PaletteEmpty` | `.c-palette` (combobox + listbox) |
 | `Modal` `open` `title` `subtitle?` `onClose` `closeLabel` `aside` `footer` `wide`, `ModalSearch` (열 때 포커스), `ModalList` `id` `label`, `ModalItem` `selected` `label` `meta` `trailing` `onSelect`, `ModalEmpty`, `ModalDetail` `heading` `text` `keys`, `ModalGroup` `label` `hint`, `ModalTools`, `ModalActions` `onSubmit?`, `ModalNote` `warn`, `ModalBullets` `items` | `.c-modal` |
 | `MetaList`, `MetaRow` `label` `mono` | `.c-meta` |

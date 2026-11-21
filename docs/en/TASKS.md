@@ -549,7 +549,8 @@ The P0 rows of the persona report that were left under **Nice to have**: tools t
 The P1 rows of the persona report: review what finished, see what ran, and run things apart from the agent. Each one reuses what is there (Changes panel, read-only history, project `PORT` / setup script).
 
 ### T57 · Changes panel risk badges
-- [ ] **Goal:** the files worth a second look are at the top of the Changes list.
+- [x] **Goal:** the files worth a second look are at the top of the Changes list.
+  _Left over: path rules only (no "model id / temperature changed" or "deleted JSX block" content checks, and line comments still don't survive a relaunch — T25). The diff below follows the same order. Seen in a headless render of the rows (badge right-aligned, long names ellipsized), not in smoke (its fixture has no changes)._
 - **Spec:**
   - A badge on a changed file: migration (`migrations/`, `*.sql`, `schema.prisma`), lockfile, env (`.env*`), prompt (`AGENTS.md`, `CLAUDE.md`, `*.prompt*`, `prompts/`), CI (`.github/workflows/`).
   - Badged files sort above the rest (stable order inside each group); the panel bar counts them ("2 to check").
