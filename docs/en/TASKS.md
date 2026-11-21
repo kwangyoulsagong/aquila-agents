@@ -464,7 +464,7 @@ From the ADE UX research (calm attention, recognition over recall). Only what is
 
 ## Persona pass
 
-From the persona research (`reports/디자이너 개발자 ADE 사용성.md`: frontend, backend, designer, PM, engineer, AI engineer). Only what is broken or blocks a tool today; the rest is listed under **Nice to have**.
+From the persona research (`docs/research/디자이너 개발자 ADE 사용성.md`: frontend, backend, designer, PM, engineer, AI engineer). Only what is broken or blocks a tool today; the rest is listed under **Nice to have**.
 
 ### T48 · Honest preview pick
 - [x] **Goal:** a picked element never lands in the wrong place.
