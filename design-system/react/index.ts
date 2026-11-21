@@ -16,6 +16,7 @@ export { EmptyState } from './EmptyState';
 export { Dialog, DialogCheck, DialogCode, DialogForm, DialogGroup } from './Dialog';
 export { ChangeRow } from './ChangeRow';
 export { Checklist, ChecklistItem, ChecklistCommand } from './Checklist';
+export { PickList, PickItem } from './PickList';
 export { Dropzone } from './Dropzone';
 export {
   TermOverlay,

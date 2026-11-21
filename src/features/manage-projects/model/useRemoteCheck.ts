@@ -21,18 +21,21 @@ export function useRemoteCheck(alias: string) {
     setChecking(false);
   }, [alias]);
 
-  const start = useCallback(async (host: RemoteHost) => {
+  /** Runs the check; resolves with its result (also shown), or null when the host changed meanwhile. */
+  const start = useCallback(async (host: RemoteHost): Promise<RemoteCheck | null> => {
     const mine = ++run.current;
     setChecking(true);
     setCheck(null);
+    let result: RemoteCheck;
     try {
-      const result = await api.checkRemote(host);
-      if (run.current === mine) setCheck(result);
+      result = await api.checkRemote(host);
     } catch (e) {
-      if (run.current === mine) setCheck({ reachable: false, error: (e as Error).message, tools: [] });
-    } finally {
-      if (run.current === mine) setChecking(false);
+      result = { reachable: false, error: (e as Error).message, tools: [] };
     }
+    if (run.current !== mine) return null;
+    setCheck(result);
+    setChecking(false);
+    return result;
   }, []);
 
   return { hosts, check, checking, start };

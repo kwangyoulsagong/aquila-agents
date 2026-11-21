@@ -83,6 +83,7 @@ const api: AquilaApi = {
   onTitle: on(IPC.sessionTitle),
   sshHosts: () => ipcRenderer.invoke(IPC.remoteHosts),
   checkRemote: (host) => ipcRenderer.invoke(IPC.remoteCheck, host),
+  listRemoteDirs: (host, path) => ipcRenderer.invoke(IPC.remoteList, { host, path }),
   reconnect: (id) => ipcRenderer.send(IPC.remoteReconnect, id),
   onConnection: on(IPC.sessionConnection),
   powerState: () => ipcRenderer.invoke(IPC.powerGet),

@@ -54,6 +54,7 @@ import {
 } from './hooks';
 import { LIVE_SOURCES, ratio, refreshDue, UsageTracker } from './usage';
 import { ContextWatcher, statusLineSources, userHasStatusLine } from './context';
+import { listRemoteDirs } from './remote/browse';
 import { connect as figmaConnect, FIGMA_DOCS_URL, readProfiles as figmaProfiles } from './figma';
 import { PowerWatcher, type PowerSource } from './power';
 import { FIXTURE_NOW, fixtureFetcher, NewsService } from './news';
@@ -490,6 +491,15 @@ app.whenReady().then(async () => {
       alias: String(host?.alias ?? '').trim(),
       ...(host?.claudeConfigDir ? { claudeConfigDir: String(host.claudeConfigDir) } : {}),
     }),
+  );
+  ipcMain.handle(IPC.remoteList, (_e, { host, path: dir }: { host: RemoteHost; path: string }) =>
+    listRemoteDirs(
+      {
+        alias: String(host?.alias ?? '').trim(),
+        ...(host?.claudeConfigDir ? { claudeConfigDir: String(host.claudeConfigDir) } : {}),
+      },
+      String(dir ?? ''),
+    ),
   );
   ipcMain.on(IPC.remoteReconnect, (_e, id: string) => s.reconnect(id));
   ipcMain.handle(
