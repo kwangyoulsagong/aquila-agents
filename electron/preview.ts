@@ -360,6 +360,7 @@ export class PreviewViews {
     if (command === 'reload') wc.reload();
     else if (command === 'back' && wc.navigationHistory.canGoBack()) wc.navigationHistory.goBack();
     else if (command === 'devtools') this.openDevTools(slot, wc);
+    else if (command === 'browser') this.openExternal(wc.getURL());
   }
 
   /**

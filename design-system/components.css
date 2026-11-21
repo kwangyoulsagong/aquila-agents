@@ -359,6 +359,9 @@ body {
 .c-panel__note { padding: var(--space-inset-sm) var(--space-inset-md); font-size: var(--font-size-caption); color: var(--color-text-tertiary); }
 /* Wider panel for side-by-side diffs; never more than half the window. */
 .c-panel--wide { width: min(var(--size-panel-wide), 50%); }
+/* The panel alone in the window (preview full window, T51): takes the width, the head clears the traffic lights. */
+.c-panel--full { flex: 1; width: auto; min-width: 0; border-left: 0; }
+.c-panel--full > .c-panel__head { padding-left: calc(var(--size-traffic-lights) + var(--space-inset-sm)); }
 /* Second band under the head: scope, view mode and actions. Wraps on a narrow panel. */
 .c-panel__bar {
   display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-inline-sm);

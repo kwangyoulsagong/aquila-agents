@@ -40,6 +40,7 @@ export default function WorkspacePage() {
   const [changesOpen, setChangesOpen] = useState(false);
   const toggleChanges = useCallback(() => setChangesOpen((o) => !o), []);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewFullOn, setPreviewFull] = useState(false);
   const togglePreview = useCallback(() => setPreviewOpen((o) => !o), []);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const togglePalette = useCallback(() => setPaletteOpen((o) => !o), []);
@@ -139,6 +140,8 @@ export default function WorkspacePage() {
   });
 
   const { config, project, activeSessionId, openSession, closeSession, setConfig, showError } = ws;
+  // Only while the preview is actually shown: a remote project or full window would otherwise leave nothing on screen.
+  const previewFull = previewFullOn && previewOpen && !fullscreen.on && !!project && !project.remote;
   const { openWorktreeSession } = ws;
   // Worktrees (T7/T38) are local-only.
   const localProjectId = project && !project.remote ? project.id : undefined;
@@ -268,7 +271,7 @@ export default function WorkspacePage() {
   return (
     <I18nContext.Provider value={t}>
       <div className="app">
-        {!fullscreen.on && (
+        {!fullscreen.on && !previewFull && (
           <Sidebar
             config={config}
             sessions={ws.sessions}
@@ -300,7 +303,7 @@ export default function WorkspacePage() {
             }
           />
         )}
-        <main className="app__main">
+        <main className="app__main" hidden={previewFull}>
           {fullscreen.on ? (
             <FullscreenBar config={config} session={focusedSession} onExit={toggleFullscreen} />
           ) : (
@@ -398,7 +401,7 @@ export default function WorkspacePage() {
         )}
         {globalShortcutOpen && <GlobalShortcutDialog onClose={() => setGlobalShortcutOpen(false)} />}
         {/* Full window hides the side panels too; their open state is kept for when it ends. */}
-        {changesOpen && !fullscreen.on && (
+        {changesOpen && !fullscreen.on && !previewFull && (
           <ChangesPanel
             project={project}
             session={ws.sessions.find((x) => x.id === activeSessionId)}
@@ -411,7 +414,12 @@ export default function WorkspacePage() {
             key={project.id}
             project={project}
             session={ws.sessions.find((x) => x.id === activeSessionId)}
-            onClose={() => setPreviewOpen(false)}
+            full={previewFull}
+            onToggleFull={() => setPreviewFull((f) => !f)}
+            onClose={() => {
+              setPreviewOpen(false);
+              setPreviewFull(false);
+            }}
           />
         )}
         {firstRun.open && (
