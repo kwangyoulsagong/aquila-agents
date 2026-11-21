@@ -220,6 +220,11 @@ const ko = {
   'preview.pick.hint': '미리보기에서 요소를 클릭하세요. Esc로 취소해요.',
   'preview.pick.pasted': '{name}에 붙여 넣었어요. 바꿀 내용을 적고 Enter를 누르세요.',
   'preview.pick.copied': 'Claude·Codex 탭이 선택되지 않아 클립보드에 복사했어요.',
+  'preview.pick.busy': '{name} 탭이 답을 기다리고 있어 클립보드에 복사했어요. 먼저 답한 뒤 ⌘V로 붙여 넣으세요.',
+  'preview.pick.to': '→ {name}',
+  'preview.pick.toClipboard': '→ 클립보드',
+  'preview.pick.toBusy': '→ 클립보드 ({name} 답 대기 중)',
+  'preview.pick.targetHint': '선택한 요소를 보낼 곳: 포커스된 Claude·Codex 탭, 없으면 클립보드',
   'preview.empty': '개발 서버를 찾지 못했어요',
   'preview.emptyHint':
     '터미널에서 개발 서버를 켜거나(npm run dev) 위에 주소를 입력하세요. .claude/launch.json과 이 프로젝트 터미널에 나온 주소가 여기 떠요.',
@@ -819,6 +824,11 @@ const en = {
   'preview.pick.hint': 'Click an element in the preview. Esc cancels.',
   'preview.pick.pasted': 'Pasted into {name}. Write what to change, then press Enter.',
   'preview.pick.copied': 'No Claude or Codex tab focused: copied to the clipboard.',
+  'preview.pick.busy': '{name} is waiting for an answer, so this was copied instead. Answer first, then paste with ⌘V.',
+  'preview.pick.to': '→ {name}',
+  'preview.pick.toClipboard': '→ Clipboard',
+  'preview.pick.toBusy': '→ Clipboard ({name} is waiting)',
+  'preview.pick.targetHint': 'Where a picked element goes: the focused Claude or Codex tab, else the clipboard',
   'preview.empty': 'No dev server found',
   'preview.emptyHint':
     "Start one in a terminal (npm run dev) or type an address above. Addresses from .claude/launch.json and this project's terminals show up here.",

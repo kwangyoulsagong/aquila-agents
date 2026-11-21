@@ -461,3 +461,49 @@ From the ADE UX research (calm attention, recognition over recall). Only what is
   - Labels are in ko/en and rebuilt when the language changes.
 - **Owns:** `electron/appMenu.ts`; one call in `electron/main.ts`.
 - **Done:** every shortcut in the guide also appears in a menu, and switching the language relabels the menu.
+
+## Persona pass
+
+From the persona research (`reports/디자이너 개발자 ADE 사용성.md`: frontend, backend, designer, PM, engineer, AI engineer). Only what is broken or blocks a tool today; the rest is listed under **Nice to have**.
+
+### T48 · Honest preview pick
+- [x] **Goal:** a picked element never lands in the wrong place.
+  _Left over: "waiting" comes from the status engine, so a prompt it can't see (e.g. Codex's first "Trust this folder?" before any status) still counts as ready. Guide media for the preview rebuilt (`CAPTURE_ONLY=preview`); the busy label itself was checked by unit tests, not in a screenshot._
+- **Spec:**
+  - The pick bar shows where a pick goes: `→ <tab title>`, `→ Clipboard`, or `→ Clipboard (<tab> is waiting)`.
+  - A tab waiting on a question or permission is never pasted into: the pick is copied, that tab is focused, and the note says to answer first and paste with ⌘V. Status is read again when the pick arrives.
+  - Disconnected remote tabs count as no target.
+- **Owns:** `src/widgets/preview/model/pickTarget.ts` (+ test), the pick bar in `PreviewPanel.tsx`.
+
+### T49 · Panel layout that doesn't break
+- [ ] **Goal:** terminal, Changes and Preview fit together on a 1440 px window.
+- **Spec:**
+  - Fix the sideways scroll and clipped sidebar footer with the Changes panel open at 1440 px (T24 leftover).
+  - Changes and Preview widths are draggable and remembered; the terminal keeps a minimum width and panels shrink first.
+- **Owns:** panel layout in `src/app/styles/app.css` + `pages/workspace` (small), a resize handle in the design system.
+- **Done:** at 1440 px with both panels open there is no overflow (smoke screenshot).
+
+### T50 · Preview follows the session's worktree
+- [ ] **Goal:** in parallel worktrees, the preview shows the focused session's app.
+- **Spec:** key the preview by the focused session's worktree (not the project), prefer its `PORT`, show the branch in the panel head.
+- **Owns:** `src/widgets/preview/`, `electron/preview.ts`.
+
+### T51 · Open the preview in Chrome / full window
+- [ ] **Goal:** look at the app large, with real browser tools.
+- **Spec:** "Open in browser" in the preview head opens the current address in Google Chrome when installed, else the default browser. A full-window toggle shows only the preview (like ⇧⌘F for a pane).
+- **Owns:** `src/widgets/preview/`, one IPC for "open in browser".
+
+### Remote check on a real host (on hold)
+- [ ] On hold until an SSH host is available: add a remote project, open tabs, Changes, history and reconnect on a real host, fix only what breaks (T29/T36 leftovers).
+
+### Nice to have (not planned)
+- Text labels on the tab-bar panel buttons (`±` `◫` `{}`), like T46.
+- Figma in ⌘K / menu / guide, and a login button that walks through `/mcp`; chips also on typed or dropped links.
+- Waiting reason on the sidebar row (the notification summary), red mark on destructive commands.
+- Run slot: dev server / tests / long jobs as processes apart from the agent, with a log pane and a status dot.
+- Review queue: sessions done but not looked at, with changed files and push state.
+- Commands timeline per session from the read-only transcript.
+- Production label on a project or host.
+- Before/after preview snapshots in the Changes panel; "share what changed" as Markdown.
+- Changes panel risk badges (migrations, `.env`, lockfiles, prompt files).
+- Designer view as side-by-side / overlay compare instead of stacked.
