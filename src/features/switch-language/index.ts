@@ -1,1 +1,1 @@
-export { default as SettingsMenu } from './ui/SettingsMenu';
+export { default as SettingsMenu, openSettingsMenu } from './ui/SettingsMenu';

@@ -1,46 +1,56 @@
 import { Button } from '@design-system/react';
 import { api, type Config, type Language } from '@/shared/api';
-import { useT } from '@/shared/i18n';
+import { useT, type Translate } from '@/shared/i18n';
 
-/**
- * ⚙ at the bottom left: a native menu with Language ▸ 한국어 / English (current one checked) and the settings file.
- * The language isn't a bare "English" button any more: next to Korean UI it read like a label, not a switch.
- */
-export default function SettingsMenu({
-  config,
-  onChanged,
-  onGlobalShortcut,
-}: {
+interface SettingsMenuOptions {
   config: Config;
   onChanged: (c: Config) => void;
   /** Settings ▸ Global shortcut… (T41); the page owns the dialog. */
   onGlobalShortcut?: () => void;
-}) {
-  const t = useT();
-  const pick = (language: Language) => {
+}
+
+/**
+ * Pops the ⚙ settings menu at the cursor: Language ▸ 한국어 / English (current one checked), Notify when done,
+ * Global shortcut… and the settings file. Also what the menu bar's Aquila ▸ Settings… (⌘,) opens (T47).
+ */
+export async function openSettingsMenu(
+  t: Translate,
+  { config, onChanged, onGlobalShortcut }: SettingsMenuOptions,
+): Promise<void> {
+  const id = await api.showContextMenu([
+    {
+      label: t('settings.language'),
+      submenu: [
+        { id: 'lang:ko', label: t('language.ko'), checked: config.language === 'ko' },
+        { id: 'lang:en', label: t('language.en'), checked: config.language === 'en' },
+      ],
+    },
+    { id: 'notifyDone', label: t('settings.notifyDone'), checked: !!config.notifyDone },
+    ...(onGlobalShortcut ? [{ id: 'globalShortcut', label: t('globalShortcut.menu') }] : []),
+    { separator: true },
+    { id: 'config', label: t('action.openConfig') },
+  ]);
+  if (id === 'lang:ko' || id === 'lang:en') {
+    const language = id.slice(5) as Language;
     if (language !== config.language) void api.setLanguage(language).then(onChanged);
-  };
-  const open = async () => {
-    const id = await api.showContextMenu([
-      {
-        label: t('settings.language'),
-        submenu: [
-          { id: 'lang:ko', label: t('language.ko'), checked: config.language === 'ko' },
-          { id: 'lang:en', label: t('language.en'), checked: config.language === 'en' },
-        ],
-      },
-      { id: 'notifyDone', label: t('settings.notifyDone'), checked: !!config.notifyDone },
-      ...(onGlobalShortcut ? [{ id: 'globalShortcut', label: t('globalShortcut.menu') }] : []),
-      { separator: true },
-      { id: 'config', label: t('action.openConfig') },
-    ]);
-    if (id === 'lang:ko' || id === 'lang:en') pick(id.slice(5) as Language);
-    else if (id === 'notifyDone') void api.setNotifyDone(!config.notifyDone).then(onChanged);
-    else if (id === 'globalShortcut') onGlobalShortcut?.();
-    else if (id === 'config') void api.openConfig();
-  };
+  } else if (id === 'notifyDone') void api.setNotifyDone(!config.notifyDone).then(onChanged);
+  else if (id === 'globalShortcut') onGlobalShortcut?.();
+  else if (id === 'config') void api.openConfig();
+}
+
+/**
+ * ⚙ at the bottom left: a native menu (see `openSettingsMenu`).
+ * The language isn't a bare "English" button any more: next to Korean UI it read like a label, not a switch.
+ */
+export default function SettingsMenu(props: SettingsMenuOptions) {
+  const t = useT();
   return (
-    <Button variant="ghost" onClick={() => void open()} title={t('settings.menu')} aria-haspopup="menu">
+    <Button
+      variant="ghost"
+      onClick={() => void openSettingsMenu(t, props)}
+      title={t('settings.menu')}
+      aria-haspopup="menu"
+    >
       ⚙ {t('settings.menu')}
     </Button>
   );

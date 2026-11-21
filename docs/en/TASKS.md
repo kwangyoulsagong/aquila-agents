@@ -447,7 +447,8 @@ From the ADE UX research (calm attention, recognition over recall). Only what is
 - **Done:** a first-time user can add a project and find the news without a tooltip. The ko + en copy is updated and the guide text matches.
 
 ### T47 · App menu bar
-- [ ] **Goal:** Aquila behaves like a Mac app: commands and their shortcuts can be found in the menu bar (T13 leftover).
+- [x] **Goal:** Aquila behaves like a Mac app: commands and their shortcuts can be found in the menu bar (T13 leftover).
+  _Left over: no "Reopen ⌘⇧T" (there is no reopen-closed-session feature, and ⌘⇧T is Open Codex). Settings… ⌘, pops the ⚙ menu at the cursor. macOS only; Windows keeps its current menu._
 - **Spec:**
   - `Menu.setApplicationMenu` built from T13's shortcut map:
     - **Aquila:** About, Settings… ⌘,, Hide, Quit

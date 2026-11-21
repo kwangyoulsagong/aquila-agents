@@ -108,6 +108,7 @@ const api: AquilaApi = {
   globalShortcut: () => ipcRenderer.invoke(IPC.globalShortcutGet),
   setGlobalShortcut: (accelerator) => ipcRenderer.invoke(IPC.globalShortcutSet, accelerator),
   onGlobalShortcut: on(IPC.globalShortcutFired),
+  onMenuCommand: on(IPC.menuCommand),
 };
 
 contextBridge.exposeInMainWorld('aquila', api);

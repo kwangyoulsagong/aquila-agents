@@ -1,4 +1,6 @@
-// Types shared by the main process (electron/) and the renderer (src/). Keep this file dependency-free.
+// Types shared by the main process (electron/) and the renderer (src/). Keep this file dependency-free
+// (type-only imports are erased: the shortcut ids of the app menu, T47).
+import type { ShortcutId } from '../lib/shortcuts';
 
 export type SessionKind = 'claude' | 'codex' | 'shell';
 /** `stopped` = the user interrupted (Esc / Ctrl+C) or the program exited normally; `error` = it failed. */
@@ -769,7 +771,12 @@ export interface AquilaApi {
   setGlobalShortcut(accelerator: string | null): Promise<GlobalShortcutState>;
   /** The key was pressed: the window is already up. `wasFocused`: Aquila was the front window before. */
   onGlobalShortcut(cb: (p: { wasFocused: boolean }) => void): Unsubscribe;
+  /** App menu bar (T47): a menu item was clicked; the renderer runs it like the key. */
+  onMenuCommand(cb: (command: MenuCommand) => void): Unsubscribe;
 }
+
+/** App menu bar (T47): a shortcut of the map, or a menu-only command. */
+export type MenuCommand = ShortcutId | 'settings' | 'addProject' | 'whatsNew';
 
 /** In-app preview (T33): the app, or Figma under it in the Designer layout. */
 export type PreviewSlot = 'app' | 'figma';
@@ -938,4 +945,5 @@ export const IPC = {
   globalShortcutGet: 'global-shortcut:get',
   globalShortcutSet: 'global-shortcut:set',
   globalShortcutFired: 'global-shortcut:fired',
+  menuCommand: 'menu:command',
 } as const;
