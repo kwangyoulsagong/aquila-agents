@@ -521,9 +521,12 @@ export class SessionManager {
     logStatus(s.id, 'osc7501', payload);
     // `msg` is the program's own one-line context ("Allow Bash: npm install?").
     const text = firstLine(msg.fields.msg);
-    if (text && msg.fields.state === 'blocked') s.details.waiting = text;
-    if (text && msg.fields.state === 'done') s.details.done = text;
+    const slot = msg.fields.state === 'blocked' ? 'waiting' : msg.fields.state === 'done' ? 'done' : null;
+    const fresh = !!text && !!slot && s.details[slot] !== text;
+    if (text && slot) s.details[slot] = text;
     if (s.tracker.osc(msg.fields, Date.now())) this.emitStatus(s);
+    // Same status, new context: the row and the pending notification show it (T52).
+    else if (fresh && s.tracker.current().status === slot) this.emitStatus(s);
   }
 
   /** A Claude hook from this tab (status fallback; SessionStart also carries the Claude session id). */
@@ -561,8 +564,7 @@ export class SessionManager {
     if (slot && hook.detail && !(slot === 'waiting' && hook.event === 'Notification' && s.details.waiting))
       s.details[slot] = hook.detail;
     if (s.tracker.hook(hook)) this.emitStatus(s);
-    else if (slot && hook.detail && s.tracker.current().status === slot)
-      this.attention.changed(this.attentionView(s));
+    else if (slot && hook.detail && s.tracker.current().status === slot) this.emitStatus(s);
   }
 
   /** Open tabs (live and dormant) in creation order (= tab order). */
@@ -647,12 +649,14 @@ export class SessionManager {
       // A new turn: the old question and answer no longer describe it.
       if (status === 'working') s.details = {};
     }
+    const detail = status === 'waiting' || status === 'done' ? s.details[status] : undefined;
     const update: StatusUpdate = {
       id: s.id,
       status,
       since: s.since,
       ...(estimated ? { estimated } : {}),
       ...(reason ? { reason } : {}),
+      ...(detail ? { detail } : {}),
     };
     this.deps.send(IPC.sessionStatus, update);
     this.attention.changed(this.attentionView(s));

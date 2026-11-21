@@ -496,6 +496,11 @@ command + `curl`로 둡니다. 2.1.295보다 오래된 Claude(시작할 때 `cla
 - **Dock 배지** = `waiting`인 세션 수 (0이면 비움).
 - **대기 시간:** 탭과 프로젝트 행에 기다린 시간(`12분`, `since` 기준, 1분 이상)을 `.c-elapsed`로 보여 줍니다.
   행은 가장 오래 기다린 세션 기준.
+- **대기 이유** (T52): `session:status`가 같은 `detail`을 함께 보냅니다(waiting / done. 늦게 온 hook이나 7501 `msg`가
+  붙이면 다시 보내고, 새 턴이 시작되면 지웁니다). 프로젝트 행은 가장 오래 기다린 세션의 detail을 행 아래 한 줄로
+  보여 주고(`Reason`, 누르면 그 세션), 탭은 툴팁으로 보여 줍니다. `isDestructive`
+  (`src/shared/lib/risk.ts`: `rm -rf`, `push --force`, `reset --hard`, `DROP TABLE`, `migrate reset`, `--force`…)에
+  걸리면 오류 색 ⚠ 표식을 붙입니다 — 막는 장치가 아니라 눈에 띄게 하는 힌트입니다.
 - **다음 대기 세션**(⌘J, 팔레트에도): 프로젝트를 가로질러 waiting > error > done 순으로 돌고, 같은 단계에서는
   오래 기다린 것부터. 목록 밖 세션에서 누르면 맨 앞으로.
 - **앱 메뉴 막대**(T47, `electron/appMenu.ts`, macOS): Aquila · 파일 · 편집 · 보기 · 윈도우 · 도움말. 단축키 맵으로

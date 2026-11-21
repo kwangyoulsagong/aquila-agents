@@ -17,6 +17,8 @@ export interface StatusUpdate {
   reason?: ErrorReason;
   /** When this status started (ms since epoch) — "waiting for 12 min". */
   since?: number;
+  /** What it waits on ("Bash: npm install") or the last answer's first line (done) — the notification detail (T52). */
+  detail?: string;
 }
 
 export type Language = 'ko' | 'en';
@@ -265,6 +267,8 @@ export interface Session extends SessionInfo {
   reason?: ErrorReason;
   /** When the current status started (ms since epoch). */
   since?: number;
+  /** Waiting: the permission / question summary; done: the last answer's first line (T52). */
+  detail?: string;
   exited?: boolean;
   /** Remote sessions: connection state and the next automatic retry. */
   connection?: ConnectionState;

@@ -527,6 +527,11 @@ command + `curl` posting the same JSON. Raw 7501 reports and hook event names go
 - **Dock badge** = number of sessions in `waiting` (empty at zero).
 - **Waiting time:** tabs and project rows show how long a session has waited (`12m`, from `since`, ≥1 min) with
   `.c-elapsed`; the row shows its longest wait.
+- **Waiting reason** (T52): `session:status` carries the same `detail` (waiting / done; re-sent when a late hook or
+  7501 `msg` adds it, dropped when a new turn starts). The project row shows its longest-waiting session's detail on
+  a line under it (`Reason`, click → that session); tabs show it in their tooltip. `isDestructive`
+  (`src/shared/lib/risk.ts`: `rm -rf`, `push --force`, `reset --hard`, `DROP TABLE`, `migrate reset`, `--force`…)
+  marks it with ⚠ in the error colour — a hint, not a guard.
 - **Next waiting session** (⌘J, also in the palette): cycles waiting > error > done across projects, longest wait
   first within a tier; from a session outside that list it jumps to the head.
 - **App menu bar** (T47, `electron/appMenu.ts`, macOS): Aquila · File · Edit · View · Window · Help, built from the

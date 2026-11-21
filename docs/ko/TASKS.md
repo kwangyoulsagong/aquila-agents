@@ -480,13 +480,21 @@ ADE UX 조사(차분한 주의, 떠올리지 말고 알아보기)에서 나온 �
 - **스펙:** 프리뷰 머리의 "브라우저에서 열기"는 Google Chrome이 설치돼 있으면 Chrome으로, 없으면 기본 브라우저로 현재 주소를 연다. 전체 창 토글은 프리뷰만 보여 준다(팬의 ⇧⌘F처럼).
 - **담당:** `src/widgets/preview/`, "브라우저에서 열기" IPC 하나.
 
+### T52 · 행에 대기 이유
+- [x] **목표:** 세션을 열지 않고도 무엇을 기다리는지 보고, 파괴적 명령을 한눈에 알아챈다.
+  _남은 것: smoke는 셸에서 OSC 7501로 대기 이유를 만든다. 실제 Claude `PermissionRequest`는 단위 테스트로만 확인했다. 행에는 가장 오래 기다린 세션의 이유만 나온다(나머지는 각 탭 툴팁). 툴팁은 탭에 있고 제목에는 없다(제목은 이름 바꾸기 힌트를 유지). 감지는 패턴 목록이라 감싼 명령(따옴표가 특이한 `sh -c "…"`)은 놓칠 수 있다._
+- **스펙:**
+  - `session:status`가 알림 detail(`detail`, waiting / done)을 함께 보낸다. 늦게 오면 다시 보낸다.
+  - 프로젝트 행 아래 한 줄에 가장 오래 기다린 세션의 이유를 보여 주고, 누르면 그 세션을 연다. 탭은 툴팁으로 보여 준다.
+  - `rm -rf`, `push --force`, `reset --hard`, `clean -f`, `branch -D`, `DROP`/`TRUNCATE`, `WHERE` 없는 `DELETE FROM`, `migrate reset`, `terraform destroy`, `kubectl delete`, `--force`… 는 줄과 탭에 오류 색 ⚠를 붙인다.
+- **담당:** `src/shared/lib/risk.ts` (+ 테스트), `design-system/react/Reason.tsx` + `.c-reason`/`.c-risk`, `src/widgets/sidebar/`의 행, `src/widgets/session-tabs/`의 탭. `StatusUpdate`/`Session`의 `detail`(추가만).
+
 ### 실제 호스트에서 원격 확인 (보류)
 - [ ] SSH 서버가 생길 때까지 보류: 실제 호스트에서 원격 프로젝트 추가, 탭 열기, Changes, 히스토리, 재연결을 해 보고 깨지는 것만 고친다(T29/T36 남은 것).
 
 ### 있으면 좋은 것 (계획 없음)
 - 탭 바 패널 버튼(`±` `◫` `{}`)에 T46처럼 텍스트 라벨.
 - Figma를 ⌘K·메뉴·가이드에 넣고, `/mcp`를 안내하는 로그인 버튼. 링크를 입력하거나 끌어다 놓아도 칩 표시.
-- 사이드바 행에 대기 이유(알림 요약), 파괴적 명령엔 빨간 표식.
 - Run 슬롯: dev 서버·테스트·긴 작업을 에이전트와 분리된 프로세스로, 로그 팬과 상태 점.
 - 리뷰 대기열: 끝났지만 아직 안 본 세션, 바뀐 파일과 푸시 여부.
 - 읽기 전용 트랜스크립트에서 뽑은 세션별 명령 타임라인.

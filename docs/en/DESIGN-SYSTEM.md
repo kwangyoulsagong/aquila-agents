@@ -124,6 +124,8 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `.c-segment`, `__item[aria-checked]` | Segmented control (account switch) |
 | `.c-kbd` | Shortcut hint |
 | `.c-elapsed` | How long a session has waited ("12m", mono, waiting color) on a tab or project row |
+| `.c-reason` | What a waiting session waits on ("Bash: npm install"), one mono caption line under its project row (aligned with the name); a button that shows the session. `data-risk` = possibly destructive: error color + `.c-risk` |
+| `.c-risk` | Warning glyph (⚠) in the error color for a possibly destructive command — on the reason line and the tab |
 | `.c-badge` `--claude` `--codex` `--shell` `--account-shared` `--account-personal` | Tags |
 | `.c-badge--host`, `.c-badge__conn[data-conn=connecting\|connected\|reconnecting\|lost]` | Remote host alias (not uppercased) with a connection dot: idle grey / green / orange pulsing / red (T29) |
 | `.c-term-overlay__banner` `__banner-text` `__banner-meta` | Bar across the top of a terminal that takes clicks, red edge: connection lost + countdown + an action (T29) |
@@ -176,6 +178,8 @@ from `src/` (ESLint enforces it). New primitive → add the class to `components
 | `HostBadge` `host` `conn?` `label?` | `.c-badge--host` (+ `.c-badge__conn`) |
 | `Kbd`, `Label` | `.c-kbd`, `.c-label` |
 | `Elapsed` `title?` | `.c-elapsed` |
+| `Reason` `text` `risk?` `riskLabel?` `onClick?` | `.c-reason` |
+| `RiskMark` `label` | `.c-risk` |
 | `Meter` `label` `value` `fraction` (null = unknown) `tone?` `caption?` `title?` | `.c-meter` |
 | `Ring` `fraction` `label` `valueText` `showValue?` `tone?` `title?` | `.c-ring` |
 | `Segment` `options` `value` `onChange` | `.c-segment` |

@@ -30,6 +30,10 @@ const OSC_CHECK =
 /** T41: query 7501, then report "waiting" (a question), from a plain shell. */
 const SUMMON_WAITING =
   "printf '\\033]7501;?\\007'; IFS= read -rs -t 2 -d '\\' r; printf '\\033]7501;state=blocked:app=smoke:kind=question\\007'\r";
+/** T52: report "waiting" on a permission whose summary (base64 `msg`) is a destructive command. */
+const RISKY_WAITING =
+  "printf '\\033]7501;?\\007'; IFS= read -rs -t 2 -d '\\' r; printf '\\033]7501;state=blocked:app=smoke:kind=permission:msg=QmFzaDogcm0gLXJmIGRpc3Q=\\007'\r";
+const RISKY_DONE = "printf '\\033]7501;state=idle:app=smoke\\007'\r";
 const YES_MARKER = 'AQUILA_YES_2';
 const YES_FLOOD_MS = 1000;
 const YES_BUDGET_MS = 3000;
@@ -132,6 +136,8 @@ export async function runSmoke(
     if (renameError) return fail(renameError);
     const promptError = await checkPromptTitle(win, sessions);
     if (promptError) return fail(promptError);
+    const reasonError = await checkWaitingReason(win, sessions, outDir);
+    if (reasonError) return fail(reasonError);
     const layoutError = await checkPanelLayout(win, outDir);
     if (layoutError) return fail(layoutError);
     const onPath = (bin: string) =>
@@ -281,7 +287,8 @@ async function checkPanelLayout(win: BrowserWindow, outDir: string): Promise<str
   win.setContentSize(1440, 900);
   win.show();
   win.focus();
-  const mod: Electron.InputEvent['modifiers'] = process.platform === 'win32' ? ['control', 'shift'] : ['meta', 'shift'];
+  const mod: Electron.InputEvent['modifiers'] =
+    process.platform === 'win32' ? ['control', 'shift'] : ['meta', 'shift'];
   press(win, 'G', mod);
   press(win, 'P', mod);
   await wait(600);
@@ -364,8 +371,10 @@ async function checkPanelLayout(win: BrowserWindow, outDir: string): Promise<str
   await wait(400);
   win.setContentSize(w0, h0);
   await wait(300);
-  if (m.panels.length !== 2) return `panel layout: ${m.panels.length} panels open, expected Changes + Preview`;
-  if (m.doc > m.view || m.app > m.view) return `panel layout: page scrolls sideways (${m.doc}/${m.app} > ${m.view})`;
+  if (m.panels.length !== 2)
+    return `panel layout: ${m.panels.length} panels open, expected Changes + Preview`;
+  if (m.doc > m.view || m.app > m.view)
+    return `panel layout: page scrolls sideways (${m.doc}/${m.app} > ${m.view})`;
   if (m.foot && m.sidebar && (m.foot.r > m.sidebar.r || m.footScroll > m.footClient || m.foot.b > m.vh))
     return 'panel layout: sidebar footer is clipped';
   if (!m.main || m.main.w < 480) return `panel layout: terminal is ${m.main?.w ?? 0}px wide, expected ≥ 480`;
@@ -653,6 +662,52 @@ async function checkRename(win: BrowserWindow, s: SessionManager, outDir: string
  * T43: a UserPromptSubmit body as Claude 2.1.329 posts it names the focused tab; a later prompt or a slash command
  * doesn't, a user title wins and clearing it goes back to the prompt.
  */
+/**
+ * T52: the focused shell reports waiting on `Bash: rm -rf dist` over OSC 7501. The project row gets the reason line,
+ * marked risky, and the tab gets the warning mark and the reason in its tooltip. Screenshot, then back to idle.
+ */
+async function checkWaitingReason(
+  win: BrowserWindow,
+  s: SessionManager,
+  outDir: string,
+): Promise<string | null> {
+  const id = s.active;
+  if (!id) return 'waiting reason: no focused tab';
+  s.write(id, RISKY_WAITING);
+  type Seen = { reason: string; risk: boolean; mark: boolean; tooltip: string };
+  const look = (): Promise<Seen> =>
+    win.webContents.executeJavaScript(`(() => {
+      const r = document.querySelector('.c-sidebar .c-reason');
+      const tab = document.querySelector('.c-tab[aria-selected="true"]');
+      return {
+        reason: r?.textContent ?? '',
+        risk: r?.getAttribute('data-risk') === 'true',
+        mark: !!tab?.querySelector('.c-risk'),
+        tooltip: tab?.getAttribute('title') ?? '',
+      };
+    })()`) as Promise<Seen>;
+  let seen = await look();
+  for (let i = 0; i < 30 && !seen.reason.includes('rm -rf dist'); i++) {
+    await wait(100);
+    seen = await look();
+  }
+  fs.writeFileSync(path.join(outDir, 'smoke-reason.png'), (await win.webContents.capturePage()).toPNG());
+  s.write(id, RISKY_DONE);
+  await wait(500);
+  const cleared: boolean = await win.webContents.executeJavaScript(
+    `!document.querySelector('.c-sidebar .c-reason')`,
+  );
+  console.log(
+    `[smoke] waiting reason: row "${seen.reason}", risky ${seen.risk}, tab mark ${seen.mark}, tooltip "${seen.tooltip}", cleared ${cleared}`,
+  );
+  if (!seen.reason.includes('rm -rf dist'))
+    return 'waiting reason: the project row did not show the permission summary';
+  if (!seen.risk || !seen.mark) return 'waiting reason: rm -rf was not marked as destructive';
+  if (!seen.tooltip.includes('rm -rf dist')) return 'waiting reason: the tab tooltip has no reason';
+  if (!cleared) return 'waiting reason: the line stayed after the session stopped waiting';
+  return null;
+}
+
 async function checkPromptTitle(win: BrowserWindow, s: SessionManager): Promise<string | null> {
   const js = <T>(code: string): Promise<T> => win.webContents.executeJavaScript(code) as Promise<T>;
   const id = s.active;
@@ -715,7 +770,9 @@ async function checkMenuPaste(win: BrowserWindow): Promise<string | null> {
     (await clipboard.read()).map(
       async (item) =>
         new ClipboardItem(
-          Object.fromEntries(await Promise.all(item.types.map(async (t) => [t, await item.getType(t)] as const))),
+          Object.fromEntries(
+            await Promise.all(item.types.map(async (t) => [t, await item.getType(t)] as const)),
+          ),
         ),
     ),
   ).catch(() => [] as ClipboardItem[]);
@@ -749,7 +806,8 @@ async function checkMenuPaste(win: BrowserWindow): Promise<string | null> {
     await clipboard.write([new ClipboardItem({ 'image/png': png })]);
     await rightClick();
     console.log(`[smoke] menu paste (image) wrote ${JSON.stringify(written)}`);
-    if (!/\.png ?/.test(written)) return `menu paste: an image did not go in as a file path (${JSON.stringify(written)})`;
+    if (!/\.png ?/.test(written))
+      return `menu paste: an image did not go in as a file path (${JSON.stringify(written)})`;
     press(win, 'U', ['control']); // clear the line we typed into
     await wait(200);
     return null;
@@ -964,7 +1022,8 @@ async function checkTrends(win: BrowserWindow, outDir: string): Promise<string |
   const js = <T>(code: string): Promise<T> => win.webContents.executeJavaScript(code) as Promise<T>;
   // Footer order: ⚙ Settings, AI trends, ? — AI trends is the first icon button.
   const button = `document.querySelector('.c-sidebar__foot .c-btn--icon')`;
-  if (!(await js<boolean>(`!!${button}?.querySelector('svg')`))) return 'trends: no AI trends button in the sidebar footer';
+  if (!(await js<boolean>(`!!${button}?.querySelector('svg')`)))
+    return 'trends: no AI trends button in the sidebar footer';
   if (!(await js<boolean>(`!!document.querySelector('.c-sidebar__body > .c-sidebar__add')`)))
     return 'sidebar: no "+ Add project" row under the project list';
   await js(`${button}.click()`);

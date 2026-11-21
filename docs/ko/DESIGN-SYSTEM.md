@@ -123,6 +123,8 @@
 | `.c-segment`, `__item[aria-checked]` | 세그먼트 컨트롤 (계정 전환) |
 | `.c-kbd` | 단축키 표시 |
 | `.c-elapsed` | 세션이 기다린 시간("12분", 고정폭, 대기 색) — 탭·프로젝트 행 |
+| `.c-reason` | 대기 중인 세션이 기다리는 것("Bash: npm install"). 프로젝트 행 아래 한 줄(고정폭 캡션, 이름과 정렬). 누르면 그 세션을 보여 주는 버튼. `data-risk` = 파괴적일 수 있음: 오류 색 + `.c-risk` |
+| `.c-risk` | 파괴적일 수 있는 명령의 경고 기호(⚠, 오류 색) — 대기 이유 줄과 탭 |
 | `.c-badge` `--claude` `--codex` `--shell` `--account-shared` `--account-personal` | 태그 |
 | `.c-badge--host`, `.c-badge__conn[data-conn=connecting\|connected\|reconnecting\|lost]` | 원격 호스트 이름(대문자로 안 바꿈)과 연결 점: 회색 / 초록 / 주황 깜빡임 / 빨강 (T29) |
 | `.c-term-overlay__banner` `__banner-text` `__banner-meta` | 터미널 위쪽을 가로지르는 클릭 가능한 바, 빨간 테두리: 연결 끊김 + 카운트다운 + 동작 (T29) |
@@ -175,6 +177,8 @@
 | `HostBadge` `host` `conn?` `label?` | `.c-badge--host` (+ `.c-badge__conn`) |
 | `Kbd`, `Label` | `.c-kbd`, `.c-label` |
 | `Elapsed` `title?` | `.c-elapsed` |
+| `Reason` `text` `risk?` `riskLabel?` `onClick?` | `.c-reason` |
+| `RiskMark` `label` | `.c-risk` |
 | `Meter` `label` `value` `fraction` (null = 모름) `tone?` `caption?` `title?` | `.c-meter` |
 | `Ring` `fraction` `label` `valueText` `showValue?` `tone?` `title?` | `.c-ring` |
 | `Segment` `options` `value` `onChange` | `.c-segment` |

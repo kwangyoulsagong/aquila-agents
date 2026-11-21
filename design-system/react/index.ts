@@ -6,6 +6,7 @@ export { Dot, type DotStatus } from './Dot';
 export { Badge, HostBadge, type ConnState } from './Badge';
 export { Kbd } from './Kbd';
 export { Elapsed } from './Elapsed';
+export { Reason, RiskMark } from './Reason';
 export { Meter, type MeterProps, type MeterTone } from './Meter';
 export { Ring, type RingProps } from './Ring';
 export { Label } from './Label';

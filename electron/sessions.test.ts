@@ -128,3 +128,37 @@ describe('SessionManager on screen (T45)', () => {
     expect(m.onScreen(a.id)).toBe(false);
   });
 });
+
+describe('SessionManager waiting reason (T52)', () => {
+  const local: Config = { ...config, projects: [{ ...config.projects[0], path: os.tmpdir() }] };
+  let sent: { channel: string; payload: unknown }[];
+  let m: SessionManager;
+  beforeEach(() => {
+    vi.useFakeTimers();
+    sent = [];
+    m = new SessionManager({
+      send: (channel, payload) => sent.push({ channel, payload }),
+      getWindow: () => null,
+      hookPort: 0,
+      hookSettingsPath: () => '',
+    });
+  });
+  afterEach(() => vi.useRealTimers());
+
+  const lastStatus = () =>
+    sent.filter((s) => s.channel === IPC.sessionStatus).at(-1)?.payload as Record<string, unknown> | undefined;
+
+  it('sends the permission summary with the status, also when it arrives late, and drops it on a new turn', () => {
+    const s = m.create(local, 'a', 'claude');
+    m.onHook(s.id, { event: 'PermissionRequest' });
+    expect(lastStatus()).toMatchObject({ id: s.id, status: 'waiting' });
+    expect(lastStatus()?.detail).toBeUndefined();
+
+    m.onHook(s.id, { event: 'PermissionRequest', detail: 'Bash: rm -rf dist' });
+    expect(lastStatus()).toMatchObject({ status: 'waiting', detail: 'Bash: rm -rf dist' });
+
+    m.onHook(s.id, { event: 'UserPromptSubmit' });
+    expect(lastStatus()).toMatchObject({ status: 'working' });
+    expect(lastStatus()?.detail).toBeUndefined();
+  });
+});

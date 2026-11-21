@@ -101,6 +101,24 @@ body {
   white-space: nowrap;
 }
 
+/* ── Reason ───────────────────────────────────────────────── */
+/* What a waiting session waits on ("Bash: npm install"), under its project row (T52). A possibly destructive
+   command is marked: error colour + a warning glyph, never colour alone. */
+.c-reason {
+  display: flex; align-items: center; gap: var(--space-inline-xs); width: 100%; min-width: 0;
+  height: var(--size-badge); padding: 0; border: 0; background: none; text-align: left; cursor: pointer;
+  font: var(--font-size-caption) var(--font-family-mono); color: var(--color-text-secondary);
+}
+.c-reason:hover { color: var(--color-text-primary); }
+.c-reason__text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.c-reason[data-risk='true'] { color: var(--color-status-error); }
+.c-risk { flex: none; font: 600 var(--font-size-caption) var(--font-family-ui); color: var(--color-status-error); }
+/* In the sidebar: aligned with the project name, one badge line + a 4px gap under its row. */
+.c-sidebar .c-reason {
+  padding: 0 var(--space-inset-sm) 0 calc(var(--space-inset-md) + var(--size-dot) + var(--space-inline-sm));
+  margin-bottom: var(--space-inline-xs);
+}
+
 /* ── Badge ────────────────────────────────────────────────── */
 .c-badge {
   display: inline-flex; align-items: center; height: var(--size-badge);
