@@ -329,6 +329,20 @@ export async function runCapture(
       after: () => press('Escape', [], 500),
     },
     {
+      // Figma you can find (T54): ⌘K "Connect Figma…" opens project settings with Figma switched on and in view.
+      id: 'figma',
+      rect: FULL,
+      stage: async () => {
+        await press('1', ['meta'], 300);
+        await openPalette();
+        await type('Figma', 60);
+        await wait(300);
+        await click('.c-palette__item', t('figma.connectAction'));
+        await wait(1200);
+      },
+      after: () => press('Escape', [], 500),
+    },
+    {
       id: 'worktree',
       rect: FULL,
       ms: 5000,

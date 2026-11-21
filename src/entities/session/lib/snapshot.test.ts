@@ -11,7 +11,9 @@ const buffer = (rows: [string, boolean?][]): BufferLike => ({
 
 describe('snapshotText', () => {
   it('joins wrapped rows and drops trailing blank lines', () => {
-    expect(snapshotText(buffer([['$ echo '], ['hello', true], ['hello'], [''], ['  ']]))).toBe('$ echo hello\nhello');
+    expect(snapshotText(buffer([['$ echo '], ['hello', true], ['hello'], [''], ['  ']]))).toBe(
+      '$ echo hello\nhello',
+    );
   });
 
   it('keeps the newest lines', () => {

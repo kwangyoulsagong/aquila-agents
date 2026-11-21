@@ -76,7 +76,11 @@ describe('searchGuide', () => {
 
 describe('guide media', () => {
   it('prefers the loop with its poster, else the still', () => {
-    const files = { '../media/a.en.webm': 'a.webm', '../media/a.en.webp': 'a.webp', '../media/b.ko.webp': 'b.webp' };
+    const files = {
+      '../media/a.en.webm': 'a.webm',
+      '../media/a.en.webp': 'a.webp',
+      '../media/b.ko.webp': 'b.webp',
+    };
     expect(mediaFrom(files, 'a', 'en')).toEqual({ src: 'a.webm', kind: 'video', poster: 'a.webp' });
     expect(mediaFrom(files, 'b', 'ko')).toEqual({ src: 'b.webp', kind: 'image' });
     expect(mediaFrom(files, 'b', 'en')).toBeUndefined();

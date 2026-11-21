@@ -12,6 +12,10 @@ interface Props {
 export default function StatusDot({ status, estimated, reason }: Props) {
   const t = useT();
   const label =
-    status === 'error' && reason ? t(`status.reason.${reason}`) : estimated ? t('status.estimated') : undefined;
+    status === 'error' && reason
+      ? t(`status.reason.${reason}`)
+      : estimated
+        ? t('status.estimated')
+        : undefined;
   return <Dot status={status} estimated={estimated} label={label} />;
 }

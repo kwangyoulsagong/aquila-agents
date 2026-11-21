@@ -34,7 +34,11 @@ export function nextWaiting(sessions: Session[], activeId: string | null): strin
  * so the user lands where they are needed most. From Aquila itself: the same cycling as ⌘J. Null = just show the
  * window.
  */
-export function summonTarget(sessions: Session[], activeId: string | null, wasFocused: boolean): string | null {
+export function summonTarget(
+  sessions: Session[],
+  activeId: string | null,
+  wasFocused: boolean,
+): string | null {
   if (wasFocused) return nextWaiting(sessions, activeId);
   return attentionQueue(sessions)[0]?.id ?? null;
 }

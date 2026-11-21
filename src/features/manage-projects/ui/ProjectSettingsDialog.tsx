@@ -1,8 +1,9 @@
-import { useEffect, useId, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import {
   Button,
   Dialog,
   DialogForm,
+  DialogGroup,
   Field,
   FieldGrid,
   FieldRow,
@@ -34,22 +35,43 @@ interface Props {
   onSave: (settings: ReturnType<typeof toSettings>) => Promise<void>;
   /** Figma MCP block (T32), composed by the page: features don't import each other. Local projects only. */
   renderFigma?: RenderFigma;
+  /** Opened for Figma (⌘K "Connect Figma…", T54): Figma starts switched on and its block is scrolled into view. */
+  focus?: 'figma';
 }
 
 export type RenderFigma = (p: {
+  projectId: string;
   enabled: boolean;
   onChange: (enabled: boolean) => void;
   account: string;
+  /** Figma as saved (what open tabs were spawned with). */
+  saved: boolean;
+  /** Submits the dialog; false when invalid or the save failed. */
+  save: () => Promise<boolean>;
 }) => ReactNode;
 
 const KINDS: SessionKind[] = ['claude', 'codex', 'shell'];
 
 /** Per-project defaults: folder, group, account, default agent, worktree base branch + setup, ports, editor. */
-export default function ProjectSettingsDialog({ project, config, onClose, onSave, renderFigma }: Props) {
+export default function ProjectSettingsDialog({
+  project,
+  config,
+  onClose,
+  onSave,
+  renderFigma,
+  focus,
+}: Props) {
   const t = useT();
   const formId = useId();
   const branchList = useId();
-  const [form, setForm] = useState<SettingsForm>(() => toForm(project));
+  const [form, setForm] = useState<SettingsForm>(() => {
+    const f = toForm(project);
+    return focus === 'figma' && !project.remote ? { ...f, figma: true } : f;
+  });
+  const figmaRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (focus === 'figma') figmaRef.current?.scrollIntoView({ block: 'center' });
+  }, [focus]);
   const [branches, setBranches] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -86,15 +108,17 @@ export default function ProjectSettingsDialog({ project, config, onClose, onSave
     }
   };
 
-  const submit = async () => {
-    if (busy || invalid) return;
+  const submit = async (): Promise<boolean> => {
+    if (busy || invalid) return false;
     setBusy(true);
     setError(null);
     try {
       await onSave(toSettings(form, project));
+      return true;
     } catch (e) {
       setError((e as Error).message);
       setBusy(false);
+      return false;
     }
   };
 
@@ -265,11 +289,18 @@ export default function ProjectSettingsDialog({ project, config, onClose, onSave
                 ]}
               />
             </Field>
-            {renderFigma?.({
-              enabled: form.figma,
-              onChange: (v) => set('figma', v),
-              account: form.account,
-            })}
+            {renderFigma && (
+              <DialogGroup ref={figmaRef}>
+                {renderFigma({
+                  projectId: project.id,
+                  enabled: form.figma,
+                  onChange: (v) => set('figma', v),
+                  account: form.account,
+                  saved: !!project.figma,
+                  save: submit,
+                })}
+              </DialogGroup>
+            )}
           </>
         )}
       </DialogForm>

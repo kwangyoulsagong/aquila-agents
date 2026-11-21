@@ -150,7 +150,10 @@ describe('git tree actions (real repo)', () => {
     run('config', 'user.email', 'test@example.com');
     run('config', 'user.name', 'test');
     run('config', 'commit.gpgsign', 'false');
-    fs.writeFileSync(path.join(dir, 'a.txt'), ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', ''].join('\n'));
+    fs.writeFileSync(
+      path.join(dir, 'a.txt'),
+      ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', ''].join('\n'),
+    );
     run('add', '.');
     run('commit', '-qm', 'init');
     const config = { projects: [{ id: 'p', path: dir }] } as unknown as Config;

@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import type { CliNews, NewsItem } from '@/shared/api';
 import { translator } from '@/shared/i18n';
-import { bucketIndustry, filterCli, hasCliUpdate, relativeTime, rowIds, SUMMARY_ID, summaryLines } from './trends';
+import {
+  bucketIndustry,
+  filterCli,
+  hasCliUpdate,
+  relativeTime,
+  rowIds,
+  SUMMARY_ID,
+  summaryLines,
+} from './trends';
 
 const item = (id: string, over: Partial<NewsItem> = {}): NewsItem => ({
   id,
@@ -21,7 +29,12 @@ const cli: CliNews[] = [
     upToDate: false,
     releases: [{ version: '2.1.2', url: 'u', publishedAt: 1, added: ['Added hooks view'] }],
   },
-  { tool: 'codex', installed: null, upToDate: false, releases: [{ version: '0.1.0', url: 'u', publishedAt: 1, added: [] }] },
+  {
+    tool: 'codex',
+    installed: null,
+    upToDate: false,
+    releases: [{ version: '0.1.0', url: 'u', publishedAt: 1, added: [] }],
+  },
 ];
 
 describe('trends model', () => {
@@ -59,7 +72,13 @@ describe('trends model', () => {
 
 describe('hasCliUpdate', () => {
   const rel = { version: '2.2.0', publishedAt: 0, url: 'https://x', added: [] };
-  const news = (over: Partial<CliNews>): CliNews => ({ tool: 'claude', installed: '2.1.0', upToDate: false, releases: [rel], ...over });
+  const news = (over: Partial<CliNews>): CliNews => ({
+    tool: 'claude',
+    installed: '2.1.0',
+    upToDate: false,
+    releases: [rel],
+    ...over,
+  });
 
   it('is on only for a known installed version with a newer release', () => {
     expect(hasCliUpdate(null)).toBe(false);

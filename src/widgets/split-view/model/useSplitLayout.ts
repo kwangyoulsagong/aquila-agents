@@ -49,6 +49,12 @@ export function useSplitLayout(
   /** A freshly created session goes into the focused pane. */
   const placeInFocused = useCallback((id: string) => setLayout((l) => L.place(l, l.focusedId, id)), []);
 
+  /** A session restarted under a new id keeps its panes. */
+  const replaceSession = useCallback(
+    (from: string, to: string) => setLayout((l) => L.replaceSession(l, from, to)),
+    [],
+  );
+
   /** Before removing a session from the list: collapse its pane, or (single pane) show a sibling session. */
   const forgetSession = useCallback(
     (id: string) => {
@@ -115,6 +121,7 @@ export function useSplitLayout(
     selectProject,
     showSession,
     placeInFocused,
+    replaceSession,
     forgetSession,
     restoreLayout,
     focusPane,

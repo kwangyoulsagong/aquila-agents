@@ -6,13 +6,7 @@ import { execFile, execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { expand } from './config';
-import type {
-  Config,
-  Project,
-  Worktree,
-  WorktreeCandidate,
-  WorktreeInfo,
-} from '../src/shared/api/types';
+import type { Config, Project, Worktree, WorktreeCandidate, WorktreeInfo } from '../src/shared/api/types';
 
 interface Run {
   code: number;
@@ -53,8 +47,10 @@ export function parseWorktreeList(out: string): ListedWorktree[] {
     const last = list[list.length - 1];
     if (!last) continue;
     if (line.startsWith('HEAD ')) head = line.slice('HEAD '.length);
-    else if (line.startsWith('branch ')) last.branch = line.slice('branch '.length).replace(/^refs\/heads\//, '');
-    else if (line === 'detached') last.detached = head.slice(0, 7); // HEAD always comes before `detached`
+    else if (line.startsWith('branch '))
+      last.branch = line.slice('branch '.length).replace(/^refs\/heads\//, '');
+    else if (line === 'detached')
+      last.detached = head.slice(0, 7); // HEAD always comes before `detached`
     else if (line === 'locked' || line.startsWith('locked ')) last.locked = true;
     else if (line === 'prunable' || line.startsWith('prunable ')) last.prunable = true;
   }
@@ -196,7 +192,8 @@ export async function ensureWorktree(
   // An absolute path names an existing worktree (how a detached one is opened); git branch names can't start with `/`.
   if (path.isAbsolute(branch)) {
     const found = (await listWorktrees(cwd))?.find((w) => w.path === branch && !w.prunable);
-    if (!found || !(found.branch || found.detached)) throw new Error(`Not a worktree of this repo: ${branch}`);
+    if (!found || !(found.branch || found.detached))
+      throw new Error(`Not a worktree of this repo: ${branch}`);
     return { worktree: openable(found), created: false };
   }
   // check-ref-format also rules out `..`, spaces and other path tricks; a leading `-` would read as an option.
@@ -302,9 +299,16 @@ export const PORT_STEP = 10;
  */
 export function worktreeSlot(dir: string): number {
   try {
-    const out = execFileSync('git', ['worktree', 'list', '--porcelain'], { cwd: dir, stdio: 'pipe', timeout: 2000 });
+    const out = execFileSync('git', ['worktree', 'list', '--porcelain'], {
+      cwd: dir,
+      stdio: 'pipe',
+      timeout: 2000,
+    });
     const target = real(dir);
-    return Math.max(0, parseWorktreeList(out.toString()).findIndex((w) => real(w.path) === target));
+    return Math.max(
+      0,
+      parseWorktreeList(out.toString()).findIndex((w) => real(w.path) === target),
+    );
   } catch {
     return 0;
   }

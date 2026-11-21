@@ -31,9 +31,14 @@ describe('worktree menu', () => {
   });
 
   it('names a detached worktree by its commit and opens it by path', () => {
-    const items = worktreeMenuItems(translator('ko'), [{ path: '/a/repo-wt/tmp', branch: 'a1b2c3d', detached: true }]);
+    const items = worktreeMenuItems(translator('ko'), [
+      { path: '/a/repo-wt/tmp', branch: 'a1b2c3d', detached: true },
+    ]);
     expect(items[0].label).toBe('a1b2c3d (분리됨)');
-    expect(parseWorktreeMenuId(items[0].submenu![0].id!)).toEqual({ kind: 'claude', branch: '/a/repo-wt/tmp' });
+    expect(parseWorktreeMenuId(items[0].submenu![0].id!)).toEqual({
+      kind: 'claude',
+      branch: '/a/repo-wt/tmp',
+    });
   });
 
   it('ignores other ids', () => {

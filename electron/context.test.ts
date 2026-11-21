@@ -19,7 +19,8 @@ afterEach(() => {
   for (const d of dirs.splice(0)) fs.rmSync(d, { recursive: true, force: true });
 });
 
-const statusJson = (cw: unknown) => JSON.stringify({ session_id: 'x', model: { id: 'm' }, context_window: cw });
+const statusJson = (cw: unknown) =>
+  JSON.stringify({ session_id: 'x', model: { id: 'm' }, context_window: cw });
 
 describe('readContextWindow', () => {
   it('takes used_percentage and the current usage tokens', () => {
@@ -28,14 +29,20 @@ describe('readContextWindow', () => {
         statusJson({
           context_window_size: 200_000,
           used_percentage: 42.5,
-          current_usage: { input_tokens: 500, cache_creation_input_tokens: 4500, cache_read_input_tokens: 80_000 },
+          current_usage: {
+            input_tokens: 500,
+            cache_creation_input_tokens: 4500,
+            cache_read_input_tokens: 80_000,
+          },
         }),
       ),
     ).toEqual({ percent: 42.5, usedTokens: 85_000, windowTokens: 200_000 });
   });
   it('computes the percentage when Claude gives only tokens', () => {
     expect(
-      readContextWindow(statusJson({ context_window_size: 200_000, current_usage: { input_tokens: 50_000 } })),
+      readContextWindow(
+        statusJson({ context_window_size: 200_000, current_usage: { input_tokens: 50_000 } }),
+      ),
     ).toEqual({ percent: 25, usedTokens: 50_000, windowTokens: 200_000 });
   });
   it('is null before the first message, without context_window, or for broken JSON', () => {
@@ -102,7 +109,11 @@ describe('ContextWatcher', () => {
     const w = new ContextWatcher((u) => got.push(u), dir);
     w.start();
     expect(fs.readdirSync(dir)).toEqual([]);
-    const body = statusJson({ context_window_size: 1000, used_percentage: 61, current_usage: { input_tokens: 610 } });
+    const body = statusJson({
+      context_window_size: 1000,
+      used_percentage: 61,
+      current_usage: { input_tokens: 610 },
+    });
     fs.writeFileSync(path.join(dir, 't1.json'), body);
     w.read('t1');
     w.read('t1'); // same numbers: no second update

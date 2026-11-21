@@ -30,13 +30,16 @@ describe('posix', () => {
     );
   });
 
-  it.skipIf(process.platform === 'win32')('runs as real sh: quoted args arrive intact and the marker prints on failure', () => {
-    const out = execFileSync('/bin/sh', [
-      '-c',
-      `${posixPrelude({ argv: ['printf', '%s|', "it's", 'a b'] })}${posixPrelude({ argv: ['false'], onFail: 'm' })}true`,
-    ]).toString();
-    expect(out).toBe("it's|a b|\x1b]7501;m\x07");
-  });
+  it.skipIf(process.platform === 'win32')(
+    'runs as real sh: quoted args arrive intact and the marker prints on failure',
+    () => {
+      const out = execFileSync('/bin/sh', [
+        '-c',
+        `${posixPrelude({ argv: ['printf', '%s|', "it's", 'a b'] })}${posixPrelude({ argv: ['false'], onFail: 'm' })}true`,
+      ]).toString();
+      expect(out).toBe("it's|a b|\x1b]7501;m\x07");
+    },
+  );
 });
 
 describe('darwin', () => {

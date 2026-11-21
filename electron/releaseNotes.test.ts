@@ -20,19 +20,31 @@ describe('release notes state', () => {
   });
 
   it('a fresh install records the version and shows nothing', () => {
-    expect(releaseNotesState('0.2.0', false, file)).toEqual({ current: '0.2.0', lastSeen: null, fresh: true });
+    expect(releaseNotesState('0.2.0', false, file)).toEqual({
+      current: '0.2.0',
+      lastSeen: null,
+      fresh: true,
+    });
     expect(readLastSeen(file)).toBe('0.2.0');
   });
 
   it('an install from before release notes has no record but is not fresh', () => {
-    expect(releaseNotesState('0.2.0', true, file)).toEqual({ current: '0.2.0', lastSeen: null, fresh: false });
+    expect(releaseNotesState('0.2.0', true, file)).toEqual({
+      current: '0.2.0',
+      lastSeen: null,
+      fresh: false,
+    });
     expect(readLastSeen(file)).toBeNull();
   });
 
   it('reports the recorded version and never moves it backwards', () => {
     writeLastSeen('0.3.0', file);
     writeLastSeen('0.2.0', file);
-    expect(releaseNotesState('0.4.0', true, file)).toEqual({ current: '0.4.0', lastSeen: '0.3.0', fresh: false });
+    expect(releaseNotesState('0.4.0', true, file)).toEqual({
+      current: '0.4.0',
+      lastSeen: '0.3.0',
+      fresh: false,
+    });
   });
 
   it('earlier use = app state in the folder', () => {

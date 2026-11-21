@@ -129,7 +129,12 @@ export function appMenuTemplate(t: Translate, opts: MenuOptions, send: (c: MenuC
     {
       role: 'help',
       label: t('menu.help'),
-      submenu: [sc(t('shortcut.guide'), 'guide'), cmd(t('notes.title'), 'whatsNew')],
+      submenu: [
+        sc(t('shortcut.guide'), 'guide'),
+        cmd(t('notes.title'), 'whatsNew'),
+        sep,
+        cmd(t('figma.connectAction'), 'connectFigma'),
+      ],
     },
   ];
 }

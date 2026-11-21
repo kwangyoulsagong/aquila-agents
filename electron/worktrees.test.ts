@@ -117,7 +117,7 @@ describe('ensureWorktree', () => {
     expect(wt.path).toBe(path.join(base, 'repo-wt', 'existing'));
     expect(await ensureWorktree(config, 'r', 'main')).toEqual({
       worktree: { path: repo, branch: 'main' },
-      created: false
+      created: false,
     });
 
     const info = await worktreeInfo(config, 'r');
@@ -142,7 +142,9 @@ describe('ensureWorktree', () => {
     const withBase: Config = { ...config, projects: [{ ...config.projects[0], defaultBranch: 'main' }] };
     expect((await worktreeInfo(withBase, 'r')).base).toBe('main');
     const { worktree } = await ensureWorktree(withBase, 'r', 'feat/from-main');
-    expect(execFileSync('git', ['rev-parse', 'HEAD'], { cwd: worktree.path }).toString().trim()).toBe(mainSha);
+    expect(execFileSync('git', ['rev-parse', 'HEAD'], { cwd: worktree.path }).toString().trim()).toBe(
+      mainSha,
+    );
     // A default branch that doesn't exist falls back to the current HEAD.
     const missing: Config = { ...config, projects: [{ ...config.projects[0], defaultBranch: 'nope' }] };
     expect((await worktreeInfo(missing, 'r')).base).toBe('develop');
@@ -189,9 +191,13 @@ describe('ensureWorktree', () => {
     const { config, run } = setup();
     const merged = (await ensureWorktree(config, 'r', 'done')).worktree.path;
     const ahead = (await ensureWorktree(config, 'r', 'wip')).worktree.path;
-    execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '--allow-empty', '-m', 'w'], {
-      cwd: ahead,
-    });
+    execFileSync(
+      'git',
+      ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '--allow-empty', '-m', 'w'],
+      {
+        cwd: ahead,
+      },
+    );
     const dirty = (await ensureWorktree(config, 'r', 'dirty')).worktree.path;
     fs.writeFileSync(path.join(dirty, 'new.txt'), 'x');
     const open = (await ensureWorktree(config, 'r', 'open')).worktree.path;

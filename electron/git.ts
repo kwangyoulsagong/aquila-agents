@@ -8,13 +8,7 @@ import { stat } from 'node:fs/promises';
 import path from 'node:path';
 import { expand } from './config';
 import { platform } from './platform';
-import type {
-  Config,
-  GitAction,
-  GitActionResult,
-  GitChanges,
-  GitFileChange,
-} from '../src/shared/api/types';
+import type { Config, GitAction, GitActionResult, GitChanges, GitFileChange } from '../src/shared/api/types';
 
 export const DIFF_CAP = 400 * 1024;
 const MAX_UNTRACKED_DIFFS = 20;
@@ -203,7 +197,15 @@ export async function gitChanges(
   const fp = await fingerprint(cwd, status.stdout + nameStatus, head, files);
   const cached = diffCache.get(key);
   if (cached?.fingerprint === fp) {
-    return { isRepo: true, ...parsed, files, diff: cached.diff, truncated: cached.truncated, base: against, checkedAt: Date.now() };
+    return {
+      isRepo: true,
+      ...parsed,
+      files,
+      diff: cached.diff,
+      truncated: cached.truncated,
+      base: against,
+      checkedAt: Date.now(),
+    };
   }
 
   // Staged + unstaged against the base; a repo without commits has no HEAD, fall back to the worktree diff.
@@ -222,7 +224,15 @@ export async function gitChanges(
   diffCache.delete(key);
   diffCache.set(key, { fingerprint: fp, diff: capped.text, truncated: capped.truncated });
   while (diffCache.size > MAX_CACHED) diffCache.delete(diffCache.keys().next().value as string);
-  return { isRepo: true, ...parsed, files, diff: capped.text, truncated: capped.truncated, base: against, checkedAt: Date.now() };
+  return {
+    isRepo: true,
+    ...parsed,
+    files,
+    diff: capped.text,
+    truncated: capped.truncated,
+    base: against,
+    checkedAt: Date.now(),
+  };
 }
 
 /** Paths under the tree whose changes can't change the panel: git internals (except index/HEAD/refs), node_modules. */

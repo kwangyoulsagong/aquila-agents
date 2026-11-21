@@ -196,7 +196,11 @@ const stamp = (d: Date) =>
  * Files on the clipboard as paths: copied files (Finder) as they are, an image (screenshot) saved as a PNG in
  * PASTE_DIR. Empty when the clipboard holds neither.
  */
-export async function clipboardPaths(cb: ClipboardLike, dir = PASTE_DIR, now = new Date()): Promise<string[]> {
+export async function clipboardPaths(
+  cb: ClipboardLike,
+  dir = PASTE_DIR,
+  now = new Date(),
+): Promise<string[]> {
   const read = async (type: string) => (cb.types.includes(type) ? (await cb.get(type)).toString('utf8') : '');
   const files = parseFilenamesPlist(await read(rawFormat('NSFilenamesPboardType')));
   if (files.length) return files;

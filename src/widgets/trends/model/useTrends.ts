@@ -34,7 +34,11 @@ export function useTrends(): Trends {
       api.newsSummarize(language, account).then(
         () => null,
         // Electron prefixes rejected handler errors: keep the message only.
-        (err: unknown) => String(err instanceof Error ? err.message : err).replace(/^Error invoking remote method '[^']+': (Error: )?/, ''),
+        (err: unknown) =>
+          String(err instanceof Error ? err.message : err).replace(
+            /^Error invoking remote method '[^']+': (Error: )?/,
+            '',
+          ),
       ),
     [],
   );

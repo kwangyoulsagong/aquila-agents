@@ -45,9 +45,22 @@ describe('buildPickPrompt', () => {
   });
 
   it('leaves out what is missing', () => {
-    const bare = { ...pick, text: '', attrs: {}, components: [], source: undefined, styles: {}, imagePath: undefined };
+    const bare = {
+      ...pick,
+      text: '',
+      attrs: {},
+      components: [],
+      source: undefined,
+      styles: {},
+      imagePath: undefined,
+    };
     expect(buildPickPrompt(bare, labels)).toBe(
-      ['Change this:', 'Page: http://localhost:5173/settings', 'Element: `form > button.save`', 'Size: 96×32'].join('\n'),
+      [
+        'Change this:',
+        'Page: http://localhost:5173/settings',
+        'Element: `form > button.save`',
+        'Size: 96×32',
+      ].join('\n'),
     );
   });
 });

@@ -132,7 +132,7 @@ export function useShortcuts({
       run(id);
     };
     const onMenu = (c: MenuCommand) => {
-      if (c === 'settings' || c === 'addProject' || c === 'whatsNew') menu[c]();
+      if (c === 'settings' || c === 'addProject' || c === 'whatsNew' || c === 'connectFigma') menu[c]();
       else run(c);
     };
     window.addEventListener('keydown', onKey, true);

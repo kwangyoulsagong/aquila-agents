@@ -21,7 +21,7 @@ import { FirstRunChecklist, useFirstRun } from '@/features/first-run';
 import { GuideButton, GuideModal, GuideOffer, guideMedia, useGuide } from '@/features/guide';
 import { ReleaseNotesModal, useReleaseNotes } from '@/features/release-notes';
 import { ManageProjectsDialog, useManageProjects } from '@/features/manage-projects';
-import { FigmaSettings } from '@/features/figma';
+import { FigmaSettings, LOGIN_COMMAND, typeWhenSettled } from '@/features/figma';
 import { FullscreenBar, FullscreenButton, useFullscreen } from '@/features/fullscreen';
 import { Sidebar } from '@/widgets/sidebar';
 import { SessionTabs } from '@/widgets/session-tabs';
@@ -106,12 +106,18 @@ export default function WorkspacePage() {
     if (focusedId && focusedSession && !focusedSession.dormant) openFind(focusedId);
   }, [focusedId, focusedSession]);
   // Menu-only items of the app menu bar (T47). Their handlers are defined further down: read through a ref.
-  const menuRef = useRef({ settings: () => {}, addProject: () => {}, whatsNew: () => {} });
+  const menuRef = useRef({
+    settings: () => {},
+    addProject: () => {},
+    whatsNew: () => {},
+    connectFigma: () => {},
+  });
   const menuCommands = useMemo(
     () => ({
       settings: () => menuRef.current.settings(),
       addProject: () => menuRef.current.addProject(),
       whatsNew: () => menuRef.current.whatsNew(),
+      connectFigma: () => menuRef.current.connectFigma(),
     }),
     [],
   );
@@ -183,6 +189,15 @@ export default function WorkspacePage() {
     },
     addProject: () => void addProject(),
     whatsNew: showNotes,
+    connectFigma: () => {
+      if (project && !project.remote) openSettings(project, 'figma');
+    },
+  };
+  // "Log in from Claude" (T54): a Claude tab with the project's account, `/mcp` typed once the CLI settles.
+  const figmaLogin = (projectId: string, account: string) => {
+    void openSession('claude', account, projectId).then((id) => {
+      if (id) void typeWhenSettled(id, LOGIN_COMMAND);
+    });
   };
   const { splitFocused, toggleZoom, paneCount } = ws.split;
   const paletteActions = useMemo(() => {
@@ -204,6 +219,7 @@ export default function WorkspacePage() {
         if (paletteWorktrees.length) a.cleanupWorktrees = openCleanup;
         a.togglePreview = togglePreview;
         a.openProjectIn = () => void openIn(project);
+        a.connectFigma = () => openSettings(project, 'figma');
       }
     }
     a.addProject = () => void addProject();
@@ -384,7 +400,24 @@ export default function WorkspacePage() {
             onName={manage.submitName}
             onRemove={manage.submitRemove}
             onSettings={manage.submitSettings}
-            renderFigma={(p) => <FigmaSettings key={p.account} {...p} />}
+            renderFigma={(p) => (
+              <FigmaSettings
+                key={p.account}
+                {...p}
+                agentTabs={
+                  ws.sessions.filter(
+                    (s) =>
+                      s.projectId === p.projectId &&
+                      s.kind !== 'shell' &&
+                      !s.remote &&
+                      !s.dormant &&
+                      !s.exited,
+                  ).length
+                }
+                onReopen={() => void ws.reopenAgentTabs(p.projectId)}
+                onLogin={(account) => figmaLogin(p.projectId, account)}
+              />
+            )}
           />
         )}
         {worktreeOpen && project && !project.remote && (
@@ -419,6 +452,7 @@ export default function WorkspacePage() {
               setPreviewOpen(false);
               setPreviewFull(false);
             }}
+            onConnectFigma={() => openSettings(project, 'figma')}
           />
         )}
         {firstRun.open && (

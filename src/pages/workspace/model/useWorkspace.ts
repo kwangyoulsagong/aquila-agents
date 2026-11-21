@@ -119,14 +119,22 @@ export function useWorkspace() {
 
   const openSession = useCallback(
     /** `account` overrides the project's Claude account for this session (account setup). */
-    async (kind: SessionKind, account?: string) => {
-      if (!activeProjectId) return;
+    /** Resolves with the new tab's id (undefined when it couldn't open; the error is shown). */
+    async (
+      kind: SessionKind,
+      account?: string,
+      /** Another project than the selected one (T54 Figma login from its settings); it gets selected. */
+      projectId: string | null = activeProjectId,
+    ): Promise<string | undefined> => {
+      if (!projectId) return undefined;
       try {
-        const s = await api.createSession(activeProjectId, kind, account);
+        const s = await api.createSession(projectId, kind, account);
         setSessions((list) => [...list, { ...s, status: 'idle' }]);
         placeInFocused(s.id);
+        return s.id;
       } catch (e) {
         setError((e as Error).message);
+        return undefined;
       }
     },
     [activeProjectId, placeInFocused],
@@ -162,6 +170,28 @@ export function useWorkspace() {
     [forgetSession],
   );
 
+  /**
+   * Restart the project's live local Claude/Codex tabs so new spawn options apply (Figma on/off, T54). Each one
+   * resumes its conversation and keeps its tab slot and panes.
+   */
+  const reopenAgentTabs = useCallback(
+    async (projectId: string) => {
+      const targets = sessions.filter(
+        (s) => s.projectId === projectId && s.kind !== 'shell' && !s.remote && !s.dormant && !s.exited,
+      );
+      for (const old of targets) {
+        try {
+          const next = await api.reopenSession(old.id);
+          setSessions((list) => list.map((s) => (s.id === old.id ? { ...next, status: 'idle' } : s)));
+          split.replaceSession(old.id, next.id);
+        } catch (e) {
+          setError((e as Error).message);
+        }
+      }
+    },
+    [sessions, split],
+  );
+
   /** A project left the config: close its sessions; if it was selected, select the first one left. */
   const forgetProject = useCallback(
     (projectId: string, next: Config) => {
@@ -186,6 +216,7 @@ export function useWorkspace() {
     openWorktreeSession,
     adoptResumed,
     closeSession,
+    reopenAgentTabs,
     forgetProject,
     error,
     showError: setError,

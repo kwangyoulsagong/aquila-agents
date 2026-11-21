@@ -30,7 +30,14 @@ export function Ring({ fraction, label, valueText, showValue, tone = 'default', 
     >
       <svg className="c-ring__svg" viewBox="0 0 16 16" aria-hidden="true">
         <circle className="c-ring__track" cx="8" cy="8" r="6" />
-        <circle className="c-ring__fill" cx="8" cy="8" r="6" pathLength={100} strokeDasharray={`${pct} 100`} />
+        <circle
+          className="c-ring__fill"
+          cx="8"
+          cy="8"
+          r="6"
+          pathLength={100}
+          strokeDasharray={`${pct} 100`}
+        />
       </svg>
       {showValue && <span className="c-ring__value">{valueText}</span>}
     </span>

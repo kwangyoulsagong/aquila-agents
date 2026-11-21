@@ -85,7 +85,9 @@ export default function OpenInWorktreeDialog({ project, onClose, onOpen }: Props
             />
           </Field>
           <datalist id={listId}>
-            {info?.branches.map((b) => <option key={b} value={b} />)}
+            {info?.branches.map((b) => (
+              <option key={b} value={b} />
+            ))}
           </datalist>
         </DialogForm>
       )}

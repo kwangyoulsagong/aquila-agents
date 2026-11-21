@@ -511,12 +511,16 @@ app.whenReady().then(async () => {
     localOnly(projectId);
     return worktreeCandidates(loadConfig(), projectId, openWorktreePaths());
   });
-  ipcMain.handle(IPC.worktreeRemove, (_e, { projectId, path: target }: { projectId: string; path: string }) => {
-    localOnly(projectId);
-    return removeWorktree(loadConfig(), projectId, String(target ?? ''), openWorktreePaths());
-  });
+  ipcMain.handle(
+    IPC.worktreeRemove,
+    (_e, { projectId, path: target }: { projectId: string; path: string }) => {
+      localOnly(projectId);
+      return removeWorktree(loadConfig(), projectId, String(target ?? ''), openWorktreePaths());
+    },
+  );
   ipcMain.handle(IPC.sessionRestore, () => restoreSessions());
   ipcMain.handle(IPC.sessionStart, (_e, id: string) => s.wake(loadConfig(), id));
+  ipcMain.handle(IPC.sessionReopen, (_e, id: string) => s.reopen(loadConfig(), String(id)));
   ipcMain.on(IPC.layoutSave, (_e, layout: SavedLayout) => {
     if (isSmoke) return;
     layoutByKey = mapLayout(layout, (id) => s.keyOf(id) ?? null);
@@ -753,7 +757,9 @@ app.whenReady().then(async () => {
   shortcut.start();
   ipcMain.handle(IPC.globalShortcutGet, () => shortcut.current());
   ipcMain.handle(IPC.globalShortcutSet, (_e, accelerator: unknown) =>
-    accelerator === null || typeof accelerator === 'string' ? shortcut.set(accelerator) : shortcut.state('invalid'),
+    accelerator === null || typeof accelerator === 'string'
+      ? shortcut.set(accelerator)
+      : shortcut.state('invalid'),
   );
   app.on('will-quit', () => shortcut.dispose());
 

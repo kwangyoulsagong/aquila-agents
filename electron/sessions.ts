@@ -15,7 +15,7 @@ import { OutputBatcher } from './output';
 import { SAVER_TICK_MS, TICK_MS } from './power';
 import { Attention, firstLine, setDockBadge, type AttentionSession } from './notify';
 import { PORT_STEP, worktreeSlot } from './worktrees';
-import { formatRestored, newTabKey, TITLE_MAX, type RestorePlan, type SavedTab } from './state';
+import { formatRestored, newTabKey, planRestore, TITLE_MAX, type RestorePlan, type SavedTab } from './state';
 import { logStatus } from './status/log';
 import { OSC_7501_REPLY, OscScanner, parse7501 } from './status/osc';
 import { StatusTracker } from './status/tracker';
@@ -208,6 +208,34 @@ export class SessionManager {
       ...(plan.prompt ? { prompt: plan.prompt } : {}),
       dormant: true,
     };
+  }
+
+  /**
+   * Restarts a live local agent tab so it picks up new spawn options (Figma MCP on/off, T54): the same conversation
+   * (`claude --resume` / `codex resume <id>`), account, worktree and title, under a new id in the same tab slot.
+   * A Claude tab without a transcript yet starts a new session. Shells and remote tabs are refused.
+   */
+  reopen(config: Config, id: string): SessionInfo {
+    const live = this.sessions.get(id);
+    if (!live || live.remote || live.kind === 'shell') throw new Error(`Can't reopen tab ${id}`);
+    const tab = this.tabs().find((t) => t.key === live.key);
+    const [plan] = tab ? planRestore({ tabs: [tab], legacy: false }, config) : [];
+    if (!plan) throw new Error(`Can't reopen tab ${id}`);
+    const slot = this.order.indexOf(id);
+    const nextId = crypto.randomUUID().slice(0, 8);
+    // Take the old tab's slot now; its exit (async) only removes its own id.
+    this.order.splice(slot, 1, nextId);
+    live.killed = true;
+    this.kill(id);
+    return this.spawn(
+      config,
+      nextId,
+      plan.projectId,
+      plan.kind,
+      plan.account,
+      { ...plan, key: newTabKey() },
+      plan.worktree,
+    );
   }
 
   /** Spawns a dormant tab under the same id; a live one is returned as is. */

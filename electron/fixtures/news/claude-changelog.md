@@ -1,6 +1,5 @@
 # Changelog
 
-
 ## 2.1.329
 
 - Added a trust dialog warning that says where a folder's hooks are declared

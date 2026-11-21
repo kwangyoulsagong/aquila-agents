@@ -29,7 +29,13 @@ function repo(home: string) {
   const run = (...args: string[]) =>
     execFileSync('git', args, {
       cwd: dir,
-      env: { ...process.env, GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 't@t', GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 't@t' },
+      env: {
+        ...process.env,
+        GIT_AUTHOR_NAME: 't',
+        GIT_AUTHOR_EMAIL: 't@t',
+        GIT_COMMITTER_NAME: 't',
+        GIT_COMMITTER_EMAIL: 't@t',
+      },
     }).toString();
   run('init', '-q', '-b', 'main');
   fs.writeFileSync(path.join(dir, 'a.txt'), '1\n2\n3\n');
@@ -43,7 +49,10 @@ const host = { alias: 'devbox' };
 describe('sections', () => {
   it('splits output on the boundary and drops what came before', () => {
     const b = boundary();
-    const out = spawnSync('sh', ['-c', `echo motd; ${sectionLine(b, 'one')}; printf 'a\\nb'; ${sectionLine(b, 'two')}`]);
+    const out = spawnSync('sh', [
+      '-c',
+      `echo motd; ${sectionLine(b, 'one')}; printf 'a\\nb'; ${sectionLine(b, 'two')}`,
+    ]);
     const sec = parseSections(String(out.stdout), b);
     expect([...sec.keys()]).toEqual(['one', 'two']);
     expect(sec.get('one')).toBe('a\nb');
@@ -134,7 +143,9 @@ describe('remote actions', () => {
     expect(r.trashed).toEqual(["sub/it's.txt"]);
     expect(r.trashedTo).toBe("~/.aquila/trash/2026-01-02T03-04-05-000Z/sub/it's.txt");
     expect(fs.existsSync(path.join(dir, 'sub', "it's.txt"))).toBe(false);
-    expect(fs.existsSync(path.join(home, '.aquila/trash/2026-01-02T03-04-05-000Z/sub', "it's.txt"))).toBe(true);
+    expect(fs.existsSync(path.join(home, '.aquila/trash/2026-01-02T03-04-05-000Z/sub', "it's.txt"))).toBe(
+      true,
+    );
   });
 
   it('refuses paths that leave the tree', () => {

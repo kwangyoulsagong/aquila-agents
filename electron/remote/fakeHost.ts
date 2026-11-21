@@ -25,7 +25,12 @@ export function fakeHost(): FakeHost {
     exec: async (_host, script, opts = {}) => {
       host.scripts.push(script);
       if (host.down)
-        return { code: 255, stdout: Buffer.alloc(0), stderr: 'ssh: connect to host devbox port 22: Connection refused\n', ms: 1 };
+        return {
+          code: 255,
+          stdout: Buffer.alloc(0),
+          stderr: 'ssh: connect to host devbox port 22: Connection refused\n',
+          ms: 1,
+        };
       const started = Date.now();
       const r = spawnSync('sh', ['-c', script], {
         input: opts.input ?? '',

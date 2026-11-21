@@ -594,9 +594,10 @@ interface RemoteState {
 
 /** A fetched head (or whole file) → what the index keeps. A cut transcript still ends at the file's mtime. */
 function parseRemote(f: RemoteFile, text: string, full = false): ParsedSession | null {
-  const parsed = parseText(text, f.agent === 'claude' ? new ClaudeParser(full) : new CodexParser(full)).result(
-    f.mtimeMs,
-  );
+  const parsed = parseText(
+    text,
+    f.agent === 'claude' ? new ClaudeParser(full) : new CodexParser(full),
+  ).result(f.mtimeMs);
   return parsed && { ...parsed, updatedAt: Math.max(parsed.updatedAt, f.mtimeMs) };
 }
 
@@ -823,7 +824,12 @@ export class HistoryIndex {
     const exec = this.exec;
     if (!exec) return;
     const alias = host.alias;
-    const state: RemoteState = this.remote.get(alias) ?? { host, home: '', cache: new Map(), items: new Map() };
+    const state: RemoteState = this.remote.get(alias) ?? {
+      host,
+      home: '',
+      cache: new Map(),
+      items: new Map(),
+    };
     state.host = host;
     this.remote.set(alias, state);
     try {
@@ -908,7 +914,8 @@ export class HistoryIndex {
   ): HistoryEntry {
     const key = refKey(ref);
     // Remote entries come with their project already matched (null = none).
-    const projectId = extra.projectId !== undefined ? (extra.projectId ?? undefined) : matchProject(config, p.cwd);
+    const projectId =
+      extra.projectId !== undefined ? (extra.projectId ?? undefined) : matchProject(config, p.cwd);
     return {
       ...ref,
       cwd: p.cwd,

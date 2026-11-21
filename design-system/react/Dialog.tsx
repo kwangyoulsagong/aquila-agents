@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useId, useRef, type FormEvent, type ReactNode, type Ref } from 'react';
 
 interface Props {
   open: boolean;
@@ -45,6 +45,15 @@ export function DialogCheck({ leading, children }: { leading?: ReactNode; childr
   return (
     <div className="c-dialog__check">
       {leading}
+      {children}
+    </div>
+  );
+}
+
+/** `.c-dialog__group` — fields that belong together inside a form, spaced like the form (a scroll target, T54). */
+export function DialogGroup({ children, ref }: { children: ReactNode; ref?: Ref<HTMLDivElement> }) {
+  return (
+    <div className="c-dialog__group" ref={ref}>
       {children}
     </div>
   );
