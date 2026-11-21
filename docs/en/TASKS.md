@@ -589,8 +589,23 @@ The P1 rows of the persona report: review what finished, see what ran, and run t
 - **Owns:** `electron/runs.ts` (+ test), `src/features/run-slot/`, project settings field (small), one IPC group.
 - **Done:** "Run" on a fixture project starts a server, the dot turns green, Stop leaves no process behind (smoke).
 
+## From Nice to have
+
+Owner's picks from the list below.
+
+### T61 · Share what changed as Markdown
+- [x] **Goal:** hand a summary of what the agent changed to a PR, a chat or a ticket in one click.
+  _Left over: text only — before/after preview snapshots are not in it (they stay under Nice to have). Comments are the ones still open in the panel (sent comments are gone). Checked by unit tests (counts, risky first, comments sorted, renames, escaping); the button wasn't seen in smoke (its fixture has no changes)._
+- **Spec:**
+  - Changes panel, next to "Commit message" / "PR description": **Copy Markdown**.
+  - Heading (project, branch), source and totals (`n files · +a −d`), "Check first" line with the risky files (T57),
+    a table in the panel's order (status, path or rename, +, −, risk), the open line comments, a note when the diff was cut.
+  - Clipboard only; no file contents, no absolute paths. Status words and labels in ko/en.
+- **Owns:** `src/widgets/changes-panel/model/share.ts` (+ test), one button in `ChangesPanel.tsx`.
+- **Done:** a diff with `schema.prisma` + a source file and one comment gives a table with both and the comment.
+
 ### Nice to have (not planned)
 - Production label on a project or host.
-- Before/after preview snapshots in the Changes panel; "share what changed" as Markdown.
+- Before/after preview snapshots in the Changes panel (Markdown share is T61).
 - Remote status you can trust: last signal age, ServerAlive, a host hook channel.
 - Designer view as side-by-side / overlay compare instead of stacked.

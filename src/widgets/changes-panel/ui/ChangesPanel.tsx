@@ -28,6 +28,7 @@ import {
   type LineAnchor,
   type LineComment,
 } from '../model/comments';
+import { buildShareMarkdown } from '../model/share';
 import { CommentEditor, CommentNote } from './CommentBox';
 
 interface Props {
@@ -279,6 +280,51 @@ export default function ChangesPanel({ project, session, onClose }: Props) {
       }`
     : tree;
 
+  // "Share what changed" (T61): the list as shown (risky first), counts from the diff, and the open comments.
+  const share = () => {
+    if (!project || !changes?.isRepo) return;
+    const md = buildShareMarkdown(
+      {
+        project: project.name,
+        branch: changes.branch,
+        source,
+        files: listed.map((f) => {
+          const risk = fileRisk(f.path);
+          return {
+            path: f.path,
+            origPath: f.origPath,
+            status: f.status,
+            risk: risk && t(`changes.risk.${risk}`),
+          };
+        }),
+        diff: files,
+        comments,
+        truncated: changes.truncated,
+      },
+      {
+        title: t('changes.share.title'),
+        files: t('changes.files', { count: String(changes.files.length) }),
+        file: t('changes.share.file'),
+        note: t('changes.share.note'),
+        risky: t('changes.share.risky'),
+        comments: t('changes.share.comments'),
+        removed: t('changes.prompt.removed'),
+        truncated: t('changes.share.truncated'),
+        status: {
+          M: t('changes.share.status.M'),
+          A: t('changes.share.status.A'),
+          D: t('changes.share.status.D'),
+          R: t('changes.share.status.R'),
+          C: t('changes.share.status.C'),
+          U: t('changes.share.status.U'),
+          '?': t('changes.share.status.?'),
+        },
+      },
+    );
+    api.copyText(md);
+    setNotice(t('changes.shared'));
+  };
+
   return (
     <aside
       className={mode === 'split' ? 'c-panel c-panel--wide' : 'c-panel'}
@@ -373,6 +419,14 @@ export default function ChangesPanel({ project, session, onClose }: Props) {
               onClick={() => paste(t('changes.prompt.pr'))}
             >
               {t('changes.ask.pr')}
+            </Button>
+            <Button
+              variant="ghost"
+              disabled={changes.files.length === 0}
+              onClick={share}
+              title={t('changes.shareHint')}
+            >
+              {t('changes.share')}
             </Button>
             <div className="c-panel__bar-end">
               {comments.length > 0 ? (
