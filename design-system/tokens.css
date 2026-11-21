@@ -203,6 +203,8 @@
   --size-sidebar: 248px;
   --size-panel: 416px;
   --size-panel-wide: 720px;   /* changes panel in side-by-side mode (capped at half the window) */
+  --size-panel-min: 288px;    /* a side panel never shrinks below this (T49) */
+  --size-stage-min: 480px;    /* the terminal column keeps this much; side panels shrink first (T49) */
   --size-diff-gutter: 40px;   /* one line-number column in a diff (4 digits + gap) */
   --size-diff-comment: 384px; /* line-comment box under a diff line */
   --size-dialog: 440px;

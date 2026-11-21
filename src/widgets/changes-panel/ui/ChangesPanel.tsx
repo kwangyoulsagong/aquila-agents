@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
-import { Button, ChangeRow, Dialog, Segment } from '@design-system/react';
+import { Button, ChangeRow, Dialog, ResizeHandle, Segment } from '@design-system/react';
+import { usePanelWidth } from '@/shared/lib/usePanelWidth';
 import {
   api,
   type GitAction,
@@ -78,6 +79,8 @@ export default function ChangesPanel({ project, session, onClose }: Props) {
   const files = useMemo(() => parseDiff(changes?.diff ?? ''), [changes?.diff]);
   const statusOf = useMemo(() => new Map((changes?.files ?? []).map((f) => [f.path, f])), [changes?.files]);
   const [mode, setModeState] = useState<DiffMode>(readMode);
+  // Remembered per view mode: side-by-side wants more room (T49).
+  const width = usePanelWidth(mode === 'split' ? 'aquila.panel.changes.split' : 'aquila.panel.changes');
   const [current, setCurrent] = useState<string>();
   const [comments, setComments] = useState<LineComment[]>([]);
   const [draft, setDraft] = useState<LineAnchor | null>(null);
@@ -268,9 +271,11 @@ export default function ChangesPanel({ project, session, onClose }: Props) {
   return (
     <aside
       className={mode === 'split' ? 'c-panel c-panel--wide' : 'c-panel'}
+      {...width.props}
       aria-label={t('changes.title')}
       onKeyDown={onKeyDown}
     >
+      <ResizeHandle onChange={width.onChange} onReset={width.onReset} label={t('action.resizePanel')} />
       <div className="c-panel__head">
         <span>{t('changes.title')}</span>
         {branch && (

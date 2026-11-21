@@ -132,6 +132,8 @@ export async function runSmoke(
     if (renameError) return fail(renameError);
     const promptError = await checkPromptTitle(win, sessions);
     if (promptError) return fail(promptError);
+    const layoutError = await checkPanelLayout(win, outDir);
+    if (layoutError) return fail(layoutError);
     const onPath = (bin: string) =>
       (process.env.PATH ?? '').split(':').some((dir) => dir && fs.existsSync(path.join(dir, bin)));
     console.log(`[smoke] PATH has claude: ${onPath('claude')}, codex: ${onPath('codex')}`);
@@ -267,6 +269,111 @@ async function checkGpuFollowsScreen(win: BrowserWindow): Promise<string | null>
   press(win, 'T', ['meta', 'alt']);
   await wait(1500);
   return expect('split: two on screen, one hidden', 2);
+}
+
+/**
+ * Panel layout (T49): at 1440 px with Changes (side-by-side) and Preview both open, nothing scrolls sideways, the
+ * sidebar footer is whole, and the terminal keeps its minimum width. Screenshot, then both panels close again.
+ */
+async function checkPanelLayout(win: BrowserWindow, outDir: string): Promise<string | null> {
+  const js = <T>(code: string): Promise<T> => win.webContents.executeJavaScript(code) as Promise<T>;
+  const [w0, h0] = win.getContentSize();
+  win.setContentSize(1440, 900);
+  win.show();
+  win.focus();
+  const mod: Electron.InputEvent['modifiers'] = process.platform === 'win32' ? ['control', 'shift'] : ['meta', 'shift'];
+  press(win, 'G', mod);
+  press(win, 'P', mod);
+  await wait(600);
+  // Side-by-side diffs: the wide Changes panel.
+  await js(
+    `[...(document.querySelector('.app > .c-panel')?.querySelectorAll('[role=radiogroup]') ?? [])].at(-1)?.querySelector('[role=radio]:last-child')?.click()`,
+  );
+  await wait(600);
+  type Box = { l: number; r: number; w: number; b: number };
+  const m: {
+    doc: number;
+    view: number;
+    app: number;
+    panels: Box[];
+    main: Box | null;
+    sidebar: Box | null;
+    foot: Box | null;
+    footScroll: number;
+    footClient: number;
+    vh: number;
+  } = await js(`(() => {
+    const box = (el) => { if (!el) return null; const r = el.getBoundingClientRect();
+      return { l: Math.round(r.left), r: Math.round(r.right), w: Math.round(r.width), b: Math.round(r.bottom) }; };
+    const foot = document.querySelector('.c-sidebar__foot');
+    return {
+      doc: document.documentElement.scrollWidth, view: document.documentElement.clientWidth,
+      app: document.querySelector('.app').scrollWidth,
+      panels: [...document.querySelectorAll('.app > .c-panel')].map(box),
+      main: box(document.querySelector('.app__main')),
+      sidebar: box(document.querySelector('.c-sidebar')),
+      foot: box(foot), footScroll: foot?.scrollWidth ?? 0, footClient: foot?.clientWidth ?? 0,
+      vh: window.innerHeight,
+    };
+  })()`);
+  fs.writeFileSync(path.join(outDir, 'smoke-panels.png'), (await win.webContents.capturePage()).toPNG());
+  console.log(`[smoke] panels: ${JSON.stringify(m)}`);
+  // Drag the Preview's left edge 160px right: it narrows down to its minimum, the width is remembered, and a
+  // double-click on the edge forgets it again.
+  const edge: { x: number; y: number } | null = await js(`(() => {
+    const r = document.querySelector('.c-preview > .c-resize')?.getBoundingClientRect();
+    return r ? { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) } : null;
+  })()`);
+  let dragged: { w: number; min: number; stored: string | null; pinned: boolean } | null = null;
+  let reset: string | null = 'not tried';
+  if (edge) {
+    const mouse = (type: 'mouseDown' | 'mouseMove' | 'mouseUp', x: number) =>
+      win.webContents.sendInputEvent({
+        type,
+        x,
+        y: edge.y,
+        button: 'left',
+        clickCount: 1,
+        modifiers: type === 'mouseMove' ? ['leftbuttondown'] : [],
+      });
+    mouse('mouseDown', edge.x);
+    for (let dx = 20; dx <= 160; dx += 20) {
+      mouse('mouseMove', edge.x + dx);
+      await wait(30);
+    }
+    mouse('mouseUp', edge.x + 160);
+    await wait(300);
+    dragged = await js(`(() => {
+      const p = document.querySelector('.c-preview');
+      return { w: Math.round(p.getBoundingClientRect().width), min: parseFloat(getComputedStyle(p).minWidth),
+        stored: localStorage.getItem('aquila.panel.preview'), pinned: p.hasAttribute('data-pinned') };
+    })()`);
+    const at: number = await js(
+      `Math.round(document.querySelector('.c-preview > .c-resize').getBoundingClientRect().left + 4)`,
+    );
+    win.webContents.sendInputEvent({ type: 'mouseDown', x: at, y: edge.y, button: 'left', clickCount: 1 });
+    win.webContents.sendInputEvent({ type: 'mouseUp', x: at, y: edge.y, button: 'left', clickCount: 1 });
+    win.webContents.sendInputEvent({ type: 'mouseDown', x: at, y: edge.y, button: 'left', clickCount: 2 });
+    win.webContents.sendInputEvent({ type: 'mouseUp', x: at, y: edge.y, button: 'left', clickCount: 2 });
+    await wait(300);
+    reset = await js(`localStorage.getItem('aquila.panel.preview')`);
+  }
+  console.log(`[smoke] panel drag: ${JSON.stringify(dragged)}, after double-click: ${JSON.stringify(reset)}`);
+  press(win, 'G', mod);
+  press(win, 'P', mod);
+  await wait(400);
+  win.setContentSize(w0, h0);
+  await wait(300);
+  if (m.panels.length !== 2) return `panel layout: ${m.panels.length} panels open, expected Changes + Preview`;
+  if (m.doc > m.view || m.app > m.view) return `panel layout: page scrolls sideways (${m.doc}/${m.app} > ${m.view})`;
+  if (m.foot && m.sidebar && (m.foot.r > m.sidebar.r || m.footScroll > m.footClient || m.foot.b > m.vh))
+    return 'panel layout: sidebar footer is clipped';
+  if (!m.main || m.main.w < 480) return `panel layout: terminal is ${m.main?.w ?? 0}px wide, expected ≥ 480`;
+  if (!dragged) return 'panel layout: Preview has no resize handle';
+  if (dragged.w !== dragged.min || dragged.stored !== String(dragged.min) || !dragged.pinned)
+    return `panel layout: dragging the Preview edge left it ${dragged.w}px (stored ${dragged.stored}), expected ${dragged.min}`;
+  if (reset !== null) return `panel layout: double-click did not reset the Preview width (still ${reset})`;
+  return null;
 }
 
 /** Left/width of each visible pane, in px. */

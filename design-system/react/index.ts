@@ -10,6 +10,7 @@ export { Meter, type MeterProps, type MeterTone } from './Meter';
 export { Ring, type RingProps } from './Ring';
 export { Label } from './Label';
 export { Segment, type SegmentOption } from './Segment';
+export { ResizeHandle } from './ResizeHandle';
 export { EmptyState } from './EmptyState';
 export { Dialog, DialogCheck, DialogCode, DialogForm } from './Dialog';
 export { ChangeRow } from './ChangeRow';

@@ -476,7 +476,8 @@ From the persona research (`reports/디자이너 개발자 ADE 사용성.md`: fr
 - **Owns:** `src/widgets/preview/model/pickTarget.ts` (+ test), the pick bar in `PreviewPanel.tsx`.
 
 ### T49 · Panel layout that doesn't break
-- [ ] **Goal:** terminal, Changes and Preview fit together on a 1440 px window.
+- [x] **Goal:** terminal, Changes and Preview fit together on a 1440 px window.
+  _Left over: below ~1300 px with both panels open the last panel is clipped (the terminal keeps 480, panels stop at 288). At 480 px the tab bar is tight: tab titles get cut short. Dragging over the native preview page was checked with synthetic input in smoke, not by hand._
 - **Spec:**
   - Fix the sideways scroll and clipped sidebar footer with the Changes panel open at 1440 px (T24 leftover).
   - Changes and Preview widths are draggable and remembered; the terminal keeps a minimum width and panels shrink first.
