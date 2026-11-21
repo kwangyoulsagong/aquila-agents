@@ -1,7 +1,8 @@
 import { useEffect, useState, type KeyboardEvent, type ReactNode } from 'react';
-import { Button, EmptyState, Input, Segment, Select } from '@design-system/react';
+import { Button, EmptyState, Input, ResizeHandle, Segment, Select } from '@design-system/react';
 import { api, type PickResult, type PreviewSlot, type Project, type Session } from '@/shared/api';
 import { sessionTitle, useT } from '@/shared/i18n';
+import { usePanelWidth } from '@/shared/lib/usePanelWidth';
 import { pathsInput } from '@/features/terminal-helpers';
 import { parseFigmaLink } from '@/features/figma';
 import { focusSession, pasteIntoSession } from '@/entities/session';
@@ -106,6 +107,7 @@ export default function PreviewPanel({ project, session, full, onToggleFull, onC
   const [designerRaw, setDesigner] = useStored('aquila.preview.designer');
   const designer = !!project.figma && designerRaw === '1';
   const covered = useDialogOpen();
+  const width = usePanelWidth('aquila.panel.preview');
   const nav = useNav('app');
   const [picking, setPicking] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -192,7 +194,12 @@ export default function PreviewPanel({ project, session, full, onToggleFull, onC
   const deviceOptions = DEVICES.map((d) => ({ value: d, label: d === 'fit' ? t('preview.device.fit') : d }));
 
   return (
-    <aside className={`c-panel ${full ? 'c-panel--full' : 'c-panel--wide'} c-preview`} aria-label={t('preview.title')}>
+    <aside
+      className={`c-panel ${full ? 'c-panel--full' : 'c-panel--wide'} c-preview`}
+      {...(full ? {} : width.props)}
+      aria-label={t('preview.title')}
+    >
+      {!full && <ResizeHandle onChange={width.onChange} onReset={width.onReset} label={t('action.resizePanel')} />}
       <div className="c-panel__head">
         <span>{t('preview.title')}</span>
         {nav?.title && (

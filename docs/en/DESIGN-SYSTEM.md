@@ -107,6 +107,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `--size-ring` | 12 | Ring meter in a tab (context gauge) |
 | `--size-sidebar` / `--size-panel` | 248 / 416 | |
 | `--size-panel-wide` | 720 | Changes panel in side-by-side mode (capped at half the window) |
+| `--size-panel-min` / `--size-stage-min` | 288 / 480 | Narrowest a side panel gets / width the terminal column keeps; panels shrink first (T49) |
 | `--size-diff-gutter` / `--size-diff-comment` | 40 / 384 | One line-number column in a diff / a line-comment box |
 | `--size-dialog` / `--size-dialog-wide` | 440 / 560 | Dialog width / with a checklist (first run) |
 | `--size-palette` / `--size-palette-list` | 560 / 352 | Command palette width / list height before it scrolls (11 rows) |
@@ -140,7 +141,8 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `.c-split`, `.c-pane[data-focused]` `__head` `__term` | Split view |
 | `.c-split--free`, `.c-split__drop`, `.c-pane__title` `__close` | Split view in the app: absolutely placed panes, drop indicator (glides between zones), pane head title + close |
 | `.c-split__divider[data-dir][data-active]`, `.c-split[data-resizing]`, `.c-pane__zoom[aria-pressed]` | Draggable divider (accent line on hover/drag), resize cursor over the stage while dragging, zoom toggle in the pane head |
-| `.c-panel` `__head` `__body` `__actions` `__section` `__note` `__bar` `__bar-end`, `.c-panel--wide` | Right panel (slides in; head is a drag region like the tab bar); `__bar` = a wrapping band of controls under the head; `--wide` for side-by-side diffs (≤ half the window) |
+| `.c-panel` `__head` `__body` `__actions` `__section` `__note` `__bar` `__bar-end`, `.c-panel--wide` | Right panel (slides in; head is a drag region like the tab bar); `__bar` = a wrapping band of controls under the head; `--wide` for side-by-side diffs (≤ half the window); a dragged width comes in as `--panel-width`, `[data-pinned]` = the panel resized last keeps its width while the others give way |
+| `.c-resize[data-edge][data-active]` | Draggable panel edge (T49): grab area over the panel's hairline, accent on hover/focus/drag, ←/→ when focused, double-click resets |
 | `.c-preview` `__body` `__stage` | Preview panel (T33, on `.c-panel--wide`): the stage is where main lays the native page view; its own content (empty state, load error) shows only while that view is hidden |
 | `.c-diff` `__line--add/del/hunk/file/meta`, `__file[aria-current]`, `__num`, `__actions`, `__line[data-commentable][data-commented]`, `.c-diff--split` `__row` `__line--empty`, `__comment` `__comment-actions` | Diff (unified: as wide as its longest line; split: two wrapping halves). Line-number gutters, small actions on file/hunk lines, a marker on commentable/commented lines, a comment box under a line |
 | `.c-change`, `__status[data-status]` `__path` `__dir` | Changed file row: colored git status letter, name, dimmed dir |
@@ -177,6 +179,7 @@ from `src/` (ESLint enforces it). New primitive → add the class to `components
 | `Meter` `label` `value` `fraction` (null = unknown) `tone?` `caption?` `title?` | `.c-meter` |
 | `Ring` `fraction` `label` `valueText` `showValue?` `tone?` `title?` | `.c-ring` |
 | `Segment` `options` `value` `onChange` | `.c-segment` |
+| `ResizeHandle` `onChange` `onReset` `edge` `label` | `.c-resize` (measures its parent: start width, `min-width`, room its flexible siblings can give) |
 | `EmptyState` `title` `path` `actions` | `.c-empty` |
 | `Dialog` `open` `title` `onClose` `actions` `wide`, `DialogCheck`, `DialogCode`, `DialogForm` `id` `onSubmit` | `.c-dialog` |
 | `Checklist` `label`, `ChecklistItem` `leading` `title` `tag` `meta` `actions`, `ChecklistCommand` `command` `action` | `.c-checklist` |

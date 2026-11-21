@@ -2,10 +2,13 @@
 .app {
   height: 100%;
   display: flex;
+  /* Never scroll sideways (T49): side panels shrink first; below that, a too-narrow window clips the last panel. */
+  overflow: hidden;
 }
 .app__main {
   flex: 1;
-  min-width: 0;
+  /* The terminal keeps its width; side panels give way (T49). */
+  min-width: var(--size-stage-min);
   display: flex;
   flex-direction: column;
 }
