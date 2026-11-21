@@ -514,7 +514,8 @@ From the persona research (`reports/디자이너 개발자 ADE 사용성.md`: fr
 The P0 rows of the persona report that were left under **Nice to have**: tools that exist but can't be found or set up.
 
 ### T53 · Labelled panel buttons
-- [ ] **Goal:** the tab bar's Changes and Preview buttons are understood without hovering (like T46).
+- [x] **Goal:** the tab bar's Changes and Preview buttons are understood without hovering (like T46).
+  _Left over: labels fold below a 640 px tab bar / 400 px preview bar, so at 1440 px with **both** panels open the terminal is at its 480 px minimum and the buttons show glyphs only (labels show with one panel or none). Seen in `smoke.png` (labels) and `smoke-panels.png` (folded); guide media not rebuilt._
 - **Spec:**
   - `±` and `◫` get a text label next to the glyph ("변경" / "Changes", "프리뷰" / "Preview"); the preview bar's `{}` reads "DevTools".
   - When the tab bar gets narrow the labels fold back to the glyph only (tooltip + `aria-label` stay), so tabs keep their room.

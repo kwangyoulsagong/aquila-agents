@@ -149,6 +149,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `.c-diff` `__line--add/del/hunk/file/meta`, `__file[aria-current]`, `__num`, `__actions`, `__line[data-commentable][data-commented]`, `.c-diff--split` `__row` `__line--empty`, `__comment` `__comment-actions` | Diff (unified: as wide as its longest line; split: two wrapping halves). Line-number gutters, small actions on file/hunk lines, a marker on commentable/commented lines, a comment box under a line |
 | `.c-change`, `__status[data-status]` `__path` `__dir` | Changed file row: colored git status letter, name, dimmed dir |
 | `.c-btn--ghost[aria-pressed]` | Toggle button that's on |
+| `.c-btn--labelled` `__glyph` `__label` | Glyph + text label (tab-bar Changes / Preview, preview DevTools). The label folds away and the button turns square when the tab bar is under 640px or the preview bar under 400px (container queries `tabbar` / `panelbar`; raw lengths because custom properties can't be used in a container query) |
 | `.c-empty` `__title` `__path` `__actions` | Empty state |
 | `.c-dialog` `__title` `__body` `__actions` `__check` `__code` `__form` | Modal dialog (native `<dialog>`, rises in) |
 | `.c-palette` `__input` `__list` `__item[aria-selected]` `__leading` `__label` `__mark` `__hint` `__empty` `__foot` | Command palette (native `<dialog>` near the top, rises in): input as tall as the title bar, 32px rows, matched letters bold |
@@ -172,7 +173,7 @@ from `src/` (ESLint enforces it). New primitive → add the class to `components
 
 | Component | Renders |
 |---|---|
-| `Button` `variant="primary\|ghost"` `icon` `ref?` | `.c-btn` |
+| `Button` `variant="primary\|ghost"` `icon` `glyph?` `label?` `ref?` | `.c-btn` (`label` → `.c-btn--labelled`) |
 | `Dot` `status` `estimated?` `label?` | `.c-dot` |
 | `Badge` `tone` | `.c-badge--<tone>` |
 | `HostBadge` `host` `conn?` `label?` | `.c-badge--host` (+ `.c-badge__conn`) |
