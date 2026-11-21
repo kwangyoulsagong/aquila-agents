@@ -64,6 +64,18 @@ body {
   width: var(--size-dot-sm); height: var(--size-dot-sm); border-radius: 50%; background: var(--color-action-primary);
 }
 .c-btn--ghost[aria-pressed='true'] { background: var(--color-bg-pressed); color: var(--color-text-primary); }
+/* Glyph + text label (T53). In a narrow tab bar the label folds away and the button turns square. The breakpoint is
+   a raw length because custom properties can't be used in a container query (documented in DESIGN-SYSTEM.md). */
+.c-btn--labelled { flex: none; white-space: nowrap; padding: 0 var(--space-inset-sm); }
+.c-btn__glyph { flex: none; }
+@container tabbar (width < 640px) {
+  .c-btn--labelled { width: var(--size-control); padding: 0; justify-content: center; }
+  .c-btn--labelled > .c-btn__label { display: none; }
+}
+@container panelbar (width < 400px) {
+  .c-btn--labelled { width: var(--size-control); padding: 0; justify-content: center; }
+  .c-btn--labelled > .c-btn__label { display: none; }
+}
 
 /* ── Segmented control ────────────────────────────────────── */
 .c-segment {
@@ -268,7 +280,7 @@ body {
 }
 /* A full bar scrolls sideways (no visible scrollbar); tabs shrink to a minimum first and the trailing controls stay
    pinned at the right edge, never squeezed. */
-.c-tabbar { overflow-x: auto; scrollbar-width: none; padding-right: 0; }
+.c-tabbar { overflow-x: auto; scrollbar-width: none; padding-right: 0; container: tabbar / inline-size; }
 .c-tabbar::-webkit-scrollbar { display: none; }
 .c-tab { flex: 0 1 auto; min-width: calc(var(--size-control) * 3); overflow: hidden; }
 .c-tab:hover { background: var(--color-bg-hover); }
@@ -415,7 +427,7 @@ body {
   flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center;
   background: var(--color-bg-canvas);
 }
-.c-preview .c-panel__bar { flex-wrap: nowrap; }
+.c-preview .c-panel__bar { flex-wrap: nowrap; container: panelbar / inline-size; }
 .c-preview .c-panel__bar > .c-input { flex: 1; min-width: 0; }
 /* Narrow panel (T49): labels stay on one line; the pick target ("→ tab") is what gets cut, with an ellipsis. */
 .c-preview .c-panel__bar .c-btn { flex: none; white-space: nowrap; }

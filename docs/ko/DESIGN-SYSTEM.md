@@ -148,6 +148,7 @@
 | `.c-diff` `__line--add/del/hunk/file/meta`, `__file[aria-current]`, `__num`, `__actions`, `__line[data-commentable][data-commented]`, `.c-diff--split` `__row` `__line--empty`, `__comment` `__comment-actions` | diff (한 줄: 가장 긴 줄만큼 넓어짐, 나란히: 줄바꿈되는 두 칸). 줄 번호 칸, 파일/hunk 줄의 작은 버튼, 코멘트 가능/있음 표시, 줄 아래 코멘트 상자 |
 | `.c-change`, `__status[data-status]` `__path` `__dir` | 변경 파일 행: 색이 있는 git 상태 글자, 이름, 흐린 폴더 |
 | `.c-btn--ghost[aria-pressed]` | 켜진 토글 버튼 |
+| `.c-btn--labelled` `__glyph` `__label` | 글리프 + 텍스트 라벨(탭 바 변경·프리뷰, 프리뷰 DevTools). 탭 바가 640px 미만이거나 프리뷰 바가 400px 미만이면 라벨이 접히고 정사각 버튼이 된다(컨테이너 쿼리 `tabbar` / `panelbar`. 컨테이너 쿼리에는 커스텀 속성을 쓸 수 없어 길이를 직접 적는다) |
 | `.c-empty` `__title` `__path` `__actions` | 빈 화면 |
 | `.c-dialog` `__title` `__body` `__actions` `__check` `__code` `__form` | 모달 다이얼로그 (네이티브 `<dialog>`, 아래에서 떠오름) |
 | `.c-palette` `__input` `__list` `__item[aria-selected]` `__leading` `__label` `__mark` `__hint` `__empty` `__foot` | 명령 팔레트 (화면 위쪽 네이티브 `<dialog>`, 떠오름): 입력칸은 타이틀 바 높이, 줄 32px, 매치된 글자 굵게 |
@@ -171,7 +172,7 @@
 
 | 컴포넌트 | 그리는 것 |
 |---|---|
-| `Button` `variant="primary\|ghost"` `icon` `ref?` | `.c-btn` |
+| `Button` `variant="primary\|ghost"` `icon` `glyph?` `label?` `ref?` | `.c-btn` (`label` → `.c-btn--labelled`) |
 | `Dot` `status` `estimated?` `label?` | `.c-dot` |
 | `Badge` `tone` | `.c-badge--<tone>` |
 | `HostBadge` `host` `conn?` `label?` | `.c-badge--host` (+ `.c-badge__conn`) |

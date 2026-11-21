@@ -311,14 +311,13 @@ export default function PreviewPanel({ project, session, full, onToggleFull, onC
         <div className="c-panel__bar-end">
           <Button
             variant="ghost"
-            icon
+            glyph="{}"
+            label={t('preview.devtoolsLabel')}
             disabled={!ready}
             onClick={() => api.previewCommand('app', 'devtools')}
             title={t('preview.devtools')}
             aria-label={t('preview.devtools')}
-          >
-            {'{}'}
-          </Button>
+          />
           <span className="c-row__meta" title={t('preview.pick.targetHint')}>
             {target.kind === 'none'
               ? t('preview.pick.toClipboard')

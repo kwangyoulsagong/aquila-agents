@@ -509,9 +509,39 @@ From the persona research (`reports/디자이너 개발자 ADE 사용성.md`: fr
 - [x] Add a remote project, open tabs, Changes, history and reconnect on a real host, fix only what breaks (T29/T36 leftovers).
   _Done on a Docker host (`scripts/ssh-test-host/`, Debian arm64, OpenSSH, tmux 3.3a, git 2.39) with an opt-in smoke step (`AQUILA_SMOKE_SSH_HOST`): check, tab, Changes read + revert, history, server-side drop → reattach, close → tmux gone — nothing broke, so no fixes. Not covered: a Claude/Codex tab on the host (no CLI or login in the container), the add-project dialog and the Changes panel UI (the step calls the same main-process code, not the renderer), reattach after an app relaunch, a host over a real network (latency, NAT, password / 2FA logins), `KillUserProcesses=yes`._
 
+## Finish the persona P0s
+
+The P0 rows of the persona report that were left under **Nice to have**: tools that exist but can't be found or set up.
+
+### T53 · Labelled panel buttons
+- [x] **Goal:** the tab bar's Changes and Preview buttons are understood without hovering (like T46).
+  _Left over: labels fold below a 640 px tab bar / 400 px preview bar, so at 1440 px with **both** panels open the terminal is at its 480 px minimum and the buttons show glyphs only (labels show with one panel or none). Seen in `smoke.png` (labels) and `smoke-panels.png` (folded); guide media not rebuilt._
+- **Spec:**
+  - `±` and `◫` get a text label next to the glyph ("변경" / "Changes", "프리뷰" / "Preview"); the preview bar's `{}` reads "DevTools".
+  - When the tab bar gets narrow the labels fold back to the glyph only (tooltip + `aria-label` stay), so tabs keep their room.
+  - The glyph is decorative (`aria-hidden`); the button's name is the label.
+- **Owns:** a `label` on `design-system/react/Button.tsx` + `.c-btn__label` in `components.css`, the buttons in `pages/workspace` (small) and `PreviewPanel.tsx`.
+- **Done:** at 1440 px both labels show; at the terminal's minimum width they fold to glyphs without overflow (smoke screenshot).
+
+### T54 · Figma you can find and log in to
+- [ ] **Goal:** a designer finds Figma and gets it working without the CLI ritual (T32/T34 leftovers).
+- **Spec:**
+  - ⌘K "Connect Figma…", a Help menu item and a guide item (Figma, chips, Design vs Build).
+  - With Figma off, the preview head shows a quiet "Connect Figma" empty state.
+  - The settings block's "Log in" opens a new Claude tab and walks through `/mcp`; after toggling, "reopen tabs to apply" is a button, not a note.
+- **Owns:** `src/features/figma/` (or the existing Figma slice), the palette/menu entries (small), the guide item.
+
+### T55 · Figma chips on typed and dropped links
+- [ ] **Goal:** chips show up however the link arrives, and stay until used.
+- **Spec:** typed or dropped Figma links raise the chips too; an unrelated Enter doesn't dismiss them; the inserted text is a short intent sentence (MCP tool names and Chrome notes move to the tooltip); "pick small, use tokens" is in the default copy.
+- **Owns:** the Figma chips code (T34).
+
+### T56 · Remote add: safe by default
+- [ ] **Goal:** adding a remote project can't end in a broken row.
+- **Spec:** Add runs Check host first and, on failure, says the next step in plain words; a simple remote folder browser (`ls` over the existing connection); shorter ko/en copy; ⌘K "Add remote server…" and a guide item.
+- **Owns:** the remote part of `src/features/manage-projects/`, `electron/remote/` (read-only `ls`).
+
 ### Nice to have (not planned)
-- Text labels on the tab-bar panel buttons (`±` `◫` `{}`), like T46.
-- Figma in ⌘K / menu / guide, and a login button that walks through `/mcp`; chips also on typed or dropped links.
 - Run slot: dev server / tests / long jobs as processes apart from the agent, with a log pane and a status dot.
 - Review queue: sessions done but not looked at, with changed files and push state.
 - Commands timeline per session from the read-only transcript.

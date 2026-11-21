@@ -331,25 +331,23 @@ export default function WorkspacePage() {
                     )}
                     <Button
                       variant="ghost"
-                      icon
+                      glyph="±"
+                      label={t('changes.label')}
                       aria-pressed={changesOpen}
                       onClick={toggleChanges}
                       title={withShortcut(t('changes.toggle'), 'toggleChanges')}
-                      aria-label={t('changes.toggle')}
-                    >
-                      ±
-                    </Button>
+                      aria-label={t('changes.label')}
+                    />
                     {!project.remote && (
                       <Button
                         variant="ghost"
-                        icon
+                        glyph="◫"
+                        label={t('preview.label')}
                         aria-pressed={previewOpen}
                         onClick={togglePreview}
                         title={withShortcut(t('preview.toggle'), 'togglePreview')}
-                        aria-label={t('preview.toggle')}
-                      >
-                        ◫
-                      </Button>
+                        aria-label={t('preview.label')}
+                      />
                     )}
                     {fullscreen.available && <FullscreenButton onClick={toggleFullscreen} />}
                   </>
