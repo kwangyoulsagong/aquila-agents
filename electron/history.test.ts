@@ -10,9 +10,12 @@ import {
   displayTitle,
   HistoryIndex,
   mapCodexRows,
+  maskSecrets,
   matchProject,
   parseCodexIndex,
   parseMeta,
+  parseText,
+  readClaudeCommands,
   resumeWorktree,
   snippet,
   toMarkdown,
@@ -420,5 +423,39 @@ describe('meta, markdown, snippet', () => {
     expect(displayTitle({ id: 'i', firstMessage: 'first', autoTitle: 'auto' })).toBe('auto');
     expect(displayTitle({ id: 'i', firstMessage: 'first', title: 'cli', name: 'ours' })).toBe('ours');
     expect(displayTitle({ id: 'i', firstMessage: '' })).toBe('i');
+  });
+});
+
+describe('commands (T59)', () => {
+  const FILE = path.join(__dirname, 'fixtures', 'history-commands', 'commands.jsonl');
+
+  it('lists Bash commands with how they ended, never their output', async () => {
+    const runs = await readClaudeCommands(FILE);
+    expect(runs.map((r) => [r.command, r.state])).toEqual([
+      ['npm test', 'ok'],
+      ['rm -rf dist', 'error'],
+      ['GITHUB_TOKEN=••• npx prisma migrate dev --name init', 'interrupted'],
+      ['npm run dev', 'pending'],
+    ]);
+    expect(runs[0].at).toBe(Date.parse('2026-11-20T10:00:05.000Z'));
+    expect(JSON.stringify(runs)).not.toContain('SECRET OUTPUT');
+  });
+
+  it('come with the indexed transcript', () => {
+    const parsed = parseText(fs.readFileSync(FILE, 'utf8'), new ClaudeParser()).result(0);
+    expect(parsed?.commands).toHaveLength(4);
+  });
+
+  it.each([
+    ['API_KEY=sk-123 node x.js', 'API_KEY=••• node x.js'],
+    ['export DB_PASSWORD="hunter 2"', 'export DB_PASSWORD=•••'],
+    ['gh auth login --with-token abc', 'gh auth login --with-token •••'],
+    ['vercel --token=abc123 deploy', 'vercel --token=••• deploy'],
+    ["curl -H 'Authorization: Bearer xyz' https://api", "curl -H 'Authorization: Bearer •••' https://api"],
+    ['git clone https://me:pat123@github.com/x/y', 'git clone https://me:•••@github.com/x/y'],
+    ['NODE_ENV=test PORT=3000 npm test', 'NODE_ENV=test PORT=3000 npm test'],
+    ['npm run build -- --keep-names', 'npm run build -- --keep-names'],
+  ])('masks %s', (input, expected) => {
+    expect(maskSecrets(input)).toBe(expected);
   });
 });

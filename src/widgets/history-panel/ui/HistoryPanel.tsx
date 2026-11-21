@@ -21,6 +21,7 @@ import {
 } from '@design-system/react';
 import { api, type Config, type HistoryEntry, type HistoryResumeResult } from '@/shared/api';
 import { accountLabel, kindLabel, useT } from '@/shared/i18n';
+import { CommandTimeline } from '@/entities/command';
 import { useNow } from '@/shared/lib/useNow';
 import { ResumeButton, resumeSession } from '@/features/resume-session';
 import {
@@ -365,6 +366,11 @@ function Detail({
         </MetaRow>
       </MetaList>
       {snippet && <ModalNote>{t('history.match', { snippet })}</ModalNote>}
+      {transcript?.commands && transcript.commands.length > 0 && (
+        <ModalGroup label={t('commands.count', { count: String(transcript.commands.length) })}>
+          <CommandTimeline commands={transcript.commands} />
+        </ModalGroup>
+      )}
       {transcript && transcript.messages.length > 0 && (
         <Transcript label={t('history.preview')}>
           {transcript.messages.slice(0, PREVIEW_MESSAGES).map((m, i) => (
