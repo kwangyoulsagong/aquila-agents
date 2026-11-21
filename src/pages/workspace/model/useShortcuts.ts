@@ -20,6 +20,8 @@ interface Deps {
   closePane: () => void;
   toggleChanges: () => void;
   togglePreview: () => void;
+  /** Run slot panel (T60). */
+  toggleRun: () => void;
   togglePalette: () => void;
   toggleGuide: () => void;
   toggleHistory: () => void;
@@ -52,6 +54,7 @@ export function useShortcuts({
   closePane,
   toggleChanges,
   togglePreview,
+  toggleRun,
   togglePalette,
   toggleGuide,
   toggleHistory,
@@ -86,6 +89,8 @@ export function useShortcuts({
           return toggleChanges();
         case 'togglePreview':
           return togglePreview();
+        case 'toggleRun':
+          return toggleRun();
         case 'history':
           return toggleHistory();
         case 'nextWaiting':
@@ -155,6 +160,7 @@ export function useShortcuts({
     closePane,
     toggleChanges,
     togglePreview,
+    toggleRun,
     togglePalette,
     toggleGuide,
     toggleHistory,

@@ -1,4 +1,5 @@
-export type DotStatus = 'working' | 'waiting' | 'done' | 'error' | 'stopped' | 'idle';
+/** `live` = a process that is up (run slot, T60): a plain green disc. */
+export type DotStatus = 'working' | 'waiting' | 'done' | 'error' | 'stopped' | 'idle' | 'live';
 
 /** `.c-dot` — status dot. Status also has a shape: working pulses (half disc when motion is off), waiting gets a halo, done is a check, error a `!` square, stopped a ring; `estimated` dims it. */
 export function Dot({

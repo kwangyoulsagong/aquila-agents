@@ -29,6 +29,10 @@ interface Props {
   session?: Session;
   /** Alone in the window (T51). */
   full: boolean;
+  /** Show this address (the run slot's "Open in preview", T60); a new `at` asks again. */
+  request?: { url: string; at: number } | null;
+  /** The request was shown: it must not come back on the next mount. */
+  onRequestDone?: () => void;
   onToggleFull: () => void;
   onClose: () => void;
   /** Figma is off for this project: the head offers "Connect Figma" (T54). */
@@ -106,6 +110,8 @@ export default function PreviewPanel({
   project,
   session,
   full,
+  request,
+  onRequestDone,
   onToggleFull,
   onClose,
   onConnectFigma,
@@ -117,6 +123,11 @@ export default function PreviewPanel({
   const [url, setUrl] = useStored(
     worktree ? `aquila.preview.url.${project.id}@${worktree.path}` : `aquila.preview.url.${project.id}`,
   );
+  useEffect(() => {
+    if (!request) return;
+    setUrl(request.url);
+    onRequestDone?.();
+  }, [request, setUrl, onRequestDone]);
   const [figmaUrl, setFigmaUrl] = useStored(`aquila.preview.figma.${project.id}`);
   const [deviceRaw, setDevice] = useStored('aquila.preview.device', 'fit');
   const device: Device = (DEVICES as readonly string[]).includes(deviceRaw) ? (deviceRaw as Device) : 'fit';

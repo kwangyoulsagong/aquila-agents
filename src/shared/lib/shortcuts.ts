@@ -15,6 +15,7 @@ export type ShortcutId =
   | 'closeSession'
   | 'toggleChanges'
   | 'togglePreview'
+  | 'toggleRun'
   | 'history'
   | 'nextWaiting'
   | 'copyLastReply'
@@ -45,6 +46,7 @@ export const SHORTCUTS: Readonly<Record<ShortcutId, string>> = {
   closeSession: 'CommandOrControl+W',
   toggleChanges: 'CommandOrControl+Shift+G',
   togglePreview: 'CommandOrControl+Shift+P',
+  toggleRun: 'CommandOrControl+Shift+R',
   history: 'CommandOrControl+Y',
   nextWaiting: 'CommandOrControl+J',
   copyLastReply: 'CommandOrControl+Shift+C',

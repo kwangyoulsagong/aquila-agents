@@ -21,6 +21,7 @@ export type ActionId =
   | 'fullscreen'
   | 'toggleChanges'
   | 'togglePreview'
+  | 'toggleRun'
   | 'history'
   | 'nextWaiting'
   | 'nextReview'
@@ -92,6 +93,7 @@ const ACTIONS: {
   { action: 'fullscreen', label: (t) => t('fullscreen.toggle'), shortcut: 'fullscreen' },
   { action: 'toggleChanges', label: (t) => t('changes.toggle'), shortcut: 'toggleChanges' },
   { action: 'togglePreview', label: (t) => t('preview.toggle'), shortcut: 'togglePreview' },
+  { action: 'toggleRun', label: (t) => t('run.toggle'), shortcut: 'toggleRun' },
   { action: 'history', label: (t) => t('history.title'), shortcut: 'history' },
   { action: 'nextWaiting', label: (t) => t('attention.next'), shortcut: 'nextWaiting' },
   { action: 'nextReview', label: (t) => t('review.next') },

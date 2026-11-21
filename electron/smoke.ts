@@ -12,6 +12,7 @@ import { app, BrowserWindow, clipboard, ClipboardItem, ipcMain } from 'electron'
 import { showContextMenu } from './menu';
 import { runCapture } from './capture';
 import type { PreviewViews } from './preview';
+import { runId, type RunManager } from './runs';
 import { runPerf } from './perf';
 import type { SessionManager } from './sessions';
 import { checkRemoteSession } from './remote/smoke';
@@ -70,6 +71,7 @@ export async function runSmoke(
   config: Config,
   output: { buffer: string; statuses: string[]; connections: ConnectionUpdate[] },
   previews?: PreviewViews | null,
+  runs?: RunManager | null,
 ) {
   if (process.env.AQUILA_PERF === '1') return runPerf(win, sessions);
   if (process.env.AQUILA_CAPTURE) return runCapture(win, sessions, config, previews);
@@ -169,6 +171,8 @@ export async function runSmoke(
     if (imeError) return fail(imeError);
     const reviewError = await checkReviewQueue(win, sessions, outDir);
     if (reviewError) return fail(reviewError);
+    const runError = runs ? await checkRunSlot(win, runs, config, outDir) : 'no run manager';
+    if (runError) return fail(runError);
     const previewError = previews ? await checkPreviewPick(previews) : 'no preview views';
     if (previewError) return fail(previewError);
     const remoteError = await checkRemoteSession(sessions, config, output);
@@ -183,6 +187,115 @@ export async function runSmoke(
 }
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+const processAlive = (pid: number) => {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Run slot (T60): a fixture server (that starts a child of its own, like vite → esbuild) runs from a temp folder
+ * under the first local project, shown in the panel opened from ⌘K: green dot, its log live, "Open in preview";
+ * it answers on its PORT; Stop turns the dot into a ring and leaves no process behind. The project's own commands
+ * are never started.
+ */
+async function checkRunSlot(
+  win: BrowserWindow,
+  runs: RunManager,
+  config: Config,
+  outDir: string,
+): Promise<string | null> {
+  // The project smoke's shells run in (on screen now).
+  const project = config.projects[0];
+  if (!project || project.remote) return 'run slot: the first project is not local';
+  const js = <T>(code: string): Promise<T> => win.webContents.executeJavaScript(code) as Promise<T>;
+  const dir = fs.mkdtempSync(path.join(app.getPath('temp'), 'aquila-run-'));
+  fs.writeFileSync(
+    path.join(dir, 'server.js'),
+    `const http = require('http');
+     const { spawn } = require('child_process');
+     const kid = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], { stdio: 'ignore', env: { ELECTRON_RUN_AS_NODE: '1' } });
+     http.createServer((q, s) => s.end('aquila-run-ok')).listen(Number(process.env.PORT), () => {
+       console.log('kid ' + kid.pid);
+       console.log('  \\x1b[32m➜\\x1b[39m  Local: http://localhost:' + process.env.PORT + '/');
+     });`,
+  );
+  const port = 45000 + Math.floor(Math.random() * 1000);
+  const name = 'smoke-fixture';
+  const command = `ELECTRON_RUN_AS_NODE=1 "${process.execPath}" server.js`;
+  const id = runId(project.id, undefined, name);
+  // Listed with its command, as if configured: a stopped run that isn't a project command leaves the list.
+  const info = () => runs.list(project.id, undefined, [{ name, command }]).runs.find((r) => r.id === id);
+  // The panel of the project's own dir (no worktree); main lists a live run even when it isn't a configured command.
+  await runs.start({ projectId: project.id, name, command, cwd: dir, port });
+  for (let i = 0; i < 100 && !info()?.url; i++) await wait(100);
+  const up = info();
+  let body = '';
+  try {
+    body = await (await fetch(`http://localhost:${port}/`)).text();
+  } catch (e) {
+    body = (e as Error).message;
+  }
+  const kid = Number(/kid (\d+)/.exec(runs.log(id))?.[1]);
+
+  const label = translator(config.language)('run.toggle');
+  win.show();
+  win.focus();
+  press(win, 'K', ['meta']);
+  await wait(500);
+  const opened = await js<boolean>(`(() => {
+    const item = [...document.querySelectorAll('.c-palette__item')].find((el) => el.textContent?.startsWith(${JSON.stringify(label)}));
+    item?.click();
+    return !!item;
+  })()`);
+  await wait(600);
+  // Several commands → pick the fixture's row.
+  await js(`[...document.querySelectorAll('.c-runs__item')].find((b) => b.textContent?.includes(${JSON.stringify(name)}))?.click()`);
+  let ui = { dot: '', log: '', preview: false };
+  const readUi = () =>
+    js<typeof ui>(`({
+      dot: document.querySelector('.c-run .c-run__state .c-dot')?.getAttribute('data-status') ?? '',
+      log: document.querySelector('.c-run .xterm-rows')?.textContent ?? '',
+      preview: [...document.querySelectorAll('.c-run .c-panel__bar button')].some((b) => b.title?.startsWith('http://localhost:${port}')),
+    })`);
+  for (let i = 0; i < 30 && !(ui.dot === 'live' && ui.log.includes('Local:')); i++) {
+    await wait(100);
+    ui = await readUi();
+  }
+  fs.writeFileSync(path.join(outDir, 'smoke-run.png'), (await win.webContents.capturePage()).toPNG());
+
+  await runs.stop(id);
+  const down = info();
+  const leftover = !!kid && processAlive(kid);
+  let after = await readUi();
+  // In the panel it's not a project command: once stopped it leaves the list (the project's own run shows again).
+  for (let i = 0; i < 20 && after.dot === 'live'; i++) {
+    await wait(100);
+    after = await readUi();
+  }
+  fs.writeFileSync(path.join(outDir, 'smoke-run-stopped.png'), (await win.webContents.capturePage()).toPNG());
+  await js(`document.querySelector('.c-run .c-panel__actions button')?.click()`);
+  fs.rmSync(dir, { recursive: true, force: true });
+  console.log(
+    `[smoke] run slot: ${up?.state} at ${up?.url ?? 'no address'} (PORT ${up?.port}) answered "${body}"; panel dot ${ui.dot}, log has address ${ui.log.includes('Local:')}, open in preview ${ui.preview}; stop → ${down?.state}, dot ${after.dot}, child left: ${leftover}`,
+  );
+  if (up?.state !== 'running' || up.url !== `http://localhost:${port}/`)
+    return `run slot: not up (${up?.state}, ${up?.url})`;
+  if (body !== 'aquila-run-ok') return `run slot: server did not answer (${body})`;
+  if (!kid) return 'run slot: fixture child pid not printed';
+  if (!opened) return 'run slot: ⌘K has no run panel action';
+  if (ui.dot !== 'live') return `run slot: panel dot is "${ui.dot}", not live`;
+  if (!ui.log.includes('Local:')) return 'run slot: the log pane does not show the output';
+  if (!ui.preview) return 'run slot: no "Open in preview" for the printed address';
+  if (down?.alive || down?.state !== 'exited') return `run slot: still ${down?.state} after Stop`;
+  if (after.dot === 'live') return 'run slot: the panel still shows it running after Stop';
+  if (leftover) return 'run slot: a process was left behind after Stop';
+  return null;
+}
 
 /** A page with a fake React fiber on its button, so the component lookup is exercised without React. */
 const PICK_PAGE = `data:text/html,${encodeURIComponent(`<!doctype html><title>pick</title>

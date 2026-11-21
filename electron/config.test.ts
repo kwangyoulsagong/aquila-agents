@@ -298,6 +298,34 @@ describe('figma setting', () => {
   });
 });
 
+describe('run commands setting', () => {
+  it('keeps valid commands, an empty list removes the key, a remote project never gets them', () => {
+    let c = applyProjectEdit(base(), {
+      op: 'updateProject',
+      id: 'a',
+      runCommands: [
+        { name: 'web', command: ' npm run dev ' },
+        { name: 'x', command: '' },
+      ],
+    });
+    expect(c.projects.find((p) => p.id === 'a')?.runCommands).toEqual([
+      { name: 'web', command: 'npm run dev' },
+    ]);
+    c = applyProjectEdit(c, { op: 'updateProject', id: 'a', runCommands: [] });
+    expect(c.projects.find((p) => p.id === 'a')).not.toHaveProperty('runCommands');
+    const remote = {
+      ...base(),
+      projects: base().projects.map((p) => (p.id === 'a' ? { ...p, remote: { alias: 'h' } } : p)),
+    };
+    c = applyProjectEdit(remote, {
+      op: 'updateProject',
+      id: 'a',
+      runCommands: [{ name: 'web', command: 'npm run dev' }],
+    });
+    expect(c.projects.find((p) => p.id === 'a')).not.toHaveProperty('runCommands');
+  });
+});
+
 describe('helpers', () => {
   it('tildify / slugify', () => {
     expect(tildify('/home/me', '/home/me')).toBe('~');

@@ -279,6 +279,14 @@ export default function ProjectSettingsDialog({
                 spellCheck={false}
               />
             </Field>
+            <Field label={t('settings.runCommands')} hint={t('settings.runCommandsHint')}>
+              <Textarea
+                value={form.runCommands}
+                onChange={(e) => set('runCommands', e.target.value)}
+                placeholder={'web: npm run dev\ntest: npm test -- --watch'}
+                spellCheck={false}
+              />
+            </Field>
             <Field label={t('settings.openIn')}>
               <Select
                 value={form.openIn}

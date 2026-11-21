@@ -85,6 +85,7 @@ export const GUIDE_ITEMS: readonly GuideItem[] = [
     bodyKey: 'guide.preview.body',
     shortcuts: ['togglePreview'],
   },
+  { id: 'run', titleKey: 'guide.run.title', bodyKey: 'guide.run.body', shortcuts: ['toggleRun'] },
   { id: 'figma', titleKey: 'guide.figma.title', bodyKey: 'guide.figma.body' },
   {
     id: 'terminal',

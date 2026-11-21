@@ -30,6 +30,7 @@ import { SessionTabs } from '@/widgets/session-tabs';
 import { SplitView, focusedOnly } from '@/widgets/split-view';
 import { ChangesPanel } from '@/widgets/changes-panel';
 import { PreviewPanel } from '@/widgets/preview';
+import { RunPanel } from '@/features/run-slot';
 import { HistoryPanel } from '@/widgets/history-panel';
 import { UsageGauge } from '@/widgets/usage-gauge';
 import { TrendsButton, TrendsModal, hasCliUpdate, useTrends } from '@/widgets/trends';
@@ -44,6 +45,11 @@ export default function WorkspacePage() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewFullOn, setPreviewFull] = useState(false);
   const togglePreview = useCallback(() => setPreviewOpen((o) => !o), []);
+  // Run slot (T60); "Open in preview" opens the preview on the run's address.
+  const [runOpen, setRunOpen] = useState(false);
+  const toggleRun = useCallback(() => setRunOpen((o) => !o), []);
+  const [previewRequest, setPreviewRequest] = useState<{ url: string; at: number } | null>(null);
+  const clearPreviewRequest = useCallback(() => setPreviewRequest(null), []);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const togglePalette = useCallback(() => setPaletteOpen((o) => !o), []);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -144,6 +150,7 @@ export default function WorkspacePage() {
     closePane: ws.split.closePane,
     toggleChanges,
     togglePreview,
+    toggleRun,
     togglePalette,
     toggleGuide,
     toggleHistory,
@@ -227,6 +234,7 @@ export default function WorkspacePage() {
         a.openWorktree = openWorktreeDialog;
         if (paletteWorktrees.length) a.cleanupWorktrees = openCleanup;
         a.togglePreview = togglePreview;
+        a.toggleRun = toggleRun;
         a.openProjectIn = () => void openIn(project);
         a.connectFigma = () => openSettings(project, 'figma');
       }
@@ -274,6 +282,7 @@ export default function WorkspacePage() {
     toggleFullscreen,
     toggleChanges,
     togglePreview,
+    toggleRun,
     openWorktreeDialog,
     paletteWorktrees.length,
     openCleanup,
@@ -387,6 +396,17 @@ export default function WorkspacePage() {
                         aria-label={t('preview.label')}
                       />
                     )}
+                    {!project.remote && (
+                      <Button
+                        variant="ghost"
+                        glyph="▶"
+                        label={t('run.label')}
+                        aria-pressed={runOpen}
+                        onClick={toggleRun}
+                        title={withShortcut(t('run.toggle'), 'toggleRun')}
+                        aria-label={t('run.label')}
+                      />
+                    )}
                     {fullscreen.available && <FullscreenButton onClick={toggleFullscreen} />}
                   </>
                 )
@@ -469,6 +489,19 @@ export default function WorkspacePage() {
             onClose={() => setChangesOpen(false)}
           />
         )}
+        {runOpen && !fullscreen.on && !previewFull && project && !project.remote && (
+          <RunPanel
+            key={project.id}
+            project={project}
+            session={ws.sessions.find((x) => x.id === activeSessionId)}
+            onClose={() => setRunOpen(false)}
+            onOpenPreview={(url) => {
+              setPreviewRequest({ url, at: Date.now() });
+              setPreviewOpen(true);
+            }}
+            onSettings={() => openSettings(project)}
+          />
+        )}
         {/* Last column: the native preview view only has to follow its own size and the window. */}
         {previewOpen && !fullscreen.on && project && !project.remote && (
           <PreviewPanel
@@ -476,6 +509,8 @@ export default function WorkspacePage() {
             project={project}
             session={ws.sessions.find((x) => x.id === activeSessionId)}
             full={previewFull}
+            request={previewRequest}
+            onRequestDone={clearPreviewRequest}
             onToggleFull={() => setPreviewFull((f) => !f)}
             onClose={() => {
               setPreviewOpen(false);

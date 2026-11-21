@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Project } from '@/shared/api';
-import { editorOptions, parsePort, toForm, toSettings } from './settings';
+import { editorOptions, formatRunCommands, parsePort, parseRunCommands, toForm, toSettings } from './settings';
 
 const project: Project = { id: 'a', name: 'A', group: 'work', account: 'shared', path: '~/a' };
 
@@ -18,7 +18,23 @@ describe('project settings form', () => {
       portBase: null,
       openIn: '',
       figma: false,
+      runCommands: [],
     });
+  });
+
+  it('reads run commands one per line, named or not, and writes them back', () => {
+    const text = 'web: npm run dev\n\n  npm run dev:api  \nFOO=1 npm test\ncurl http://localhost:3000/';
+    const list = parseRunCommands(text);
+    expect(list).toEqual([
+      { name: 'web', command: 'npm run dev' },
+      { name: 'npm run dev:api', command: 'npm run dev:api' },
+      { name: 'FOO=1 npm test', command: 'FOO=1 npm test' },
+      { name: 'curl http://localhost:3000/', command: 'curl http://localhost:3000/' },
+    ]);
+    expect(parseRunCommands(formatRunCommands(list))).toEqual(list);
+    expect(parseRunCommands('웹 서버: pnpm dev')).toEqual([{ name: '웹 서버', command: 'pnpm dev' }]);
+    const remote: Project = { ...project, remote: { alias: 'devbox' } };
+    expect(toSettings({ ...toForm(remote), runCommands: 'npm run dev' }, remote)).not.toHaveProperty('runCommands');
   });
 
   it('sends Figma on/off for local projects only', () => {
