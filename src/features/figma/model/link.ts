@@ -60,14 +60,76 @@ export function chipsFor(link: FigmaLink): Chip[] {
 export const chipInput = (prompt: string): string => ` ${prompt.replace(/\s*\n\s*/g, ' ').trim()}`;
 
 /**
- * The prompt a chip types. Claude has Claude in Chrome built in; Codex doesn't, so it gets the MCP-only prompt.
- * The Chrome pass catches what the MCP data misses (states, real fonts, images, overflow, widths).
+ * The prompt a chip types: a short intent sentence (T55; the tool-level detail is in the chip's tooltip). Claude has
+ * Claude in Chrome built in; Codex doesn't, so only Claude gets the Chrome check. `link`: the link is no longer on the
+ * input line (it was already sent), so the prompt carries it.
  */
 export function chipPrompt(
   chip: Chip,
   kind: 'claude' | 'codex',
   prompt: string,
   chromeCheck: string,
+  link?: string,
 ): string {
-  return chipInput(chip.chrome && kind === 'claude' ? `${prompt} ${chromeCheck}` : prompt);
+  const text = chipInput(chip.chrome && kind === 'claude' ? `${prompt} ${chromeCheck}` : prompt);
+  return link ? `${link}${text}` : text;
+}
+
+/** What the user has on the CLI's input line, rebuilt from the keys sent to the pty (T55). */
+export interface InputLine {
+  text: string;
+  /** Inside a bracketed paste: Enter there is part of the pasted text, not a send. */
+  inPaste: boolean;
+}
+
+export const EMPTY_LINE: InputLine = { text: '', inPaste: false };
+
+const PASTE_START = '\x1b[200~';
+const PASTE_END = '\x1b[201~';
+// Other escape sequences (arrows, function keys, focus reports) don't change what we track.
+// eslint-disable-next-line no-control-regex
+const ESCAPE = /^\x1b(?:\[[0-9;?]*[ -/]*[@-~]|O.|.)?/;
+
+/**
+ * Feeds one `onData` chunk into the line: printable text is added, Backspace removes, Ctrl+U / Ctrl+C clear, Enter
+ * (outside a paste) sends. Arrows and other cursor moves are ignored, so the line is a best guess: good enough to
+ * find a link and to tell whether a sent line had it.
+ */
+export function feedLine(line: InputLine, data: string): { line: InputLine; sent: string[] } {
+  let { text, inPaste } = line;
+  const sent: string[] = [];
+  let i = 0;
+  while (i < data.length) {
+    if (data.startsWith(PASTE_START, i)) {
+      inPaste = true;
+      i += PASTE_START.length;
+      continue;
+    }
+    if (data.startsWith(PASTE_END, i)) {
+      inPaste = false;
+      i += PASTE_END.length;
+      continue;
+    }
+    const ch = data[i];
+    if (ch === '\x1b') {
+      i += ESCAPE.exec(data.slice(i))?.[0].length ?? 1;
+      continue;
+    }
+    i += 1;
+    if (ch === '\r' || ch === '\n') {
+      if (inPaste) text += '\n';
+      else {
+        sent.push(text);
+        text = '';
+      }
+    } else if (ch === '\x7f' || ch === '\b') text = text.slice(0, -1);
+    else if (ch === '\x15' || ch === '\x03') text = '';
+    else if (ch >= ' ') text += ch;
+  }
+  return { line: { text, inPaste }, sent };
+}
+
+/** A Figma link dragged in as a link or as text. */
+export function droppedFigmaLink(data: Pick<DataTransfer, 'getData'>): FigmaLink | null {
+  return parseFigmaLink(data.getData('text/uri-list') || data.getData('text/plain'));
 }
