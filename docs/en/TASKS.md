@@ -544,11 +544,49 @@ The P0 rows of the persona report that were left under **Nice to have**: tools t
 - **Spec:** Add runs Check host first and, on failure, says the next step in plain words; a simple remote folder browser (`ls` over the existing connection); shorter ko/en copy; ⌘K "Add remote server…" and a guide item.
 - **Owns:** the remote part of `src/features/manage-projects/`, `electron/remote/` (read-only `ls`).
 
+## Persona P1: the three axes
+
+The P1 rows of the persona report: review what finished, see what ran, and run things apart from the agent. Each one reuses what is there (Changes panel, read-only history, project `PORT` / setup script).
+
+### T57 · Changes panel risk badges
+- [ ] **Goal:** the files worth a second look are at the top of the Changes list.
+- **Spec:**
+  - A badge on a changed file: migration (`migrations/`, `*.sql`, `schema.prisma`), lockfile, env (`.env*`), prompt (`AGENTS.md`, `CLAUDE.md`, `*.prompt*`, `prompts/`), CI (`.github/workflows/`).
+  - Badged files sort above the rest (stable order inside each group); the panel bar counts them ("2 to check").
+  - Pure path rules, no extra git calls. Remote projects get the same badges.
+- **Owns:** `src/entities/diff/model/risk.ts` (+ test), the file list in `src/widgets/changes-panel/`, `.c-badge` variant if needed.
+- **Done:** a diff touching `prisma/schema.prisma` and `package-lock.json` shows both badged and on top.
+
+### T58 · Review queue
+- [ ] **Goal:** finished sessions I haven't looked at are gathered apart from the waiting ones.
+- **Spec:**
+  - A session that turns `done` while not on screen is "to review" until its tab is shown or its Changes are opened.
+  - ⌘K "Next to review" and a sidebar section (under the project list, hidden when empty): title, project, branch, changed files count.
+  - Sorted oldest first; closing the tab drops it. Kept in memory only (not restored).
+- **Owns:** `src/features/review-queue/` (+ model test), one row in `src/widgets/sidebar/`, the palette entry (small).
+- **Done:** two sessions finishing in the background show up in the queue; viewing one removes only that one.
+
+### T59 · Commands timeline
+- [ ] **Goal:** see which commands a Claude session ran, without scrolling the terminal.
+- **Spec:**
+  - From the read-only transcript (T11's reader): each Bash `tool_use` with its command, time, and exit state from the matching `tool_result` (ok / error).
+  - A list in the history panel's session view and ⌘K "Commands in this session" for the focused tab; destructive commands get T52's ⚠, tests and migrations a badge.
+  - Output is never stored or shown; `KEY=value` / `--token …` are masked.
+- **Owns:** `electron/history.ts` (a commands reader + test with fixtures), `src/widgets/history-panel/`.
+- **Done:** a fixture transcript with `npm test` (ok) and `rm -rf dist` (error) lists both with the right marks.
+
+### T60 · Run slot
+- [ ] **Goal:** start a dev server or test watcher apart from the agent, see its log and whether it's up.
+- **Spec:**
+  - Per project (and per worktree): named commands in project settings (default: `npm run dev` when `package.json` has it).
+  - "Run" starts it in its own process group with the worktree's `PORT`; a log pane (read-only xterm) and a status dot: running, exited, error (`Error`, `EADDRINUSE`, `OOM`, `NaN` in output or a non-zero exit).
+  - Stop kills the group; quitting the app stops all runs. A URL in the output (`http://localhost:…`) offers "Open in preview".
+  - Local projects only for now.
+- **Owns:** `electron/runs.ts` (+ test), `src/features/run-slot/`, project settings field (small), one IPC group.
+- **Done:** "Run" on a fixture project starts a server, the dot turns green, Stop leaves no process behind (smoke).
+
 ### Nice to have (not planned)
-- Run slot: dev server / tests / long jobs as processes apart from the agent, with a log pane and a status dot.
-- Review queue: sessions done but not looked at, with changed files and push state.
-- Commands timeline per session from the read-only transcript.
 - Production label on a project or host.
 - Before/after preview snapshots in the Changes panel; "share what changed" as Markdown.
-- Changes panel risk badges (migrations, `.env`, lockfiles, prompt files).
+- Remote status you can trust: last signal age, ServerAlive, a host hook channel.
 - Designer view as side-by-side / overlay compare instead of stacked.
