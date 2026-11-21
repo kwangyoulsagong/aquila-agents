@@ -81,6 +81,7 @@
   --p-size-16: 16px;
   --p-size-24: 24px;
   --p-size-224: 224px; /* a pick list's height: seven rows */
+  --p-size-96: 96px; /* a range slider's track */
   --p-size-80: 80px; /* macOS traffic lights (x 16 + 3 buttons + gaps ≈ 68, on the grid) */
   --p-size-140: 140px; /* Windows caption buttons (3 × 46 at 100%, on the grid) */
   --p-radius-4: 4px;
@@ -214,6 +215,7 @@
   --size-palette: 560px;      /* command palette width */
   --size-palette-list: 352px; /* list height before it scrolls (11 rows) */
   --size-find-input: 200px;   /* query field of a terminal's find bar (T40) */
+  --size-range: var(--p-size-96); /* range slider (Designer compare opacity, T62) */
   --size-modal: 760px;        /* list + detail modal (guide, release notes) */
   --size-modal-height: 520px;
   --size-modal-aside: 240px;  /* its list column */

@@ -798,6 +798,8 @@ export interface AquilaApi {
   /** Select mode: resolves with the element the user clicked in the preview (null on Esc / cancel). */
   previewPick(slot: PreviewSlot): Promise<PickResult | null>;
   previewPickCancel(slot: PreviewSlot): void;
+  /** A PNG of what a slot's view shows now (Designer compare, T62); null when the view isn't on screen. */
+  previewCapture(slot: PreviewSlot): Promise<PreviewShot | null>;
   /** Run slot (T60), local projects only: the commands of a project dir / worktree with their state. */
   runList(projectId: string, worktree?: string): Promise<RunList>;
   onRunsChanged(cb: (l: RunList) => void): Unsubscribe;
@@ -904,6 +906,15 @@ export interface PreviewNav {
   /** The address whose load failed (the view's `url` stays on the last page that loaded). */
   errorUrl?: string;
   canGoBack: boolean;
+}
+
+/** A whole-view screenshot of a preview slot (T62): saved in the paste temp folder, and inline for the panel. */
+export interface PreviewShot {
+  path: string;
+  dataUrl: string;
+  /** Device px. */
+  width: number;
+  height: number;
 }
 
 /** The element picked in the preview (T33), pasted into the focused session as a prompt + screenshot path. */
@@ -1028,6 +1039,7 @@ export const IPC = {
   previewNav: 'preview:nav',
   previewPick: 'preview:pick',
   previewPickCancel: 'preview:pick-cancel',
+  previewCapture: 'preview:capture',
   runList: 'run:list',
   runsChanged: 'run:changed',
   runStart: 'run:start',

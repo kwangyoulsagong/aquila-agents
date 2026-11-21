@@ -114,6 +114,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `--size-dialog` / `--size-dialog-wide` | 440 / 560 | Dialog width / with a checklist (first run) |
 | `--size-palette` / `--size-palette-list` | 560 / 352 | Command palette width / list height before it scrolls (11 rows) |
 | `--size-find-input` | 200 | Query field of a terminal's find bar (T40) |
+| `--size-range` | 96 | Range slider (Designer compare opacity, T62) |
 | `--size-modal` / `--size-modal-height` / `--size-modal-aside` | 760 / 520 / 240 | List + detail modal (guide, release notes) / its list column |
 | `--size-modal-wide` / `--size-modal-wide-height` / `--size-modal-wide-aside` | 960 / 640 / 320 | `.c-modal--wide` (session history: longer rows, a transcript) / its list column |
 
@@ -124,6 +125,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `.c-dot[data-status]` | Status dot |
 | `.c-btn` `--primary` `--ghost` `--icon`, `__badge` | Buttons; `__badge` = a small accent dot on an icon button's corner for "something new" (AI trends: a newer CLI). Not a status dot |
 | `.c-segment`, `__item[aria-checked]` | Segmented control (account switch) |
+| `.c-range` | Native slider in the accent colour (Designer compare opacity) |
 | `.c-kbd` | Shortcut hint |
 | `.c-elapsed` | How long a session has waited ("12m", mono, waiting color) on a tab or project row |
 | `.c-reason` | What a waiting session waits on ("Bash: npm install"), one mono caption line under its project row (aligned with the name); a button that shows the session. `data-risk` = possibly destructive: error color + `.c-risk` |
@@ -191,6 +193,7 @@ from `src/` (ESLint enforces it). New primitive → add the class to `components
 | `Meter` `label` `value` `fraction` (null = unknown) `tone?` `caption?` `title?` | `.c-meter` |
 | `Ring` `fraction` `label` `valueText` `showValue?` `tone?` `title?` | `.c-ring` |
 | `Segment` `options` `value` `onChange` | `.c-segment` |
+| `Range` `label` `value` `onChange` | `.c-range` |
 | `ResizeHandle` `onChange` `onReset` `edge` `label` | `.c-resize` (measures its parent: start width, `min-width`, room its flexible siblings can give) |
 | `EmptyState` `title` `path` `actions` | `.c-empty` |
 | `Dialog` `open` `title` `onClose` `actions` `wide`, `DialogCheck`, `DialogCode`, `DialogForm` `id` `onSubmit`, `DialogGroup` `ref?` | `.c-dialog` (`DialogGroup` = `.c-dialog__group`, fields kept together and scrolled to) |

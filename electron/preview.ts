@@ -9,6 +9,7 @@ import type {
   PreviewCommand,
   PreviewNav,
   PreviewRect,
+  PreviewShot,
   PreviewSlot,
   PreviewState,
 } from '../src/shared/api/types';
@@ -457,6 +458,26 @@ export class PreviewViews {
       }
     }
     return picked;
+  }
+
+  /** The whole view as a PNG (Designer compare, T62), saved next to pick crops. Null when hidden or blank. */
+  async capture(slot: PreviewSlot): Promise<PreviewShot | null> {
+    const s = this.slots.get(slot);
+    if (!s || !s.view.getVisible()) return null;
+    try {
+      const img = await s.view.webContents.capturePage();
+      if (img.isEmpty()) return null;
+      const now = new Date();
+      prunePasteDir(PASTE_DIR, PICK_MAX_AGE_MS, now.getTime());
+      fs.mkdirSync(PASTE_DIR, { recursive: true });
+      const file = path.join(PASTE_DIR, `compare-${slot}-${stamp(now)}-${now.getMilliseconds()}.png`);
+      fs.writeFileSync(file, img.toPNG());
+      const { width, height } = img.getSize();
+      return { path: file, dataUrl: img.toDataURL(), width, height };
+    } catch (err) {
+      console.error('[preview] capture failed', err);
+      return null;
+    }
   }
 
   cancelPick(slot: PreviewSlot): void {

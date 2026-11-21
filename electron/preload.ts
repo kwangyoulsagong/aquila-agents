@@ -109,6 +109,7 @@ const api: AquilaApi = {
   onPreviewNav: on(IPC.previewNav),
   previewPick: (slot) => ipcRenderer.invoke(IPC.previewPick, slot),
   previewPickCancel: (slot) => ipcRenderer.send(IPC.previewPickCancel, slot),
+  previewCapture: (slot) => ipcRenderer.invoke(IPC.previewCapture, slot),
   news: () => ipcRenderer.invoke(IPC.newsGet),
   onNews: on(IPC.newsChanged),
   newsRefresh: () => ipcRenderer.invoke(IPC.newsRefresh),
