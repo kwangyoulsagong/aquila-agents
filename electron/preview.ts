@@ -100,43 +100,78 @@ export function findDevUrls(text: string, ignorePorts: readonly number[] = []): 
   return out;
 }
 
-/** Addresses seen in each project's terminals, most recent first. Cheap on floods: no `://`, no regex. */
+/** Where an address was seen: a project, and the worktree of the tab that printed it (none = the project dir). */
+const scopeKey = (projectId: string, worktree?: string) =>
+  worktree ? `${projectId}\0${worktree}` : projectId;
+
+/**
+ * Addresses seen in each project's terminals, per worktree (T50: parallel worktrees run their own servers), most
+ * recent first. Cheap on floods: no `://`, no regex.
+ */
 export class DevUrlTracker {
   private tails = new Map<string, string>();
-  private byProject = new Map<string, string[]>();
+  private byScope = new Map<string, string[]>();
 
   constructor(
-    private onChange: (projectId: string, urls: string[]) => void,
+    private onChange: (projectId: string, worktree: string | undefined, urls: string[]) => void,
     private ignorePorts: readonly number[] = [],
   ) {}
 
-  feed(projectId: string, sessionId: string, data: string): void {
+  feed(projectId: string, worktree: string | undefined, sessionId: string, data: string): void {
     const text = (this.tails.get(sessionId) ?? '') + data;
     this.tails.set(sessionId, text.slice(-TAIL));
     if (!text.includes('://')) return;
     const found = findDevUrls(text, this.ignorePorts);
     if (!found.length) return;
-    const before = this.byProject.get(projectId) ?? [];
+    const key = scopeKey(projectId, worktree);
+    const before = this.byScope.get(key) ?? [];
     // The last address printed is the freshest (a restarted server on a new port).
     const next = [...found.reverse(), ...before.filter((u) => !found.includes(u))].slice(0, MAX_URLS);
     if (next.join('\n') === before.join('\n')) return;
-    this.byProject.set(projectId, next);
-    this.onChange(projectId, next);
+    this.byScope.set(key, next);
+    this.onChange(projectId, worktree, next);
   }
 
   forgetSession(sessionId: string): void {
     this.tails.delete(sessionId);
   }
 
-  urls(projectId: string): string[] {
-    return this.byProject.get(projectId) ?? [];
+  urls(projectId: string, worktree?: string): string[] {
+    return this.byScope.get(scopeKey(projectId, worktree)) ?? [];
   }
 }
 
-/** launch.json first (the user said so), then what the terminals printed. */
-export const mergeTargets = (launch: readonly string[], seen: readonly string[]): string[] => [
-  ...new Set([...launch, ...seen]),
-];
+const portOf = (url: string): number | null => {
+  try {
+    const u = new URL(url);
+    return Number(u.port) || (u.protocol === 'https:' ? 443 : 80);
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * The addresses offered for one worktree (or the project dir), and the one to prefer. A seen address on the tab's
+ * `PORT` range (`port` … `port + step - 1`, T26) is that worktree's own server: preferred and first. Then
+ * launch.json (the user said so), then the rest of what the terminals printed. Nothing at all and a known `PORT` →
+ * that address, as a guess (not preferred: it may not be running).
+ */
+export function orderTargets(
+  launch: readonly string[],
+  seen: readonly string[],
+  port?: number,
+  step = 1,
+): { urls: string[]; preferred?: string } {
+  const preferred = port
+    ? seen.find((u) => {
+        const p = portOf(u);
+        return p !== null && p >= port && p < port + step;
+      })
+    : undefined;
+  const urls = [...new Set([...(preferred ? [preferred] : []), ...launch, ...seen])];
+  if (!urls.length && port) urls.push(`http://localhost:${port}/`);
+  return preferred ? { urls, preferred } : { urls };
+}
 
 /**
  * Where the native view goes inside the stage and its zoom: a preset narrower than the stage is centred at 1×, a

@@ -4,7 +4,7 @@ import {
   DevUrlTracker,
   findDevUrls,
   fitView,
-  mergeTargets,
+  orderTargets,
   normalizeUrl,
   parseLaunchJson,
 } from './preview';
@@ -69,12 +69,12 @@ describe('normalizeUrl', () => {
 describe('DevUrlTracker', () => {
   it('joins chunks, keeps the latest first and reports changes only', () => {
     const changes: string[][] = [];
-    const t = new DevUrlTracker((_p, urls) => changes.push(urls));
-    t.feed('p', 's1', 'Local: http://local');
-    t.feed('p', 's1', 'host:5173/\n');
-    t.feed('p', 's1', 'again http://localhost:5173/\n');
-    t.feed('p', 's2', 'next http://localhost:3000\n');
-    t.feed('p', 's2', 'yyyyyyyyyyyyy\n'.repeat(100));
+    const t = new DevUrlTracker((_p, _w, urls) => changes.push(urls));
+    t.feed('p', undefined, 's1', 'Local: http://local');
+    t.feed('p', undefined, 's1', 'host:5173/\n');
+    t.feed('p', undefined, 's1', 'again http://localhost:5173/\n');
+    t.feed('p', undefined, 's2', 'next http://localhost:3000\n');
+    t.feed('p', undefined, 's2', 'yyyyyyyyyyyyy\n'.repeat(100));
     expect(changes).toEqual([
       ['http://localhost:5173/'],
       ['http://localhost:3000/', 'http://localhost:5173/'],
@@ -82,11 +82,35 @@ describe('DevUrlTracker', () => {
     expect(t.urls('p')).toEqual(['http://localhost:3000/', 'http://localhost:5173/']);
     expect(t.urls('other')).toEqual([]);
   });
+  it('keeps each worktree apart from the project dir', () => {
+    const changes: (string | undefined)[] = [];
+    const t = new DevUrlTracker((_p, w) => changes.push(w));
+    t.feed('p', undefined, 's1', 'http://localhost:3000/\n');
+    t.feed('p', '/wt/a', 's2', 'http://localhost:3010/\n');
+    expect(t.urls('p')).toEqual(['http://localhost:3000/']);
+    expect(t.urls('p', '/wt/a')).toEqual(['http://localhost:3010/']);
+    expect(t.urls('p', '/wt/b')).toEqual([]);
+    expect(changes).toEqual([undefined, '/wt/a']);
+  });
 });
 
-describe('mergeTargets', () => {
-  it('puts launch.json first without duplicates', () => {
-    expect(mergeTargets(['a', 'b'], ['b', 'c'])).toEqual(['a', 'b', 'c']);
+describe('orderTargets', () => {
+  it('puts launch.json first without duplicates when there is no PORT', () => {
+    expect(orderTargets(['a', 'b'], ['b', 'c'])).toEqual({ urls: ['a', 'b', 'c'] });
+  });
+  it("prefers the server on the worktree's PORT range", () => {
+    const launch = ['http://localhost:3000/'];
+    const seen = ['http://localhost:5173/', 'http://localhost:3012/'];
+    expect(orderTargets(launch, seen, 3010, 10)).toEqual({
+      urls: ['http://localhost:3012/', 'http://localhost:3000/', 'http://localhost:5173/'],
+      preferred: 'http://localhost:3012/',
+    });
+    expect(orderTargets(launch, ['http://localhost:3020/'], 3010, 10)).toEqual({
+      urls: ['http://localhost:3000/', 'http://localhost:3020/'],
+    });
+  });
+  it('guesses the PORT address only when nothing else is known', () => {
+    expect(orderTargets([], [], 3010, 10)).toEqual({ urls: ['http://localhost:3010/'] });
   });
 });
 

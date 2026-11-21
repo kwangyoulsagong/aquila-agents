@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { api, type PreviewNav, type PreviewSlot } from '@/shared/api';
+import { api, type PreviewNav, type PreviewSlot, type PreviewTargets } from '@/shared/api';
 
 export type Device = 'fit' | '390' | '768' | '1440';
 export const DEVICES: readonly Device[] = ['fit', '390', '768', '1440'];
@@ -36,24 +36,29 @@ export function useStored(key: string, fallback = ''): [string, (v: string) => v
   return [value, set];
 }
 
-/** Dev server addresses for the project: launch.json + what its terminals printed, live. */
-export function useTargets(projectId: string | null): string[] {
-  const [targets, setTargets] = useState<{ projectId: string | null; urls: string[] }>({
-    projectId,
-    urls: [],
-  });
+/**
+ * Dev server addresses for the project dir or one of its worktrees (T50): launch.json + what its terminals printed,
+ * live, and the one on the worktree's `PORT` when it's running.
+ */
+export function useTargets(
+  projectId: string | null,
+  worktree?: string,
+): Pick<PreviewTargets, 'urls' | 'preferred'> {
+  const [targets, setTargets] = useState<PreviewTargets | null>(null);
   useEffect(() => {
     if (!projectId) return;
     let live = true;
-    void api.previewTargets(projectId).then((t) => live && setTargets(t));
-    const off = api.onPreviewTargets((t) => t.projectId === projectId && setTargets(t));
+    const mine = (t: PreviewTargets) => t.projectId === projectId && t.worktree === worktree;
+    void api.previewTargets(projectId, worktree).then((t) => live && mine(t) && setTargets(t));
+    const off = api.onPreviewTargets((t) => mine(t) && setTargets(t));
     return () => {
       live = false;
       off();
     };
-  }, [projectId]);
-  return targets.projectId === projectId ? targets.urls : [];
+  }, [projectId, worktree]);
+  return targets && targets.projectId === projectId && targets.worktree === worktree ? targets : NO_TARGETS;
 }
+const NO_TARGETS: Pick<PreviewTargets, 'urls'> = { urls: [] };
 
 /** What the native view of a slot is showing (title, loading, last error). */
 export function useNav(slot: PreviewSlot): PreviewNav | null {

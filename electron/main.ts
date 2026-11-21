@@ -32,7 +32,14 @@ import { showContextMenu } from './menu';
 import { installAppMenu } from './appMenu';
 import { GlobalShortcut, readGlobalShortcut, writeGlobalShortcut } from './globalShortcut';
 import { gitAction, gitChanges, localGit, localTrash, treeOf, TreeWatcher } from './git';
-import { ensureWorktree, removeWorktree, worktreeCandidates, worktreeInfo } from './worktrees';
+import {
+  ensureWorktree,
+  PORT_STEP,
+  removeWorktree,
+  worktreeCandidates,
+  worktreeInfo,
+  worktreeSlot,
+} from './worktrees';
 import { markGuideOffered, readGuideState } from './guide';
 import { releaseNotesState, usedBefore, writeLastSeen } from './releaseNotes';
 import { startUpdater } from './updater';
@@ -50,7 +57,7 @@ import { ContextWatcher, statusLineSources, userHasStatusLine } from './context'
 import { connect as figmaConnect, FIGMA_DOCS_URL, readProfiles as figmaProfiles } from './figma';
 import { PowerWatcher, type PowerSource } from './power';
 import { FIXTURE_NOW, fixtureFetcher, NewsService } from './news';
-import { DevUrlTracker, mergeTargets, PreviewViews, readLaunchJson } from './preview';
+import { DevUrlTracker, orderTargets, PreviewViews, readLaunchJson } from './preview';
 import { SessionManager } from './sessions';
 import { checkRemote } from './remote/check';
 import { ensureControlDir, sshExec } from './remote/exec';
@@ -88,6 +95,7 @@ import {
   type PreviewCommand,
   type PreviewSlot,
   type PreviewState,
+  type PreviewTargets,
   type ProjectEdit,
   type RemoteHost,
   type RestoreResult,
@@ -203,16 +211,26 @@ app.whenReady().then(async () => {
   });
   ipcMain.handle(IPC.figmaOpenDocs, () => shell.openExternal(FIGMA_DOCS_URL));
   // In-app preview (T33): dev server addresses from launch.json + the project's terminals; one native view per slot.
-  const localDir = (projectId: string) => {
+  // Per worktree (T50): its own launch.json, the addresses its tabs printed, and its PORT (as sessions.ts sets it).
+  const slots = new Map<string, number>();
+  const targetsOf = (projectId: string, worktree?: string): PreviewTargets => {
     const p = loadConfig().projects.find((x) => x.id === projectId);
-    return p && !p.remote ? expand(p.path) : null;
-  };
-  const targetsOf = (projectId: string) => {
-    const dir = localDir(projectId);
-    return { projectId, urls: dir ? mergeTargets(readLaunchJson(dir), devUrls.urls(projectId)) : [] };
+    if (!p || p.remote) return { projectId, ...(worktree ? { worktree } : {}), urls: [] };
+    const dir = worktree ?? expand(p.path);
+    let port: number | undefined;
+    if (p.portBase) {
+      let slot = 0;
+      if (worktree) {
+        slot = slots.get(worktree) ?? worktreeSlot(worktree);
+        slots.set(worktree, slot);
+      }
+      port = p.portBase + PORT_STEP * slot;
+    }
+    const order = orderTargets(readLaunchJson(dir), devUrls.urls(projectId, worktree), port, PORT_STEP);
+    return { projectId, ...(worktree ? { worktree } : {}), ...order };
   };
   const devUrls = new DevUrlTracker(
-    (projectId) => win?.webContents.send(IPC.previewTargetsChanged, targetsOf(projectId)),
+    (projectId, worktree) => win?.webContents.send(IPC.previewTargetsChanged, targetsOf(projectId, worktree)),
     [hookPort],
   );
   previews = new PreviewViews(
@@ -220,7 +238,9 @@ app.whenReady().then(async () => {
     (nav) => win?.webContents.send(IPC.previewNav, nav),
     openInBrowser,
   );
-  ipcMain.handle(IPC.previewTargets, (_e, projectId: string) => targetsOf(projectId));
+  ipcMain.handle(IPC.previewTargets, (_e, projectId: string, worktree?: string) =>
+    targetsOf(projectId, typeof worktree === 'string' && worktree ? worktree : undefined),
+  );
   ipcMain.on(IPC.previewSet, (_e, { slot, state }: { slot: PreviewSlot; state: PreviewState | null }) =>
     previews?.set(slot, state),
   );
@@ -257,7 +277,7 @@ app.whenReady().then(async () => {
       context.remove(id);
       devUrls.forgetSession(id);
     },
-    onOutput: (projectId, id, data) => devUrls.feed(projectId, id, data),
+    onOutput: (projectId, id, data, worktree) => devUrls.feed(projectId, worktree, id, data),
     onTabsChanged: isSmoke ? undefined : saveTabs,
     scrollback: isSmoke
       ? undefined

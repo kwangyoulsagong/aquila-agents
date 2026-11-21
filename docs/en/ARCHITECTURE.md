@@ -439,6 +439,12 @@ own title.
   which keeps a 256-char tail per tab (an address split across chunks still matches), strips ANSI (Vite bolds the
   port), normalizes `0.0.0.0` / `127.0.0.1` / `[::1]` to `localhost`, skips our hook port and keeps the last 5 per
   project, newest first. Chunks without `://` cost one `includes`. `preview:targets` / `preview:targets-changed`.
+- **Per worktree (T50):** addresses are kept per project + worktree of the tab that printed them, and the panel asks
+  for the focused tab's worktree (`previewTargets(projectId, worktree?)`): its own launch.json, its own addresses, its
+  own remembered address (`aquila.preview.url.<id>@<path>`), its branch in the panel head. With a port base (T26) the
+  worktree's `PORT` range (`portBase + 10 × slot` … `+9`, slot cached per path) decides `preferred`: a seen address
+  in it goes first and the panel switches to it once when it appears. Nothing known at all → `localhost:<PORT>` as a
+  guess (`orderTargets`).
 - **View:** one `WebContentsView` per slot (`app`, `figma`) on the window's `contentView`, partition
   `persist:aquila-preview` (sandboxed, no preload; `window.open` → the browser). The panel's stage div reports its
   rect (ResizeObserver + window resize; the panel is the last column so it only moves with its own size) through

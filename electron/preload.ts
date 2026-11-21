@@ -92,7 +92,7 @@ const api: AquilaApi = {
   figmaProfiles: () => ipcRenderer.invoke(IPC.figmaProfiles),
   figmaConnect: (account) => ipcRenderer.invoke(IPC.figmaConnect, account),
   figmaOpenDocs: () => ipcRenderer.invoke(IPC.figmaOpenDocs),
-  previewTargets: (projectId) => ipcRenderer.invoke(IPC.previewTargets, projectId),
+  previewTargets: (projectId, worktree) => ipcRenderer.invoke(IPC.previewTargets, projectId, worktree),
   onPreviewTargets: on(IPC.previewTargetsChanged),
   previewSet: (slot, state) => ipcRenderer.send(IPC.previewSet, { slot, state }),
   previewCommand: (slot, command) => ipcRenderer.send(IPC.previewCommand, { slot, command }),

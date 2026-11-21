@@ -208,6 +208,7 @@ const ko = {
   'changes.prompt.pr':
     '이 브랜치의 변경사항으로 PR 설명을 써 줘: 요약, 바뀐 점, 테스트 방법. 아직 PR은 만들지 말고 보여만 줘.',
   'preview.title': '미리보기',
+  'preview.worktreeHint': '포커스된 탭의 워크트리 앱: {path}',
   'preview.toggle': '미리보기 보기',
   'preview.address': '주소',
   'preview.targets': '찾은 개발 서버',
@@ -816,6 +817,7 @@ const en = {
   'changes.prompt.pr':
     "Write a pull request description for the changes on this branch: summary, what changed, how to test. Show it to me; don't open the PR yet.",
   'preview.title': 'Preview',
+  'preview.worktreeHint': "The focused tab's worktree app: {path}",
   'preview.toggle': 'Show preview',
   'preview.address': 'Address',
   'preview.targets': 'Dev servers found',
