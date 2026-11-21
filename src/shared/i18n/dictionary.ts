@@ -137,7 +137,7 @@ const ko = {
   'groups.moveDown': '아래로 이동',
   'groups.remove': '그룹 삭제',
   'groups.empty': '비어 있음 · 프로젝트를 끌어다 놓으세요',
-  'groups.emptyRemote': '비어 있음 · + → SSH 호스트…로 추가',
+  'groups.emptyRemote': '비어 있음 · + 프로젝트 추가 → 원격 서버(SSH)…',
   'group.work': '회사',
   'group.personal': '개인',
   'group.remote': '원격',
@@ -343,7 +343,7 @@ const ko = {
   'guide.sessions.body': '지금 프로젝트에서 Claude, Codex, 셸을 열어요. 설치된 CLI가 그대로 실행돼요.',
   'guide.projects.title': '프로젝트',
   'guide.projects.body':
-    '사이드바의 +나 {palette}로 폴더를 추가해요. 오른쪽 클릭 → 프로젝트 설정에서 폴더·기본 에이전트·기본 브랜치·셋업 스크립트·포트·열 앱을 정하고, 끌어서 순서를 바꿔요.',
+    '사이드바의 + 프로젝트 추가, {palette}, 또는 폴더를 사이드바에 끌어다 놓아 추가해요. 오른쪽 클릭 → 프로젝트 설정에서 폴더·기본 에이전트·기본 브랜치·셋업 스크립트·포트·열 앱을 정하고, 끌어서 순서를 바꿔요.',
   'guide.status.title': '상태 점',
   'guide.status.body':
     '주황은 입력 필요, 빨강은 오류, 파랑은 작업 중, 초록은 완료예요. 흐린 초록은 출력이 멈춘 걸로 추정한 완료예요.',
@@ -390,7 +390,7 @@ const ko = {
   'guide.firstRun.body': 'CLI 설치, PATH, 프로젝트 폴더를 확인해요. {palette} → "시작 점검"으로 다시 열어요.',
   'guide.trends.title': 'AI 트렌드',
   'guide.trends.body':
-    '사이드바 위 ✦에서 내 CLI의 새 버전과 업계 소식을 봐요. 열 때만 가져오고, Claude 요약은 누를 때만 실행돼요.',
+    '사이드바 아래 AI 트렌드 버튼(신문 아이콘)에서 내 CLI의 새 버전과 업계 소식을 봐요. 설치된 것보다 새 CLI 버전이 있으면 점이 떠요. 열 때만 가져오고, Claude 요약은 누를 때만 실행돼요.',
   'guide.language.title': '언어',
   'guide.language.body':
     '사이드바 왼쪽 아래 ⚙ 설정 → 언어에서 한국어와 English를 바꿔요. ⌘K로도 바꿀 수 있어요.',
@@ -443,6 +443,8 @@ const ko = {
   'history.ago.day': '{n}일 전',
   'trends.open': 'AI 트렌드',
   'trends.title': 'AI 트렌드',
+  'trends.subtitle': 'CLI 업데이트 · 업계 소식',
+  'trends.updateAvailable': '새 CLI 버전 있음',
   'trends.tabs': '보기',
   'trends.tab.cli': '내 CLI',
   'trends.tab.industry': '업계',
@@ -502,8 +504,8 @@ const ko = {
   'term.find.next': '다음 (↩)',
   'term.find.close': '닫기 (Esc)',
   'action.copy': '복사',
-  'projects.addLocal': '로컬 폴더…',
-  'projects.addRemote': 'SSH 호스트…',
+  'projects.addLocal': '내 Mac의 폴더…',
+  'projects.addRemote': '원격 서버(SSH)…',
   'remote.unsupported': '원격 프로젝트에서는 아직 쓸 수 없어요',
   'remote.addTitle': '원격 프로젝트 추가',
   'remote.host': 'SSH 호스트',
@@ -703,7 +705,7 @@ const en = {
   'groups.moveDown': 'Move down',
   'groups.remove': 'Remove group',
   'groups.empty': 'Empty · drag a project here',
-  'groups.emptyRemote': 'Empty · add one with + → SSH host…',
+  'groups.emptyRemote': 'Empty · + Add project → Remote server (SSH)…',
   'group.work': 'Work',
   'group.personal': 'Personal',
   'group.remote': 'Remote',
@@ -911,7 +913,7 @@ const en = {
     'Open Claude, Codex or a shell in the current project. The CLI you installed runs as-is.',
   'guide.projects.title': 'Projects',
   'guide.projects.body':
-    'Add a folder with + in the sidebar or {palette}. Right-click → Project settings for its folder, default agent, default branch, setup script, ports and editor; drag to reorder.',
+    'Add a folder with + Add project in the sidebar, {palette}, or by dropping it on the sidebar. Right-click → Project settings for its folder, default agent, default branch, setup script, ports and editor; drag to reorder.',
   'guide.status.title': 'Status dots',
   'guide.status.body':
     'Orange needs input, red is an error, blue is working, green is done. Faded green = probably done, guessed from quiet output.',
@@ -961,7 +963,7 @@ const en = {
     'Checks the CLIs, PATH and project folders. Reopen it from {palette} → "Setup checklist".',
   'guide.trends.title': 'AI trends',
   'guide.trends.body':
-    '✦ at the top of the sidebar shows new versions of your CLIs and industry news. Fetched only when you open it; the Claude summary runs only when you click.',
+    'AI trends (the newspaper icon) at the bottom of the sidebar shows new versions of your CLIs and industry news. A dot means a CLI version newer than yours. Fetched only when you open it; the Claude summary runs only when you click.',
   'guide.language.title': 'Language',
   'guide.language.body':
     'Switch between 한국어 and English under ⚙ Settings → Language at the bottom left. ⌘K works too.',
@@ -1015,6 +1017,8 @@ const en = {
   'history.ago.day': '{n} d ago',
   'trends.open': 'AI trends',
   'trends.title': 'AI trends',
+  'trends.subtitle': 'CLI updates · industry',
+  'trends.updateAvailable': 'new CLI version',
   'trends.tabs': 'View',
   'trends.tab.cli': 'My CLIs',
   'trends.tab.industry': 'Industry',
@@ -1074,8 +1078,8 @@ const en = {
   'term.find.next': 'Next (↩)',
   'term.find.close': 'Close (Esc)',
   'action.copy': 'Copy',
-  'projects.addLocal': 'Local folder…',
-  'projects.addRemote': 'SSH host…',
+  'projects.addLocal': 'Folder on this Mac…',
+  'projects.addRemote': 'Remote server (SSH)…',
   'remote.unsupported': 'Not available for remote projects yet',
   'remote.addTitle': 'Add remote project',
   'remote.host': 'SSH host',

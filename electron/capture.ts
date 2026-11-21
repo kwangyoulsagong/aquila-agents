@@ -359,13 +359,13 @@ export async function runCapture(
       after: () => press('Escape', [], 400),
     },
     {
-      // AI trends (T35): ✦ fetches the fixture feeds on open; the CLI tab, then the Industry tab.
+      // AI trends (T35, T46): the footer's news-icon button fetches the fixture feeds on open; the CLI tab, then the Industry tab.
       id: 'trends',
       rect: FULL,
       ms: 4500,
       act: async () => {
         await wait(400);
-        await click('.c-sidebar__drag .c-btn');
+        await click('.c-sidebar__foot .c-btn--icon');
         await waitFor(`!!document.querySelector('.c-modal[open] .c-modal__bullets li')`);
         await wait(1200);
         await js(

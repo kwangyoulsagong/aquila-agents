@@ -118,7 +118,7 @@
 | 클래스 | 내용 |
 |---|---|
 | `.c-dot[data-status]` | 상태 점 |
-| `.c-btn` `--primary` `--ghost` `--icon` | 버튼 |
+| `.c-btn` `--primary` `--ghost` `--icon`, `__badge` | 버튼. `__badge` = 아이콘 버튼 모서리의 작은 강조 점, "새로운 것 있음"(AI 트렌드: 더 새 CLI). 상태 점 아님 |
 | `.c-segment`, `__item[aria-checked]` | 세그먼트 컨트롤 (계정 전환) |
 | `.c-kbd` | 단축키 표시 |
 | `.c-elapsed` | 세션이 기다린 시간("12분", 고정폭, 대기 색) — 탭·프로젝트 행 |
@@ -129,7 +129,7 @@
 | `.c-term-overlay__chips` `__chips-group` `__chips-label` `__chips-close` | 터미널 위쪽을 가로지르는 클릭 가능한 바(CLI 입력창은 안 가림): 라벨 붙은 프롬프트 칩 그룹 + 닫기 (Figma 링크 붙여 넣기, T34) |
 | `.c-titlebar` `__title` `__actions` | 탭 바 높이의 맨 타이틀 띠, 드래그 가능, 왼쪽에 신호등 자리: 앞 요소 + 말줄임 제목 + 동작 (전체 창, T37) |
 | `.c-label` | 섹션 라벨 |
-| `.c-sidebar` `__drag` `__body` `__group` `__foot` `__lang` | 사이드바 (`__drag` = 상단 띠. 오른쪽 끝 컨트롤은 클릭 가능 — AI 트렌드) |
+| `.c-sidebar` `__drag` `__body` `__group` `__add` `__foot` `__lang`, `[data-drop-folder]` | 사이드바 (`__drag` = 상단 띠, 안의 컨트롤은 클릭 가능. `__add` = 목록 아래 "+ 프로젝트 추가" 텍스트 행. `[data-drop-folder]` = Finder 폴더를 끌어 올린 상태) |
 | `.c-meter[data-tone=warn\|danger][data-unknown]` `__head` `__value` `__track` `__fill` `__caption` | 한도 대비 비율: 라벨 · 값, 4px 막대(회색 → 75% 이상 주황 → 90% 이상 빨강), 캡션. 한도를 모르면 테두리만 있는 빈 막대 (T30) |
 | `.c-usage` `__head` `__est` `__account` `__bars` | 사이드바 푸터 위 사용량 띠: 계정마다 한 블록, 미터 두 개 나란히 (T30) |
 | `.c-ring[data-tone=warn\|danger]` `__svg` `__track` `__fill` `__value` | 탭에 들어가는 12px 원형 미터, 값 글자는 선택; 회색 → 주황 → 빨강 (컨텍스트 게이지, T31) |
@@ -151,7 +151,7 @@
 | `.c-modal--wide`, `__tools` `__group-label` `__item-meta` `__actions` `__note` (`--warn`) `__bullets` | 넓은 모달(세션 기록): 검색 아래 필터 줄, 행 묶음 위 폴더 이름, 행 끝 캡션(시간), 상세의 버튼 줄, 캡션 한 줄(주황 = 사라질 수 있는 것), 짧은 글머리 목록(릴리스의 "Added" 줄, T35) |
 | `.c-meta` `__label` `__value` (`--mono`) | 이름 · 값 행 (폴더, 브랜치, ID) |
 | `.c-transcript` `__message[data-role]` `__role` `__text` | 읽기 전용 대화: 누가, 그다음 쓴 그대로의 텍스트(줄바꿈); 사용자 메시지는 primary 색 |
-| `.c-modal` `__head` `__title` `__body` `__aside` `__search` `__list` `__item[aria-selected]` `__item-label` `__empty` `__main` `__heading` `__text` `__keys` `__foot` | 큰 목록 + 상세 모달 (네이티브 `<dialog>`, 떠오름): 머리와 검색칸은 타이틀 바 높이, 왼쪽 검색 목록, 오른쪽 상세 (가이드; 릴리즈 노트·트렌드와 공유) |
+| `.c-modal` `__head` `__title` `__subtitle` `__body` `__aside` `__search` `__list` `__item[aria-selected]` `__item-label` `__empty` `__main` `__heading` `__text` `__keys` `__foot` | 큰 목록 + 상세 모달 (네이티브 `<dialog>`, 떠오름): 머리와 검색칸은 타이틀 바 높이, 왼쪽 검색 목록, 오른쪽 상세 (가이드; 릴리즈 노트·트렌드와 공유) |
 | `.c-media` `__frame` `__placeholder` | 스크린샷이나 짧은 루프용 16:10 틀, 없으면 자리표시 |
 | `.c-shortcuts` `__group` `__row` `__label` `__keys` | 단축키 시트: 그룹별 줄, 왼쪽 이름, 오른쪽 키 |
 | `.c-checklist` `__item` `__lead` `__main` `__title` `__meta` `__actions` `__detail` `__command` | 테두리 있는 점검 목록: 제목 줄의 점 · 제목(+ 배지) / 모노 메타 · 버튼, 아래에 전체 폭 상세(복사 버튼 있는 설치 명령, 드롭 영역) |
@@ -188,7 +188,7 @@
 | `Field` `label` `hint` `warning`, `FieldRow`, `FieldGrid`, `Input`, `InlineInput`, `Textarea`, `Select` `options` `onChange(value)` | `.c-field`, `.c-field__row`, `.c-field-grid`, `.c-input`, `.c-input--inline`, `.c-input--multiline`, `.c-select` |
 | `ChangeRow` `status` `path` | `.c-change` |
 | `Palette` `open` `onClose` `label` `query` `onQueryChange` `listId` `activeId`, `PaletteList`, `PaletteItem` `selected` `label` `marks` `leading` `hint` `kbd`, `PaletteEmpty` | `.c-palette` (combobox + listbox) |
-| `Modal` `open` `title` `onClose` `closeLabel` `aside` `footer` `wide`, `ModalSearch` (열 때 포커스), `ModalList` `id` `label`, `ModalItem` `selected` `label` `meta` `trailing` `onSelect`, `ModalEmpty`, `ModalDetail` `heading` `text` `keys`, `ModalGroup` `label` `hint`, `ModalTools`, `ModalActions` `onSubmit?`, `ModalNote` `warn`, `ModalBullets` `items` | `.c-modal` |
+| `Modal` `open` `title` `subtitle?` `onClose` `closeLabel` `aside` `footer` `wide`, `ModalSearch` (열 때 포커스), `ModalList` `id` `label`, `ModalItem` `selected` `label` `meta` `trailing` `onSelect`, `ModalEmpty`, `ModalDetail` `heading` `text` `keys`, `ModalGroup` `label` `hint`, `ModalTools`, `ModalActions` `onSubmit?`, `ModalNote` `warn`, `ModalBullets` `items` | `.c-modal` |
 | `MetaList`, `MetaRow` `label` `mono` | `.c-meta` |
 | `Transcript` `label`, `TranscriptMessage` `role` `label` | `.c-transcript` |
 | `Media` `src` `kind` `poster` `alt` `still` `placeholder` | `.c-media` (reduced motion이나 `still`이면 영상 대신 포스터) |

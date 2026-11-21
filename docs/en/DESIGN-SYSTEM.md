@@ -119,7 +119,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | Class | What |
 |---|---|
 | `.c-dot[data-status]` | Status dot |
-| `.c-btn` `--primary` `--ghost` `--icon` | Buttons |
+| `.c-btn` `--primary` `--ghost` `--icon`, `__badge` | Buttons; `__badge` = a small accent dot on an icon button's corner for "something new" (AI trends: a newer CLI). Not a status dot |
 | `.c-segment`, `__item[aria-checked]` | Segmented control (account switch) |
 | `.c-kbd` | Shortcut hint |
 | `.c-elapsed` | How long a session has waited ("12m", mono, waiting color) on a tab or project row |
@@ -130,7 +130,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `.c-term-overlay__chips` `__chips-group` `__chips-label` `__chips-close` | Bar across the top of a terminal that takes clicks (the CLI input stays uncovered): labelled groups of prompt chips + close (Figma link pasted, T34) |
 | `.c-titlebar` `__title` `__actions` | Bare title band, tab-bar height, draggable, traffic-light room on the left: lead + truncating title + actions (full window, T37) |
 | `.c-label` | Section label |
-| `.c-sidebar` `__drag` `__body` `__group` `__foot` `__lang` | Sidebar (`__drag` = the top band; controls at its right end stay clickable — AI trends) |
+| `.c-sidebar` `__drag` `__body` `__group` `__add` `__foot` `__lang`, `[data-drop-folder]` | Sidebar (`__drag` = the top band, controls in it stay clickable; `__add` = the "+ Add project" text row under the list; `[data-drop-folder]` = a Finder folder is dragged over it) |
 | `.c-meter[data-tone=warn\|danger][data-unknown]` `__head` `__value` `__track` `__fill` `__caption` | A share of a limit: label · value, 4px bar (grey → orange ≥ 75% → red ≥ 90%), caption; unknown limit = outlined empty bar (T30) |
 | `.c-usage` `__head` `__est` `__account` `__bars` | Usage band above the sidebar footer: one block per account, two meters side by side (T30) |
 | `.c-ring[data-tone=warn\|danger]` `__svg` `__track` `__fill` `__value` | 12px circular meter that fits in a tab, value text optional; grey → orange → red (context gauge, T31) |
@@ -149,7 +149,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `.c-dialog` `__title` `__body` `__actions` `__check` `__code` `__form` | Modal dialog (native `<dialog>`, rises in) |
 | `.c-palette` `__input` `__list` `__item[aria-selected]` `__leading` `__label` `__mark` `__hint` `__empty` `__foot` | Command palette (native `<dialog>` near the top, rises in): input as tall as the title bar, 32px rows, matched letters bold |
 | `.c-dialog--wide` | Wider dialog for a checklist |
-| `.c-modal` `__head` `__title` `__body` `__aside` `__search` `__list` `__item[aria-selected]` `__item-label` `__empty` `__main` `__heading` `__text` `__keys` `__foot` | Large list + detail modal (native `<dialog>`, rises in): head and search as tall as the title bar, searchable list on the left, detail on the right (guide; shared with release notes and trends) |
+| `.c-modal` `__head` `__title` `__subtitle` `__body` `__aside` `__search` `__list` `__item[aria-selected]` `__item-label` `__empty` `__main` `__heading` `__text` `__keys` `__foot` | Large list + detail modal (native `<dialog>`, rises in): head and search as tall as the title bar, searchable list on the left, detail on the right (guide; shared with release notes and trends) |
 | `.c-modal--wide`, `__tools` `__group-label` `__item-meta` `__actions` `__note` (`--warn`) `__bullets` | Wide modal (session history); a filter row under the search, a folder label over a group of rows, a caption at a row's end (time), the detail's buttons, a caption line (orange = something will be lost), a short bulleted list (a release's "Added" lines, T35) |
 | `.c-meta` `__label` `__value` (`--mono`) | Label · value rows (folder, branch, id) |
 | `.c-transcript` `__message[data-role]` `__role` `__text` | Read-only conversation: who, then the text as written (wrapped); the user's messages in primary text |
@@ -189,7 +189,7 @@ from `src/` (ESLint enforces it). New primitive → add the class to `components
 | `Field` `label` `hint` `warning`, `FieldRow`, `FieldGrid`, `Input`, `InlineInput`, `Textarea`, `Select` `options` `onChange(value)` | `.c-field`, `.c-field__row`, `.c-field-grid`, `.c-input`, `.c-input--inline`, `.c-input--multiline`, `.c-select` |
 | `ChangeRow` `status` `path` | `.c-change` |
 | `Palette` `open` `onClose` `label` `query` `onQueryChange` `listId` `activeId`, `PaletteList`, `PaletteItem` `selected` `label` `marks` `leading` `hint` `kbd`, `PaletteEmpty` | `.c-palette` (combobox + listbox) |
-| `Modal` `open` `title` `onClose` `closeLabel` `aside` `footer` `wide`, `ModalSearch` (focused on open), `ModalList` `id` `label`, `ModalItem` `selected` `label` `meta` `trailing` `onSelect`, `ModalEmpty`, `ModalDetail` `heading` `text` `keys`, `ModalGroup` `label` `hint`, `ModalTools`, `ModalActions` `onSubmit?`, `ModalNote` `warn`, `ModalBullets` `items` | `.c-modal` |
+| `Modal` `open` `title` `subtitle?` `onClose` `closeLabel` `aside` `footer` `wide`, `ModalSearch` (focused on open), `ModalList` `id` `label`, `ModalItem` `selected` `label` `meta` `trailing` `onSelect`, `ModalEmpty`, `ModalDetail` `heading` `text` `keys`, `ModalGroup` `label` `hint`, `ModalTools`, `ModalActions` `onSubmit?`, `ModalNote` `warn`, `ModalBullets` `items` | `.c-modal` |
 | `MetaList`, `MetaRow` `label` `mono` | `.c-meta` |
 | `Transcript` `label`, `TranscriptMessage` `role` `label` | `.c-transcript` |
 | `Media` `src` `kind` `poster` `alt` `still` `placeholder` | `.c-media` (video → poster under reduced motion or `still`) |

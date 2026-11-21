@@ -849,13 +849,17 @@ async function checkProjectSettings(win: BrowserWindow, config: Config, out: str
 }
 
 /**
- * T35: nothing is fetched until ✦ is clicked; opening the modal fetches the (fixture) feeds — Claude 2.1.327 installed
- * → 2.1.329 and 2.1.328 newer. Checks the CLI rows and their "Added" lines, and the Industry tab.
+ * T35: nothing is fetched until AI trends is clicked; opening the modal fetches the (fixture) feeds — Claude 2.1.327 installed
+ * → 2.1.329 and 2.1.328 newer. Checks the CLI rows and their "Added" lines, the Industry tab, and (T46) that AI trends
+ * sits in the footer, gets its update dot after that fetch, and that "+ Add project" is a row under the list.
  */
 async function checkTrends(win: BrowserWindow, outDir: string): Promise<string | null> {
   const js = <T>(code: string): Promise<T> => win.webContents.executeJavaScript(code) as Promise<T>;
-  const button = `document.querySelector('.c-sidebar__drag .c-btn')`;
-  if (!(await js<boolean>(`!!${button}`))) return 'trends: no ✦ button in the sidebar top band';
+  // Footer order: ⚙ Settings, AI trends, ? — AI trends is the first icon button.
+  const button = `document.querySelector('.c-sidebar__foot .c-btn--icon')`;
+  if (!(await js<boolean>(`!!${button}?.querySelector('svg')`))) return 'trends: no AI trends button in the sidebar footer';
+  if (!(await js<boolean>(`!!document.querySelector('.c-sidebar__body > .c-sidebar__add')`)))
+    return 'sidebar: no "+ Add project" row under the project list';
   await js(`${button}.click()`);
   await wait(300);
   await js(`document.querySelectorAll('.c-modal[open] .c-segment__item')[0]?.click()`);
@@ -874,6 +878,8 @@ async function checkTrends(win: BrowserWindow, outDir: string): Promise<string |
   await wait(200);
   const bullets = await js<number>(`document.querySelectorAll('.c-modal[open] .c-modal__bullets li').length`);
   if (bullets < 3) return `trends: selected release shows ${bullets} "Added" lines, expected 3–5`;
+  if (!(await js<boolean>(`!!${button}.querySelector('.c-btn__badge')`)))
+    return 'trends: no update dot on AI trends after the fetch found a newer Claude';
   await wait(300);
   fs.writeFileSync(path.join(outDir, 'smoke-trends.png'), (await win.webContents.capturePage()).toPNG());
   await js(`document.querySelectorAll('.c-modal[open] .c-segment__item')[1]?.click()`);

@@ -432,7 +432,8 @@ From the ADE UX research (calm attention, recognition over recall). Only what is
 - **Done:** four agents finishing in a row produce no banners. A waiting session's banner disappears from Notification Center after clicking its tab. The other pane of a split never notifies.
 
 ### T46 · Clear sidebar buttons
-- [ ] **Goal:** the two icon-only buttons are understood without hovering.
+- [x] **Goal:** the two icon-only buttons are understood without hovering.
+  _Left over: the name stays "AI trends" instead of "News" (the newspaper icon and the subtitle "CLI updates · industry" carry the meaning). Dropping several folders opens the add dialog for the first one only. Guide media (`npm run capture`) was not rebuilt._
 - **Spec:**
   - **Add project:**
     - The bare **+** in the footer (easily confused with the tab bar's **+** = new session) becomes a text row "+ Add project" right under the project list.

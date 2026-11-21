@@ -1,4 +1,4 @@
-import type { CliNews, CliRelease, CliTool, NewsGroup, NewsItem, NewsSourceId } from '@/shared/api';
+import type { CliNews, CliRelease, CliTool, NewsGroup, NewsItem, NewsSourceId, NewsState } from '@/shared/api';
 import type { Translate } from '@/shared/i18n';
 
 export const TOOL_NAMES: Record<CliTool, string> = { claude: 'Claude Code', codex: 'Codex' };
@@ -84,4 +84,9 @@ export function summaryLines(text: string): string[] {
     .split(/\r?\n/)
     .map((l) => l.replace(/^\s*[-*•]\s+/, '').trim())
     .filter(Boolean);
+}
+
+/** The AI trends button's dot: the cached state already knows a CLI release newer than the installed one (no fetch for it). */
+export function hasCliUpdate(state: Pick<NewsState, 'cli'> | null): boolean {
+  return !!state?.cli.some((c) => c.installed !== null && !c.upToDate && c.releases.length > 0);
 }

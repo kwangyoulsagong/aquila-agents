@@ -1,4 +1,4 @@
-import { Button, Label } from '@design-system/react';
+import { Label } from '@design-system/react';
 import type { ReactNode } from 'react';
 import { REMOTE_GROUP, type Config, type Session } from '@/shared/api';
 import { groupLabel, useT } from '@/shared/i18n';
@@ -13,11 +13,11 @@ interface Props {
   onSelect: (projectId: string) => void;
   /** Project management (menus, drag, "+"); its dialogs are rendered by the page (the palette opens them too). */
   manage: ManageProjects;
-  /** Footer slot (settings menu, guide…), before the + button. */
+  /** Footer slot (settings, news, guide). */
   footer?: ReactNode;
   /** Band above the footer (usage gauge). */
   aboveFooter?: ReactNode;
-  /** Right end of the top band, next to the traffic lights (AI trends). */
+  /** Right end of the top band, next to the traffic lights (empty today). */
   top?: ReactNode;
 }
 
@@ -36,7 +36,7 @@ export default function Sidebar({
   const t = useT();
 
   return (
-    <aside className="c-sidebar">
+    <aside className="c-sidebar" {...manage.folderDrop}>
       <div className="c-sidebar__drag">{top}</div>
       <nav className="c-sidebar__body">
         {config.groups.map((group) => {
@@ -101,19 +101,13 @@ export default function Sidebar({
             </div>
           );
         })}
+        <button type="button" className="c-sidebar__add" onClick={() => void manage.addProject()} aria-haspopup="menu">
+          <span aria-hidden="true">+</span> {t('projects.add')}
+        </button>
       </nav>
       {aboveFooter}
       <div className="c-sidebar__foot">
         {footer}
-        <Button
-          variant="ghost"
-          icon
-          onClick={manage.addProject}
-          title={t('projects.add')}
-          aria-label={t('projects.add')}
-        >
-          +
-        </Button>
       </div>
     </aside>
   );
