@@ -533,7 +533,8 @@ The P0 rows of the persona report that were left under **Nice to have**: tools t
 - **Owns:** `src/features/figma/` (or the existing Figma slice), the palette/menu entries (small), the guide item.
 
 ### T55 · Figma chips on typed and dropped links
-- [ ] **Goal:** chips show up however the link arrives, and stay until used.
+- [x] **Goal:** chips show up however the link arrives, and stay until used.
+  _Left over: the input line is rebuilt from the keys sent to the pty (`feedLine`), so cursor moves inside the line and the CLI's own history recall aren't followed; a typed link is offered after a 400 ms pause. The chips go away when a line **without** the link is sent; an empty Enter keeps them, and after the link line was sent a chip types the link again in front of its prompt. Dropping only reacts to Figma links (other dragged text is left alone). The short prompts drop the tool names (`get_variable_defs`, `get_design_context`…): the Figma MCP's own instructions pick the tools; the full wording is in each chip's tooltip. Checked by unit tests and `npm run check`, not live in a Claude/Codex tab; guide media not rebuilt (the figma still shows settings, not chips)._
 - **Spec:** typed or dropped Figma links raise the chips too; an unrelated Enter doesn't dismiss them; the inserted text is a short intent sentence (MCP tool names and Chrome notes move to the tooltip); "pick small, use tokens" is in the default copy.
 - **Owns:** the Figma chips code (T34).
 

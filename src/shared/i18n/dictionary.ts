@@ -123,17 +123,26 @@ const ko = {
   'figma.chip.comments': '코멘트 → TODO',
   'figma.chip.implement': '컴포넌트·토큰으로 구현',
   'figma.chip.assets': '에셋 받기',
-  'figma.prompt.compare':
-    '이 프레임을 get_screenshot으로 가져와서 실행 중인 앱과 비교해 주세요. 간격, 색, 글꼴, 크기 차이를 나열하고 고쳐 주세요.',
-  'figma.prompt.flow':
-    '이 FigJam 보드를 get_figjam으로 읽어 주세요. 흐름을 화면과 상태 목록으로 정리하고, 백엔드 TODO(엔드포인트, 데이터)도 따로 적어 주세요.',
-  'figma.prompt.comments':
-    '이 파일의 코멘트를 get_comments로 읽어서 TODO 목록으로 만들어 주세요. 백엔드 작업이 필요한 항목은 표시해 주세요.',
+  'figma.prompt.compare': '이 프레임을 실행 중인 앱과 비교해서 간격·색·글꼴·크기 차이를 고쳐 주세요.',
+  'figma.prompt.flow': '이 FigJam 흐름을 화면·상태 목록과 백엔드 TODO로 정리해 주세요.',
+  'figma.prompt.comments': '이 파일의 코멘트를 TODO 목록으로 만들어 주세요. 백엔드 작업은 표시해 주세요.',
   'figma.prompt.implement':
-    '이 프레임을 우리 컴포넌트와 디자인 토큰으로 구현해 주세요. 먼저 get_variable_defs로 Figma 변수를 우리 토큰에 매핑하고(없는 건 토큰 파일에 추가, 값 하드코딩 금지), 그다음 get_design_context로 구조를 가져와 주세요. 새 마크업 대신 기존 컴포넌트를 재사용해 주세요.',
+    '이 프레임을 우리 컴포넌트와 디자인 토큰으로 구현해 주세요. 작은 단위로 가져오고, 값은 하드코딩하지 말고 토큰에 매핑해 주세요.',
   'figma.prompt.assets':
-    '이 프레임이 쓰는 이미지와 아이콘을 download_assets로 프로젝트의 에셋 폴더에 받아서 코드에서 참조해 주세요. SVG를 손으로 다시 그리지 마세요.',
+    '이 프레임의 이미지·아이콘을 에셋 폴더에 받아서 코드에서 참조해 주세요. SVG는 다시 그리지 마세요.',
   'figma.prompt.chromeCheck':
+    '그다음 Claude in Chrome으로 Figma 프레임과 앱을 열어 컴포넌트와 스타일을 하나씩 대조하고, 맞을 때까지 고쳐 주세요.',
+  'figma.tip.compare':
+    '이 프레임을 get_screenshot으로 가져와서 실행 중인 앱과 비교해 주세요. 간격, 색, 글꼴, 크기 차이를 나열하고 고쳐 주세요.',
+  'figma.tip.flow':
+    '이 FigJam 보드를 get_figjam으로 읽어 주세요. 흐름을 화면과 상태 목록으로 정리하고, 백엔드 TODO(엔드포인트, 데이터)도 따로 적어 주세요.',
+  'figma.tip.comments':
+    '이 파일의 코멘트를 get_comments로 읽어서 TODO 목록으로 만들어 주세요. 백엔드 작업이 필요한 항목은 표시해 주세요.',
+  'figma.tip.implement':
+    '이 프레임을 우리 컴포넌트와 디자인 토큰으로 구현해 주세요. 먼저 get_variable_defs로 Figma 변수를 우리 토큰에 매핑하고(없는 건 토큰 파일에 추가, 값 하드코딩 금지), 그다음 get_design_context로 구조를 가져와 주세요. 새 마크업 대신 기존 컴포넌트를 재사용해 주세요.',
+  'figma.tip.assets':
+    '이 프레임이 쓰는 이미지와 아이콘을 download_assets로 프로젝트의 에셋 폴더에 받아서 코드에서 참조해 주세요. SVG를 손으로 다시 그리지 마세요.',
+  'figma.tip.chromeCheck':
     '그다음 Claude in Chrome으로 Figma 프레임(Dev Mode)과 실행 중인 앱(안 떠 있으면 dev 서버 실행)을 둘 다 열어 주세요. Figma에서는 레이어를 하나씩 선택해 속성 패널(어떤 디자인 시스템 컴포넌트·variant인지, 크기, 오토 레이아웃, 패딩·간격, 글꼴, 색·변수, 효과)을 읽고, 앱에서는 같은 요소가 쓰는 컴포넌트와 계산된 스타일을 읽어 하나하나 대조해 주세요. 컴포넌트가 다르면 우리 디자인 시스템의 맞는 컴포넌트로 바꿔 주세요. 화면으로도 비교해서 Figma MCP 데이터가 놓친 것(호버·포커스 상태, 실제 글꼴, 이미지, 넘침, 반응형 폭)까지 고치고, 둘이 맞을 때까지 반복해 주세요.',
   'figma.prompt.pickDesign':
     'Figma 디자인: {url} — get_screenshot으로 가져와서 선택한 요소의 스크린샷과 비교해 주세요.',
@@ -419,7 +428,7 @@ const ko = {
     '사이드바 왼쪽 아래 ⚙ 설정 → 언어에서 한국어와 English를 바꿔요. ⌘K로도 바꿀 수 있어요.',
   'guide.figma.title': 'Figma',
   'guide.figma.body':
-    '⌘K → "Figma 연결…"(또는 도움말 메뉴)로 프로젝트 설정의 Figma MCP를 켜요. "Claude에서 로그인"이 새 Claude 탭에 /mcp를 넣어 주니 figma → Authenticate만 고르면 돼요. 그 뒤 Claude·Codex 탭에 Figma 링크를 붙여 넣으면 디자인(앱과 비교, 코멘트 → TODO)·구현(컴포넌트·토큰으로 구현, 에셋 받기) 칩이 떠요. 프리뷰의 디자이너 보기는 앱 아래에 Figma를 띄워요.',
+    '⌘K → "Figma 연결…"(또는 도움말 메뉴)로 프로젝트 설정의 Figma MCP를 켜요. "Claude에서 로그인"이 새 Claude 탭에 /mcp를 넣어 주니 figma → Authenticate만 고르면 돼요. 그 뒤 Claude·Codex 탭에 Figma 링크를 붙여 넣거나 입력하거나 끌어다 놓으면 디자인(앱과 비교, 코멘트 → TODO)·구현(컴포넌트·토큰으로 구현, 에셋 받기) 칩이 떠요. 프리뷰의 디자이너 보기는 앱 아래에 Figma를 띄워요.',
   'guide.shortcuts.title': '모든 단축키',
   'guide.shortcuts.body': '앱의 단축키 전체예요.',
   'restore.previous': '이전 출력 · {time} · 읽기 전용',
@@ -748,16 +757,26 @@ const en = {
   'figma.chip.implement': 'Build with our components',
   'figma.chip.assets': 'Get assets',
   'figma.prompt.compare':
-    'Call get_screenshot for this frame and compare it with the running app. List the differences in spacing, color, type and size, then fix them.',
-  'figma.prompt.flow':
-    'Read this FigJam board with get_figjam. Turn the flow into a list of screens and states, plus a separate TODO list for the backend (endpoints, data).',
-  'figma.prompt.comments':
-    'Read the comments on this file with get_comments and turn them into a TODO list. Mark the items that need backend work.',
+    'Compare this frame with the running app and fix the differences in spacing, color, type and size.',
+  'figma.prompt.flow': 'Turn this FigJam flow into a list of screens and states, plus backend TODOs.',
+  'figma.prompt.comments': 'Turn the comments on this file into a TODO list. Mark the backend work.',
   'figma.prompt.implement':
-    'Implement this frame with our components and design tokens. First call get_variable_defs and map each Figma variable to one of our tokens (add missing ones to the token file, never hard-code values), then get_design_context for the structure. Reuse existing components instead of writing new markup.',
+    'Implement this frame with our components and design tokens. Pick small parts, and map values to tokens instead of hard-coding them.',
   'figma.prompt.assets':
-    "Download the images and icons this frame uses into the project's assets folder with download_assets and reference them from code. Don't redraw SVGs by hand.",
+    "Download this frame's images and icons into the assets folder and reference them from code. Don't redraw SVGs.",
   'figma.prompt.chromeCheck':
+    'Then open the Figma frame and the app in Claude in Chrome, compare components and styles one by one, and fix until they match.',
+  'figma.tip.compare':
+    'Call get_screenshot for this frame and compare it with the running app. List the differences in spacing, color, type and size, then fix them.',
+  'figma.tip.flow':
+    'Read this FigJam board with get_figjam. Turn the flow into a list of screens and states, plus a separate TODO list for the backend (endpoints, data).',
+  'figma.tip.comments':
+    'Read the comments on this file with get_comments and turn them into a TODO list. Mark the items that need backend work.',
+  'figma.tip.implement':
+    'Implement this frame with our components and design tokens. First call get_variable_defs and map each Figma variable to one of our tokens (add missing ones to the token file, never hard-code values), then get_design_context for the structure. Reuse existing components instead of writing new markup.',
+  'figma.tip.assets':
+    "Download the images and icons this frame uses into the project's assets folder with download_assets and reference them from code. Don't redraw SVGs by hand.",
+  'figma.tip.chromeCheck':
     "Then use Claude in Chrome: open the Figma frame (Dev Mode) and the running app (start the dev server if it isn't up). In Figma, select the layers one by one and read the properties panel (which design-system component and variant, size, auto layout, padding and gap, typography, color and variables, effects); in the app, read which component the matching element uses and its computed styles; compare one by one. If the component differs, switch to the matching component from our design system. Compare on screen too, fix what the Figma MCP data missed (hover and focus states, real fonts, images, overflow, responsive widths), and repeat until they match.",
   'figma.prompt.pickDesign':
     "Figma design: {url} — call get_screenshot on it and compare it with the picked element's screenshot.",
@@ -1049,7 +1068,7 @@ const en = {
     'Switch between 한국어 and English under ⚙ Settings → Language at the bottom left. ⌘K works too.',
   'guide.figma.title': 'Figma',
   'guide.figma.body':
-    '⌘K → "Connect Figma…" (or the Help menu) turns on Figma MCP in project settings. "Log in from Claude" types /mcp into a new Claude tab: pick figma → Authenticate. Then paste a Figma link into a Claude or Codex tab for the Design (compare with app, comments → TODOs) and Build (implement with components and tokens, get assets) chips. In the preview, Designer shows Figma under the app.',
+    '⌘K → "Connect Figma…" (or the Help menu) turns on Figma MCP in project settings. "Log in from Claude" types /mcp into a new Claude tab: pick figma → Authenticate. Then paste, type or drop a Figma link into a Claude or Codex tab for the Design (compare with app, comments → TODOs) and Build (implement with components and tokens, get assets) chips. In the preview, Designer shows Figma under the app.',
   'guide.shortcuts.title': 'All shortcuts',
   'guide.shortcuts.body': 'Every shortcut in the app.',
   'restore.previous': 'Previous output · {time} · read-only',

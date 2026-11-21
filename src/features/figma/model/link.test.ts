@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { chipInput, chipPrompt, chipsFor, parseFigmaLink } from './link';
+import {
+  chipInput,
+  chipPrompt,
+  chipsFor,
+  parseFigmaLink,
+  EMPTY_LINE,
+  feedLine,
+  droppedFigmaLink,
+} from './link';
 
 describe('parseFigmaLink', () => {
   it('reads a design link with a node', () => {
@@ -74,5 +82,53 @@ describe('chipPrompt', () => {
   it('Codex and the other chips: MCP only', () => {
     expect(chipPrompt(byId('compare'), 'codex', 'Compare.', 'Then Chrome.')).toBe(' Compare.');
     expect(chipPrompt(byId('comments'), 'claude', 'Comments.', 'Then Chrome.')).toBe(' Comments.');
+  });
+});
+
+describe('chipPrompt with the link already sent (T55)', () => {
+  it('carries the link in front of the prompt', () => {
+    const chip = chipsFor(parseFigmaLink('https://www.figma.com/design/K/x')!)[1];
+    expect(chipPrompt(chip, 'claude', 'Comments.', 'Chrome.', 'https://figma.com/design/K/x')).toBe(
+      'https://figma.com/design/K/x Comments.',
+    );
+  });
+});
+
+describe('feedLine (T55)', () => {
+  const feed = (...chunks: string[]) => {
+    let line = EMPTY_LINE;
+    const sent: string[] = [];
+    for (const c of chunks) {
+      const r = feedLine(line, c);
+      line = r.line;
+      sent.push(...r.sent);
+    }
+    return { text: line.text, sent };
+  };
+
+  it('collects typed text, with Backspace and Ctrl+U', () => {
+    expect(feed('ab', 'c\x7f', 'd')).toEqual({ text: 'abd', sent: [] });
+    expect(feed('junk\x15ok')).toEqual({ text: 'ok', sent: [] });
+  });
+
+  it('Enter sends the line; Enter inside a bracketed paste does not', () => {
+    expect(feed('hi\r')).toEqual({ text: '', sent: ['hi'] });
+    expect(feed('\x1b[200~https://figma.com/design/K/x\r\x1b[201~')).toEqual({
+      text: 'https://figma.com/design/K/x\n',
+      sent: [],
+    });
+  });
+
+  it('ignores arrows and other escape sequences', () => {
+    expect(feed('a\x1b[D\x1b[Cb\x1bOP')).toEqual({ text: 'ab', sent: [] });
+  });
+});
+
+describe('droppedFigmaLink (T55)', () => {
+  const dt = (data: Record<string, string>) => ({ getData: (t: string) => data[t] ?? '' });
+  it('reads a dragged link, else dragged text', () => {
+    expect(droppedFigmaLink(dt({ 'text/uri-list': 'https://www.figma.com/design/K/x' }))?.fileKey).toBe('K');
+    expect(droppedFigmaLink(dt({ 'text/plain': 'see https://figma.com/board/B/y' }))?.kind).toBe('board');
+    expect(droppedFigmaLink(dt({ 'text/plain': 'https://example.com' }))).toBeNull();
   });
 });
