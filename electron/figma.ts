@@ -48,7 +48,6 @@ export function figmaArgv(kind: 'claude' | 'codex', file = FIGMA_MCP_PATH): stri
   return ['-c', `mcp_servers.figma.url="${FIGMA_MCP_URL}"`];
 }
 
-
 // ── whoami parsing (defensive: the tool's shape isn't documented, so unknown → "unknown") ──
 
 type Json = null | boolean | number | string | Json[] | { [k: string]: Json };

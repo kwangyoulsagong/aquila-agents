@@ -19,7 +19,11 @@ describe('worktreeTarget', () => {
   it('reuses a worktree, checks out an existing branch, or creates one from the current branch', () => {
     expect(worktreeTarget(info, 'feat/x')).toEqual({ kind: 'reuse', path: '/a/repo-wt/feat/x' });
     expect(worktreeTarget(info, ' old ')).toEqual({ kind: 'checkout', path: '/a/repo-wt/old' });
-    expect(worktreeTarget(info, 'feat/y')).toEqual({ kind: 'create', path: '/a/repo-wt/feat/y', from: 'main' });
+    expect(worktreeTarget(info, 'feat/y')).toEqual({
+      kind: 'create',
+      path: '/a/repo-wt/feat/y',
+      from: 'main',
+    });
   });
 
   it('is empty without a branch or a repo', () => {

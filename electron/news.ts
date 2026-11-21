@@ -71,7 +71,12 @@ export const SOURCES: readonly SourceDef[] = [
     url: fixed('https://raw.githubusercontent.com/anthropics/claude-code/main/CHANGELOG.md'),
     headers: { Range: 'bytes=0-65535' },
   },
-  { id: 'codex', kind: 'releases-atom', tool: 'codex', url: fixed('https://github.com/openai/codex/releases.atom') },
+  {
+    id: 'codex',
+    kind: 'releases-atom',
+    tool: 'codex',
+    url: fixed('https://github.com/openai/codex/releases.atom'),
+  },
   {
     // Codex ships many alphas: the feed's 10 entries can all be pre-releases. The latest stable one, always.
     id: 'codex-latest',
@@ -401,7 +406,10 @@ export function parseHn(text: string): NewsItem[] {
 // ── Keyword groups ───────────────────────────────────────────────────────────
 
 export const GROUPS: readonly [NewsGroup, RegExp][] = [
-  ['subagent', /\bsub-?agents?\b|\bmulti-?agents?\b|\bparallel agents\b|\bagent (?:teams?|swarms?|orchestrat\w+)\b|\/swarm\b/i],
+  [
+    'subagent',
+    /\bsub-?agents?\b|\bmulti-?agents?\b|\bparallel agents\b|\bagent (?:teams?|swarms?|orchestrat\w+)\b|\/swarm\b/i,
+  ],
   ['hook', /\bhooks?\b/i],
   [
     'agentView',

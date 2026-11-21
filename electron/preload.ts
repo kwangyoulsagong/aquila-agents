@@ -35,6 +35,7 @@ const api: AquilaApi = {
   removeWorktree: (projectId, path) => ipcRenderer.invoke(IPC.worktreeRemove, { projectId, path }),
   restoreSessions: () => ipcRenderer.invoke(IPC.sessionRestore),
   startSession: (id) => ipcRenderer.invoke(IPC.sessionStart, id),
+  reopenSession: (id) => ipcRenderer.invoke(IPC.sessionReopen, id),
   saveLayout: (layout) => ipcRenderer.send(IPC.layoutSave, layout),
   saveScrollback: (id, text) => ipcRenderer.send(IPC.sessionScrollback, { id, text }),
   accountsStatus: () => ipcRenderer.invoke(IPC.accountsStatus),
@@ -52,7 +53,8 @@ const api: AquilaApi = {
   historyTranscript: (ref) => ipcRenderer.invoke(IPC.historyTranscript, ref),
   historySetMeta: (ref, change) => ipcRenderer.invoke(IPC.historySetMeta, { ref, change }),
   historyExport: (ref) => ipcRenderer.invoke(IPC.historyExport, ref),
-  historyResume: (ref, addProject) => ipcRenderer.invoke(IPC.historyResume, { ref, addProject: addProject === true }),
+  historyResume: (ref, addProject) =>
+    ipcRenderer.invoke(IPC.historyResume, { ref, addProject: addProject === true }),
   firstRun: (recheck) => ipcRenderer.invoke(IPC.firstRunGet, recheck === true),
   finishFirstRun: () => ipcRenderer.invoke(IPC.firstRunFinish),
   pickBinary: (tool) => ipcRenderer.invoke(IPC.firstRunPickBinary, tool),

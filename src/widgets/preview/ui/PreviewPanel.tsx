@@ -31,6 +31,8 @@ interface Props {
   full: boolean;
   onToggleFull: () => void;
   onClose: () => void;
+  /** Figma is off for this project: the head offers "Connect Figma" (T54). */
+  onConnectFigma?: () => void;
 }
 
 /** `localhost:3000` → `http://localhost:3000`; anything with a scheme stays. */
@@ -100,7 +102,14 @@ function Stage({
  * element and its selector, text, style, component and a screenshot are pasted into the focused Claude/Codex tab.
  * Designer layout (Figma on): Figma under the app.
  */
-export default function PreviewPanel({ project, session, full, onToggleFull, onClose }: Props) {
+export default function PreviewPanel({
+  project,
+  session,
+  full,
+  onToggleFull,
+  onClose,
+  onConnectFigma,
+}: Props) {
   const t = useT();
   // Parallel worktrees run their own servers: the address list and the remembered address follow the focused tab.
   const worktree = session?.projectId === project.id ? session.worktree : undefined;
@@ -226,6 +235,11 @@ export default function PreviewPanel({ project, session, full, onToggleFull, onC
           </span>
         )}
         <div className="c-panel__actions">
+          {!project.figma && onConnectFigma && (
+            <Button variant="ghost" onClick={onConnectFigma} title={t('preview.figmaConnectHint')}>
+              {t('preview.figmaConnect')}
+            </Button>
+          )}
           {project.figma && (
             <Button
               variant="ghost"

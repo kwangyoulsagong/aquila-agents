@@ -90,7 +90,8 @@ export async function remoteGitChanges(
   const b = boundary();
   const r = await exec(host, changesScript(path, b, base), { timeoutMs: 30_000 });
   const out = r.stdout.toString('utf8');
-  if (!out.includes(`${b} end`) && !out.includes(`${b} norepo`)) throw new Error(execError(r, `ssh ${host.alias} failed`));
+  if (!out.includes(`${b} end`) && !out.includes(`${b} norepo`))
+    throw new Error(execError(r, `ssh ${host.alias} failed`));
   return { ...parseChanges(out, b, base), latencyMs: r.ms };
 }
 
@@ -105,7 +106,8 @@ export function remoteGit(exec: RemoteExec, host: RemoteHost, path: string): Git
     ].join('\n');
     const r = await exec(host, script, { input, timeoutMs: 30_000 });
     const out = parseSections(r.stdout.toString('utf8'), b).get('out');
-    if (out === undefined) return { code: r.code || 1, stdout: '', stderr: execError(r, `ssh ${host.alias} failed`) };
+    if (out === undefined)
+      return { code: r.code || 1, stdout: '', stderr: execError(r, `ssh ${host.alias} failed`) };
     return { code: r.code, stdout: out, stderr: r.stderr };
   };
 }

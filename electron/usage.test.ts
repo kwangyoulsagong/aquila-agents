@@ -251,9 +251,17 @@ describe('UsageTracker', () => {
       live: {
         claude: async (dir) => {
           asked.push(dir);
-          return { session: { percent: 92, resetsAt: T0 + 2 * H, span: 300 }, week: { percent: 40, resetsAt: null, span: 10_080 } };
+          return {
+            session: { percent: 92, resetsAt: T0 + 2 * H, span: 300 },
+            week: { percent: 40, resetsAt: null, span: 10_080 },
+          };
         },
-        codex: async () => ({ primary: { percent: 5, resetsAt: T0 + 3 * H, span: 300 }, secondary: null, plan: 'plus', at: T0 }),
+        codex: async () => ({
+          primary: { percent: 5, resetsAt: T0 + 3 * H, span: 300 },
+          secondary: null,
+          plan: 'plus',
+          at: T0,
+        }),
       },
       onUpdate: resolveUpdate,
     });
@@ -270,7 +278,12 @@ describe('UsageTracker', () => {
       fiveHour: { used: 10, percent: 92, resetsAt: T0 + 2 * H, span: 300 },
       weekly: { percent: 40, span: 10_080 },
     });
-    expect(list[1]).toMatchObject({ account: 'codex', kind: 'codex', fiveHour: { percent: 5 }, weekly: { percent: null } });
+    expect(list[1]).toMatchObject({
+      account: 'codex',
+      kind: 'codex',
+      fiveHour: { percent: 5 },
+      weekly: { percent: null },
+    });
     // Not asked again within LIVE_EVERY_MS.
     now += 60_000;
     await tracker.refresh();
@@ -297,7 +310,15 @@ describe('live merge', () => {
     expect(mergeClaudeLive(est, null, T0 + H)).toBe(est);
   });
   it('Codex row: a missing secondary window has no percent', () => {
-    const r = codexReport({ primary: { percent: 91, resetsAt: null, span: 43_200 }, secondary: null, plan: 'go', at: T0 }, T0);
-    expect(r).toMatchObject({ kind: 'codex', near: true, fiveHour: { percent: 91, span: 43_200 }, weekly: { percent: null } });
+    const r = codexReport(
+      { primary: { percent: 91, resetsAt: null, span: 43_200 }, secondary: null, plan: 'go', at: T0 },
+      T0,
+    );
+    expect(r).toMatchObject({
+      kind: 'codex',
+      near: true,
+      fiveHour: { percent: 91, span: 43_200 },
+      weekly: { percent: null },
+    });
   });
 });

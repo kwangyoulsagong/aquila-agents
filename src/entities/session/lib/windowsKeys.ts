@@ -10,7 +10,8 @@ export interface Selection {
 
 /** xterm custom key handler part: false = handled here (copied), xterm must not send ^C. */
 export function windowsCopyKey(e: KeyLike, sel: Selection, copy: (text: string) => void): boolean {
-  if (e.type !== 'keydown' || e.code !== 'KeyC' || !e.ctrlKey || e.shiftKey || e.altKey || e.metaKey) return true;
+  if (e.type !== 'keydown' || e.code !== 'KeyC' || !e.ctrlKey || e.shiftKey || e.altKey || e.metaKey)
+    return true;
   if (!sel.hasSelection()) return true;
   copy(sel.getSelection());
   sel.clearSelection();

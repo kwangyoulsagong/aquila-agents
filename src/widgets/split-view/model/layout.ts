@@ -137,6 +137,12 @@ export function place(layout: Layout, paneId: string, sessionId: string | null):
   return { root, focusedId: paneId, zoomedId: layout.zoomedId === paneId ? paneId : null };
 }
 
+/** A session was restarted under a new id (T54): every pane showing the old one shows the new one. */
+export function replaceSession(layout: Layout, from: string, to: string): Layout {
+  const root = mapLeaves(layout.root, (l) => (l.sessionId === from ? { ...l, sessionId: to } : l));
+  return root === layout.root ? layout : { ...layout, root };
+}
+
 /** Tab click: focus the pane already showing the session, otherwise show it in the focused pane. */
 export function show(layout: Layout, sessionId: string): Layout {
   const pane = paneOf(layout, sessionId);

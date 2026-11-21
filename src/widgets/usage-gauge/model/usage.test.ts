@@ -34,7 +34,9 @@ describe('usage gauge model', () => {
   it('suggests the other account with the most room', () => {
     const list = [acct('shared', 95, 100, true), acct('personal', 30, 100), acct('work', 10, 100)];
     expect(otherAccount(list, 'shared')).toBe('work');
-    expect(otherAccount([acct('shared', 95, 100, true), acct('personal', 99, 100, true)], 'shared')).toBeNull();
+    expect(
+      otherAccount([acct('shared', 95, 100, true), acct('personal', 99, 100, true)], 'shared'),
+    ).toBeNull();
   });
 
   it('a live percent wins over the estimate', () => {
@@ -52,7 +54,13 @@ describe('usage gauge model', () => {
   });
 
   it('Codex: windows it did not report are hidden, and it is never the "other account"', () => {
-    const codex: AccountUsage = { account: 'codex', kind: 'codex', fiveHour: { ...w(0), percent: 1 }, weekly: { ...w(0), percent: null }, near: false };
+    const codex: AccountUsage = {
+      account: 'codex',
+      kind: 'codex',
+      fiveHour: { ...w(0), percent: 1 },
+      weekly: { ...w(0), percent: null },
+      near: false,
+    };
     expect(shown(codex, codex.fiveHour)).toBe(true);
     expect(shown(codex, codex.weekly)).toBe(false);
     expect(otherAccount([acct('shared', 95, 100, true), codex], 'shared')).toBeNull();

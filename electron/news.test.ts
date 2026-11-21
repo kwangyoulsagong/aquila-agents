@@ -109,9 +109,9 @@ describe('releases', () => {
   });
 
   it('turns release HTML into bullets', () => {
-    expect(htmlToMarkdown('<h2>New Features</h2><ul><li>Added <code>x</code> (<a href="#">#1</a>)</li></ul>')).toBe(
-      '## New Features\n- Added x (#1)',
-    );
+    expect(
+      htmlToMarkdown('<h2>New Features</h2><ul><li>Added <code>x</code> (<a href="#">#1</a>)</li></ul>'),
+    ).toBe('## New Features\n- Added x (#1)');
   });
 
   it('never throws on junk', () => {
@@ -329,7 +329,13 @@ describe('NewsService', () => {
     const calls: Call[] = [];
     const file = tmpFile();
     let now = NOW;
-    const svc = new NewsService({ fetcher: makeFetcher(calls), onChange: () => {}, file, now: () => now, versions });
+    const svc = new NewsService({
+      fetcher: makeFetcher(calls),
+      onChange: () => {},
+      file,
+      now: () => now,
+      versions,
+    });
     svc.state();
     expect(calls).toHaveLength(0);
     expect(svc.stale()).toBe(true);
@@ -346,7 +352,13 @@ describe('NewsService', () => {
     const file = tmpFile();
     const calls: Call[] = [];
     let now = NOW;
-    const svc = new NewsService({ fetcher: makeFetcher(calls), onChange: () => {}, file, now: () => now, versions });
+    const svc = new NewsService({
+      fetcher: makeFetcher(calls),
+      onChange: () => {},
+      file,
+      now: () => now,
+      versions,
+    });
     const s = await svc.refresh();
     expect(calls).toHaveLength(SOURCES.length);
     expect(calls.find((c) => c.url.includes('CHANGELOG'))?.headers.Range).toBe('bytes=0-65535');
@@ -370,7 +382,13 @@ describe('NewsService', () => {
     // Later: conditional request, a 304 keeps the parsed releases.
     now += FRESH_MS;
     const calls2: Call[] = [];
-    const svc2 = new NewsService({ fetcher: makeFetcher(calls2, true), onChange: () => {}, file, now: () => now, versions });
+    const svc2 = new NewsService({
+      fetcher: makeFetcher(calls2, true),
+      onChange: () => {},
+      file,
+      now: () => now,
+      versions,
+    });
     const s2 = await svc2.refresh();
     expect(calls2.find((c) => c.url.includes('claude-code/releases'))?.headers['If-None-Match']).toBe('"cc"');
     expect(s2.cli[0].releases.map((r) => r.version)).toEqual(['2.1.329', '2.1.328']);
@@ -380,13 +398,21 @@ describe('NewsService', () => {
     const file = tmpFile();
     const day = 86_400_000;
     let now = NOW;
-    const svc = new NewsService({ fetcher: makeFetcher([]), onChange: () => {}, file, now: () => now, versions });
+    const svc = new NewsService({
+      fetcher: makeFetcher([]),
+      onChange: () => {},
+      file,
+      now: () => now,
+      versions,
+    });
     await svc.refresh();
     const before = svc.state().industry.length;
     svc.opened(); // visit 1
     now += 10 * day;
     svc.opened(); // visit 2: everything from visit 1 is now 10+ days old and seen
-    const cached = JSON.parse(fs.readFileSync(file, 'utf8')) as { sources: Record<string, { items?: unknown[] }> };
+    const cached = JSON.parse(fs.readFileSync(file, 'utf8')) as {
+      sources: Record<string, { items?: unknown[] }>;
+    };
     const left = Object.values(cached.sources).reduce((n, c) => n + (c.items?.length ?? 0), 0);
     expect(before).toBeGreaterThan(0);
     expect(left).toBe(0);

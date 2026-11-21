@@ -642,6 +642,11 @@ export interface AquilaApi {
   restoreSessions(): Promise<RestoreResult>;
   /** Spawns a dormant restored tab (same id). */
   startSession(id: string): Promise<SessionInfo>;
+  /**
+   * Restarts a live local Claude/Codex tab, resuming its conversation, so new spawn options apply (Figma on/off, T54).
+   * Returns the new tab, which takes the old one's place; the old id exits.
+   */
+  reopenSession(id: string): Promise<SessionInfo>;
   /** The split layout changed (saved with the tabs). */
   saveLayout(layout: SavedLayout): void;
   /** Plain-text snapshot of a terminal's output, shown read-only if the tab can't resume after a relaunch. */
@@ -781,7 +786,7 @@ export interface AquilaApi {
 }
 
 /** App menu bar (T47): a shortcut of the map, or a menu-only command. */
-export type MenuCommand = ShortcutId | 'settings' | 'addProject' | 'whatsNew';
+export type MenuCommand = ShortcutId | 'settings' | 'addProject' | 'whatsNew' | 'connectFigma';
 
 /** In-app preview (T33): the app, or Figma under it in the Designer layout. */
 export type PreviewSlot = 'app' | 'figma';
@@ -887,6 +892,7 @@ export const IPC = {
   layoutSave: 'layout:save',
   sessionScrollback: 'session:scrollback',
   sessionCreateWorktree: 'session:create-worktree',
+  sessionReopen: 'session:reopen',
   worktreeInfo: 'worktree:info',
   worktreeCandidates: 'worktree:candidates',
   worktreeRemove: 'worktree:remove',

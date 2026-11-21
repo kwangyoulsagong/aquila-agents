@@ -41,7 +41,10 @@ describe('mcp config + args', () => {
   });
 
   it('builds args for claude and codex that survive the session shell', () => {
-    expect(figmaArgv('claude', "/Users/me/it's/figma.json")).toEqual(['--mcp-config', "/Users/me/it's/figma.json"]);
+    expect(figmaArgv('claude', "/Users/me/it's/figma.json")).toEqual([
+      '--mcp-config',
+      "/Users/me/it's/figma.json",
+    ]);
     // The shell must hand codex exactly key="url" (TOML string).
     const codex = posixPrelude({ argv: ['printf', '%s\\n', ...figmaArgv('codex')] });
     const argv = execFileSync('/bin/sh', ['-c', `${codex}true`])

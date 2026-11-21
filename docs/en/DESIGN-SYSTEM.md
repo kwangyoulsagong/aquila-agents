@@ -186,7 +186,7 @@ from `src/` (ESLint enforces it). New primitive → add the class to `components
 | `Segment` `options` `value` `onChange` | `.c-segment` |
 | `ResizeHandle` `onChange` `onReset` `edge` `label` | `.c-resize` (measures its parent: start width, `min-width`, room its flexible siblings can give) |
 | `EmptyState` `title` `path` `actions` | `.c-empty` |
-| `Dialog` `open` `title` `onClose` `actions` `wide`, `DialogCheck`, `DialogCode`, `DialogForm` `id` `onSubmit` | `.c-dialog` |
+| `Dialog` `open` `title` `onClose` `actions` `wide`, `DialogCheck`, `DialogCode`, `DialogForm` `id` `onSubmit`, `DialogGroup` `ref?` | `.c-dialog` (`DialogGroup` = `.c-dialog__group`, fields kept together and scrolled to) |
 | `Checklist` `label`, `ChecklistItem` `leading` `title` `tag` `meta` `actions`, `ChecklistCommand` `command` `action` | `.c-checklist` |
 | `Dropzone` `over` (+ div props) | `.c-dropzone` |
 | `TermOverlay` (+ div props, `ref`), `TermJump` (Button props), `TermNote` `bar?`, `TermHint` `box` `label?` `typed?` | `.c-term-overlay`, `.c-term-overlay__jump`, `.c-term-overlay__note(--bar)`, `.c-term-hint` (helpers over a terminal, T28) |

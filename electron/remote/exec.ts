@@ -104,7 +104,8 @@ export function execError(r: ExecResult, fallback: string): string {
 }
 
 /** A random boundary for splitting a script's output into named sections (no chance of appearing in a diff). */
-export const boundary = (): string => `AQUILA-${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
+export const boundary = (): string =>
+  `AQUILA-${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
 
 /** Shell line that starts a section: `\n<boundary> <name>\n`. */
 export const sectionLine = (b: string, name: string): string => `printf '\\n%s %s\\n' '${b}' '${name}'`;

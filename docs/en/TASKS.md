@@ -524,7 +524,8 @@ The P0 rows of the persona report that were left under **Nice to have**: tools t
 - **Done:** at 1440 px both labels show; at the terminal's minimum width they fold to glyphs without overflow (smoke screenshot).
 
 ### T54 · Figma you can find and log in to
-- [ ] **Goal:** a designer finds Figma and gets it working without the CLI ritual (T32/T34 leftovers).
+- [x] **Goal:** a designer finds Figma and gets it working without the CLI ritual (T32/T34 leftovers).
+  _Left over: no first-run checklist step (the spec didn't need it; the palette, Help menu, preview head and guide cover it). "Log in from Claude" types `/mcp` without Enter once the tab's output pauses (~1.2 s, at most 10 s); the claude.ai Figma connector clash (T34) isn't detected. Reopen restarts each live local Claude/Codex tab of the project with `--resume` / `codex resume <id>` under a new id in the same slot (`session:reopen`, outside Owns: `electron/sessions.ts` + one IPC). Checked by unit tests (reopen, typing), the guide capture (`CAPTURE_ONLY=figma`) and smoke; the login and reopen flows were not clicked through against a real Claude/Figma account._
 - **Spec:**
   - ⌘K "Connect Figma…", a Help menu item and a guide item (Figma, chips, Design vs Build).
   - With Figma off, the preview head shows a quiet "Connect Figma" empty state.

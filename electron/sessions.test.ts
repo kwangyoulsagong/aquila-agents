@@ -146,7 +146,8 @@ describe('SessionManager waiting reason (T52)', () => {
   afterEach(() => vi.useRealTimers());
 
   const lastStatus = () =>
-    sent.filter((s) => s.channel === IPC.sessionStatus).at(-1)?.payload as Record<string, unknown> | undefined;
+    sent.filter((s) => s.channel === IPC.sessionStatus).at(-1)?.payload as
+      Record<string, unknown> | undefined;
 
   it('sends the permission summary with the status, also when it arrives late, and drops it on a new turn', () => {
     const s = m.create(local, 'a', 'claude');
@@ -160,5 +161,38 @@ describe('SessionManager waiting reason (T52)', () => {
     m.onHook(s.id, { event: 'UserPromptSubmit' });
     expect(lastStatus()).toMatchObject({ status: 'working' });
     expect(lastStatus()?.detail).toBeUndefined();
+  });
+});
+
+describe('SessionManager reopen (T54)', () => {
+  let m: SessionManager;
+  const local: Config = { ...config, projects: [{ ...config.projects[0], path: os.tmpdir() }] };
+  beforeEach(() => {
+    vi.useFakeTimers();
+    m = new SessionManager({
+      send: () => {},
+      getWindow: () => null,
+      hookPort: 0,
+      hookSettingsPath: () => '',
+    });
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it('restarts an agent tab under a new id in the same slot, keeping its title', () => {
+    const first = m.create(local, 'a', 'shell');
+    const agent = m.create(local, 'a', 'codex');
+    const last = m.create(local, 'a', 'shell');
+    m.rename(agent.id, 'Mine');
+    const next = m.reopen(local, agent.id);
+    expect(next.id).not.toBe(agent.id);
+    expect(next).toMatchObject({ kind: 'codex', title: 'Mine' });
+    expect(m.tabs().map((t) => t.kind)).toEqual(['shell', 'codex', 'shell']);
+    expect(m.has(first.id) && m.has(last.id) && m.has(next.id)).toBe(true);
+  });
+
+  it('refuses shells and unknown tabs', () => {
+    const shell = m.create(local, 'a', 'shell');
+    expect(() => m.reopen(local, shell.id)).toThrow();
+    expect(() => m.reopen(local, 'nope')).toThrow();
   });
 });

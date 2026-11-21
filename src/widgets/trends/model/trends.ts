@@ -1,4 +1,12 @@
-import type { CliNews, CliRelease, CliTool, NewsGroup, NewsItem, NewsSourceId, NewsState } from '@/shared/api';
+import type {
+  CliNews,
+  CliRelease,
+  CliTool,
+  NewsGroup,
+  NewsItem,
+  NewsSourceId,
+  NewsState,
+} from '@/shared/api';
 import type { Translate } from '@/shared/i18n';
 
 export const TOOL_NAMES: Record<CliTool, string> = { claude: 'Claude Code', codex: 'Codex' };

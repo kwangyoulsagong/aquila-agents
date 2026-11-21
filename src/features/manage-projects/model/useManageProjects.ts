@@ -18,7 +18,8 @@ export type ManageDialog =
   /** A project on an SSH host (T29). */
   | { kind: 'addRemote' }
   | { kind: 'renameProject'; project: Project }
-  | { kind: 'settings'; project: Project }
+  /** `focus`: opened for Figma (T54). */
+  | { kind: 'settings'; project: Project; focus?: 'figma' }
   | { kind: 'removeProject'; project: Project; sessions: number }
   /** `projectId`: move that project into the new group (from its "Group" menu). */
   | { kind: 'newGroup'; projectId?: string }
@@ -294,7 +295,8 @@ export function useManageProjects({
     dialog,
     closeDialog: () => setDialog(null),
     addProject,
-    openSettings: (project: Project) => setDialog({ kind: 'settings', project }),
+    openSettings: (project: Project, focus?: 'figma') =>
+      setDialog(focus ? { kind: 'settings', project, focus } : { kind: 'settings', project }),
     openIn,
     projectMenu,
     groupMenu,

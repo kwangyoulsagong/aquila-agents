@@ -8,3 +8,4 @@ export {
 } from './model/profile';
 export { default as FigmaChips } from './ui/FigmaChips';
 export { parseFigmaLink, type FigmaLink } from './model/link';
+export { typeWhenSettled, LOGIN_COMMAND } from './model/login';

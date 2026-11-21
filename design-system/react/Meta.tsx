@@ -7,7 +7,15 @@ export function MetaList({ children }: { children: ReactNode }) {
 }
 
 /** One row; `mono` for paths and ids. */
-export function MetaRow({ label, mono, children }: { label: ReactNode; mono?: boolean; children: ReactNode }) {
+export function MetaRow({
+  label,
+  mono,
+  children,
+}: {
+  label: ReactNode;
+  mono?: boolean;
+  children: ReactNode;
+}) {
   return (
     <>
       <dt className="c-meta__label">{label}</dt>

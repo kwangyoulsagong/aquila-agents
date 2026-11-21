@@ -40,6 +40,7 @@ export default function ManageProjectsDialog(props: Props) {
         onClose={props.onClose}
         onSave={props.onSettings}
         renderFigma={props.renderFigma}
+        focus={dialog.focus}
       />
     );
   if (dialog.kind === 'addRemote') return <RemoteProjectDialog onClose={props.onClose} onAdd={props.onAdd} />;

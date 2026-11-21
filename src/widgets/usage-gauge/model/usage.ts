@@ -12,10 +12,14 @@ export const fraction = (w: UsageWindow): number | null =>
   typeof w.percent === 'number' ? w.percent / 100 : w.limit ? w.used / w.limit : null;
 
 /** A Codex window the CLI didn't report (no secondary window on its plan): not drawn. */
-export const shown = (u: AccountUsage, w: UsageWindow): boolean => u.kind !== 'codex' || typeof w.percent === 'number';
+export const shown = (u: AccountUsage, w: UsageWindow): boolean =>
+  u.kind !== 'codex' || typeof w.percent === 'number';
 
 /** Which label a window gets: by its length when known, else its slot. */
-export function windowLabel(w: UsageWindow, slot: 'fiveHour' | 'weekly'): 'fiveHour' | 'weekly' | { days: number } {
+export function windowLabel(
+  w: UsageWindow,
+  slot: 'fiveHour' | 'weekly',
+): 'fiveHour' | 'weekly' | { days: number } {
   if (w.span === undefined) return slot;
   if (w.span === 300) return 'fiveHour';
   if (w.span === 10_080) return 'weekly';

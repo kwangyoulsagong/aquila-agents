@@ -9,12 +9,39 @@ interface Props {
   onChange: (enabled: boolean) => void;
   /** The project's Claude account (whose `/mcp` login the check uses). */
   account: string;
+  /** Figma as saved in the config (open tabs were spawned with it). */
+  saved: boolean;
+  /** Saves the settings dialog; false when it couldn't (the dialog shows why). Closes the dialog on success. */
+  save: () => Promise<boolean>;
+  /** Live local Claude/Codex tabs of the project: they keep their old MCP setup until reopened. */
+  agentTabs: number;
+  /** Reopen those tabs (resuming their conversations). */
+  onReopen: () => void;
+  /** Open a Claude tab with this account and type `/mcp` (T54). */
+  onLogin: (account: string) => void;
 }
 
-/** Project settings block: Figma MCP on/off; when on, the connection check, plan hints and the docs link. */
-export default function FigmaSettings({ enabled, onChange, account }: Props) {
+/**
+ * Project settings block: Figma MCP on/off; when on, the connection check, "Log in from Claude", plan hints and the
+ * docs link. Toggling with tabs open offers "Save and reopen" (T54).
+ */
+export default function FigmaSettings({
+  enabled,
+  onChange,
+  account,
+  saved,
+  save,
+  agentTabs,
+  onReopen,
+  onLogin,
+}: Props) {
   const t = useT();
   const { profile, checking, connect } = useFigmaProfile(account);
+  const pending = enabled !== saved;
+  const login = async () => {
+    if (pending && !(await save())) return;
+    onLogin(account);
+  };
 
   const status = (() => {
     if (checking) return { dot: 'working' as const, text: t('figma.checking') };
@@ -40,6 +67,14 @@ export default function FigmaSettings({ enabled, onChange, account }: Props) {
           ]}
         />
       </Field>
+      {pending && agentTabs > 0 && (
+        <DialogCheck leading={<Dot status="waiting" />}>
+          <span>{t('figma.reopenNote', { n: String(agentTabs) })}</span>
+          <Button onClick={() => void save().then((ok) => ok && onReopen())}>
+            {t('figma.saveAndReopen')}
+          </Button>
+        </DialogCheck>
+      )}
       {enabled && (
         <>
           <DialogCheck leading={<Dot status={status.dot} />}>
@@ -56,6 +91,11 @@ export default function FigmaSettings({ enabled, onChange, account }: Props) {
               </DialogCheck>
             ))}
           <DialogCheck>
+            {profile?.state !== 'connected' && (
+              <Button variant="primary" onClick={() => void login()} title={t('figma.loginHint')}>
+                {pending ? t('figma.saveAndLogin') : t('figma.login')}
+              </Button>
+            )}
             <Button onClick={() => void connect()} disabled={checking}>
               {checking ? t('figma.checking') : t('figma.connect')}
             </Button>

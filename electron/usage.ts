@@ -19,7 +19,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { accountPaths, isLoggedIn } from './accounts';
 import { APP_DIR } from './config';
-import { probeClaudeUsage, readCodexLive, type ClaudeLive, type CodexLive, type LiveWindow } from './usage-live';
+import {
+  probeClaudeUsage,
+  readCodexLive,
+  type ClaudeLive,
+  type CodexLive,
+  type LiveWindow,
+} from './usage-live';
 import type { AccountUsage, Config, UsageWindow } from '../src/shared/api/types';
 
 export const USAGE_LIMITS_PATH = path.join(APP_DIR, 'usage-limits.json');
@@ -435,7 +441,9 @@ export class UsageTracker {
     if (!live || this.probing) return;
     const due = (at: number | undefined) => at === undefined || now - at >= LIVE_EVERY_MS;
     const accounts = Object.entries(config.accounts).filter(
-      ([id, a]) => due(this.claudeLive.get(id)?.at) && isLoggedIn(readOrNull(accountPaths(a.claudeConfigDir).claudeJson)),
+      ([id, a]) =>
+        due(this.claudeLive.get(id)?.at) &&
+        isLoggedIn(readOrNull(accountPaths(a.claudeConfigDir).claudeJson)),
     );
     const codex = due(this.codexLive?.at);
     if (!accounts.length && !codex) return;
@@ -444,7 +452,9 @@ export class UsageTracker {
       try {
         await Promise.all([
           ...accounts.map(async ([id, a]) => {
-            const value = await live.claude(a.claudeConfigDir ? accountPaths(a.claudeConfigDir).dir : null).catch(() => null);
+            const value = await live
+              .claude(a.claudeConfigDir ? accountPaths(a.claudeConfigDir).dir : null)
+              .catch(() => null);
             this.claudeLive.set(id, { at: this.now(), value });
           }),
           codex

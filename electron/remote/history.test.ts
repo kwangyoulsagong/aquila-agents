@@ -34,7 +34,14 @@ const config: Config = {
   accounts: { shared: { claudeConfigDir: '/nonexistent/.claude' } },
   groups: [{ id: 'work' }],
   projects: [
-    { id: 'rapp', name: 'App', group: 'work', account: 'shared', path: '/work/app', remote: { alias: 'devbox' } },
+    {
+      id: 'rapp',
+      name: 'App',
+      group: 'work',
+      account: 'shared',
+      path: '/work/app',
+      remote: { alias: 'devbox' },
+    },
     { id: 'rapi', name: 'API', group: 'work', account: 'shared', path: '~/api', remote: { alias: 'devbox' } },
   ],
 };
@@ -58,7 +65,9 @@ describe('remote history', () => {
     expect(refKey(codex!)).toBe(`codex:${CODEX_A}@devbox`);
 
     expect(index.search('login').length).toBeGreaterThan(0);
-    expect(index.transcript({ agent: 'claude', id: AUTH, host: 'devbox' }).messages.length).toBeGreaterThan(0);
+    expect(index.transcript({ agent: 'claude', id: AUTH, host: 'devbox' }).messages.length).toBeGreaterThan(
+      0,
+    );
     const full = await index.fullTranscript({ agent: 'claude', id: AUTH, host: 'devbox' });
     expect(full.length).toBe(index.transcript({ agent: 'claude', id: AUTH, host: 'devbox' }).messages.length);
     expect(index.remoteOf({ agent: 'claude', id: AUTH, host: 'devbox' })?.home).toBe(h.home);
@@ -138,7 +147,14 @@ describe('projects on a host', () => {
       ...config,
       projects: [
         ...config.projects,
-        { id: 'p3', name: 'x', group: 'work', account: 'shared', path: '/x', remote: { alias: 'devbox', claudeConfigDir: '~/.c2' } },
+        {
+          id: 'p3',
+          name: 'x',
+          group: 'work',
+          account: 'shared',
+          path: '/x',
+          remote: { alias: 'devbox', claudeConfigDir: '~/.c2' },
+        },
       ],
     };
     expect(remoteHosts(c)).toEqual([{ host: { alias: 'devbox' }, claudeDirs: ['~/.claude', '~/.c2'] }]);

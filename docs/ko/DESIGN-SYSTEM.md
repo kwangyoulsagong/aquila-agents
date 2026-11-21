@@ -185,7 +185,7 @@
 | `Segment` `options` `value` `onChange` | `.c-segment` |
 | `ResizeHandle` `onChange` `onReset` `edge` `label` | `.c-resize` (부모를 직접 잼: 시작 폭, `min-width`, 유연한 형제가 내줄 수 있는 폭) |
 | `EmptyState` `title` `path` `actions` | `.c-empty` |
-| `Dialog` `open` `title` `onClose` `actions` `wide`, `DialogCheck`, `DialogCode`, `DialogForm` `id` `onSubmit` | `.c-dialog` |
+| `Dialog` `open` `title` `onClose` `actions` `wide`, `DialogCheck`, `DialogCode`, `DialogForm` `id` `onSubmit`, `DialogGroup` `ref?` | `.c-dialog` (`DialogGroup` = `.c-dialog__group`, fields kept together and scrolled to) |
 | `Checklist` `label`, `ChecklistItem` `leading` `title` `tag` `meta` `actions`, `ChecklistCommand` `command` `action` | `.c-checklist` |
 | `Dropzone` `over` (+ div 속성) | `.c-dropzone` |
 | `TermOverlay` (+ div 속성, `ref`), `TermJump` (Button 속성), `TermNote` `bar?`, `TermHint` `box` `label?` `typed?` | `.c-term-overlay`, `.c-term-overlay__jump`, `.c-term-overlay__note(--bar)`, `.c-term-hint` (터미널 위 도우미, T28) |

@@ -63,6 +63,11 @@ export const chipInput = (prompt: string): string => ` ${prompt.replace(/\s*\n\s
  * The prompt a chip types. Claude has Claude in Chrome built in; Codex doesn't, so it gets the MCP-only prompt.
  * The Chrome pass catches what the MCP data misses (states, real fonts, images, overflow, widths).
  */
-export function chipPrompt(chip: Chip, kind: 'claude' | 'codex', prompt: string, chromeCheck: string): string {
+export function chipPrompt(
+  chip: Chip,
+  kind: 'claude' | 'codex',
+  prompt: string,
+  chromeCheck: string,
+): string {
   return chipInput(chip.chrome && kind === 'claude' ? `${prompt} ${chromeCheck}` : prompt);
 }

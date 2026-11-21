@@ -13,6 +13,7 @@ export type ActionId =
   | 'addProject'
   | 'projectSettings'
   | 'openProjectIn'
+  | 'connectFigma'
   | 'splitRight'
   | 'splitDown'
   | 'zoomPane'
@@ -79,6 +80,7 @@ const ACTIONS: {
   { action: 'cleanupWorktrees', label: (t) => t('worktree.cleanupTitle') },
   { action: 'projectSettings', label: (t) => t('settings.action') },
   { action: 'openProjectIn', label: (t, p) => t('settings.openInAction', { app: p?.openIn || 'Finder' }) },
+  { action: 'connectFigma', label: (t) => t('figma.connectAction') },
   { action: 'addProject', label: (t) => t('projects.add') },
   { action: 'splitRight', label: (t) => t('palette.splitRight'), shortcut: 'splitRight' },
   { action: 'splitDown', label: (t) => t('palette.splitDown'), shortcut: 'splitDown' },

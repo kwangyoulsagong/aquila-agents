@@ -154,7 +154,10 @@ export function probeClaudeUsage(
       settled = true;
       clearTimeout(timer);
       const live = parseClaudeUsage(out, now());
-      if (!live) console.error(`[usage] /usage unreadable (${configDir ?? 'default'}): ${why ?? (err.trim().split('\n')[0] || out.trim().split('\n')[0] || 'empty')}`);
+      if (!live)
+        console.error(
+          `[usage] /usage unreadable (${configDir ?? 'default'}): ${why ?? (err.trim().split('\n')[0] || out.trim().split('\n')[0] || 'empty')}`,
+        );
       resolve(live);
     };
     child.on('error', (e) => done(e.message));

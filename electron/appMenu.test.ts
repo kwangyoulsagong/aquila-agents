@@ -37,7 +37,7 @@ describe('appMenuTemplate', () => {
     }
   });
 
-  it("ignores a display-only key that reached the menu (the renderer already ran it)", () => {
+  it('ignores a display-only key that reached the menu (the renderer already ran it)', () => {
     const { items, sent } = build('en');
     for (const i of items) if (i.registerAccelerator === false) click(i, true);
     expect(sent).toEqual([]);
