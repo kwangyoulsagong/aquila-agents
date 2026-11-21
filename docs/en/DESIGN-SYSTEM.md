@@ -127,7 +127,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `.c-elapsed` | How long a session has waited ("12m", mono, waiting color) on a tab or project row |
 | `.c-reason` | What a waiting session waits on ("Bash: npm install"), one mono caption line under its project row (aligned with the name); a button that shows the session. `data-risk` = possibly destructive: error color + `.c-risk` |
 | `.c-risk` | Warning glyph (⚠) in the error color for a possibly destructive command — on the reason line and the tab |
-| `.c-badge` `--claude` `--codex` `--shell` `--account-shared` `--account-personal` | Tags |
+| `.c-badge` `--claude` `--codex` `--shell` `--account-shared` `--account-personal` `--risk` | Tags (`--risk`: a changed file worth a second look, waiting colour — T57) |
 | `.c-badge--host`, `.c-badge__conn[data-conn=connecting\|connected\|reconnecting\|lost]` | Remote host alias (not uppercased) with a connection dot: idle grey / green / orange pulsing / red (T29) |
 | `.c-term-overlay__banner` `__banner-text` `__banner-meta` | Bar across the top of a terminal that takes clicks, red edge: connection lost + countdown + an action (T29) |
 | `.c-term-find` `__input` `__count[data-empty]` | Find bar at the top-right of a terminal that takes clicks: query · count (red when nothing matches) · case toggle (`aria-pressed`) · previous · next · close; its disabled buttons go tertiary (T40) |
@@ -198,7 +198,7 @@ from `src/` (ESLint enforces it). New primitive → add the class to `components
 | `TermChips` `label` `closeLabel` `onClose`, `TermChipGroup` `label` | `.c-term-overlay__chips`, `.c-term-overlay__chips-group` (prompt chips, T34) |
 | `TermFind` `label` `query` `onQuery` `onKeyDown?` `inputRef?` `placeholder?` `count?` `empty?` `caseSensitive` `onToggleCase` `onPrev` `onNext` `onClose` `labels` | `.c-term-find` (find in terminal, T40) |
 | `Field` `label` `hint` `warning`, `FieldRow`, `FieldGrid`, `Input`, `InlineInput`, `Textarea`, `Select` `options` `onChange(value)` | `.c-field`, `.c-field__row`, `.c-field-grid`, `.c-input`, `.c-input--inline`, `.c-input--multiline`, `.c-select` |
-| `ChangeRow` `status` `path` | `.c-change` |
+| `ChangeRow` `status` `path` `badge?` | `.c-change` |
 | `Palette` `open` `onClose` `label` `query` `onQueryChange` `listId` `activeId`, `PaletteList`, `PaletteItem` `selected` `label` `marks` `leading` `hint` `kbd`, `PaletteEmpty` | `.c-palette` (combobox + listbox) |
 | `Modal` `open` `title` `subtitle?` `onClose` `closeLabel` `aside` `footer` `wide`, `ModalSearch` (focused on open), `ModalList` `id` `label`, `ModalItem` `selected` `label` `meta` `trailing` `onSelect`, `ModalEmpty`, `ModalDetail` `heading` `text` `keys`, `ModalGroup` `label` `hint`, `ModalTools`, `ModalActions` `onSubmit?`, `ModalNote` `warn`, `ModalBullets` `items` | `.c-modal` |
 | `MetaList`, `MetaRow` `label` `mono` | `.c-meta` |

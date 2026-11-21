@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
-import { Button, ChangeRow, Dialog, ResizeHandle, Segment } from '@design-system/react';
+import { Badge, Button, ChangeRow, Dialog, ResizeHandle, Segment } from '@design-system/react';
 import { usePanelWidth } from '@/shared/lib/usePanelWidth';
 import {
   api,
@@ -10,7 +10,15 @@ import {
   type Session,
 } from '@/shared/api';
 import { useT } from '@/shared/i18n';
-import { DiffView, hunkPatch, parseDiff, type DiffFile, type DiffMode } from '@/entities/diff';
+import {
+  DiffView,
+  fileRisk,
+  hunkPatch,
+  parseDiff,
+  sortByRisk,
+  type DiffFile,
+  type DiffMode,
+} from '@/entities/diff';
 import { pasteIntoSession } from '@/entities/session';
 import { useChanges } from '../model/useChanges';
 import {
@@ -76,7 +84,10 @@ export default function ChangesPanel({ project, session, onClose }: Props) {
   const activeScope: GitScope = own ? scope : 'worktree';
   const remote = project?.remote;
   const { changes, error, refresh } = useChanges(project?.id ?? null, own?.id, activeScope, !!remote);
-  const files = useMemo(() => parseDiff(changes?.diff ?? ''), [changes?.diff]);
+  // Risky files (migrations, lockfiles, env, prompts, CI) first, in the list and the diff alike (T57).
+  const files = useMemo(() => sortByRisk(parseDiff(changes?.diff ?? ''), (f) => f.path), [changes?.diff]);
+  const listed = useMemo(() => sortByRisk(changes?.files ?? [], (f) => f.path), [changes?.files]);
+  const riskCount = useMemo(() => listed.filter((f) => fileRisk(f.path)).length, [listed]);
   const statusOf = useMemo(() => new Map((changes?.files ?? []).map((f) => [f.path, f])), [changes?.files]);
   const [mode, setModeState] = useState<DiffMode>(readMode);
   // Remembered per view mode: side-by-side wants more room (T49).
@@ -291,6 +302,11 @@ export default function ChangesPanel({ project, session, onClose }: Props) {
             {t('changes.files', { count: String(changes.files.length) })}
           </span>
         )}
+        {riskCount > 0 && (
+          <span className="c-row__meta" data-fixed title={t('changes.risk.countTitle')}>
+            {t('changes.risk.count', { count: String(riskCount) })}
+          </span>
+        )}
         <div className="c-panel__actions">
           <Button
             variant="ghost"
@@ -389,15 +405,19 @@ export default function ChangesPanel({ project, session, onClose }: Props) {
         {changes?.isRepo && changes.files.length > 0 && (
           <>
             <div className="c-panel__section">
-              {changes.files.map((f) => (
-                <ChangeRow
-                  key={f.path}
-                  status={f.status}
-                  path={f.path}
-                  aria-current={current === f.path || undefined}
-                  onClick={() => scrollTo(f.path)}
-                />
-              ))}
+              {listed.map((f) => {
+                const risk = fileRisk(f.path);
+                return (
+                  <ChangeRow
+                    key={f.path}
+                    status={f.status}
+                    path={f.path}
+                    badge={risk && <Badge tone="risk">{t(`changes.risk.${risk}`)}</Badge>}
+                    aria-current={current === f.path || undefined}
+                    onClick={() => scrollTo(f.path)}
+                  />
+                );
+              })}
             </div>
             <DiffView
               files={files}

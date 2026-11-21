@@ -143,6 +143,8 @@ body {
 .c-badge--shell { color: var(--color-agent-shell); }
 .c-badge--account-shared { color: var(--color-account-shared); }
 .c-badge--account-personal { color: var(--color-account-personal); }
+/* A changed file worth a second look (T57): migration, lockfile, env, prompt, CI. */
+.c-badge--risk { flex: none; color: var(--color-status-waiting); }
 /* Remote host (T29): the alias as typed (not uppercased) with a connection dot. */
 .c-badge--host { gap: var(--space-inline-xs); text-transform: none; letter-spacing: 0; }
 .c-badge__conn { width: var(--size-dot-sm); height: var(--size-dot-sm); border-radius: 50%; flex: none; background: var(--color-status-idle); }
