@@ -290,6 +290,13 @@ xterm 인스턴스는 `useTerminal(id)`(`entities/session`, `TerminalView`가 �
   가져와요. 호스트에는 아무것도 쓰지 않아요.
 - **스모크** (`electron/remote/smoke.ts`): PATH의 가짜 `ssh` / `tmux`가 실제 스크립트를 로컬에서 실행: 첫 시도 거부 →
   다시 연결 중 → 연결됨, 입력한 표식이 돌아옴, 링크 끊김(exit 255) → 재연결 → 다시 출력, 탭 닫으면 `kill-session`.
+- **실제 호스트** (선택, `electron/remote/realHostSmoke.ts`): `scripts/ssh-test-host/up.sh`가 Debian 컨테이너
+  (127.0.0.1:2222의 sshd, 사용자 `dev`, tmux + git, `/work/app` 저장소, 히스토리 fixture)를 띄우고 키와
+  `ssh_config`(`Host aquila-test`)를 임시 폴더에 씁니다 — `~/.ssh`는 건드리지 않습니다. 그다음
+  `AQUILA_SMOKE_SSH_HOST=aquila-test AQUILA_SMOKE_SSH_CONFIG=<dir>/ssh_config npm run smoke`: 호스트 확인 → ssh +
+  tmux 탭 → 탭에서 입력한 수정이 Changes에 보이고 되돌림(stash + `~/.aquila/trash`) → 히스토리가 호스트의
+  트랜스크립트를 프로젝트에 맞춰 나열 → 호스트가 사용자의 sshd를 종료(`AQUILA_SMOKE_SSH_DROP`) → 같은 tmux 세션으로
+  재연결 → 탭 닫으면 세션 제거. `down.sh`가 컨테이너를 지웁니다.
 
 ## 사용량 게이지 (T30)
 

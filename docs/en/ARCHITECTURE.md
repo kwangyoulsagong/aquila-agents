@@ -307,6 +307,13 @@ simple `Include`s), folder, name, group, optional `CLAUDE_CONFIG_DIR` on the hos
 - **Smoke** (`electron/remote/smoke.ts`): fake `ssh` / `tmux` on PATH run the real script locally: first attempt refused
   → reconnecting → connected; a typed marker comes back; a dropped link (exit 255) → reconnect → output again; closing
   the tab sends `kill-session`.
+- **Real host** (opt-in, `electron/remote/realHostSmoke.ts`): `scripts/ssh-test-host/up.sh` starts a Debian container
+  (sshd on 127.0.0.1:2222, user `dev`, tmux + git, a repo at `/work/app`, the history fixtures) and writes a key +
+  `ssh_config` (`Host aquila-test`) into a temp dir — `~/.ssh` is never touched. Then
+  `AQUILA_SMOKE_SSH_HOST=aquila-test AQUILA_SMOKE_SSH_CONFIG=<dir>/ssh_config npm run smoke` runs: Check host → tab
+  over ssh + tmux → edits typed in the tab show in Changes and are reverted (stash + `~/.aquila/trash`) → history
+  lists the host's transcripts for the project → the host kills the user's sshd (`AQUILA_SMOKE_SSH_DROP`) → reconnect
+  into the same tmux session → closing the tab removes it. `down.sh` removes the container.
 
 ## Usage gauge (T30)
 

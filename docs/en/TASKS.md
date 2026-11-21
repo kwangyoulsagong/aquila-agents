@@ -505,8 +505,9 @@ From the persona research (`reports/디자이너 개발자 ADE 사용성.md`: fr
   - `rm -rf`, `push --force`, `reset --hard`, `clean -f`, `branch -D`, `DROP`/`TRUNCATE`, `DELETE FROM` without `WHERE`, `migrate reset`, `terraform destroy`, `kubectl delete`, `--force`… get a ⚠ in the error colour on the line and the tab.
 - **Owns:** `src/shared/lib/risk.ts` (+ test), `design-system/react/Reason.tsx` + `.c-reason`/`.c-risk`, the row in `src/widgets/sidebar/`, the tab in `src/widgets/session-tabs/`; `detail` on `StatusUpdate`/`Session` (additive).
 
-### Remote check on a real host (on hold)
-- [ ] On hold until an SSH host is available: add a remote project, open tabs, Changes, history and reconnect on a real host, fix only what breaks (T29/T36 leftovers).
+### Remote check on a real host
+- [x] Add a remote project, open tabs, Changes, history and reconnect on a real host, fix only what breaks (T29/T36 leftovers).
+  _Done on a Docker host (`scripts/ssh-test-host/`, Debian arm64, OpenSSH, tmux 3.3a, git 2.39) with an opt-in smoke step (`AQUILA_SMOKE_SSH_HOST`): check, tab, Changes read + revert, history, server-side drop → reattach, close → tmux gone — nothing broke, so no fixes. Not covered: a Claude/Codex tab on the host (no CLI or login in the container), the add-project dialog and the Changes panel UI (the step calls the same main-process code, not the renderer), reattach after an app relaunch, a host over a real network (latency, NAT, password / 2FA logins), `KillUserProcesses=yes`._
 
 ### Nice to have (not planned)
 - Text labels on the tab-bar panel buttons (`±` `◫` `{}`), like T46.
