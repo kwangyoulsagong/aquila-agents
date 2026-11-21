@@ -1,6 +1,13 @@
-import { useEffect, useState, type KeyboardEvent, type ReactNode } from 'react';
-import { Button, EmptyState, Input, ResizeHandle, Segment, Select } from '@design-system/react';
-import { api, type PickResult, type PreviewSlot, type Project, type Session } from '@/shared/api';
+import { useEffect, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react';
+import { Button, EmptyState, Input, Range, ResizeHandle, Segment, Select } from '@design-system/react';
+import {
+  api,
+  type PickResult,
+  type PreviewShot,
+  type PreviewSlot,
+  type Project,
+  type Session,
+} from '@/shared/api';
 import { sessionTitle, useT } from '@/shared/i18n';
 import { usePanelWidth } from '@/shared/lib/usePanelWidth';
 import { pathsInput } from '@/features/terminal-helpers';
@@ -8,6 +15,7 @@ import { parseFigmaLink } from '@/features/figma';
 import { focusSession, pasteIntoSession } from '@/entities/session';
 import { buildPickPrompt } from '../model/prompt';
 import { pickTarget } from '../model/pickTarget';
+import { buildComparePrompt, COMPARE_LAYOUTS, toLayout, toOpacity } from '../model/compare';
 import {
   DEVICES,
   deviceWidth,
@@ -54,6 +62,9 @@ const sameUrl = (a: string, b: string) => {
   }
 };
 const short = (url: string) => url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+/** Time for a view that was just shown to paint before it's captured. */
+const PAINT_MS = 400;
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /** Address field: shows the page's current address, loads what's typed on Enter. */
 function Address({ value, label, onGo }: { value: string; label: string; onGo: (url: string) => void }) {
@@ -104,7 +115,7 @@ function Stage({
 /**
  * Right column (⌘⇧P): the project's running app in a native view, with device widths and Select mode — click an
  * element and its selector, text, style, component and a screenshot are pasted into the focused Claude/Codex tab.
- * Designer layout (Figma on): Figma under the app.
+ * Designer layout (Figma on): Figma under the app, beside it, or over it as a screenshot overlay (T62).
  */
 export default function PreviewPanel({
   project,
@@ -133,6 +144,15 @@ export default function PreviewPanel({
   const device: Device = (DEVICES as readonly string[]).includes(deviceRaw) ? (deviceRaw as Device) : 'fit';
   const [designerRaw, setDesigner] = useStored('aquila.preview.designer');
   const designer = !!project.figma && designerRaw === '1';
+  const [layoutRaw, setLayout] = useStored('aquila.preview.compare');
+  const layout = designer ? toLayout(layoutRaw) : 'stacked';
+  const overlay = layout === 'overlay';
+  const [opacityRaw, setOpacityRaw] = useStored('aquila.preview.compare.opacity');
+  const opacity = toOpacity(opacityRaw);
+  const [diff, setDiff] = useState(false);
+  // Overlay: each view is shown alone over the compare area just long enough to be captured, then hidden again.
+  const [capturing, setCapturing] = useState<PreviewSlot | null>(null);
+  const [shots, setShots] = useState<{ app: PreviewShot | null; figma: PreviewShot | null } | null>(null);
   const covered = useDialogOpen();
   const width = usePanelWidth('aquila.panel.preview');
   const nav = useNav('app');
@@ -219,6 +239,61 @@ export default function PreviewPanel({
     } finally {
       setPicking(false);
     }
+  };
+
+  const capture = async () => {
+    if (capturing) return;
+    const take = async (slot: PreviewSlot) => {
+      setCapturing(slot);
+      await wait(PAINT_MS);
+      return api.previewCapture(slot).catch(() => null);
+    };
+    try {
+      const app = await take('app');
+      const figma = await take('figma');
+      setShots({ app, figma });
+      if (!app || !figma) setNotice(t('preview.compare.failed'));
+    } finally {
+      setCapturing(null);
+    }
+  };
+
+  // Entering the overlay (or another address under it) takes fresh screenshots; old ones would mislead.
+  const shotKey = overlay ? `${url}\n${figmaUrl}\n${device}` : '';
+  useEffect(() => {
+    setShots(null);
+    if (shotKey) void capture();
+    // capture reads the latest state when it runs; re-running on its identity would loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shotKey]);
+
+  const sendCompare = () => {
+    if (!shots?.app || !shots.figma) return;
+    const text = buildComparePrompt(
+      { page: nav?.url || url, design: figmaUrl },
+      {
+        intro: t('preview.compare.prompt.intro'),
+        app: t('preview.compare.prompt.app'),
+        design: t('preview.compare.prompt.design'),
+        ask: t('preview.compare.prompt.ask'),
+      },
+    );
+    const images = [shots.app.path, shots.figma.path];
+    const now = pickTarget(session);
+    if (now.kind === 'paste' && pasteIntoSession(now.session.id, `${text}\n`)) {
+      // One paste per image: a paste that is only an image path is attached as an image.
+      for (const path of images) pasteIntoSession(now.session.id, pathsInput([path]));
+      focusSession(now.session.id);
+      setNotice(t('preview.pick.pasted', { name: sessionTitle(t, now.session) }));
+      return;
+    }
+    api.copyText(`${text}\n${images.join('\n')}`);
+    if (now.kind === 'busy') {
+      focusSession(now.session.id);
+      setNotice(t('preview.pick.busy', { name: sessionTitle(t, now.session) }));
+      return;
+    }
+    setNotice(t('preview.pick.copied'));
   };
 
   const ready = !!url && !!nav && !nav.error && !nav.loading;
@@ -365,27 +440,98 @@ export default function PreviewPanel({
           {notice}
         </div>
       )}
-      <div className="c-preview__body">
+      {/* Same children in every layout (only CSS moves them), so switching never reloads a view. */}
+      <div className="c-preview__body" data-layout={layout}>
         <Stage
+          key="app"
           slot="app"
           url={url}
           width={deviceWidth(device)}
-          covered={covered}
+          covered={covered || (overlay && capturing !== 'app')}
           empty={<EmptyState title={t('preview.empty')}>{t('preview.emptyHint')}</EmptyState>}
         />
         {designer && (
-          <>
-            <div className="c-panel__bar">
-              <Address value={figmaUrl} label={t('preview.figmaAddress')} onGo={setFigmaUrl} />
-            </div>
-            <Stage
-              slot="figma"
-              url={figmaUrl}
-              width={0}
-              covered={covered}
-              empty={<EmptyState title={t('preview.figmaEmpty')} />}
+          <div key="figma-bar" className="c-panel__bar c-preview__figma-bar">
+            <Address value={figmaUrl} label={t('preview.figmaAddress')} onGo={setFigmaUrl} />
+            <Segment
+              label={t('preview.compare')}
+              value={layout}
+              onChange={setLayout}
+              options={COMPARE_LAYOUTS.map((l) => ({ value: l, label: t(`preview.compare.${l}`) }))}
             />
-          </>
+          </div>
+        )}
+        {designer && overlay && (
+          <div key="compare-bar" className="c-panel__bar c-preview__compare-bar">
+            <Range
+              label={t('preview.compare.opacity')}
+              value={opacity}
+              disabled={diff}
+              onChange={(v) => setOpacityRaw(String(v))}
+            />
+            <span className="c-row__meta" data-fixed>
+              {diff ? t('preview.compare.diffOn') : `${opacity}%`}
+            </span>
+            <Button
+              variant="ghost"
+              aria-pressed={diff}
+              onClick={() => setDiff(!diff)}
+              title={t('preview.compare.diffHint')}
+            >
+              {t('preview.compare.diff')}
+            </Button>
+            <div className="c-panel__bar-end">
+              <Button
+                variant="ghost"
+                icon
+                disabled={!!capturing}
+                onClick={() => void capture()}
+                title={t('preview.compare.recapture')}
+                aria-label={t('preview.compare.recapture')}
+              >
+                ↻
+              </Button>
+              <Button
+                disabled={!shots?.app || !shots.figma}
+                onClick={sendCompare}
+                title={t('preview.compare.sendHint')}
+              >
+                {t('preview.compare.send')}
+              </Button>
+            </div>
+          </div>
+        )}
+        {designer && (
+          <Stage
+            key="figma"
+            slot="figma"
+            url={figmaUrl}
+            width={0}
+            covered={covered || (overlay && capturing !== 'figma')}
+            empty={<EmptyState title={t('preview.figmaEmpty')} />}
+          />
+        )}
+        {designer && overlay && (
+          <div key="overlay" className="c-preview__overlay" aria-busy={!!capturing}>
+            {shots?.app && shots.figma ? (
+              <div
+                className="c-preview__shots"
+                data-blend={diff ? 'difference' : undefined}
+                style={{ '--compare-opacity': diff ? 1 : opacity / 100 } as CSSProperties}
+              >
+                <img className="c-preview__shot" src={shots.app.dataUrl} alt={t('preview.compare.prompt.app')} />
+                <img
+                  className="c-preview__shot"
+                  src={shots.figma.dataUrl}
+                  alt={t('preview.compare.prompt.design')}
+                />
+              </div>
+            ) : (
+              <EmptyState title={capturing || !shots ? t('preview.compare.capturing') : t('preview.compare.failed')}>
+                {t('preview.compare.hint')}
+              </EmptyState>
+            )}
+          </div>
         )}
       </div>
     </aside>

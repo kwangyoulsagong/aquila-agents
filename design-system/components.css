@@ -101,6 +101,11 @@ body {
 .c-segment__item:hover { color: var(--color-text-primary); }
 .c-segment__item[aria-checked='true'] { color: var(--color-text-primary); }
 
+/* ── Range ────────────────────────────────────────────────
+ * Native slider in the accent colour; the value is shown next to it by the caller. */
+.c-range { width: var(--size-range); height: var(--size-control); margin: 0; accent-color: var(--color-action-primary); cursor: pointer; }
+.c-range:disabled { opacity: 0.5; cursor: default; }
+
 /* ── Kbd ──────────────────────────────────────────────────── */
 .c-kbd {
   font: var(--font-size-caption) var(--font-family-mono); color: var(--color-text-tertiary);
@@ -472,6 +477,30 @@ body {
 .c-preview .c-panel__bar .c-btn { flex: none; white-space: nowrap; }
 .c-preview .c-panel__bar-end { min-width: 0; }
 .c-preview .c-panel__bar-end > .c-row__meta { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Designer compare (T62). Children are the same in every layout — app stage, Figma bar, [compare bar], Figma stage,
+ * [overlay] — only placement changes, so a switch never reloads a view.
+ * side: Figma bar across the top, app | Figma below. overlay: both stages share one cell (each is shown alone only
+ * while it's captured) and the screenshot overlay covers it: app below, Figma on top at --compare-opacity, or
+ * `data-blend='difference'` (identical pixels go black). */
+.c-preview__figma-bar .c-segment { flex: none; }
+.c-preview__body[data-layout='side'],
+.c-preview__body[data-layout='overlay'] { display: grid; grid-template-columns: minmax(0, 1fr); }
+.c-preview__body[data-layout='side'] { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+.c-preview__body[data-layout='side'] > .c-preview__figma-bar { grid-row: 1; grid-column: 1 / -1; border-top: 0; }
+.c-preview__body[data-layout='side'] > .c-preview__stage { grid-row: 2; }
+.c-preview__body[data-layout='side'] > .c-preview__stage + .c-preview__stage { border-left: 1px solid var(--color-border-subtle); }
+.c-preview__body[data-layout='overlay'] { grid-template-rows: auto auto minmax(0, 1fr); }
+.c-preview__body[data-layout='overlay'] > .c-preview__figma-bar { grid-row: 1; border-top: 0; }
+.c-preview__body[data-layout='overlay'] > .c-preview__compare-bar { grid-row: 2; }
+.c-preview__body[data-layout='overlay'] > .c-preview__stage,
+.c-preview__body[data-layout='overlay'] > .c-preview__overlay { grid-row: 3; grid-column: 1; }
+.c-preview__overlay { min-height: 0; overflow: auto; background: var(--color-bg-canvas); display: flex; flex-direction: column; }
+.c-preview__overlay > .c-empty { margin: auto; }
+.c-preview__shots { position: relative; }
+.c-preview__shot { display: block; width: 100%; height: auto; }
+.c-preview__shot + .c-preview__shot { position: absolute; top: 0; left: 0; opacity: var(--compare-opacity, 0.5); }
+.c-preview__shots[data-blend='difference'] > .c-preview__shot + .c-preview__shot { mix-blend-mode: difference; }
 
 /* Run slot (T60): command bar, the reason it failed, and a read-only log terminal filling the rest. */
 .c-run { display: flex; flex-direction: column; }

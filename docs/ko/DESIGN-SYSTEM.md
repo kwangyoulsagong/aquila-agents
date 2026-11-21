@@ -113,6 +113,7 @@
 | `--size-dialog` / `--size-dialog-wide` | 440 / 560 | 다이얼로그 너비 / 체크리스트가 있는 다이얼로그(첫 실행) |
 | `--size-palette` / `--size-palette-list` | 560 / 352 | 명령 팔레트 너비 / 스크롤 전 목록 높이(11줄) |
 | `--size-find-input` | 200 | 터미널 찾기 바의 검색어 입력 칸 (T40) |
+| `--size-range` | 96 | 범위 슬라이더 (디자이너 비교 투명도, T62) |
 | `--size-modal` / `--size-modal-height` / `--size-modal-aside` | 760 / 520 / 240 | 목록 + 상세 모달(가이드, 릴리즈 노트) / 목록 열 너비 |
 | `--size-modal-wide` / `--size-modal-wide-height` / `--size-modal-wide-aside` | 960 / 640 / 320 | `.c-modal--wide` (세션 기록: 긴 행, 대화 미리보기) / 목록 열 너비 |
 
@@ -123,6 +124,7 @@
 | `.c-dot[data-status]` | 상태 점 |
 | `.c-btn` `--primary` `--ghost` `--icon`, `__badge` | 버튼. `__badge` = 아이콘 버튼 모서리의 작은 강조 점, "새로운 것 있음"(AI 트렌드: 더 새 CLI). 상태 점 아님 |
 | `.c-segment`, `__item[aria-checked]` | 세그먼트 컨트롤 (계정 전환) |
+| `.c-range` | 강조색 네이티브 슬라이더 (디자이너 비교 투명도) |
 | `.c-kbd` | 단축키 표시 |
 | `.c-elapsed` | 세션이 기다린 시간("12분", 고정폭, 대기 색) — 탭·프로젝트 행 |
 | `.c-reason` | 대기 중인 세션이 기다리는 것("Bash: npm install"). 프로젝트 행 아래 한 줄(고정폭 캡션, 이름과 정렬). 누르면 그 세션을 보여 주는 버튼. `data-risk` = 파괴적일 수 있음: 오류 색 + `.c-risk` |
@@ -190,6 +192,7 @@
 | `Meter` `label` `value` `fraction` (null = 모름) `tone?` `caption?` `title?` | `.c-meter` |
 | `Ring` `fraction` `label` `valueText` `showValue?` `tone?` `title?` | `.c-ring` |
 | `Segment` `options` `value` `onChange` | `.c-segment` |
+| `Range` `label` `value` `onChange` | `.c-range` |
 | `ResizeHandle` `onChange` `onReset` `edge` `label` | `.c-resize` (부모를 직접 잼: 시작 폭, `min-width`, 유연한 형제가 내줄 수 있는 폭) |
 | `EmptyState` `title` `path` `actions` | `.c-empty` |
 | `Dialog` `open` `title` `onClose` `actions` `wide`, `DialogCheck`, `DialogCode`, `DialogForm` `id` `onSubmit`, `DialogGroup` `ref?` | `.c-dialog` (`DialogGroup` = `.c-dialog__group`, fields kept together and scrolled to) |

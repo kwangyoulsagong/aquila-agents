@@ -604,8 +604,21 @@ Owner's picks from the list below.
 - **Owns:** `src/widgets/changes-panel/model/share.ts` (+ test), one button in `ChangesPanel.tsx`.
 - **Done:** a diff with `schema.prisma` + a source file and one comment gives a table with both and the comment.
 
+### T62 · Designer view: compare, don't stack
+- [x] **Goal:** check the build against the Figma frame by eye — side by side or one over the other — and hand the differences to the agent.
+  _Left over: the overlay compares screenshots (a native view can't be made see-through), so it's a still — ↻ takes new ones; it retakes by itself when the app or Figma address or the device width changes. Both images are shown at the panel's width, top-left aligned; no nudging or scaling to line up a frame, so a Figma prototype link (`/proto/`, just the frame) works much better than the editor. No region pick on the mismatch (the whole screenshots go). Capture checked in smoke (a real view → PNG on disk + inline); the three layouts were seen in a render of the real CSS with two sample images, not in the app (smoke runs on the real config and doesn't turn Figma on)._
+- **Spec:**
+  - Designer layout gets a **Layout** switch in the Figma bar: Stacked (as before) / Side by side / Overlay. Remembered.
+  - Side by side: Figma bar on top, app | Figma below. Switching never reloads a view (same children, CSS only).
+  - Overlay: each view is shown alone briefly and captured (`preview:capture` → PNG in the paste temp folder +
+    inline); app below, Figma on top with an opacity slider, or **Difference** (identical pixels go black).
+  - **Send to agent** pastes a short prompt and both screenshots into the focused Claude/Codex tab (same rules as
+    pick: busy tab or none → clipboard).
+- **Owns:** `src/widgets/preview/` (`model/compare.ts` + test, the panel), `PreviewViews.capture` in `electron/preview.ts`,
+  one IPC (`preview:capture`), `.c-range` + `Range` and the compare layout rules in `components.css`.
+- **Done:** with Figma on, the three layouts show; overlay at 50% and in difference mode; "Send to agent" pastes two images.
+
 ### Nice to have (not planned)
 - Production label on a project or host.
 - Before/after preview snapshots in the Changes panel (Markdown share is T61).
 - Remote status you can trust: last signal age, ServerAlive, a host hook channel.
-- Designer view as side-by-side / overlay compare instead of stacked.

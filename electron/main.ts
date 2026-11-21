@@ -273,6 +273,7 @@ app.whenReady().then(async () => {
   );
   ipcMain.handle(IPC.previewPick, (_e, slot: PreviewSlot) => previews?.pick(slot) ?? null);
   ipcMain.on(IPC.previewPickCancel, (_e, slot: PreviewSlot) => previews?.cancelPick(slot));
+  ipcMain.handle(IPC.previewCapture, (_e, slot: PreviewSlot) => previews?.capture(slot) ?? null);
   // Run slot (T60): dev servers / watchers apart from the agent, local projects only. Their addresses feed the
   // preview like a tab's would.
   const runDir = (projectId: unknown, worktree: unknown) => {

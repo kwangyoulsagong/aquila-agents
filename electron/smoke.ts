@@ -338,6 +338,12 @@ async function checkPreviewPick(previews: PreviewViews): Promise<string | null> 
     if (!pick.imagePath || !fs.existsSync(pick.imagePath) || fs.statSync(pick.imagePath).size < 100)
       return 'preview: no screenshot';
     fs.rmSync(pick.imagePath, { force: true });
+    // Designer compare (T62): the whole view as a PNG, on disk and inline.
+    const shot = await previews.capture('app');
+    if (!shot || shot.width < 100 || !shot.dataUrl.startsWith('data:image/png') || !fs.existsSync(shot.path))
+      return `preview: capture failed (${shot ? `${shot.width}x${shot.height}` : 'null'})`;
+    console.log(`[smoke] preview capture: ${shot.width}x${shot.height}`);
+    fs.rmSync(shot.path, { force: true });
     const cancelled = previews.pick('app');
     await wait(300);
     previews.cancelPick('app');
