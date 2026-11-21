@@ -489,8 +489,9 @@ ADE UX 조사(차분한 주의, 떠올리지 말고 알아보기)에서 나온 �
   - `rm -rf`, `push --force`, `reset --hard`, `clean -f`, `branch -D`, `DROP`/`TRUNCATE`, `WHERE` 없는 `DELETE FROM`, `migrate reset`, `terraform destroy`, `kubectl delete`, `--force`… 는 줄과 탭에 오류 색 ⚠를 붙인다.
 - **담당:** `src/shared/lib/risk.ts` (+ 테스트), `design-system/react/Reason.tsx` + `.c-reason`/`.c-risk`, `src/widgets/sidebar/`의 행, `src/widgets/session-tabs/`의 탭. `StatusUpdate`/`Session`의 `detail`(추가만).
 
-### 실제 호스트에서 원격 확인 (보류)
-- [ ] SSH 서버가 생길 때까지 보류: 실제 호스트에서 원격 프로젝트 추가, 탭 열기, Changes, 히스토리, 재연결을 해 보고 깨지는 것만 고친다(T29/T36 남은 것).
+### 실제 호스트에서 원격 확인
+- [x] 실제 호스트에서 원격 프로젝트 추가, 탭 열기, Changes, 히스토리, 재연결을 해 보고 깨지는 것만 고친다(T29/T36 남은 것).
+  _Docker 호스트(`scripts/ssh-test-host/`, Debian arm64, OpenSSH, tmux 3.3a, git 2.39)와 선택형 smoke 단계(`AQUILA_SMOKE_SSH_HOST`)로 확인: 호스트 확인, 탭, Changes 읽기 + 되돌리기, 히스토리, 서버 쪽 끊김 → 재부착, 닫기 → tmux 제거. 깨진 게 없어 고친 것은 없다. 확인 못 한 것: 호스트의 Claude/Codex 탭(컨테이너에 CLI·로그인 없음), 프로젝트 추가 대화상자와 Changes 패널 UI(같은 main 프로세스 코드를 부르고 렌더러는 거치지 않음), 앱 재실행 뒤 재부착, 실제 네트워크 너머 호스트(지연, NAT, 비밀번호·2FA 로그인), `KillUserProcesses=yes`._
 
 ### 있으면 좋은 것 (계획 없음)
 - 탭 바 패널 버튼(`±` `◫` `{}`)에 T46처럼 텍스트 라벨.

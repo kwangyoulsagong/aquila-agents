@@ -15,6 +15,7 @@ import type { PreviewViews } from './preview';
 import { runPerf } from './perf';
 import type { SessionManager } from './sessions';
 import { checkRemoteSession } from './remote/smoke';
+import { checkRealHost } from './remote/realHostSmoke';
 import { readHookBody } from './hooks';
 import { IPC, type Config, type ConnectionUpdate, type ContextMenuItem } from '../src/shared/api/types';
 import { translator } from '../src/shared/i18n/dictionary';
@@ -167,6 +168,8 @@ export async function runSmoke(
     if (previewError) return fail(previewError);
     const remoteError = await checkRemoteSession(sessions, config, output);
     if (remoteError) return fail(remoteError);
+    const realHostError = await checkRealHost(sessions, config, output);
+    if (realHostError) return fail(realHostError);
     console.log(
       `[smoke] OK — pty round-trip, OSC 7501, Ctrl+C under load, Korean IME, preview pick and remote reconnect work, screenshot: ${out}`,
     );
