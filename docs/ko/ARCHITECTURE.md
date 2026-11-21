@@ -18,6 +18,7 @@
 │                                           │        │ codex.ts      탭별 codex 세션 id (T21)           │
 │           diff                            │        │ worktrees.ts  git worktree 만들기 / 재사용 / 삭제│
 │           open-in-worktree                │        │ menu.ts       네이티브 우클릭 메뉴               │
+│                                           │        │ appMenu.ts    macOS 메뉴 막대 (T47)              │
 │                                           │        │ notify.ts     알림, 리마인더, Dock 배지          │
 │                                           │        │ status/       OSC 7501 파서 + 상태 판정          │
 │                                           │        │ output.ts     출력 묶음 + 흐름 제어              │
@@ -492,6 +493,12 @@ command + `curl`로 둡니다. 2.1.295보다 오래된 Claude(시작할 때 `cla
   행은 가장 오래 기다린 세션 기준.
 - **다음 대기 세션**(⌘J, 팔레트에도): 프로젝트를 가로질러 waiting > error > done 순으로 돌고, 같은 단계에서는
   오래 기다린 것부터. 목록 밖 세션에서 누르면 맨 앞으로.
+- **앱 메뉴 막대**(T47, `electron/appMenu.ts`, macOS): Aquila · 파일 · 편집 · 보기 · 윈도우 · 도움말. 단축키 맵으로
+  만들어서 가이드의 모든 키가 메뉴에 있어요. renderer가 처리하는 키는 표시만 하고(`registerAccelerator: false`),
+  클릭하면 `menu:command`(`ShortcutId` 또는 `settings` / `addProject` / `whatsNew`)를 보내 `useShortcuts`가 키와
+  똑같이 실행합니다. macOS는 그래도 키를 항목에 묶기 때문에 `triggeredByAccelerator` 클릭은 무시해요(renderer가 이미
+  실행함). 설정… ⌘,는 메뉴 소유로 ⚙ 메뉴를 띄웁니다. `config:set-language`, `config:edit-projects` 뒤에 다시 만들어요
+  (윈도우 ▸ 프로젝트에 앞의 9개).
 - **전역 단축키**(T41, `electron/globalShortcut.ts`, `features/global-shortcut`): ⚙ 설정 → 전역 단축키…(또는 ⌘K)에서
   키를 녹음하기 전에는 꺼져 있습니다. ⌘/⌃/⌥ 중 하나가 있어야 하고 앱 안 단축키와 겹치면 안 돼요.
   `globalShortcut.register`가 성공해야만 `~/.aquila/global-shortcut.json`에 저장하고, 다른 앱이 쓰는 키면 오류를

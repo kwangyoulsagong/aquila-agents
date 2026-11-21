@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
-import type { Config, SessionKind } from '@/shared/api';
-import { matchShortcut, projectIndex } from '@/shared/lib/shortcuts';
+import { api, type Config, type MenuCommand, type SessionKind } from '@/shared/api';
+import { matchShortcut, projectIndex, type ShortcutId } from '@/shared/lib/shortcuts';
 import type { Edge, SplitDir } from '@/widgets/split-view';
 
 interface Deps {
@@ -30,9 +30,14 @@ interface Deps {
   quickSelect: () => void;
   /** Find bar on the focused session (T40). */
   find: () => void;
+  /** Menu-only commands of the app menu bar (T47). */
+  menu: Record<Exclude<MenuCommand, ShortcutId>, () => void>;
 }
 
-/** Runs the shortcuts of `shared/lib/shortcuts.ts`. Capture phase so xterm doesn't eat them. */
+/**
+ * Runs the shortcuts of `shared/lib/shortcuts.ts`: from the keyboard (capture phase so xterm doesn't eat them)
+ * and from the app menu bar (T47), whose items only display the keys.
+ */
 export function useShortcuts({
   config,
   activeSessionId,
@@ -54,20 +59,16 @@ export function useShortcuts({
   copyLastReply,
   quickSelect,
   find,
+  menu,
 }: Deps) {
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const id = matchShortcut(e);
-      if (!id) return;
+    const run = (id: ShortcutId) => {
       const project = projectIndex(id);
       if (project !== null) {
         const p = config?.projects[project];
-        if (!p) return;
-        e.preventDefault();
-        selectProject(p.id);
+        if (p) selectProject(p.id);
         return;
       }
-      e.preventDefault();
       switch (id) {
         case 'palette':
           return togglePalette();
@@ -121,8 +122,25 @@ export function useShortcuts({
           return nudgePane('bottom');
       }
     };
+    const onKey = (e: KeyboardEvent) => {
+      const id = matchShortcut(e);
+      if (!id) return;
+      // A project key with no project there stays the terminal's.
+      const project = projectIndex(id);
+      if (project !== null && !config?.projects[project]) return;
+      e.preventDefault();
+      run(id);
+    };
+    const onMenu = (c: MenuCommand) => {
+      if (c === 'settings' || c === 'addProject' || c === 'whatsNew') menu[c]();
+      else run(c);
+    };
     window.addEventListener('keydown', onKey, true);
-    return () => window.removeEventListener('keydown', onKey, true);
+    const offMenu = api.onMenuCommand(onMenu);
+    return () => {
+      window.removeEventListener('keydown', onKey, true);
+      offMenu();
+    };
   }, [
     config,
     activeSessionId,
@@ -144,5 +162,6 @@ export function useShortcuts({
     copyLastReply,
     quickSelect,
     find,
+    menu,
   ]);
 }

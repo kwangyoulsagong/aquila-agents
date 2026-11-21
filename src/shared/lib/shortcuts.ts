@@ -170,7 +170,14 @@ const PLATFORM = detectPlatform();
 export const accelerator = (id: ShortcutId, platform: Platform = PLATFORM) => shortcutsFor(platform)[id];
 
 /** Modifier keys of an event, in the terms of the map (exact match: ⌘⇧K isn't ⌘K). */
-type KeyEventLike = Pick<KeyboardEvent, 'code' | 'metaKey' | 'ctrlKey' | 'shiftKey' | 'altKey'>;
+// Structural, not `Pick<KeyboardEvent>`: the main process (app menu, T47) compiles this file without the DOM lib.
+interface KeyEventLike {
+  code: string;
+  metaKey: boolean;
+  ctrlKey: boolean;
+  shiftKey: boolean;
+  altKey: boolean;
+}
 
 /** The shortcut this key event triggers, if any. */
 export function matchShortcut(e: KeyEventLike, platform: Platform = PLATFORM): ShortcutId | null {

@@ -11,7 +11,7 @@ import {
   loadLinkedWorktrees,
   useLinkedWorktrees,
 } from '@/features/open-in-worktree';
-import { SettingsMenu } from '@/features/switch-language';
+import { SettingsMenu, openSettingsMenu } from '@/features/switch-language';
 import { nextWaiting, summonTarget } from '@/features/next-waiting';
 import { GlobalShortcutDialog } from '@/features/global-shortcut';
 import { copyLastReply, toggleQuickSelect } from '@/features/terminal-helpers';
@@ -104,6 +104,16 @@ export default function WorkspacePage() {
   const find = useCallback(() => {
     if (focusedId && focusedSession && !focusedSession.dormant) openFind(focusedId);
   }, [focusedId, focusedSession]);
+  // Menu-only items of the app menu bar (T47). Their handlers are defined further down: read through a ref.
+  const menuRef = useRef({ settings: () => {}, addProject: () => {}, whatsNew: () => {} });
+  const menuCommands = useMemo(
+    () => ({
+      settings: () => menuRef.current.settings(),
+      addProject: () => menuRef.current.addProject(),
+      whatsNew: () => menuRef.current.whatsNew(),
+    }),
+    [],
+  );
   useShortcuts({
     config: ws.config,
     activeSessionId: ws.activeSessionId,
@@ -125,6 +135,7 @@ export default function WorkspacePage() {
     copyLastReply: copyReply,
     quickSelect,
     find,
+    menu: menuCommands,
   });
 
   const { config, project, activeSessionId, openSession, closeSession, setConfig, showError } = ws;
@@ -158,6 +169,18 @@ export default function WorkspacePage() {
     onError: showError,
   });
   const { addProject, openSettings, openIn } = manage;
+  menuRef.current = {
+    settings: () => {
+      if (config)
+        void openSettingsMenu(translator(config.language), {
+          config,
+          onChanged: setConfig,
+          onGlobalShortcut: () => setGlobalShortcutOpen(true),
+        });
+    },
+    addProject: () => void addProject(),
+    whatsNew: showNotes,
+  };
   const { splitFocused, toggleZoom, paneCount } = ws.split;
   const paletteActions = useMemo(() => {
     const a: Partial<Record<ActionId, () => void>> = {

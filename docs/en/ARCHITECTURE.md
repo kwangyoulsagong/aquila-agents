@@ -18,6 +18,7 @@
 │                                           │        │ codex.ts      codex session id per tab (T21)     │
 │           diff                            │        │ worktrees.ts  git worktree add / reuse / remove  │
 │           open-in-worktree                │        │ menu.ts       native context menus               │
+│                                           │        │ appMenu.ts    macOS menu bar (T47)               │
 │                                           │        │ notify.ts     notifications, reminder, Dock badge│
 │                                           │        │ status/       OSC 7501 parser + status tracker   │
 │                                           │        │ output.ts     output batching + flow control     │
@@ -522,6 +523,12 @@ command + `curl` posting the same JSON. Raw 7501 reports and hook event names go
   `.c-elapsed`; the row shows its longest wait.
 - **Next waiting session** (⌘J, also in the palette): cycles waiting > error > done across projects, longest wait
   first within a tier; from a session outside that list it jumps to the head.
+- **App menu bar** (T47, `electron/appMenu.ts`, macOS): Aquila · File · Edit · View · Window · Help, built from the
+  shortcut map so every key in the guide is in a menu. Keys the renderer handles are display-only
+  (`registerAccelerator: false`); a click sends `menu:command` (a `ShortcutId`, or `settings` / `addProject` /
+  `whatsNew`) and `useShortcuts` runs it like the key. macOS still binds those keys to the items, so a click with
+  `triggeredByAccelerator` is ignored (the renderer already ran it). Settings… ⌘, belongs to the menu and pops the ⚙ menu.
+  Rebuilt after `config:set-language` and `config:edit-projects` (Window ▸ Projects lists the first nine).
 - **Global shortcut** (T41, `electron/globalShortcut.ts`, `features/global-shortcut`): off until the user records a
   key in ⚙ Settings → Global shortcut… (or ⌘K). The key must have ⌘/⌃/⌥ and not be one of the in-app shortcuts; it is
   saved in `~/.aquila/global-shortcut.json` only once `globalShortcut.register` succeeds — a key another app holds is

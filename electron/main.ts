@@ -29,6 +29,7 @@ import {
 } from './config';
 import fs from 'node:fs';
 import { showContextMenu } from './menu';
+import { installAppMenu } from './appMenu';
 import { GlobalShortcut, readGlobalShortcut, writeGlobalShortcut } from './globalShortcut';
 import { gitAction, gitChanges, localGit, localTrash, treeOf, TreeWatcher } from './git';
 import { ensureWorktree, removeWorktree, worktreeCandidates, worktreeInfo } from './worktrees';
@@ -403,14 +404,17 @@ app.whenReady().then(async () => {
 
   ipcMain.handle(IPC.configGet, () => loadConfig());
   ipcMain.handle(IPC.configOpen, () => shell.openPath(CONFIG_PATH));
-  ipcMain.handle(IPC.configSetLanguage, (_e, language: Language) => setLanguage(language));
+  // App menu bar (T47): relabelled when the language or the project list changes.
+  const appMenu = installAppMenu({ dev: isDev, send: (c) => win?.webContents.send(IPC.menuCommand, c) });
+  appMenu.refresh(loadConfig());
+  ipcMain.handle(IPC.configSetLanguage, (_e, language: Language) => appMenu.refresh(setLanguage(language)));
   ipcMain.handle(IPC.configSetNotifyDone, (_e, on: unknown) => setNotifyDone(on === true));
   ipcMain.handle(
     IPC.configSetProjectAccount,
     (_e, { projectId, account }: { projectId: string; account: string }) =>
       setProjectAccount(projectId, account),
   );
-  ipcMain.handle(IPC.configEditProjects, (_e, edit: ProjectEdit) => editProjects(edit));
+  ipcMain.handle(IPC.configEditProjects, (_e, edit: ProjectEdit) => appMenu.refresh(editProjects(edit)));
   ipcMain.handle(IPC.dialogPickFolder, async () => {
     const options: Electron.OpenDialogOptions = { properties: ['openDirectory', 'createDirectory'] };
     const r = win ? await dialog.showOpenDialog(win, options) : await dialog.showOpenDialog(options);
