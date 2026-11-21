@@ -269,7 +269,8 @@ const ko = {
   'run.settings': '프로젝트 설정',
   'run.noLog': '아직 출력이 없습니다',
   'settings.runCommands': '실행 명령',
-  'settings.runCommandsHint': '한 줄에 하나, "이름: 명령" (예: web: npm run dev). 비우면 npm run dev.',
+  'settings.runCommandsHint':
+    '한 줄에 하나, "이름: 명령" (예: web: npm run dev). 비우면 npm run dev. 오류 뒤 정상으로 돌아왔다는 문구를 지정하려면 끝에 "# ready: 문구" (예: # ready: Listening on).',
   'preview.title': '미리보기',
   'preview.worktreeHint': '포커스된 탭의 워크트리 앱: {path}',
   'preview.toggle': '미리보기 보기',
@@ -999,7 +1000,8 @@ const en = {
   'run.settings': 'Project settings',
   'run.noLog': 'No output yet',
   'settings.runCommands': 'Run commands',
-  'settings.runCommandsHint': 'One per line, "name: command" (e.g. web: npm run dev). Empty = npm run dev.',
+  'settings.runCommandsHint':
+    'One per line, "name: command" (e.g. web: npm run dev). Empty = npm run dev. To say which line means healthy again after an error, end with "# ready: text" (e.g. # ready: Listening on).',
   'preview.title': 'Preview',
   'preview.worktreeHint': "The focused tab's worktree app: {path}",
   'preview.toggle': 'Show preview',

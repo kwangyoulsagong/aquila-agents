@@ -85,6 +85,11 @@ export interface Project {
 export interface RunCommand {
   name: string;
   command: string;
+  /**
+   * Text that means "healthy again" for this command (case-insensitive substring), on top of the built-in watcher
+   * lines — for tools that print none of them. Written as `# ready: Listening on` after the command in settings.
+   */
+  ready?: string;
 }
 
 /** Where a remote project runs (T29). Uses the user's `~/.ssh/config` and ssh-agent; nothing secret is stored. */

@@ -41,26 +41,38 @@ export interface SettingsForm {
   remoteClaudeDir: string;
   /** Figma MCP (T32), local projects only. */
   figma: boolean;
-  /** Run slot commands (T60), one per line: `name: command` or just `command`. */
+  /** Run slot commands (T60), one per line: `name: command` or just `command`, optionally `# ready: text`. */
   runCommands: string;
 }
 
 /** `web: npm run dev` → named; a line without a `name: ` prefix is named after itself (`npm run dev:web` stays whole). */
 const NAMED = /^([\p{L}\p{N}][\p{L}\p{N} ._-]{0,39}):\s+(\S.*)$/u;
 
+/** A trailing `# ready: text` (a shell comment, so the command itself is unchanged by it). */
+const READY = /\s+#\s*ready:\s*(\S.*)$/i;
+
 export function parseRunCommands(text: string): RunCommand[] {
   return text
     .split('\n')
     .map((l) => l.trim())
     .filter(Boolean)
-    .map((line) => {
+    .map((raw) => {
+      const r = READY.exec(raw);
+      const line = r ? raw.slice(0, r.index).trim() : raw;
+      const ready = r ? { ready: r[1].trim() } : {};
       const m = NAMED.exec(line);
-      return m ? { name: m[1].trim(), command: m[2].trim() } : { name: line, command: line };
-    });
+      return m ? { name: m[1].trim(), command: m[2].trim(), ...ready } : { name: line, command: line, ...ready };
+    })
+    .filter((c) => c.command);
 }
 
 export function formatRunCommands(list: readonly RunCommand[] | undefined): string {
-  return (list ?? []).map((c) => (c.name === c.command ? c.command : `${c.name}: ${c.command}`)).join('\n');
+  return (list ?? [])
+    .map((c) => {
+      const line = c.name === c.command ? c.command : `${c.name}: ${c.command}`;
+      return c.ready ? `${line}  # ready: ${c.ready}` : line;
+    })
+    .join('\n');
 }
 
 export function toForm(p: Project): SettingsForm {
