@@ -1,6 +1,14 @@
+import fs from 'node:fs';
+import net from 'node:net';
+import os from 'node:os';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   hookSettings,
+  portListening,
+  pruneStaleHookSettings,
+  removeClaudeHookSettings,
+  writeClaudeHookSettings,
   parseClaudeVersion,
   promptTitle,
   readHookBody,
@@ -159,5 +167,59 @@ describe('Claude version', () => {
     expect(supportsHttpHooks([2, 0, 999])).toBe(false);
     expect(supportsHttpHooks([3, 0, 0])).toBe(true);
     expect(supportsHttpHooks(null)).toBe(true);
+  });
+});
+
+describe('per-instance hook settings', () => {
+  const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'aquila-hooks-'));
+  const url = (file: string) => {
+    const h = JSON.parse(fs.readFileSync(file, 'utf8')) as {
+      hooks: { Stop: { hooks: { url?: string }[] }[] };
+    };
+    return h.hooks.Stop[0].hooks[0].url;
+  };
+
+  it('two instances write their own http files, so one never repoints the other', () => {
+    const dir = tmp();
+    const a = writeClaudeHookSettings(1111, dir);
+    const b = writeClaudeHookSettings(2222, dir);
+    expect(a.http).not.toBe(b.http);
+    expect(a.httpStatus).not.toBe(b.httpStatus);
+    expect(url(a.http)).toBe('http://127.0.0.1:1111/hook');
+    expect(url(b.http)).toBe('http://127.0.0.1:2222/hook');
+    expect(a.legacy).toBe(b.legacy);
+    removeClaudeHookSettings(a);
+    expect(fs.existsSync(a.http)).toBe(false);
+    expect(fs.existsSync(a.httpStatus)).toBe(false);
+    expect(fs.existsSync(b.http)).toBe(true);
+    expect(fs.existsSync(a.legacy)).toBe(true);
+  });
+
+  it('prunes the pairs of ports nobody listens on, keeps its own, live ones and the old shared file', async () => {
+    const dir = tmp();
+    writeClaudeHookSettings(1111, dir);
+    writeClaudeHookSettings(2222, dir);
+    writeClaudeHookSettings(3333, dir);
+    fs.writeFileSync(path.join(dir, 'claude-hooks.json'), '{}');
+    const removed = await pruneStaleHookSettings(1111, dir, async (port) => port === 2222);
+    expect(removed.sort()).toEqual(['claude-hooks-status.3333.json', 'claude-hooks.3333.json']);
+    expect(fs.readdirSync(dir).sort()).toEqual([
+      'claude-hooks-legacy-status.json',
+      'claude-hooks-legacy.json',
+      'claude-hooks-status.1111.json',
+      'claude-hooks-status.2222.json',
+      'claude-hooks.1111.json',
+      'claude-hooks.2222.json',
+      'claude-hooks.json',
+    ]);
+  });
+
+  it('portListening tells a live port from a closed one', async () => {
+    const server = net.createServer();
+    await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
+    const port = (server.address() as net.AddressInfo).port;
+    expect(await portListening(port)).toBe(true);
+    await new Promise<void>((r) => server.close(() => r()));
+    expect(await portListening(port)).toBe(false);
   });
 });

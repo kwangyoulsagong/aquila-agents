@@ -508,7 +508,11 @@ and sends `session:status` `{ id, status, estimated?, reason?, since? }` (`since
 | Exit code | all | 0, 130 or a signal → stopped; anything else → error (`reason: exit`) |
 
 Hooks are `type: "http"` (`url` = the local receiver, `X-Aquila-Session: $AQUILA_TAB_ID` via `allowedEnvVars`,
-`timeout: 5`, `onFailure: "continue"`) in `~/.aquila/claude-hooks.json`; the receiver answers 204 with no body, so
+`timeout: 5`, `onFailure: "continue"`) in `~/.aquila/claude-hooks.<port>.json` (and `claude-hooks-status.<port>.json`).
+The port is baked in, so each running instance writes its own pair and removes it on quit; pairs whose port no longer
+answers are pruned at startup. (One shared file used to be rewritten by every instance — `npm run dev`, smoke,
+capture — and Claude reloads a changed settings file, so the app's open tabs posted to a dead port: "hook failed ·
+ECONNREFUSED".) The legacy files read `$AQUILA_PORT` and stay shared. The receiver answers 204 with no body, so
 `PermissionRequest` never gets a decision. Claude skips http hooks for `SessionStart`, so that one stays a
 command + `curl`; Claude older than 2.1.295 (`claude --version` at startup) gets `claude-hooks-legacy.json`, all
 command + `curl` posting the same JSON. Raw 7501 reports and hook event names go to `~/.aquila/status.log`

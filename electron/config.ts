@@ -68,7 +68,7 @@ export const expand = (p: string): string => (p.startsWith('~') ? path.join(HOME
 
 /**
  * One-time move after the rename: copy ~/.agentrix (config, saved state) into ~/.aquila if there's no config yet.
- * The old folder is left in place. claude-hooks.json is skipped: it's regenerated on start.
+ * The old folder is left in place. The hook settings files are skipped: they're regenerated on start.
  */
 export function migrateLegacyDir(from = LEGACY_DIR, to = APP_DIR): boolean {
   const target = path.join(to, 'config.json');
@@ -76,7 +76,7 @@ export function migrateLegacyDir(from = LEGACY_DIR, to = APP_DIR): boolean {
   fs.cpSync(from, to, {
     recursive: true,
     force: false,
-    filter: (src) => path.basename(src) !== 'claude-hooks.json',
+    filter: (src) => !/^claude-hooks.*\.json$/.test(path.basename(src)),
   });
   return true;
 }

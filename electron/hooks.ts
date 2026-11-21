@@ -6,6 +6,7 @@
 import { execFile } from 'node:child_process';
 import fs from 'node:fs';
 import http from 'node:http';
+import net from 'node:net';
 import path from 'node:path';
 import type { AddressInfo } from 'node:net';
 import { APP_DIR } from './config';
@@ -14,10 +15,17 @@ import { firstLine, toolSummary } from './notify';
 import { isSessionId } from './state';
 import { WAITING_NOTIFICATIONS, type HookSignal } from './status/tracker';
 
-export const HOOK_SETTINGS_PATH = path.join(APP_DIR, 'claude-hooks.json');
+/**
+ * The http settings bake in this instance's receiver port, so each instance writes its own pair
+ * (`claude-hooks.<port>.json`). One shared file was overwritten by every instance (`npm run dev`, smoke, capture):
+ * Claude reloads a changed settings file, so the tabs of the app that kept running posted to a dead port
+ * ("PostToolUse:Bash hook failed · connect ECONNREFUSED"). The legacy files read `$AQUILA_PORT` and stay shared.
+ */
+export const httpHookSettingsPath = (port: number, status = false) =>
+  path.join(APP_DIR, `claude-hooks${status ? '-status' : ''}.${port}.json`);
+const PER_PORT_FILE = /^claude-hooks(?:-status)?\.(\d+)\.json$/;
 export const LEGACY_HOOK_SETTINGS_PATH = path.join(APP_DIR, 'claude-hooks-legacy.json');
-/** The same two with our context statusline (T31), for sessions whose user has no `statusLine` of their own. */
-export const STATUS_HOOK_SETTINGS_PATH = path.join(APP_DIR, 'claude-hooks-status.json');
+/** The legacy file with our context statusline (T31), for sessions whose user has no `statusLine` of their own. */
 export const STATUS_LEGACY_HOOK_SETTINGS_PATH = path.join(APP_DIR, 'claude-hooks-legacy-status.json');
 
 /** `onFailure` and the hook fields we rely on: Claude Code 2.1.295 (the same release as OSC 7501). */
@@ -81,22 +89,73 @@ export interface HookSettingsFiles {
   legacyStatus: string;
 }
 
-/** Writes the settings files (the port is baked into the http ones); returns their paths. */
-export function writeClaudeHookSettings(port: number): HookSettingsFiles {
-  fs.mkdirSync(APP_DIR, { recursive: true });
+/** Writes the settings files (the port is baked into this instance's http pair); returns their paths. */
+export function writeClaudeHookSettings(port: number, dir = APP_DIR): HookSettingsFiles {
+  fs.mkdirSync(dir, { recursive: true });
+  const files: HookSettingsFiles = {
+    http: path.join(dir, path.basename(httpHookSettingsPath(port))),
+    legacy: path.join(dir, path.basename(LEGACY_HOOK_SETTINGS_PATH)),
+    httpStatus: path.join(dir, path.basename(httpHookSettingsPath(port, true))),
+    legacyStatus: path.join(dir, path.basename(STATUS_LEGACY_HOOK_SETTINGS_PATH)),
+  };
   const http = hookSettings(httpHook(port));
   const legacy = hookSettings(COMMAND_HOOK);
   const write = (file: string, v: unknown) => fs.writeFileSync(file, JSON.stringify(v, null, 2));
-  write(HOOK_SETTINGS_PATH, http);
-  write(LEGACY_HOOK_SETTINGS_PATH, legacy);
-  write(STATUS_HOOK_SETTINGS_PATH, { ...http, ...statusLineSettings() });
-  write(STATUS_LEGACY_HOOK_SETTINGS_PATH, { ...legacy, ...statusLineSettings() });
-  return {
-    http: HOOK_SETTINGS_PATH,
-    legacy: LEGACY_HOOK_SETTINGS_PATH,
-    httpStatus: STATUS_HOOK_SETTINGS_PATH,
-    legacyStatus: STATUS_LEGACY_HOOK_SETTINGS_PATH,
-  };
+  write(files.http, http);
+  write(files.legacy, legacy);
+  write(files.httpStatus, { ...http, ...statusLineSettings() });
+  write(files.legacyStatus, { ...legacy, ...statusLineSettings() });
+  return files;
+}
+
+/** On quit: this instance's http pair (the shared legacy files stay). */
+export function removeClaudeHookSettings(files: HookSettingsFiles): void {
+  for (const f of [files.http, files.httpStatus]) fs.rmSync(f, { force: true });
+}
+
+/** Something listens on 127.0.0.1:<port> (a live Aquila receiver), within `timeoutMs`. */
+export function portListening(port: number, timeoutMs = 300): Promise<boolean> {
+  return new Promise((resolve) => {
+    const socket = net.connect({ host: '127.0.0.1', port });
+    const done = (alive: boolean) => {
+      socket.destroy();
+      resolve(alive);
+    };
+    socket.setTimeout(timeoutMs, () => done(false));
+    socket.once('connect', () => done(true));
+    socket.once('error', () => done(false));
+  });
+}
+
+/**
+ * Removes the http pairs left by instances that are gone (crashed, or quit before cleanup) — never the pair of a
+ * port that still answers, which belongs to another running instance. The old shared `claude-hooks.json` from before
+ * per-instance pairs is left alone: an older build that is still running spawns its tabs with it. Returns the removed
+ * file names.
+ */
+export async function pruneStaleHookSettings(
+  ownPort: number,
+  dir = APP_DIR,
+  alive: (port: number) => Promise<boolean> = portListening,
+): Promise<string[]> {
+  let names: string[];
+  try {
+    names = fs.readdirSync(dir);
+  } catch {
+    return [];
+  }
+  const removed: string[] = [];
+  const checked = new Map<number, Promise<boolean>>();
+  for (const name of names) {
+    const m = PER_PORT_FILE.exec(name);
+    const port = m ? Number(m[1]) : undefined;
+    if (port === undefined || port === ownPort) continue;
+    if (!checked.has(port)) checked.set(port, alive(port));
+    if (await checked.get(port)) continue;
+    fs.rmSync(path.join(dir, name), { force: true });
+    removed.push(name);
+  }
+  return removed;
 }
 
 /** `2.1.328 (Claude Code)` → [2, 1, 328]; null when it doesn't look like a version. */
