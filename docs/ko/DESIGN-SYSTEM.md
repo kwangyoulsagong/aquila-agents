@@ -125,6 +125,7 @@
 | `.c-kbd` | 단축키 표시 |
 | `.c-elapsed` | 세션이 기다린 시간("12분", 고정폭, 대기 색) — 탭·프로젝트 행 |
 | `.c-reason` | 대기 중인 세션이 기다리는 것("Bash: npm install"). 프로젝트 행 아래 한 줄(고정폭 캡션, 이름과 정렬). 누르면 그 세션을 보여 주는 버튼. `data-risk` = 파괴적일 수 있음: 오류 색 + `.c-risk` |
+| `.c-queue`, `__lead` `__text` `__title` `__meta` | 사이드바 대기열 항목(리뷰 대기열, T58): 점, 제목, 고정폭 캡션 메타 줄(둘 다 말줄임). `.c-row`와 같은 가장자리. 버튼 |
 | `.c-risk` | 파괴적일 수 있는 명령의 경고 기호(⚠, 오류 색) — 대기 이유 줄과 탭 |
 | `.c-badge` `--claude` `--codex` `--shell` `--account-shared` `--account-personal` `--risk` | 태그 (`--risk`: 한 번 더 볼 변경 파일, 대기 색 — T57) |
 | `.c-badge--host`, `.c-badge__conn[data-conn=connecting\|connected\|reconnecting\|lost]` | 원격 호스트 이름(대문자로 안 바꿈)과 연결 점: 회색 / 초록 / 주황 깜빡임 / 빨강 (T29) |
@@ -181,6 +182,7 @@
 | `Kbd`, `Label` | `.c-kbd`, `.c-label` |
 | `Elapsed` `title?` | `.c-elapsed` |
 | `Reason` `text` `risk?` `riskLabel?` `onClick?` | `.c-reason` |
+| `QueueItem` `leading?` `title` `meta?` `tooltip?` `onClick?` | `.c-queue` |
 | `RiskMark` `label` | `.c-risk` |
 | `Meter` `label` `value` `fraction` (null = 모름) `tone?` `caption?` `title?` | `.c-meter` |
 | `Ring` `fraction` `label` `valueText` `showValue?` `tone?` `title?` | `.c-ring` |

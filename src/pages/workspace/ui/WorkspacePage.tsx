@@ -13,6 +13,7 @@ import {
 } from '@/features/open-in-worktree';
 import { SettingsMenu, openSettingsMenu } from '@/features/switch-language';
 import { nextWaiting, summonTarget } from '@/features/next-waiting';
+import { ReviewQueue, useReviewQueue } from '@/features/review-queue';
 import { GlobalShortcutDialog } from '@/features/global-shortcut';
 import { copyLastReply, toggleQuickSelect } from '@/features/terminal-helpers';
 import { openFind } from '@/features/terminal-search';
@@ -81,6 +82,12 @@ export default function WorkspacePage() {
   const goNextWaiting = useCallback(() => {
     if (waitingNext) selectSession(waitingNext);
   }, [waitingNext, selectSession]);
+  // Review queue (T58): finished off screen, not looked at yet.
+  const review = useReviewQueue(sessions, ws.split.visibleSessionIds);
+  const reviewNext = review.next(focusedId);
+  const goNextReview = useCallback(() => {
+    if (reviewNext) selectSession(reviewNext);
+  }, [reviewNext, selectSession]);
   // Global shortcut (T41): main already brought the window up; go to the session that needs the user.
   const [globalShortcutOpen, setGlobalShortcutOpen] = useState(false);
   const summonRef = useRef({ sessions, focusedId, selectSession });
@@ -229,6 +236,7 @@ export default function WorkspacePage() {
     // Edited in its tab, which full window hides.
     if (activeSessionId && !fullscreen.on) a.renameSession = () => renameTab(activeSessionId);
     if (waitingNext) a.nextWaiting = goNextWaiting;
+    if (reviewNext) a.nextReview = goNextReview;
     if (agentFocused) a.copyLastReply = copyReply;
     if (focusedSession && !focusedSession.dormant) {
       a.quickSelect = quickSelect;
@@ -268,6 +276,8 @@ export default function WorkspacePage() {
     showError,
     waitingNext,
     goNextWaiting,
+    reviewNext,
+    goNextReview,
     reopenFirstRun,
     showGuide,
     showNotes,
@@ -297,6 +307,11 @@ export default function WorkspacePage() {
             onSelect={ws.selectProject}
             onShowSession={ws.selectSession}
             manage={manage}
+            belowProjects={
+              review.items.length > 0 && (
+                <ReviewQueue items={review.items} projects={config.projects} onShow={ws.selectSession} />
+              )
+            }
             aboveFooter={
               <UsageGauge
                 config={config}

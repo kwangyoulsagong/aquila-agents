@@ -131,6 +131,23 @@ body {
   margin-bottom: var(--space-inline-xs);
 }
 
+/* ── Queue item ───────────────────────────────────────────── */
+/* An entry of a sidebar queue (review queue, T58): dot, title, and a dimmed meta line under it. Same edges as .c-row. */
+.c-queue {
+  display: flex; align-items: flex-start; gap: var(--space-inline-sm); width: 100%; min-width: 0;
+  padding: var(--space-inline-xs) var(--space-inset-sm) var(--space-inline-xs) var(--space-inset-md);
+  border: 0; border-radius: var(--radius-control); background: transparent; text-align: left; cursor: pointer;
+  font: var(--font-size-label) var(--font-family-ui); color: var(--color-text-secondary);
+  transition: background var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease);
+}
+.c-queue:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
+.c-queue:focus-visible { outline: none; box-shadow: inset 0 0 0 1px var(--color-border-focus); }
+.c-queue__lead { flex: none; display: flex; align-items: center; height: var(--size-badge); }
+.c-queue__text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.c-queue__title, .c-queue__meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.c-queue__title { line-height: var(--size-badge); }
+.c-queue__meta { font: var(--font-size-caption) var(--font-family-mono); line-height: var(--size-badge); color: var(--color-text-tertiary); }
+
 /* ── Badge ────────────────────────────────────────────────── */
 .c-badge {
   display: inline-flex; align-items: center; height: var(--size-badge);
