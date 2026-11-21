@@ -412,6 +412,11 @@ import하지 않음).
   남겨(조각에 걸친 주소도 찾음) ANSI를 지우고(Vite는 포트를 굵게 칠함) `0.0.0.0` / `127.0.0.1` / `[::1]`을 `localhost`로
   맞추고, 훅 포트는 빼고, 프로젝트마다 최근 5개를 최신순으로 둡니다. `://`가 없는 조각은 `includes` 한 번으로 끝.
   `preview:targets` / `preview:targets-changed`.
+- **워크트리별 (T50):** 주소는 그 주소를 출력한 탭의 프로젝트 + 워크트리별로 따로 두고, 패널은 포커스된 탭의 워크트리로
+  묻습니다(`previewTargets(projectId, worktree?)`). 그 워크트리의 launch.json, 그 워크트리에서 나온 주소, 따로 기억하는 주소
+  (`aquila.preview.url.<id>@<path>`), 패널 머리의 브랜치. 포트 베이스(T26)가 있으면 워크트리의 `PORT` 범위
+  (`portBase + 10 × slot` … `+9`, slot은 경로별 캐시)가 `preferred`를 정해요. 그 범위에서 본 주소가 맨 앞에 오고, 처음
+  나타날 때 한 번 패널이 그 주소로 바뀝니다. 아무것도 모르면 `localhost:<PORT>`를 추측으로 넣어요(`orderTargets`).
 - **뷰:** 슬롯(`app`, `figma`)마다 `WebContentsView` 하나를 창의 `contentView`에 붙임. 파티션
   `persist:aquila-preview`(샌드박스, preload 없음, `window.open` → 브라우저). 패널의 stage div가 자기 위치를
   `preview:set`으로 알림(ResizeObserver + 창 resize, 패널이 마지막 열이라 자기 크기가 바뀔 때만 움직임). null이면 뷰를

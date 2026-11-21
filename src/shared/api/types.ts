@@ -745,7 +745,8 @@ export interface AquilaApi {
   /** Opens Figma's MCP docs in the browser. */
   figmaOpenDocs(): Promise<void>;
   /** Dev server addresses for a local project (T33): `.claude/launch.json` and `localhost:<port>` seen in its tabs. */
-  previewTargets(projectId: string): Promise<PreviewTargets>;
+  /** `worktree`: path of the focused tab's worktree (T50); none = the project dir. */
+  previewTargets(projectId: string, worktree?: string): Promise<PreviewTargets>;
   onPreviewTargets(cb: (t: PreviewTargets) => void): Unsubscribe;
   /** Shows / moves / navigates the native preview view of a slot; null closes it. */
   previewSet(slot: PreviewSlot, state: PreviewState | null): void;
@@ -802,8 +803,12 @@ export interface PreviewState {
 
 export interface PreviewTargets {
   projectId: string;
-  /** Most recent first: launch.json entries, then addresses seen in the project's terminals. */
+  /** Worktree path the addresses belong to (T50); absent = the project dir. */
+  worktree?: string;
+  /** The server on this worktree's `PORT` first, then launch.json, then other addresses its terminals printed. */
   urls: string[];
+  /** A server seen on this worktree's `PORT` range: the panel switches to it when it appears. */
+  preferred?: string;
 }
 
 export interface PreviewNav {

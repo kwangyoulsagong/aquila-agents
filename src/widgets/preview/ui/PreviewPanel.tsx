@@ -22,7 +22,10 @@ import {
 interface Props {
   /** A local project (the workspace doesn't offer the preview for remote ones). */
   project: Project;
-  /** Focused session: a picked element is pasted into it when it's Claude or Codex. */
+  /**
+   * Focused session: a picked element is pasted into it when it's Claude or Codex, and the preview shows the app of
+   * its worktree (T50).
+   */
   session?: Session;
   /** Alone in the window (T51). */
   full: boolean;
@@ -99,8 +102,12 @@ function Stage({
  */
 export default function PreviewPanel({ project, session, full, onToggleFull, onClose }: Props) {
   const t = useT();
-  const targets = useTargets(project.id);
-  const [url, setUrl] = useStored(`aquila.preview.url.${project.id}`);
+  // Parallel worktrees run their own servers: the address list and the remembered address follow the focused tab.
+  const worktree = session?.projectId === project.id ? session.worktree : undefined;
+  const { urls: targets, preferred } = useTargets(project.id, worktree?.path);
+  const [url, setUrl] = useStored(
+    worktree ? `aquila.preview.url.${project.id}@${worktree.path}` : `aquila.preview.url.${project.id}`,
+  );
   const [figmaUrl, setFigmaUrl] = useStored(`aquila.preview.figma.${project.id}`);
   const [deviceRaw, setDevice] = useStored('aquila.preview.device', 'fit');
   const device: Device = (DEVICES as readonly string[]).includes(deviceRaw) ? (deviceRaw as Device) : 'fit';
@@ -120,6 +127,10 @@ export default function PreviewPanel({ project, session, full, onToggleFull, onC
   useEffect(() => {
     if (targets[0] && (!url || (addressFailed && !sameUrl(targets[0], url)))) setUrl(targets[0]);
   }, [url, targets, addressFailed, setUrl]);
+  // The worktree's own server (on its PORT) wins once when it shows up; picking another address afterwards sticks.
+  useEffect(() => {
+    if (preferred) setUrl(preferred);
+  }, [preferred, setUrl]);
 
   useEffect(() => {
     if (!notice) return;
@@ -128,7 +139,7 @@ export default function PreviewPanel({ project, session, full, onToggleFull, onC
   }, [notice]);
 
   // Leaving Select mode with the panel (closed, or another project).
-  useEffect(() => () => api.previewPickCancel('app'), [project.id]);
+  useEffect(() => () => api.previewPickCancel('app'), [project.id, worktree?.path]);
 
   const target = pickTarget(session);
   const targetName = target.kind === 'none' ? '' : sessionTitle(t, target.session);
@@ -199,9 +210,16 @@ export default function PreviewPanel({ project, session, full, onToggleFull, onC
       {...(full ? {} : width.props)}
       aria-label={t('preview.title')}
     >
-      {!full && <ResizeHandle onChange={width.onChange} onReset={width.onReset} label={t('action.resizePanel')} />}
+      {!full && (
+        <ResizeHandle onChange={width.onChange} onReset={width.onReset} label={t('action.resizePanel')} />
+      )}
       <div className="c-panel__head">
         <span>{t('preview.title')}</span>
+        {worktree && (
+          <span className="c-row__meta" title={t('preview.worktreeHint', { path: worktree.path })}>
+            {worktree.branch}
+          </span>
+        )}
         {nav?.title && (
           <span className="c-row__meta" title={nav.title}>
             {nav.title}
@@ -270,7 +288,11 @@ export default function PreviewPanel({ project, session, full, onToggleFull, onC
         >
           ↻
         </Button>
-        <Address value={(failed && nav?.errorUrl) || nav?.url || url} label={t('preview.address')} onGo={setUrl} />
+        <Address
+          value={(failed && nav?.errorUrl) || nav?.url || url}
+          label={t('preview.address')}
+          onGo={setUrl}
+        />
         {targets.length > 0 && (
           <Select
             aria-label={t('preview.targets')}

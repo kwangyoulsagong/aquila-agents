@@ -485,7 +485,8 @@ From the persona research (`reports/디자이너 개발자 ADE 사용성.md`: fr
 - **Done:** at 1440 px with both panels open there is no overflow (smoke screenshot).
 
 ### T50 · Preview follows the session's worktree
-- [ ] **Goal:** in parallel worktrees, the preview shows the focused session's app.
+- [x] **Goal:** in parallel worktrees, the preview shows the focused session's app.
+  _Left over: the branch shows only for worktree tabs (the project dir has none to read cheaply). A server that ignores `PORT` (Vite's 5173) is listed for its worktree but not preferred. Checked by unit tests + smoke; switching between two live worktrees was not seen by hand._
 - **Spec:** key the preview by the focused session's worktree (not the project), prefer its `PORT`, show the branch in the panel head.
 - **Owns:** `src/widgets/preview/`, `electron/preview.ts`.
 
