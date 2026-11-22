@@ -37,6 +37,7 @@ import { TrendsButton, TrendsModal, hasCliUpdate, useTrends } from '@/widgets/tr
 import { CommandPalette, type ActionId } from '@/widgets/command-palette';
 import { useWorkspace } from '../model/useWorkspace';
 import { useShortcuts } from '../model/useShortcuts';
+import { usePanelFit, type PanelId } from '../model/panels';
 
 export default function WorkspacePage() {
   const ws = useWorkspace();
@@ -164,6 +165,25 @@ export default function WorkspacePage() {
   const { config, project, activeSessionId, openSession, closeSession, setConfig, showError } = ws;
   // Only while the preview is actually shown: a remote project or full window would otherwise leave nothing on screen.
   const previewFull = previewFullOn && previewOpen && !fullscreen.on && !!project && !project.remote;
+  // More side panels than the window holds: the oldest one closes (changes · run · preview).
+  const local = !!project && !project.remote;
+  const closePanel = useCallback((p: PanelId) => {
+    if (p === 'changes') setChangesOpen(false);
+    else if (p === 'run') setRunOpen(false);
+    else {
+      setPreviewOpen(false);
+      setPreviewFull(false);
+    }
+  }, []);
+  usePanelFit(
+    { changes: changesOpen, run: runOpen, preview: previewOpen },
+    {
+      changes: changesOpen && !fullscreen.on && !previewFull,
+      run: runOpen && !fullscreen.on && !previewFull && local,
+      preview: previewOpen && !fullscreen.on && local,
+    },
+    closePanel,
+  );
   const { openWorktreeSession } = ws;
   // Worktrees (T7/T38) are local-only.
   const localProjectId = project && !project.remote ? project.id : undefined;

@@ -2,7 +2,8 @@
 .app {
   height: 100%;
   display: flex;
-  /* Never scroll sideways (T49): side panels shrink first; below that, a too-narrow window clips the last panel. */
+  /* Never scroll sideways (T49): side panels shrink first; opening one that wouldn't fit closes the oldest
+     (pages/workspace/model/panels.ts); only shrinking the window below that clips the last panel. */
   overflow: hidden;
 }
 .app__main {

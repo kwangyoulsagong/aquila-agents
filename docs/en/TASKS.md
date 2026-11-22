@@ -477,7 +477,7 @@ From the persona research (`docs/research/디자이너 개발자 ADE 사용성.m
 
 ### T49 · Panel layout that doesn't break
 - [x] **Goal:** terminal, Changes and Preview fit together on a 1440 px window.
-  _Left over: below ~1300 px with both panels open the last panel is clipped (the terminal keeps 480, panels stop at 288). At 480 px the tab bar is tight: tab titles get cut short. Dragging over the native preview page was checked with synthetic input in smoke, not by hand._
+  _Left over: ~~below ~1300 px with both panels open the last panel is clipped~~ — fixed: a panel that wouldn't fit closes the one opened longest ago (1440 px holds two, wider windows three); resizing the window still clips rather than closing. At 480 px the tab bar is tight: tab titles get cut short. Dragging over the native preview page was checked with synthetic input in smoke, not by hand._
 - **Spec:**
   - Fix the sideways scroll and clipped sidebar footer with the Changes panel open at 1440 px (T24 leftover).
   - Changes and Preview widths are draggable and remembered; the terminal keeps a minimum width and panels shrink first.
