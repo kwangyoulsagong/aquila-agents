@@ -337,7 +337,7 @@ body {
 }
 .c-tab:has(.c-tab__branch) .c-tab__title { flex: 0 1 auto; }
 /* The kind badge in front of a title (T43) gives way first when tabs get narrow, so the title stays readable. */
-.c-tab > .c-badge { flex: 0 1000 auto; min-width: 0; overflow: hidden; }
+.c-tab > .c-badge { flex: 0 1000 auto; min-width: 0; overflow: hidden; white-space: nowrap; } /* clips; never stacks letters */
 .c-tab__close {
   width: 18px; height: 18px; border: 0; border-radius: var(--radius-badge); opacity: 0;
   background: none; color: var(--color-text-tertiary); cursor: pointer;
@@ -504,8 +504,9 @@ body {
 
 /* Run slot (T60): command bar, the reason it failed, and a read-only log terminal filling the rest. */
 .c-run { display: flex; flex-direction: column; }
-.c-run .c-panel__bar { flex-wrap: nowrap; }
-.c-run .c-panel__bar > .c-row__meta { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-family-mono); }
+/* Narrow panel (several open): the buttons wrap to a second line, right-aligned, instead of running off the edge. */
+.c-run .c-panel__bar { flex-wrap: wrap; }
+.c-run .c-panel__bar > .c-row__meta { flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-family-mono); }
 .c-run .c-panel__bar .c-btn { flex: none; white-space: nowrap; }
 .c-run__state { display: inline-flex; align-items: center; gap: var(--space-inline-xs); white-space: nowrap; }
 .c-run__reason { color: var(--color-status-error); font-family: var(--font-family-mono); overflow-wrap: anywhere; }
