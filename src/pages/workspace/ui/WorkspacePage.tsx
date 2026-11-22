@@ -464,14 +464,18 @@ export default function WorkspacePage() {
         )}
         {worktreeOpen && project && !project.remote && (
           <OpenInWorktreeDialog
-            key={project.id}
+            key={`worktree:${project.id}`}
             project={project}
             onClose={() => setWorktreeOpen(false)}
             onOpen={ws.openWorktreeSession}
           />
         )}
         {cleanupOpen && project && !project.remote && (
-          <CleanupWorktreesDialog key={project.id} project={project} onClose={() => setCleanupOpen(false)} />
+          <CleanupWorktreesDialog
+            key={`cleanup:${project.id}`}
+            project={project}
+            onClose={() => setCleanupOpen(false)}
+          />
         )}
         {globalShortcutOpen && <GlobalShortcutDialog onClose={() => setGlobalShortcutOpen(false)} />}
         {commandsOpen && focusedSession && (
@@ -481,7 +485,8 @@ export default function WorkspacePage() {
             onClose={() => setCommandsOpen(false)}
           />
         )}
-        {/* Full window hides the side panels too; their open state is kept for when it ends. */}
+        {/* Full window hides the side panels too; their open state is kept for when it ends.
+            Siblings here need distinct keys: two with the same project id make React mix up their DOM. */}
         {changesOpen && !fullscreen.on && !previewFull && (
           <ChangesPanel
             project={project}
@@ -491,7 +496,7 @@ export default function WorkspacePage() {
         )}
         {runOpen && !fullscreen.on && !previewFull && project && !project.remote && (
           <RunPanel
-            key={project.id}
+            key={`run:${project.id}`}
             project={project}
             session={ws.sessions.find((x) => x.id === activeSessionId)}
             onClose={() => setRunOpen(false)}
@@ -505,7 +510,7 @@ export default function WorkspacePage() {
         {/* Last column: the native preview view only has to follow its own size and the window. */}
         {previewOpen && !fullscreen.on && project && !project.remote && (
           <PreviewPanel
-            key={project.id}
+            key={`preview:${project.id}`}
             project={project}
             session={ws.sessions.find((x) => x.id === activeSessionId)}
             full={previewFull}
