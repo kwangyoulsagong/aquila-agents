@@ -37,6 +37,7 @@ import { TrendsButton, TrendsModal, hasCliUpdate, useTrends } from '@/widgets/tr
 import { CommandPalette, type ActionId } from '@/widgets/command-palette';
 import { useWorkspace } from '../model/useWorkspace';
 import { useShortcuts } from '../model/useShortcuts';
+import { usePanelFit, type PanelId } from '../model/panels';
 
 export default function WorkspacePage() {
   const ws = useWorkspace();
@@ -164,6 +165,25 @@ export default function WorkspacePage() {
   const { config, project, activeSessionId, openSession, closeSession, setConfig, showError } = ws;
   // Only while the preview is actually shown: a remote project or full window would otherwise leave nothing on screen.
   const previewFull = previewFullOn && previewOpen && !fullscreen.on && !!project && !project.remote;
+  // More side panels than the window holds: the oldest one closes (changes · run · preview).
+  const local = !!project && !project.remote;
+  const closePanel = useCallback((p: PanelId) => {
+    if (p === 'changes') setChangesOpen(false);
+    else if (p === 'run') setRunOpen(false);
+    else {
+      setPreviewOpen(false);
+      setPreviewFull(false);
+    }
+  }, []);
+  usePanelFit(
+    { changes: changesOpen, run: runOpen, preview: previewOpen },
+    {
+      changes: changesOpen && !fullscreen.on && !previewFull,
+      run: runOpen && !fullscreen.on && !previewFull && local,
+      preview: previewOpen && !fullscreen.on && local,
+    },
+    closePanel,
+  );
   const { openWorktreeSession } = ws;
   // Worktrees (T7/T38) are local-only.
   const localProjectId = project && !project.remote ? project.id : undefined;
@@ -464,14 +484,18 @@ export default function WorkspacePage() {
         )}
         {worktreeOpen && project && !project.remote && (
           <OpenInWorktreeDialog
-            key={project.id}
+            key={`worktree:${project.id}`}
             project={project}
             onClose={() => setWorktreeOpen(false)}
             onOpen={ws.openWorktreeSession}
           />
         )}
         {cleanupOpen && project && !project.remote && (
-          <CleanupWorktreesDialog key={project.id} project={project} onClose={() => setCleanupOpen(false)} />
+          <CleanupWorktreesDialog
+            key={`cleanup:${project.id}`}
+            project={project}
+            onClose={() => setCleanupOpen(false)}
+          />
         )}
         {globalShortcutOpen && <GlobalShortcutDialog onClose={() => setGlobalShortcutOpen(false)} />}
         {commandsOpen && focusedSession && (
@@ -481,7 +505,8 @@ export default function WorkspacePage() {
             onClose={() => setCommandsOpen(false)}
           />
         )}
-        {/* Full window hides the side panels too; their open state is kept for when it ends. */}
+        {/* Full window hides the side panels too; their open state is kept for when it ends.
+            Siblings here need distinct keys: two with the same project id make React mix up their DOM. */}
         {changesOpen && !fullscreen.on && !previewFull && (
           <ChangesPanel
             project={project}
@@ -491,7 +516,7 @@ export default function WorkspacePage() {
         )}
         {runOpen && !fullscreen.on && !previewFull && project && !project.remote && (
           <RunPanel
-            key={project.id}
+            key={`run:${project.id}`}
             project={project}
             session={ws.sessions.find((x) => x.id === activeSessionId)}
             onClose={() => setRunOpen(false)}
@@ -505,7 +530,7 @@ export default function WorkspacePage() {
         {/* Last column: the native preview view only has to follow its own size and the window. */}
         {previewOpen && !fullscreen.on && project && !project.remote && (
           <PreviewPanel
-            key={project.id}
+            key={`preview:${project.id}`}
             project={project}
             session={ws.sessions.find((x) => x.id === activeSessionId)}
             full={previewFull}

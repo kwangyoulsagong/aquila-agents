@@ -1,0 +1,7 @@
+# Hand-formatted on purpose (dense one-line rules, aligned token comments, wide tables).
+# The Claude Code edit hook formats every touched file; reformatting these would bury a one-line change in a
+# thousand-line diff.
+design-system/components.css
+design-system/tokens.css
+design-system/preview.html
+*.md
