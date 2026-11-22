@@ -73,6 +73,25 @@ demo_history() { # demo_history <home> <lang>
   fi
 }
 
+demo_commands() { # demo_commands <config dir> <cwd> <session id> <minutes ago>: Bash tool calls appended to a transcript
+  local file="$1/projects/$(echo "$2" | tr '/.' '--')/$3.jsonl" m="$4" n=0 cmd err out
+  while IFS='|' read -r cmd err out; do
+    n=$((n + 1))
+    printf '{"type":"assistant","isSidechain":false,"message":{"role":"assistant","content":[{"type":"tool_use","id":"toolu_demo%s","name":"Bash","input":{"command":%s}}]},"timestamp":"%s","cwd":"%s","sessionId":"%s"}\n' \
+      "$n" "$(json_str "$cmd")" "$(ago "$m")" "$2" "$3" >> "$file"
+    printf '{"type":"user","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_demo%s","content":%s,"is_error":%s}]},"timestamp":"%s","cwd":"%s","sessionId":"%s"}\n' \
+      "$n" "$(json_str "$out")" "$err" "$(ago "$m")" "$2" "$3" >> "$file"
+  done <<'CMDS' # command|is_error|result
+git status --short|false|M src/cart.ts
+npx prisma migrate dev --name coupon|false|Applied migration 20261121_coupon
+npm test -- src/cart.test.ts|false|3 passed
+npm run lint|true|src/coupon.ts: 'COUPONS' is never reassigned
+npm run lint -- --fix|false|done
+npm test|false|5 passed
+CMDS
+  touch -t "$(date -v-"$m"M +%Y%m%d%H%M.%S)" "$file" # keep the session's age
+}
+
 SHOP_PORT=47173
 python3 -m http.server "$SHOP_PORT" --bind 127.0.0.1 --directory "$FIX/shop" >/dev/null 2>&1 &
 SHOP_PID=$!
@@ -96,16 +115,20 @@ for lang in ${CAPTURE_LANGS:-ko en}; do
   demo_repo "$P/web-shop" \
     "src/cart.ts:export function total(items: { price: number }[]) {\n  return items.reduce((sum, i) => sum + i.price, 0);\n}\n" \
     "src/checkout.ts:import { total } from './cart';\n\nexport const pay = (items: { price: number }[]) => total(items);\n" \
+    "prisma/schema.prisma:model Order {\n  id    Int @id\n  total Int\n}\n" \
     "README.md:# web-shop\n"
-  # Uncommitted work for the changes panel.
+  # Uncommitted work for the changes panel (the schema change gets a risk badge and goes to the top, T57).
   printf '%b' "export function total(items: { price: number }[], coupon?: number) {\n  const sum = items.reduce((s, i) => s + i.price, 0);\n  return coupon ? Math.max(0, sum - coupon) : sum;\n}\n" > "$P/web-shop/src/cart.ts"
   printf '%b' "export const COUPONS: Record<string, number> = { WELCOME: 5 };\n" > "$P/web-shop/src/coupon.ts"
+  printf '%b' "model Order {\n  id     Int     @id\n  total  Int\n  coupon String?\n}\n" > "$P/web-shop/prisma/schema.prisma"
   demo_repo "$P/api-server" "orders/total.ts:export const total = (n: number) => Math.round(n * 100) / 100;\n" "README.md:# api-server\n"
   demo_repo "$P/docs-site" "guide/index.md:# Guide\n" "README.md:# docs-site\n"
   demo_repo "$P/mobile-app" "app/settings.tsx:export default function Settings() {}\n" "README.md:# mobile-app\n"
 
   # Past sessions for the history panel (T11): Claude transcripts per account and codex rollouts, dated relative to now.
   demo_history "$home" "$lang"
+  # Commands timeline (T59): the coupon session ran a few Bash commands (one failed).
+  demo_commands "$home/.claude" "$P/web-shop" 0b6f3a52-1d2e-4c6b-9a51-2f0e7c1d0a01 24
 
   echo "[capture] $lang in $home"
   # No TERM_PROGRAM/TERM_SESSION_ID from the terminal you run this in: macOS zsh would print "Restored session".

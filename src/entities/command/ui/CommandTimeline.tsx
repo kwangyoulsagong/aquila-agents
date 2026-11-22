@@ -6,8 +6,9 @@ import { commandMarks } from '../model/marks';
 /** Shown at most (the latest); the transcript keeps up to 500. */
 const SHOWN = 200;
 
-const clock = (at: number | undefined) =>
-  at === undefined ? undefined : new Date(at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+/** In the app's language, not the system's (an English UI on a Korean Mac must not read "오후 10:48"). */
+const clock = (at: number | undefined, locale: string) =>
+  at === undefined ? undefined : new Date(at).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
 
 /**
  * Commands a Claude session ran (T59), oldest first: how each ended, the command (secrets already masked by main),
@@ -26,7 +27,7 @@ export default function CommandTimeline({ commands }: { commands: CommandRun[] }
             state={c.state}
             stateLabel={t(`commands.state.${c.state}`)}
             command={c.command}
-            time={clock(c.at)}
+            time={clock(c.at, t('locale'))}
             marks={
               marks.length > 0 && (
                 <>

@@ -447,6 +447,9 @@ const ko = {
     '주황은 입력 필요, 빨강은 오류, 파랑은 작업 중, 초록은 완료예요. 흐린 초록은 출력이 멈춘 걸로 추정한 완료예요.',
   'guide.attention.title': '다음 대기 세션',
   'guide.attention.body': '입력을 기다리는 세션으로 바로 가요. 오래 기다린 순서로 돌아요.',
+  'guide.review.title': '리뷰할 것',
+  'guide.review.body':
+    '보지 않는 사이에 끝난 세션은 사이드바 "리뷰할 것"에 오래된 순서로 모여요. 프로젝트·바뀐 파일 수·브랜치가 함께 보이고, 누르면 그 탭이 열리며 목록에서 빠져요. 다시 일하거나 질문하면 저절로 빠져요. ⌘K "다음 리뷰로"로 차례로 돌아요.',
   'guide.globalShortcut.title': '전역 단축키',
   'guide.globalShortcut.body':
     '다른 앱을 쓰다가 누르면 Aquila가 앞으로 오고 가장 오래 기다린 세션이 열려요. ⚙ 설정 → 전역 단축키에서 키를 정해요. 처음엔 꺼져 있어요.',
@@ -464,16 +467,19 @@ const ko = {
   'guide.resize.body': '경계선을 끌거나 키보드로 크기를 바꿔요. 경계선을 더블클릭하면 반반이에요.',
   'guide.changes.title': '변경사항 패널',
   'guide.changes.body':
-    '에이전트가 바꾼 파일과 diff를 오른쪽에서 봐요. 저장하면 바로 갱신되고, 줄을 눌러 코멘트를 남기면 세션 입력창에 붙여넣어요. 파일·부분 단위로 스테이지하거나 되돌릴 수 있어요(먼저 백업).',
+    '에이전트가 바꾼 파일과 diff를 오른쪽에서 봐요. 저장하면 바로 갱신되고, 마이그레이션·락파일·env·프롬프트·CI 파일은 배지를 달고 맨 위에 와요. 줄을 눌러 코멘트를 남기면 세션 입력창에 붙여넣어요. 파일·부분 단위로 스테이지하거나 되돌릴 수 있어요(먼저 백업). "Markdown 복사"는 바뀐 파일·줄 수·코멘트를 PR 본문이나 채팅에 붙일 요약으로 복사해요.',
   'guide.run.title': 'Run: dev 서버와 워처',
   'guide.run.body':
-    '에이전트와 따로 dev 서버나 테스트 워처를 띄워요. 점이 초록이면 떠 있고, 고리는 종료, ! 는 오류(그 줄을 보여 줌)예요. 로그는 패널에서 보고, 출력에 localhost 주소가 나오면 프리뷰에서 바로 엽니다. 명령은 프로젝트 설정 → 실행 명령(없으면 package.json의 dev). 워크트리마다 따로, 앱을 다시 열면 이어서 실행돼요.',
+    '에이전트와 따로 dev 서버나 테스트 워처를 띄워요. 점이 초록이면 떠 있고, 고리는 종료, ! 는 오류(그 줄을 보여 줌)예요. 로그는 패널에서 보고, 출력에 localhost 주소가 나오면 프리뷰에서 바로 엽니다. 명령은 프로젝트 설정 → 실행 명령(없으면 package.json의 dev). 오류 뒤 정상으로 돌아왔다는 줄을 직접 정하려면 명령 끝에 "# ready: Listening on"처럼 적어요. 워크트리마다 따로, 앱을 다시 열면 이어서 실행돼요.',
   'guide.preview.title': '미리보기 + 요소 선택',
   'guide.preview.body':
-    '실행 중인 앱을 오른쪽에서 봐요. 주소는 .claude/launch.json과 터미널에 나온 localhost 주소에서 찾아요. 390·768·1440 너비로 바꿔 보고, 요소 선택으로 클릭하면 선택자·텍스트·스타일·컴포넌트 이름과 스크린샷이 선택한 Claude·Codex 탭에 붙어요(답을 기다리는 탭이면 클립보드로). ↗는 Chrome(없으면 기본 브라우저)으로 열고, ⛶는 프리뷰만 크게 보여 줘요. Figma를 켠 프로젝트는 디자이너 보기로 아래에 Figma를 띄울 수 있어요.',
+    '실행 중인 앱을 오른쪽에서 봐요. 주소는 .claude/launch.json과 터미널에 나온 localhost 주소에서 찾아요. 390·768·1440 너비로 바꿔 보고, 요소 선택으로 클릭하면 선택자·텍스트·스타일·컴포넌트 이름과 스크린샷이 선택한 Claude·Codex 탭에 붙어요(답을 기다리는 탭이면 클립보드로). ↗는 Chrome(없으면 기본 브라우저)으로 열고, ⛶는 프리뷰만 크게 보여 줘요. Figma를 켠 프로젝트는 디자이너 보기로 앱과 Figma를 함께 봐요(디자이너 비교 항목).',
   'guide.worktree.title': '워크트리에서 열기',
   'guide.worktree.body':
     '탭 바의 +를 오른쪽 클릭하거나 {palette}에서 열어요. 브랜치마다 ../<저장소>-wt/<브랜치>에 따로 작업하고, 이미 있는 워크트리에서도 Claude·Codex·셸을 열 수 있어요. 새 워크트리에는 .worktreeinclude에 적은 무시된 파일(.env 등)만 복사해요. 병합되고 깨끗한 워크트리는 "워크트리 정리"에서 확인 후 지워요.',
+  'guide.commands.title': '실행한 명령',
+  'guide.commands.body':
+    'Claude 세션이 실행한 셸 명령을 시간순으로 봐요. 성공·오류·중단이 표시되고 테스트·마이그레이션·위험한 명령엔 배지가 붙어요. 지금 탭은 ⌘K "이 세션의 명령", 지난 세션은 세션 기록(⌘Y)에서 봐요. 출력은 저장하지 않고 토큰·비밀번호는 가려요.',
   'guide.history.title': '세션 기록',
   'guide.history.body':
     '지난 Claude·Codex 세션을 폴더별로 찾아 새 탭에서 이어해요. 이름, 첫 메시지, 대화 내용으로 검색하고 Markdown으로 내보내요.',
@@ -498,9 +504,12 @@ const ko = {
   'guide.language.title': '언어',
   'guide.language.body':
     '사이드바 왼쪽 아래 ⚙ 설정 → 언어에서 한국어와 English를 바꿔요. ⌘K로도 바꿀 수 있어요.',
+  'guide.designer.title': '디자이너 비교',
+  'guide.designer.body':
+    'Figma를 켠 프로젝트에서 프리뷰의 "디자이너"를 누르면 앱과 Figma를 함께 봐요. 배치는 위아래·좌우·겹쳐 보기. 겹쳐 보기는 두 화면을 캡처해 Figma 투명도를 조절하거나 "차이"로 다른 곳만 밝게 보여 주고(↻ 다시 캡처), "에이전트에 보내기"는 두 스크린샷과 고쳐 달라는 요청을 Claude·Codex 탭에 붙여요. Figma 프로토타입 링크를 쓰면 프레임만 보여서 잘 맞아요.',
   'guide.figma.title': 'Figma',
   'guide.figma.body':
-    '⌘K → "Figma 연결…"(또는 도움말 메뉴)로 프로젝트 설정의 Figma MCP를 켜요. "Claude에서 로그인"이 새 Claude 탭에 /mcp를 넣어 주니 figma → Authenticate만 고르면 돼요. 그 뒤 Claude·Codex 탭에 Figma 링크를 붙여 넣거나 입력하거나 끌어다 놓으면 디자인(앱과 비교, 코멘트 → TODO)·구현(컴포넌트·토큰으로 구현, 에셋 받기) 칩이 떠요. 프리뷰의 디자이너 보기는 앱 아래에 Figma를 띄워요.',
+    '⌘K → "Figma 연결…"(또는 도움말 메뉴)로 프로젝트 설정의 Figma MCP를 켜요. "Claude에서 로그인"이 새 Claude 탭에 /mcp를 넣어 주니 figma → Authenticate만 고르면 돼요. 그 뒤 Claude·Codex 탭에 Figma 링크를 붙여 넣거나 입력하거나 끌어다 놓으면 디자인(앱과 비교, 코멘트 → TODO)·구현(컴포넌트·토큰으로 구현, 에셋 받기) 칩이 떠요. 프리뷰의 디자이너 보기는 앱과 Figma를 나란히 또는 겹쳐 비교해요.',
   'guide.shortcuts.title': '모든 단축키',
   'guide.shortcuts.body': '앱의 단축키 전체예요.',
   'restore.previous': '이전 출력 · {time} · 읽기 전용',
@@ -542,6 +551,8 @@ const ko = {
   'history.match': '일치: {snippet}',
   'history.preview': '대화',
   'commands.title': '명령',
+  /** BCP 47 locale for times and dates in this language (not shown). */
+  'locale': 'ko-KR',
   'commands.count': '실행한 명령 {count}개',
   'commands.action': '이 세션의 명령',
   'commands.note': '출력은 저장하지 않고, 토큰·비밀번호는 가려요',
@@ -1181,6 +1192,9 @@ const en = {
   'guide.attention.title': 'Next waiting session',
   'guide.attention.body':
     'Jump to the session that waits for you. Repeats cycle through them, longest wait first.',
+  'guide.review.title': 'To review',
+  'guide.review.body':
+    'Sessions that finish while you look elsewhere gather under "To review" in the sidebar, oldest first, with project, changed file count and branch. Click one to open its tab and take it off the list; it also leaves when it works or asks again. ⌘K "Go to next to review" steps through them.',
   'guide.globalShortcut.title': 'Global shortcut',
   'guide.globalShortcut.body':
     'Press it from any app: Aquila comes to the front on the session that has waited longest. Pick the key in ⚙ Settings → Global shortcut. Off until you do.',
@@ -1198,16 +1212,19 @@ const en = {
   'guide.resize.body': 'Drag a divider or use the keyboard. Double-click a divider for an even split.',
   'guide.changes.title': 'Changes panel',
   'guide.changes.body':
-    "See the files and diff the agent changed, on the right; it updates as files are saved. Click a line to comment, then paste the comments into the session's input. Stage or revert a file or hunk (backed up first).",
+    "See the files and diff the agent changed, on the right; it updates as files are saved. Migrations, lockfiles, env, prompt and CI files get a badge and sit at the top. Click a line to comment, then paste the comments into the session's input. Stage or revert a file or hunk (backed up first). Copy Markdown copies the files, line counts and comments as a summary for a PR body or a chat.",
   'guide.run.title': 'Run: dev servers and watchers',
   'guide.run.body':
-    'Start a dev server or test watcher apart from the agent. A green dot means it\'s up, a ring that it ended, ! an error (the line is shown). Read its log in the panel; a localhost address in the output opens in the preview. Commands come from project settings → Run commands (else package.json\'s dev). Each worktree has its own, and they start again when you reopen the app.',
+    'Start a dev server or test watcher apart from the agent. A green dot means it\'s up, a ring that it ended, ! an error (the line is shown). Read its log in the panel; a localhost address in the output opens in the preview. Commands come from project settings → Run commands (else package.json\'s dev); end one with "# ready: Listening on" to say which line means healthy again after an error. Each worktree has its own, and they start again when you reopen the app.',
   'guide.preview.title': 'Preview + select element',
   'guide.preview.body':
-    'See the running app on the right. The address comes from .claude/launch.json and the localhost addresses your terminals print. Switch between 390, 768 and 1440 wide; Select element and click: its selector, text, style, component name and a screenshot are pasted into the focused Claude or Codex tab (copied instead when that tab is waiting for an answer). ↗ opens the page in Chrome (else your default browser); ⛶ shows only the preview. With Figma on, Designer shows Figma under the app.',
+    'See the running app on the right. The address comes from .claude/launch.json and the localhost addresses your terminals print. Switch between 390, 768 and 1440 wide; Select element and click: its selector, text, style, component name and a screenshot are pasted into the focused Claude or Codex tab (copied instead when that tab is waiting for an answer). ↗ opens the page in Chrome (else your default browser); ⛶ shows only the preview. With Figma on, Designer shows the app and Figma together (see Designer compare).',
   'guide.worktree.title': 'Open in worktree',
   'guide.worktree.body':
     'Right-click + in the tab bar, or use {palette}. Each branch gets its own folder at ../<repo>-wt/<branch>; Claude, Codex or a shell can also open in a worktree you already have. A new worktree gets only the ignored files listed in .worktreeinclude (like .env). Clean up worktrees suggests merged, clean ones and removes them after you confirm.',
+  'guide.commands.title': 'Commands run',
+  'guide.commands.body':
+    'See the shell commands a Claude session ran, in order: ok, error or interrupted, with badges on tests, migrations and risky commands. The current tab: ⌘K "Commands in this session"; past sessions: Session history (⌘Y). Output is never kept, and tokens and passwords are masked.',
   'guide.history.title': 'Session history',
   'guide.history.body':
     'Find past Claude and Codex sessions by folder and resume one in a new tab. Search names, first messages and the conversation; export as Markdown.',
@@ -1234,9 +1251,12 @@ const en = {
   'guide.language.title': 'Language',
   'guide.language.body':
     'Switch between 한국어 and English under ⚙ Settings → Language at the bottom left. ⌘K works too.',
+  'guide.designer.title': 'Designer compare',
+  'guide.designer.body':
+    'With Figma on, Designer in the preview shows the app and Figma together: stacked, side by side or overlaid. Overlay captures both and lays Figma over the app with an opacity slider, or Difference to light up only what differs (↻ captures again). Send to agent pastes both screenshots and a request to fix the differences into the Claude or Codex tab. A Figma prototype link shows just the frame and lines up best.',
   'guide.figma.title': 'Figma',
   'guide.figma.body':
-    '⌘K → "Connect Figma…" (or the Help menu) turns on Figma MCP in project settings. "Log in from Claude" types /mcp into a new Claude tab: pick figma → Authenticate. Then paste, type or drop a Figma link into a Claude or Codex tab for the Design (compare with app, comments → TODOs) and Build (implement with components and tokens, get assets) chips. In the preview, Designer shows Figma under the app.',
+    '⌘K → "Connect Figma…" (or the Help menu) turns on Figma MCP in project settings. "Log in from Claude" types /mcp into a new Claude tab: pick figma → Authenticate. Then paste, type or drop a Figma link into a Claude or Codex tab for the Design (compare with app, comments → TODOs) and Build (implement with components and tokens, get assets) chips. In the preview, Designer compares the app and Figma side by side or overlaid.',
   'guide.shortcuts.title': 'All shortcuts',
   'guide.shortcuts.body': 'Every shortcut in the app.',
   'restore.previous': 'Previous output · {time} · read-only',
@@ -1279,6 +1299,7 @@ const en = {
   'history.match': 'Match: {snippet}',
   'history.preview': 'Conversation',
   'commands.title': 'Commands',
+  'locale': 'en-US',
   'commands.count': '{count} commands run',
   'commands.action': 'Commands in this session',
   'commands.note': "Output isn't kept; tokens and passwords are masked",
