@@ -423,11 +423,15 @@ own title.
   versions with a `-suffix` are skipped. Claude Code `CHANGELOG.md`, first 64 KB only (`Range`; the cut-off last section
   is dropped). RSS/Atom: OpenAI News, Cursor changelog, Antigravity blog, Simon Willison, Latent Space; HN Algolia
   (`points>100`, last 7 days, AI-looking titles only). ~3 MB per fetch (OpenAI and Latent Space ignore `Range`).
+  Korea (T63, the Industry tab's Global / Korea switch, `NEWS_REGION`): GeekNews, AI타임스 (offset-less dates read as
+  KST), and the Kakao, Toss, Woowahan, Daangn and LY tech blogs. GeekNews and the blogs keep AI items only (`AI_TOPIC`,
+  Korean and English words). Toss ignores `Range`, so its body is read as a stream and cut at 64 KB (`readHead`).
   The XML parser is regex-based on purpose (no dependency).
 - **My CLIs:** `claude --version` / `codex --version` (the picked binary) vs. the releases: the newer ones (≤5), else
   the latest; 3–5 "Added" lines each (bullets starting with "Added", else the "New Features" section, else the first bullets).
 - **Industry:** ≤15 per source, one per link; keyword groups by regex over the whole item body (subagent / multi-agent,
-  hook, agent view / background agents, ADE, harness), shown under their first group, the rest under "Latest". Titles,
+  hook, agent view / background agents, ADE, harness, MCP & skills, context engineering, vibe / agentic coding — each
+  with its Korean words), shown under their first group, the rest under "Latest". Titles,
   links and ≤220-character excerpts only. Few items hit the groups; that's the keywords, not a bug.
 - **Kept / pruned:** items not seen yet stay 30 days; items already there at an earlier visit (`prevSeenAt`) go after
   7 days — from the list and the cache file. Rows newer than the previous visit get a dot.

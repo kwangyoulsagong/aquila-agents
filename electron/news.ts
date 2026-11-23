@@ -8,6 +8,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { APP_DIR } from './config';
 import { binaryFor, parseVersion } from './detect';
+import { NEWS_REGION } from '../src/shared/api/types';
 import type {
   CliNews,
   CliRelease,
@@ -47,6 +48,12 @@ interface SourceDef {
   url: (now: number) => string;
   tool?: CliTool;
   headers?: Record<string, string>;
+  /** General feeds (GeekNews, company blogs): keep only items about AI. */
+  aiOnly?: boolean;
+  /** Offset for dates written without one (AI타임스: `2026-11-22 18:30:43`, Korean time). */
+  zone?: string;
+  /** Read only this many bytes of the body, even when the server ignores `Range` (Toss: ~700 KB). */
+  maxBytes?: number;
 }
 
 const fixed = (u: string) => () => u;
@@ -98,6 +105,21 @@ export const SOURCES: readonly SourceDef[] = [
       return `https://hn.algolia.com/api/v1/search_by_date?tags=story&numericFilters=points%3E100,created_at_i%3E${since}&hitsPerPage=200`;
     },
   },
+  // Korea (T63), checked live 2026-11-22. Not available: 요즘IT (no RSS), Naver D2 (`d2.atom` 404).
+  { id: 'geeknews', kind: 'feed', aiOnly: true, url: fixed('https://news.hada.io/rss/news') },
+  { id: 'aitimes', kind: 'feed', zone: '+09:00', url: fixed('https://www.aitimes.com/rss/allArticle.xml') },
+  { id: 'kakao', kind: 'feed', aiOnly: true, url: fixed('https://tech.kakao.com/feed/') },
+  {
+    id: 'toss',
+    kind: 'feed',
+    aiOnly: true,
+    url: fixed('https://toss.tech/rss.xml'),
+    headers: { Range: 'bytes=0-65535' },
+    maxBytes: 65_536,
+  },
+  { id: 'woowahan', kind: 'feed', aiOnly: true, url: fixed('https://techblog.woowahan.com/feed/') },
+  { id: 'daangn', kind: 'feed', aiOnly: true, url: fixed('https://medium.com/feed/daangn') },
+  { id: 'lycorp', kind: 'feed', aiOnly: true, url: fixed('https://techblog.lycorp.co.jp/ko/feed/index.xml') },
 ];
 
 // ── Text helpers ─────────────────────────────────────────────────────────────
@@ -330,8 +352,24 @@ function atomLink(block: string): string | undefined {
 
 const isHttp = (u: string) => /^https?:\/\//i.test(u);
 
+/** A feed date; `2026-11-22 18:30:43` (no offset) is read in `zone` rather than the machine's time zone. */
+export function parseDate(raw: string, zone?: string): number {
+  const s = raw.trim();
+  const bare = /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}(?::\d{2})?)$/.exec(s);
+  return Date.parse(bare && zone ? `${bare[1]}T${bare[2]}${zone}` : s);
+}
+
+/** Items about AI / coding agents, for general feeds (Korean words have no `\b`: Hangul isn't a word character). */
+export const AI_TOPIC =
+  /\b(?:ai|llms?|gpt[\w.-]*|claude|anthropic|openai|codex|gemini|cursor|copilot|agents?|agentic|mcp|rag|vibe[- ]coding|prompts?|deepseek|qwen|llama|ml)\b|인공지능|생성형|에이전트|에이전틱|챗GPT|클로드|코덱스|제미나이|바이브 ?코딩|프롬프트|머신러닝|딥러닝|언어 ?모델|하네스|컨텍스트 엔지니어링/i;
+
+export interface FeedOptions {
+  aiOnly?: boolean;
+  zone?: string;
+}
+
 /** RSS 2.0 or Atom → items (groups not set yet). Anything unparseable is skipped, never thrown. */
-export function parseFeed(xml: string, source: NewsSourceId): NewsItem[] {
+export function parseFeed(xml: string, source: NewsSourceId, opts: FeedOptions = {}): NewsItem[] {
   const isAtom = /<feed[\s>]/i.test(xml.slice(0, 2000)) && !/<rss[\s>]/i.test(xml.slice(0, 2000));
   const blocks = xml.match(isAtom ? /<entry[\s>][\s\S]*?<\/entry>/gi : /<item[\s>][\s\S]*?<\/item>/gi) ?? [];
   const out: NewsItem[] = [];
@@ -344,12 +382,13 @@ export function parseFeed(xml: string, source: NewsSourceId): NewsItem[] {
     const date = isAtom
       ? (tag(b, 'published') ?? tag(b, 'updated'))
       : (tag(b, 'pubDate') ?? tag(b, 'dc:date') ?? tag(b, 'published'));
-    const at = Date.parse(unwrapCdata(date ?? '').trim());
+    const at = parseDate(unwrapCdata(date ?? ''), opts.zone);
     if (!title || !isHttp(link) || !Number.isFinite(at)) continue;
     const body = isAtom
       ? (tag(b, 'summary') ?? tag(b, 'content'))
       : (tag(b, 'description') ?? tag(b, 'content:encoded'));
     const text = plainText(body ?? '');
+    if (opts.aiOnly && !AI_TOPIC.test(`${title} ${text}`)) continue;
     out.push({
       id: `${source}:${link}`,
       source,
@@ -408,16 +447,20 @@ export function parseHn(text: string): NewsItem[] {
 export const GROUPS: readonly [NewsGroup, RegExp][] = [
   [
     'subagent',
-    /\bsub-?agents?\b|\bmulti-?agents?\b|\bparallel agents\b|\bagent (?:teams?|swarms?|orchestrat\w+)\b|\/swarm\b/i,
+    /\bsub-?agents?\b|\bmulti-?agents?\b|\bparallel agents\b|\bagent (?:teams?|swarms?|orchestrat\w+)\b|\/swarm\b|서브 ?에이전트|멀티 ?에이전트/i,
   ],
-  ['hook', /\bhooks?\b/i],
+  ['hook', /\bhooks?\b|훅/i],
   [
     'agentView',
     /\bagents? (?:view|window|manager|inbox|dashboard|hq)\b|\bmission control\b|\bbackground agents?\b|\bcloud agents?\b/i,
   ],
   // Case-sensitive: "ADE" the acronym, not "made"/"fade".
   ['ade', /\bADEs?\b|\bagentic (?:development|dev|coding) environments?\b/],
-  ['harness', /\bharness(?:es)?\b|\bagent (?:loop|scaffold\w*|runtime)s?\b/i],
+  ['harness', /\bharness(?:es)?\b|\bagent (?:loop|scaffold\w*|runtime)s?\b|하네스/i],
+  // T63: Korean words (no `\b`: Hangul isn't a word character) and their English names.
+  ['mcp', /\bMCP\b|\b(?:agent|claude) skills?\b|\bSKILL\.md\b|스킬/],
+  ['context', /\bcontext engineering\b|컨텍스트 ?엔지니어링/i],
+  ['vibe', /\bvibe[- ]coding\b|\bagentic coding\b|바이브 ?코딩|에이전틱/i],
 ];
 
 export function groupsOf(text: string): NewsGroup[] {
@@ -524,9 +567,27 @@ function writeCache(file: string, cache: NewsCache): void {
 export interface FetchReply {
   status: number;
   header(name: string): string | null;
-  text(): Promise<string>;
+  /** The body; with `maxBytes`, only its head (the rest isn't downloaded). */
+  text(maxBytes?: number): Promise<string>;
 }
 export type Fetcher = (url: string, headers: Record<string, string>) => Promise<FetchReply>;
+
+/** The first `max` bytes of a body stream as text; the rest is cancelled, not downloaded. */
+export async function readHead(
+  reader: { read(): Promise<{ done: boolean; value?: Uint8Array }>; cancel(): Promise<void> },
+  max: number,
+): Promise<string> {
+  const chunks: Uint8Array[] = [];
+  let n = 0;
+  while (n < max) {
+    const { done, value } = await reader.read();
+    if (done || !value) break;
+    chunks.push(value);
+    n += value.length;
+  }
+  if (n >= max) void reader.cancel().catch(() => {});
+  return Buffer.concat(chunks).subarray(0, max).toString('utf8');
+}
 
 const FETCH_HEADERS = { 'User-Agent': 'aquila-agents', Accept: '*/*' };
 
@@ -637,7 +698,7 @@ export class NewsService {
     const reply = await this.opts.fetcher(url, headers);
     if (reply.status === 304 && prev) return;
     if (reply.status < 200 || reply.status >= 300) throw new Error(`HTTP ${reply.status}`);
-    const text = await reply.text();
+    const text = await reply.text(s.maxBytes);
     const next: SourceCache = {
       url,
       etag: reply.header('etag') ?? undefined,
@@ -647,7 +708,7 @@ export class NewsService {
     else if (s.kind === 'releases-atom') next.releases = parseReleasesAtom(text);
     else if (s.kind === 'changelog') next.releases = parseChangelog(text, 20, reply.status === 206);
     else if (s.kind === 'hn') next.items = parseHn(text);
-    else next.items = parseFeed(text, s.id);
+    else next.items = parseFeed(text, s.id, { aiOnly: s.aiOnly, zone: s.zone });
     // The cache keeps what the tab can show (OpenAI's feed holds its whole archive).
     if (next.items) next.items = industry(next.items, now, this.cache.prevSeenAt);
     if (!next.releases?.length && !next.items?.length && s.kind !== 'hn') throw new Error('nothing parsed');
@@ -686,7 +747,12 @@ export class NewsService {
     this.summarizing = true;
     this.emit();
     try {
-      const items = this.state().industry.slice(0, 40);
+      // Both tabs: newest global and Korean items, so a busy Korean feed can't crowd out the rest (or vice versa).
+      const all = this.state().industry;
+      const items = [
+        ...all.filter((i) => NEWS_REGION[i.source] === 'global').slice(0, 28),
+        ...all.filter((i) => NEWS_REGION[i.source] === 'kr').slice(0, 12),
+      ];
       if (!items.length) throw new Error('no items');
       const text = await runClaude(summaryPrompt(items, language), configDir);
       this.cache.summary = { text, at: this.now(), language };
@@ -722,6 +788,7 @@ export function summaryPrompt(items: NewsItem[], language: Language): string {
   return [
     `Summarize what matters for a developer who uses AI coding agents (Claude Code, Codex, Cursor) in these news items.`,
     `Write 3–6 short bullet points in ${lang}, plain text with "- " bullets, no headings, no preamble.`,
+    `Items come from global and Korean sources and may be in either language.`,
     `Use only the items below; don't invent anything, don't use tools.`,
     '',
     list,
@@ -766,7 +833,10 @@ function runClaude(prompt: string, configDir: string | undefined): Promise<strin
  * Smoke: serves the trimmed real feeds in `electron/fixtures/news` instead of the network (HN: no hits), so the
  * parsers and the modal run without touching the user's cache or the internet.
  */
-/** When the fixtures were captured: smoke and capture run the news service at this time. */
+/**
+ * When the fixtures were captured: smoke and capture run the news service at this time. The Korean GeekNews and
+ * AI타임스 fixtures were captured on 2026-11-23 and their dates moved back three days to fit it.
+ */
 export const FIXTURE_NOW = Date.parse('2026-11-20T09:00:00Z');
 
 export function fixtureFetcher(dir: string): Fetcher {
@@ -780,10 +850,17 @@ export function fixtureFetcher(dir: string): Fetcher {
     [/antigravity/, 'antigravity.xml'],
     [/simonwillison/, 'simonw.xml'],
     [/latent\.space/, 'latent-space.xml'],
+    [/news\.hada\.io/, 'geeknews.xml'],
+    [/aitimes\.com/, 'aitimes.xml'],
+    [/tech\.kakao\.com/, 'kakao.xml'],
+    [/toss\.tech/, 'toss.xml'],
+    [/woowahan\.com/, 'woowahan.xml'],
+    [/medium\.com\/feed\/daangn/, 'daangn.xml'],
+    [/lycorp\.co\.jp/, 'lycorp.xml'],
   ];
   return async (url) => {
     const name = files.find(([re]) => re.test(url))?.[1];
     const body = name ? fs.readFileSync(path.join(dir, name), 'utf8') : '{"hits":[]}';
-    return { status: 200, header: () => null, text: async () => body };
+    return { status: 200, header: () => null, text: async (max) => (max ? body.slice(0, max) : body) };
   };
 }

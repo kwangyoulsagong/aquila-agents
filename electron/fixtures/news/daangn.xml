@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0" xmlns:cc="http://cyber.law.harvard.edu/rss/creativeCommonsRssModule.html">
+    <channel>
+        <title><![CDATA[당근 기술 블로그 - Medium]]></title>
+        <description><![CDATA[동네를 여는 문, 당근. 로컬의 모든 것을 연결해, 동네의 숨은 가치를 깨워요. - Medium]]></description>
+        <link>https://medium.com/daangn?source=rss----4505f82a2dbd---4</link>
+        <image>
+            <url>https://cdn-images-1.medium.com/proxy/1*TGH72Nnw24QL3iV9IOm4VA.png</url>
+            <title>당근 기술 블로그 - Medium</title>
+            <link>https://medium.com/daangn?source=rss----4505f82a2dbd---4</link>
+        </image>
+        <generator>Medium</generator>
+        <lastBuildDate>Mon, 23 Nov 2026 01:36:56 GMT</lastBuildDate>
+        <atom:link href="https://medium.com/feed/daangn" rel="self" type="application/rss+xml"/>
+        <webMaster><![CDATA[yourfriends@medium.com]]></webMaster>
+        <atom:link href="http://medium.superfeedr.com" rel="hub"/>
+        <item>
+            <title><![CDATA[Closing the GitHub Actions Monitoring Gap: Observing ARC Runners with an Exporter]]></title>
+            <link>https://medium.com/daangn/closing-the-github-actions-monitoring-gap-observing-arc-runners-with-an-exporter-0a8f39c3b70b?source=rss----4505f82a2dbd---4</link>
+            <guid isPermaLink="false">https://medium.com/p/0a8f39c3b70b</guid>
+            <category><![CDATA[programming]]></category>
+            <category><![CDATA[engineering]]></category>
+            <dc:creator><![CDATA[Yoonho Hann]]></dc:creator>
+            <pubDate>Tue, 17 Nov 2026 09:49:49 GMT</pubDate>
+            <atom:updated>2026-11-17T09:49:48.691Z</atom:updated>
+            <content:encoded><![CDATA[<p>Hi, I’m Uno from the Delivery part of Karrot’s SRE team. Our team’s mission is to run Kontrol, our internal deployment platform on Kubernetes, and manage the company-wide CI system that mostly relies on GitHub Actions. In this post I’ll introduce the exporter we built to see which Jobs are waiting and which Runner is running each Job. I’ll also share how we improved it in production.</p><p>A Workflow defines what happens when an event such as a push or pull request occurs. Each Workflow is split into Jobs such as test and build that run on execution environments called Runners. If no Runner is free, a Job waits until one becomes available.</p><pre>name: Simple                    # 1. Workflow: defines the automation<br>on:<br>  workflow_dispatch:<br>jobs:<br>  run_shell_command:            # 2. Job: the unit that gets a Runner and runs<br>    name: Actions are amazing<br>    runs-on: arc-test-runner<br>    steps:                      # 3. Step: the commands the Job executes<br>      - name: Say hello<br>        run: |<br>          echo &quot;Hello!&quot;</pre><p>Runners can be GitHub-hosted or self-hosted. At Karrot we mainly use self-hosted Runners on our own Kubernetes clusters. These are managed by a Kubernetes operator called <a href="https://github.com/actions/actions-runner-controller">ARC (Actions Runner Controller)</a>.</p><p>ARC organizes Runners into groups called Runner Scale Sets and scales each set according to Job demand. Each set defines the Runner image and]]></content:encoded>
+        </item>
+<item>
+            <title><![CDATA[GitHub Actions 모니터링의 빈칸: Exporter로 ARC Runner 관측하기]]></title>
+            <link>https://medium.com/daangn/github-actions-%EB%AA%A8%EB%8B%88%ED%84%B0%EB%A7%81%EC%9D%98-%EB%B9%88%EC%B9%B8-exporter%EB%A1%9C-arc-runner-%EA%B4%80%EC%B8%A1%ED%95%98%EA%B8%B0-cbe1a46a9e71?source=rss----4505f82a2dbd---4</link>
+            <guid isPermaLink="false">https://medium.com/p/cbe1a46a9e71</guid>
+            <category><![CDATA[programming]]></category>
+            <category><![CDATA[engineering]]></category>
+            <dc:creator><![CDATA[Yoonho Hann]]></dc:creator>
+            <pubDate>Tue, 17 Nov 2026 09:49:10 GMT</pubDate>
+            <atom:updated>2026-11-17T09:49:08.765Z</atom:updated>
+            <content:encoded><![CDATA[<p>안녕하세요, 당근 SRE팀 딜리버리 파트에서 일하고 있는 Uno(우노)예요. 딜리버리 파트는 Kubernetes 환경 기반의 사내 배포 플랫폼 Kontrol을 운영하고 GitHub Actions 중심의 전사 CI 시스템을 관리해요. 이번 글에서는 GitHub Actions를 운영하며 Job의 대기 현황과 Job을 실행 중인 Runner를 파악하기 위해 exporter를 만들고 개선한 과정을 소개할게요.</p><p>exporter를 소개하기에 앞서 GitHub Actions의 구조를 간단히 살펴볼게요. GitHub Actions에서는 push나 Pull Request 같은 이벤트가 발생했을 때 실행할 작업의 흐름을 Workflow로 정의해요. 하나의 Workflow는 테스트, 빌드처럼 여러 Job으로 나뉘어 각 Job은 Runner라는 실행 환경에 배정되어 실행되고 할당 가능한 Runner가 없으면 Job은 배정될 때까지 대기해요.</p><pre>name: Simple                    # 1. Workflow: 자동화 작업 정의<br>on:<br>  workflow_dispatch:<br>jobs:               <br>  run_shell_command:            # 2. Job: Runner 배정 및 실행 단위<br>    name: Actions are amazing<br>    runs-on: arc-test-runner<br>    steps:                      # 3. Step: 작업 실행 절차 및 명령<br>      - name: Say hello<br>        run: |<br>          echo &quot;Hello!&quot;</pre><p>GitHub Actions의 Job을 실행하는 Runner는 크게 GitHub이 관리하는 GitHub-hosted Runner와 GitHub 외부에서 운영하는 self-hosted Runner 두 가지로 나뉘어요. 당근은 Kubernetes 환경에서 직접 운영하는 self-hosted Runner를 주로 사용하고 이 Runner는 <a href="https://github.com/actions/actions-runner-controller">ARC(Actions Runner Controller)</a>라는 Kubernetes 오퍼레이터로 관리해요.</p><p>ARC는 Runner Scale Set 단위로 Runner를 관리하고 대기 중인 Job 수에 맞춰 Runner 수를 조절해요. Runner Scale Set에는 Runner의 이미지와 리소스 및 최소, 최대 수를 설정할 수 있고 Workflow의 runs-on에 Runner Scale Set을 지정하면 해당 Runner에 Job이 배정돼요.</p><figure><img alt="" src="https://cdn-images-1.medium.com/max/1024/1*Kh_ZojAmzHuvg9AO1p-3pQ.png" /><figcaption>출처: <a ]]></content:encoded>
+        </item>
+<item>
+            <title><![CDATA[국내 최초 광고 MCP를 출시하며, 개발자의 역할은 어디까지 넓어졌을까?]]></title>
+            <link>https://medium.com/daangn/%EA%B5%AD%EB%82%B4-%EC%B5%9C%EC%B4%88-%EA%B4%91%EA%B3%A0-mcp%EB%A5%BC-%EC%B6%9C%EC%8B%9C%ED%95%98%EB%A9%B0-%EA%B0%9C%EB%B0%9C%EC%9E%90%EC%9D%98-%EC%97%AD%ED%95%A0%EC%9D%80-%EC%96%B4%EB%94%94%EA%B9%8C%EC%A7%80-%EB%84%93%EC%96%B4%EC%A1%8C%EC%9D%84%EA%B9%8C-8dea7fe41c07?source=rss----4505f82a2dbd---4</link>
+            <guid isPermaLink="false">https://medium.com/p/8dea7fe41c07</guid>
+            <category><![CDATA[product-management]]></category>
+            <category><![CDATA[ai-agent]]></category>
+            <category><![CDATA[engineering]]></category>
+            <category><![CDATA[mcps]]></category>
+            <category><![CDATA[software-engineering]]></category>
+            <dc:creator><![CDATA[Jake]]></dc:creator>
+            <pubDate>Tue, 03 Nov 2026 09:27:47 GMT</pubDate>
+            <atom:updated>2026-11-03T09:27:46.027Z</atom:updated>
+            <content:encoded><![CDATA[<figure><img alt="" src="https://cdn-images-1.medium.com/max/1024/1*o_diPNkXrL4mOMOuefHDmg.png" /></figure><p>안녕하세요. 당근 광고실 광고주플랫폼팀에서 백엔드 엔지니어로 일하는 제이크(Jake)예요.</p><p>얼마 전 저희 팀 엔지니어링 매니저 Iltaek이 <a href="https://medium.com/daangn/%ED%94%84%EB%A1%A0%ED%8A%B8%EC%97%94%EB%93%9C%EC%99%80-%EB%B0%B1%EC%97%94%EB%93%9C%EB%A5%BC-%ED%95%9C-%ED%8C%80%EC%9C%BC%EB%A1%9C-%ED%95%A9%EC%B9%98%EB%A9%B4-%EC%96%B4%EB%96%A4-%EC%9D%BC%EC%9D%B4-%EC%9D%BC%EC%96%B4%EB%82%A0%EA%B9%8C-f8b32edb2eb1">프론트엔드와 백엔드를 한 팀으로 합친 이야기</a>를 글로 나눴어요. 그 글이 팀의 경계를 넘어 일하는 이야기였다면, 이번 글은 제가 당근 광고 MCP를 만들며 <strong>개발자의 역할을 넓혀 본 이야기</strong>예요.</p><p>MCP(Model Context Protocol)는 AI 서비스가 외부 서비스의 데이터를 불러올 때 쓰는 표준 연결 방식이에요. 광고주가 Claude 같은 AI 서비스에 “지난주 광고 성과 어땠어?”라고 물으면, AI가 광고 MCP를 거쳐 당근 광고의 계정 정보와 광고 정보, 성과 데이터를 가져와서 답해 줘요. 해외 광고 플랫폼에서는 구글, 메타, 아마존이 이미 MCP를 공개했고, 국내에서는 당근이 처음으로 공식 광고 MCP를 출시했어요.</p><p>저는 개발자로 이 프로젝트에 참여하는 줄 알았는데, 하다 보니 로드맵과 PRD부터 출시까지 맡아야 했어요. 이 글에서는 그 과정에서 겪은 일과, 제가 일하는 방식이 어떻게 달라졌는지 이야기해 보려고 해요.</p><h3>로드맵과 PRD를 처음 써 봤어요</h3><p>그동안은 PM과 함께 일하면서 엔지니어로서 개발에 필요한 의견을 나누고, PRD를 어떻게 구현할지 고민했어요. 그런데 이번에는 Iltaek에게 로드맵과 PRD까지 맡아 달라는 요청을 받았어요.</p><p>솔직히 요청을 받았을 때는 “이것도 개발자인 내 일인가?” 싶었어요. 로드맵은 PM이 그리는 거 아닌가, 내가 로드맵을 제시하는 게 맞나 하는 생각이 먼저 들었어요. 해 본 적 없는 일이라 부담도 됐고요.</p><p>그때 Iltaek이 오너라는 마음가짐으로 해 보라고 했어요. 그 말대로 “내 프로젝트”라고 생각하다 보니, 이 프로젝트를 더 잘되게 하려면 뭘 해야 할지 고민하게 되더라고요. 스스로 던지는 질문부터 달라졌어요.</p><figure><img alt="" src="https://cdn-images-1.medium.com/max/1024/1*kB15h43f5fHJZ6t88xKY_w.png" /></figure><p>로드맵을 그리려고 하니, 당근 광고 플]]></content:encoded>
+        </item>
+<item>
+            <title><![CDATA[모델만 바꿨는데 LLM 비용이 3배가 된 이유]]></title>
+            <link>https://medium.com/daangn/%EB%AA%A8%EB%8D%B8%EB%A7%8C-%EB%B0%94%EA%BF%A8%EB%8A%94%EB%8D%B0-llm-%EB%B9%84%EC%9A%A9%EC%9D%B4-3%EB%B0%B0%EA%B0%80-%EB%90%9C-%EC%9D%B4%EC%9C%A0-5ae60ab5108b?source=rss----4505f82a2dbd---4</link>
+            <guid isPermaLink="false">https://medium.com/p/5ae60ab5108b</guid>
+            <category><![CDATA[engineering]]></category>
+            <category><![CDATA[ai]]></category>
+            <dc:creator><![CDATA[Jaemin Seo]]></dc:creator>
+            <pubDate>Wed, 21 Oct 2026 09:28:26 GMT</pubDate>
+            <atom:updated>2026-10-21T09:28:25.046Z</atom:updated>
+            <content:encoded><![CDATA[<p>안녕하세요, 당근 커뮤니티홈팀에서 백엔드를 개발하는 제이(Jay)예요. 당근 앱의 커뮤니티 탭에는 이웃이 알려 주는 동네 정보부터 소소한 일상과 취미까지 나누는 동네생활, 모임, 카페, 아파트가 모여 있어요. 커뮤니티홈팀은 이 서비스들의 글을 한데 모아 보여 주는 피드를 맡고 있어요.</p><p>피드를 맡으며 가장 고민하는 건 사용자에게 더 알맞은 글을 어떻게 보여 줄지예요. 그래서 기존 머신러닝 추천에 더해, LLM으로 글의 다양한 메타데이터를 뽑아 추천에 쓰고 있어요. 그중 하나가 LLM에 카테고리 목록과 글을 주고 어느 주제에 속하는지 고르게 하는 주제 분류예요. 추천은 보여 줄 글 후보를 모으는 단계와 그 순서를 정하는 단계로 나뉘는데, 글마다 주제가 붙어 있으면 첫 단계부터 사용자가 관심 있는 주제의 글을 골라 올 수 있어요.</p><figure><img alt="" src="https://cdn-images-1.medium.com/max/1024/1*gMuZUjAf_-B7vdwzKsiORQ.png" /></figure><p>주제 분류를 할 때 LLM에 보내는 요청을 열어 보면 대부분이 매번 똑같은 지시문과 카테고리 목록이고, 글 본문은 끝에 조금 붙어 있을 뿐이에요. 이 글에서는 요청마다 똑같은 이 부분을 고정부라고 부를게요.</p><p>2026년 8월, 이 작업의 모델을 Gemini에서 단가가 20% 낮은 OpenAI GPT-5.6으로 바꿨어요. 응답은 정상이었고 에러도 한 건 없었어요.</p><p>닷새 뒤 보니 단가는 내렸는데 요청당 비용은 3.2배가 돼 있었어요. 원인은 프롬프트 캐시였어요. 입력 중 캐시에서 읽어 온 비율인 캐시 히트율이 85.8%에서 2.3%로 떨어져 있었죠.</p><p>교체 전후의 응답을 나란히 놓으면 달라진 곳은 사용량 정보 안의 캐시 필드 하나뿐이었어요. 캐시가 깨져도 에러는 나지 않아요. 비용만 늘어요.</p><p>이 글은 그 일을 해결하며 알게 된 것을 정리한 기록이에요. 캐시가 무엇을 재사용하는지, 비용은 어떻게 매겨지는지, 언제 켜지고 어디까지 저장되는지, 캐시에서 읽었는지는 어떻게 확인하는지를 OpenAI, Anthropic, Google Gemini를 나란히 놓고 살펴봐요. 같은 지시문에 입력만 바꿔 LLM을 대량으로 부르거나, 챗봇이나 에이전트처럼 앞부분이 같은 요청을 되풀이해 보내는 분이라면 참고가 될 거예요.</p><h3>프롬프트 캐시의 원리</h3><p>신입 검수자에게 매번 규정집 20쪽과 오늘 볼 글 한 편을 함께 준다고 해 볼게요. 규정집은 늘 같고 글만 바뀌는데, 이 검수자는 기억을 못 해서 글마다 규정집을 처음부터 다시 읽어요. 하루 10만 편이면 규정집을 10만 번 읽는 셈이에요.</p><p>LLM도 똑같이 요청마다 프롬프트 전체를 처음부터 다시 읽어요. 이 낭비를 줄이는 게 프롬프트 캐시예요.</p><h4>앞 토큰을 돌아보는 어텐션</h4><p>LLM은 글을 토큰 단위로 하나씩 이어 써요. 다음 토큰을 고르기 전에는 앞 토큰들을 돌아보며 무엇을 참고할지 따지는데,]]></content:encoded>
+        </item>
+<item>
+            <title><![CDATA[Aurora MySQL 인덱스 DDL이 Reader 버퍼풀을 비운다?]]></title>
+            <link>https://medium.com/daangn/aurora-mysql-%EC%9D%B8%EB%8D%B1%EC%8A%A4-ddl%EC%9D%B4-reader-%EB%B2%84%ED%8D%BC%ED%92%80%EC%9D%84-%EB%B9%84%EC%9A%B4%EB%8B%A4-16c6328dea50?source=rss----4505f82a2dbd---4</link>
+            <guid isPermaLink="false">https://medium.com/p/16c6328dea50</guid>
+            <category><![CDATA[data]]></category>
+            <dc:creator><![CDATA[Dmsgptpeo]]></dc:creator>
+            <pubDate>Tue, 06 Oct 2026 10:41:52 GMT</pubDate>
+            <atom:updated>2026-10-06T10:42:27.985Z</atom:updated>
+            <content:encoded><![CDATA[<h4>미사용 인덱스를 정리하다 만난 Aurora 엔진 결함, 그리고 3.14 릴리즈까지</h4><p>안녕하세요. 당근 DB팀에서 근무하고 있는 Eden(이든)이에요. 당근 DB팀에서는 Aurora MySQL / Aurora PostgreSQL 및 MongoDB 를 운영하고 있어요. 이번에 Aurora MySQL 을 운영하며 경험했던 이슈를 소개해 드리려고 해요.</p><p>“인덱스를 INVISIBLE 로 바꾸는 건 메타데이터만 건드리는 작업이니까 DB 에 부하를 주지 않는다.” DBA 라면 누구나 이렇게 말할 거예요. 저도 그랬고요. 그런데 Aurora MySQL 에서는 이 문장이 반쪽만 맞았어요. Writer 는 정말 아무 일도 없었지만, Reader 에서는 버퍼풀이 통째로 무효화되면서 CPU 와 ReadIOPS 가 동시에 튀었거든요.</p><p>오늘은 미사용 인덱스를 정리하다가 이 현상을 발견하고, 버퍼풀 안에서 무슨 일이 벌어지는지 직접 들여다보고, DDL 종류별로 재현해서 AWS 에 리포트하고, 결국 엔진 결함으로 확인되어 다음 릴리즈에 fix 가 실리기까지의 과정을 정리해 보려고 해요. Aurora MySQL 을 운영하는 분들께 실질적인 도움이 되면 좋겠어요.</p><h3>Aurora 는 Reader 의 캐시를 어떻게 동기화할까</h3><p>먼저 배경부터 짧게 짚고 갈게요. Aurora 는 인스턴스와 스토리지가 분리되어 있어요. Writer 는 데이터 페이지를 스토리지에 쓰지 않고 redo 로그만 보내고, 스토리지 계층이 그 로그로 페이지를 만들어요. Reader 는 같은 스토리지를 바라보지만 자기만의 버퍼풀을 갖고 있고요. Writer 가 어떤 페이지를 바꾸면 그 redo 로그가 Reader 에게 전달되고, Reader 는 버퍼풀에 그 페이지가 있으면 갱신해요.</p><p>이 구조에서 제가 알고 있는 규칙은 이랬어요.</p><ul><li>DDL 중에서 COPY 또는 rebuild 를 동반하는 INPLACE 알고리즘이 사용되는 경우(컬럼 타입 변경, NOT NULL 변경 등)에는 내부적으로 새 테이블을 만들어 데이터를 옮기고 옛 테이블을 지워요. InnoDB 에서는 tablespace 가 새로 생기는 것이라 (SPACE id 가 바뀜), Reader 가 갖고 있던 옛 tablespace 의 캐시 페이지는 전부 의미가 없어져요. <strong>즉 Reader 버퍼풀에서 해당 테이블의 캐시된 페이지는 소멸하게 돼요.</strong></li><li>DDL 중에서 INSTANT 또는 rebuild 없는 INPLACE 알고리즘이 사용되는 경우에는 기존 테이블의 데이터·인덱스 페이지를 손대지 않아요. 인덱스 INVISIBLE 이나 컬럼 DEFAULT 변경처럼 데이터 딕셔너리만 고치거나, CREATE INDEX 처럼 새 B-tree 를 하나 더 만들 뿐이에요. <strong>그래서 Reader 버퍼풀에서 해당 테이블의 캐시된 페이지는 그대로 유지돼야 해요.</strong></li></ul><p>두 번째 줄이 오늘 이야기의 전제이자, 깨진 ]]></content:encoded>
+        </item>
+</channel>
+</rss>

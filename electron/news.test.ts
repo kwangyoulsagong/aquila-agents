@@ -13,6 +13,10 @@ import {
   mergeReleases,
   NewsService,
   parseCache,
+  parseDate,
+  readHead,
+  summaryPrompt,
+  AI_TOPIC,
   parseChangelog,
   parseFeed,
   parseHn,
@@ -26,7 +30,7 @@ import {
   type FetchReply,
   type Fetcher,
 } from './news';
-import type { NewsItem } from '../src/shared/api/types';
+import { NEWS_REGION, type NewsItem } from '../src/shared/api/types';
 
 const fixture = (name: string) => fs.readFileSync(path.join(__dirname, 'fixtures', 'news', name), 'utf8');
 const NOW = Date.parse('2026-11-20T09:00:00Z');
@@ -313,6 +317,17 @@ describe('NewsService', () => {
     if (url.includes('antigravity')) return { status: 200, body: fixture('antigravity.xml') };
     if (url.includes('simonwillison')) return { status: 200, body: fixture('simonw.xml') };
     if (url.includes('latent.space')) return { status: 200, body: fixture('latent-space.xml') };
+    const kr: [string, string][] = [
+      ['news.hada.io', 'geeknews.xml'],
+      ['aitimes.com', 'aitimes.xml'],
+      ['tech.kakao.com', 'kakao.xml'],
+      ['toss.tech', 'toss.xml'],
+      ['woowahan.com', 'woowahan.xml'],
+      ['medium.com/feed/daangn', 'daangn.xml'],
+      ['lycorp.co.jp', 'lycorp.xml'],
+    ];
+    const k = kr.find(([host]) => url.includes(host));
+    if (k) return { status: 200, body: fixture(k[1]) };
     return { status: 200, body: '{"hits":[]}' };
   };
   type Call = { url: string; headers: Record<string, string> };
@@ -372,6 +387,12 @@ describe('NewsService', () => {
     expect(svc.isKnownUrl(s.industry[0].url)).toBe(true);
     expect(svc.isKnownUrl('https://evil.example/')).toBe(false);
     expect(svc.isKnownUrl('file:///etc/passwd')).toBe(false);
+    // Korea tab (T63): GeekNews, AI타임스 and at least one tech blog.
+    const krSources = new Set(s.industry.filter((i) => NEWS_REGION[i.source] === 'kr').map((i) => i.source));
+    expect(krSources.has('geeknews')).toBe(true);
+    expect(krSources.has('aitimes')).toBe(true);
+    expect(['kakao', 'toss', 'woowahan', 'daangn', 'lycorp'].some((b) => krSources.has(b as never))).toBe(true);
+    expect(calls.find((c) => c.url.includes('toss.tech'))?.headers.Range).toBe('bytes=0-65535');
 
     // Opened (first time): seen, persisted, nothing pruned yet.
     expect(svc.opened().seenAt).toBe(now);
@@ -430,5 +451,86 @@ describe('NewsService', () => {
     });
     await Promise.all([svc.refresh(), svc.refresh()]);
     expect(calls).toHaveLength(SOURCES.length);
+  });
+});
+
+describe('Korea (T63)', () => {
+  it('GeekNews (Atom): AI items only', () => {
+    const items = parseFeed(fixture('geeknews.xml'), 'geeknews', { aiOnly: true });
+    const all = parseFeed(fixture('geeknews.xml'), 'geeknews');
+    expect(all.length).toBe(20);
+    expect(items.length).toBeGreaterThan(2);
+    expect(items.length).toBeLessThan(all.length);
+    expect(items.every((i) => i.url.startsWith('https://news.hada.io/'))).toBe(true);
+    expect(items.some((i) => i.title.includes('Inkling, Qwen'))).toBe(true);
+    expect(items.some((i) => i.title.includes('델타항공'))).toBe(false);
+  });
+
+  it('AI타임스: dates without an offset are Korean time', () => {
+    expect(parseDate('2026-11-20 09:00:00', '+09:00')).toBe(Date.parse('2026-11-20T00:00:00Z'));
+    expect(parseDate('Fri, 20 Nov 2026 02:00:00 GMT', '+09:00')).toBe(Date.parse('2026-11-20T02:00:00Z'));
+    const items = parseFeed(fixture('aitimes.xml'), 'aitimes', { zone: '+09:00' });
+    expect(items).toHaveLength(16);
+    expect(items[0].publishedAt).toBe(Date.parse('2026-11-20T00:00:00Z'));
+  });
+
+  it('Toss: a feed cut off mid-item (head only) keeps the whole items', () => {
+    const items = parseFeed(fixture('toss.xml'), 'toss');
+    expect(items.length).toBeGreaterThanOrEqual(7);
+    expect(items.every((i) => i.url.startsWith('https://toss.tech/'))).toBe(true);
+  });
+
+  it('company blogs: AI posts kept, others dropped', () => {
+    const lycorp = parseFeed(fixture('lycorp.xml'), 'lycorp', { aiOnly: true }).map((i) => i.title);
+    expect(lycorp.some((t) => t.includes('가드레일'))).toBe(true);
+    expect(lycorp.some((t) => t.includes('DEF CON'))).toBe(false);
+    for (const [name, id] of [
+      ['kakao.xml', 'kakao'],
+      ['woowahan.xml', 'woowahan'],
+      ['daangn.xml', 'daangn'],
+    ] as const)
+      expect(parseFeed(fixture(name), id).length).toBeGreaterThan(0);
+  });
+
+  it('the AI filter reads Korean and English', () => {
+    expect(AI_TOPIC.test('AI 에이전트를 위한 멀티모달 모델')).toBe(true);
+    expect(AI_TOPIC.test('LLM이 만든 SQL을 믿고 실행하기까지')).toBe(true);
+    expect(AI_TOPIC.test('토스뱅크가 패키지를 관리하는 방식')).toBe(false);
+    expect(AI_TOPIC.test('HTML email templates')).toBe(false);
+  });
+
+  it('Korean keywords bucket items', () => {
+    expect(groupsOf('Claude Code 하네스 설계')).toEqual(['harness']);
+    expect(groupsOf('서브에이전트로 병렬 작업')).toEqual(['subagent']);
+    expect(groupsOf('훅으로 알림 보내기')).toEqual(['hook']);
+    expect(groupsOf('국내 최초 광고 MCP 출시')).toEqual(['mcp']);
+    expect(groupsOf('모두의 AI 스킬로 만들기')).toEqual(['mcp']);
+    expect(groupsOf('컨텍스트 엔지니어링 입문')).toEqual(['context']);
+    expect(groupsOf('바이브코딩 회고')).toEqual(['vibe']);
+    expect(groupsOf('에이전틱 AI 시대')).toEqual(['vibe']);
+    // The fixtures: at least one Korean item lands in a group.
+    const kr = [
+      ...parseFeed(fixture('geeknews.xml'), 'geeknews', { aiOnly: true }),
+      ...parseFeed(fixture('aitimes.xml'), 'aitimes', { zone: '+09:00' }),
+      ...parseFeed(fixture('toss.xml'), 'toss', { aiOnly: true }),
+      ...parseFeed(fixture('daangn.xml'), 'daangn', { aiOnly: true }),
+      ...parseFeed(fixture('lycorp.xml'), 'lycorp', { aiOnly: true }),
+    ];
+    expect(kr.some((i) => i.groups.length > 0)).toBe(true);
+  });
+
+  it('reads only the head of a body and cancels the rest', async () => {
+    const chunks = [new Uint8Array(40).fill(65), new Uint8Array(40).fill(66), new Uint8Array(40).fill(67)];
+    const cancel = vi.fn(async () => {});
+    let i = 0;
+    const reader = { read: async () => (i < chunks.length ? { done: false, value: chunks[i++] } : { done: true }), cancel };
+    const text = await readHead(reader, 50);
+    expect(text).toBe('A'.repeat(40) + 'B'.repeat(10));
+    expect(i).toBe(2);
+    expect(cancel).toHaveBeenCalled();
+  });
+
+  it('the summary prompt says items may be Korean', () => {
+    expect(summaryPrompt([], 'ko')).toMatch(/Korean sources/);
   });
 });

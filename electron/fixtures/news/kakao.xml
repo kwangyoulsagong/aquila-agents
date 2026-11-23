@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
+    <channel>
+        <title><![CDATA[tech.kakao.com]]></title>
+        <description><![CDATA[카카오테크, 미래의 문턱을 낮추는 기술]]></description>
+        <link>https://tech.kakao.com</link>
+        <generator>RSS for Node</generator>
+        <lastBuildDate>Mon, 23 Nov 2026 01:43:47 GMT</lastBuildDate>
+        <atom:link href="https://tech.kakao.com/feed/" rel="self" type="application/rss+xml"/>
+        <item>
+            <title><![CDATA[같은 GPU로 더 많은 AI 요청을 처리할 수 있을까? ― KV 캐시 오프로딩 × EPP 라우팅: 계산 결과를 오래 남기고, 다음 요청이 그 결과를 찾아가게 하기]]></title>
+            <description><![CDATA[
+“같은 GPU 32장, 같은 요청 3,456건. 처리 시간이 121.7분에서 47.2분으로 줄었습니다. GPU도 모델도 바꾸지 않았습니다. 바꾼 것은 두 가지입니다. 이미 계산한 결과를 GPU 밖에도 보관할 수 있게 했고, 같은 문서를 묻는 다음
+요청이 그 결과를 가진 서버로 가게 했습니다.”
+
+저희 팀은 사내 서비스가 쓰는 LLM 추론 플랫폼을 운영합니다. 모델을 GPU에 올리는 일부터 요청을 GPU로 나눠 보내는 게이트웨이까지 맡고 있습니다. 그래...]]></description>
+            <link>https://tech.kakao.com/posts/848</link>
+            <guid isPermaLink="false">https://tech.kakao.com/posts/848</guid>
+            <category><![CDATA[blog]]></category>
+            <dc:creator><![CDATA[raw.data / tony.chopper / evan.nave]]></dc:creator>
+            <pubDate>Tue, 17 Nov 2026 15:00:00 GMT</pubDate>
+            <thumbnail>https://t1.kakaocdn.net/kakao_tech/media/ec50ff3b01a100001.png</thumbnail>
+        </item>
+<item>
+            <title><![CDATA[if(kakao)26 현장 스케치]]></title>
+            <description><![CDATA[지난 10월 13일과 14일, 카카오 AI 캠퍼스에서 if(kakao)26이 열렸습니다. ‘모든 연결에 지능을’이라는 주제 아래, 카카오가 만들어가는 AI 기술과 서비스를 소개하고 개발과 운영 과정에서 쌓은 경험을 나눴습니다. 현장과 온라인으로 함께해주신 모든 분께 감사드립니다.
+올해 행사를 준비하며 집중한 것은 기술 세션과 만남이었습니다. 카카오가 도달한 지점과 아직 풀고 있는 문제를 솔직하게 공유하고, 비슷한 고민을 가진 사람들이 서로의 경험을 나눌...]]></description>
+            <link>https://tech.kakao.com/posts/849</link>
+            <guid isPermaLink="false">https://tech.kakao.com/posts/849</guid>
+            <category><![CDATA[blog]]></category>
+            <category><![CDATA[events]]></category>
+            <dc:creator><![CDATA[sue.cream / kakao tech]]></dc:creator>
+            <pubDate>Mon, 16 Nov 2026 15:00:00 GMT</pubDate>
+            <thumbnail>https://t1.kakaocdn.net/kakao_tech/media/e799beca01a100001.jpg</thumbnail>
+        </item>
+<item>
+            <title><![CDATA[잘 만들었다면, 잘 배운 것일까? : 카카오테크 캠퍼스가 고민한 주니어 개발자의 성장]]></title>
+            <description><![CDATA[
+안녕하세요. 카카오 기술인재양성팀의 Elphie입니다.
+저는 기술인재양성팀에서 예비 개발자 성장을 지원하는 사회 공헌 교육 “카카오테크 캠퍼스”를 기획/운영하고 있습니다. 개발자를 꿈꾸는 사람들이 무엇을 어떻게 배우면 좋을지 고민하는 일을 좋아하고, 주로 하고 있습니다.
+올해 카카오테크 캠퍼스 참여 학생들은 그 어느 때보다도 코딩 에이전트를 적극적으로 활용해 학습했습니다. 과제에 대한 결과물을 완성하는 속도가 눈에 띄게 빨라졌고, 퀄리티도 좋아졌습니다...]]></description>
+            <link>https://tech.kakao.com/posts/847</link>
+            <guid isPermaLink="false">https://tech.kakao.com/posts/847</guid>
+            <category><![CDATA[blog]]></category>
+            <dc:creator><![CDATA[elphie.hb]]></dc:creator>
+            <pubDate>Sun, 08 Nov 2026 15:00:00 GMT</pubDate>
+            <thumbnail>https://t1.kakaocdn.net/kakao_tech/media/bdf21f2601a100001.png</thumbnail>
+        </item>
+<item>
+            <title><![CDATA[AI 에이전트를 위한 멀티모달 의사결정 모델 ‘Kanana-2-v-decide’ 오픈소스 공개]]></title>
+            <description><![CDATA[
+안녕하세요, 카카오 Applied AI Model팀의 Shawn(정성효), Michael(이주영)입니다.
+고객 문의를 분류하고, 상품 사진을 확인하고, 에이전트가 다음 작업에 사용할 도구를 고르는 일. 서비스에는 긴 답변보다 명확한 판단이 필요한 순간이 많습니다. 특히 AI 에이전트는 하나의 요청을 처리하는 동안 이러한 판단을 여러 차례 반복합니다. Agentic AI 시대에 각 단계에서 필요한 판단 결과를 빠르게 얻고, 이를 서비스의 다음 동작으로 ...]]></description>
+            <link>https://tech.kakao.com/posts/846</link>
+            <guid isPermaLink="false">https://tech.kakao.com/posts/846</guid>
+            <category><![CDATA[blog]]></category>
+            <dc:creator><![CDATA[shawn.hyo / michael.l22]]></dc:creator>
+            <pubDate>Thu, 05 Nov 2026 15:00:00 GMT</pubDate>
+            <thumbnail>https://t1.kakaocdn.net/kakao_tech/media/a992c6d001a100001.jpeg</thumbnail>
+        </item>
+<item>
+            <title><![CDATA[옮기는 것보다 증명이 어렵다]]></title>
+            <description><![CDATA[클레임 검색 색인의 CDC 전환과 검증 기록
+요약
+커머스 클레임(취소·교환·반품) 검색 색인의 변경 수집 방식을 변경 알림 기반에서 데이터베이스 변경 로그 기반, 즉 CDC로 전환했습니다. 기존 구조에서는 알림이 발행되지 않은 변경이 색인에 반영되지 않았고, 건의 체류 시간을 계산하는 기준시각이 무관한 필드 수정에 갱신되는 문제가 있었습니다.
+전환보다 어려웠던 작업은 새 색인이 맞다는 것을 보이는 일이었습니다. 누락·값·지연 세 축으로 대조한 결과, 보...]]></description>
+            <link>https://tech.kakao.com/posts/845</link>
+            <guid isPermaLink="false">https://tech.kakao.com/posts/845</guid>
+            <category><![CDATA[blog]]></category>
+            <dc:creator><![CDATA[eric.signal]]></dc:creator>
+            <pubDate>Mon, 02 Nov 2026 15:00:00 GMT</pubDate>
+            <thumbnail>https://t1.kakaocdn.net/kakao_tech/media/9f290b0601a100002.png</thumbnail>
+        </item>
+<item>
+            <title><![CDATA[팀이 신뢰할 수 있는 AI 분석 환경 만들기: 추천팀의 컨텍스트 설계]]></title>
+            <description><![CDATA[안녕하세요. 카카오톡 숏폼 추천 모델을 개발하고 있는 루퍼트(rupert)입니다.
+저희 추천팀은 추천 지표 분석에 AI 에이전트를 사용합니다.
+AI 에이전트에게 분석을 요청하면, 에이전트가 미리 정리해 둔 지침 문서(CLAUDE.md)를 읽고 SQL을 작성해 기존 Hadoop 환경에서 실행한 뒤 집계 결과를 리포트로 완성합니다. 지난 글에서는 데이터 엔지니어, 분석가만 알고 있던 로그 데이터 접근 방법과 분석 기준을 AI를 통해 조회하는 사례를 소개했습...]]></description>
+            <link>https://tech.kakao.com/posts/844</link>
+            <guid isPermaLink="false">https://tech.kakao.com/posts/844</guid>
+            <category><![CDATA[blog]]></category>
+            <dc:creator><![CDATA[rupert.kim]]></dc:creator>
+            <pubDate>Tue, 27 Oct 2026 15:00:00 GMT</pubDate>
+            <thumbnail>https://t1.kakaocdn.net/kakao_tech/media/803f5fcd01a100001.png</thumbnail>
+        </item>
+</channel>
+</rss>

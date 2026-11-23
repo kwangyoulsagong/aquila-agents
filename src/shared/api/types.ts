@@ -575,10 +575,42 @@ export type NewsSourceId =
   | 'antigravity'
   | 'simonw'
   | 'latent-space'
-  | 'hn';
+  | 'hn'
+  // Korea (T63)
+  | 'geeknews'
+  | 'aitimes'
+  | 'kakao'
+  | 'toss'
+  | 'woowahan'
+  | 'daangn'
+  | 'lycorp';
+
+/** The industry tab's Global / Korea switch (T63). */
+export type NewsRegion = 'global' | 'kr';
+
+/** Which industry sources are Korean; CLI sources count as global. */
+export const NEWS_REGION: Record<NewsSourceId, NewsRegion> = {
+  'claude-code': 'global',
+  'claude-changelog': 'global',
+  codex: 'global',
+  'codex-latest': 'global',
+  openai: 'global',
+  cursor: 'global',
+  antigravity: 'global',
+  simonw: 'global',
+  'latent-space': 'global',
+  hn: 'global',
+  geeknews: 'kr',
+  aitimes: 'kr',
+  kakao: 'kr',
+  toss: 'kr',
+  woowahan: 'kr',
+  daangn: 'kr',
+  lycorp: 'kr',
+};
 
 /** Keyword groups of the "Industry" tab. */
-export type NewsGroup = 'subagent' | 'hook' | 'agentView' | 'ade' | 'harness';
+export type NewsGroup = 'subagent' | 'hook' | 'agentView' | 'ade' | 'harness' | 'mcp' | 'context' | 'vibe';
 
 /** One industry item: title, link and a short excerpt only. */
 export interface NewsItem {

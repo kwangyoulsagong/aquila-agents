@@ -4,9 +4,11 @@ import type {
   CliTool,
   NewsGroup,
   NewsItem,
+  NewsRegion,
   NewsSourceId,
   NewsState,
 } from '@/shared/api';
+import { NEWS_REGION } from '@/shared/api';
 import type { Translate } from '@/shared/i18n';
 
 export const TOOL_NAMES: Record<CliTool, string> = { claude: 'Claude Code', codex: 'Codex' };
@@ -23,9 +25,29 @@ export const SOURCE_NAMES: Record<NewsSourceId, string> = {
   simonw: 'Simon Willison',
   'latent-space': 'Latent Space',
   hn: 'Hacker News',
+  geeknews: 'GeekNews',
+  aitimes: 'AI타임스',
+  kakao: '카카오 기술 블로그',
+  toss: '토스 테크',
+  woowahan: '우아한형제들 기술블로그',
+  daangn: '당근 테크 블로그',
+  lycorp: 'LY Corporation Tech Blog',
 };
 
-export const GROUP_ORDER: readonly NewsGroup[] = ['subagent', 'hook', 'agentView', 'ade', 'harness'];
+export const GROUP_ORDER: readonly NewsGroup[] = [
+  'subagent',
+  'hook',
+  'agentView',
+  'ade',
+  'harness',
+  'mcp',
+  'context',
+  'vibe',
+];
+
+/** The industry tab's Global / Korea switch (T63). */
+export const inRegion = (items: NewsItem[], region: NewsRegion): NewsItem[] =>
+  items.filter((i) => NEWS_REGION[i.source] === region);
 
 export type TrendsTab = 'cli' | 'industry';
 
