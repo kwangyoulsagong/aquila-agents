@@ -44,6 +44,7 @@
 | `--color-action-primary(-hover)` | 주요 버튼 |
 | `--color-agent-claude` / `-codex` / `-shell` | 세션 종류 |
 | `--color-account-shared` / `-personal` | Claude 계정 배지 (`claude` / `claude-personal`) |
+| `--color-graph-note` / `-tag` / `-code` / `-missing` / `-other` / `-edge` / `-focus` | 지식 그래프 캔버스 (T66): 노드 종류, 연결선, 선택한 노트. WebGL은 CSS를 못 읽어서 패널이 `getComputedStyle`로 값을 읽고, 테마가 바뀌면 다시 읽음 |
 | `--color-diff-*` | diff 추가 / 삭제 / 헝크 |
 | `--color-terminal-*` | xterm 테마 (실행 중에 읽고, 테마가 바뀌면 다시 읽음): 배경, 글자, 커서, 선택, 스크롤바(+ `-hover`), 찾기 일치 `-match` / `-match-active`(불투명 `#RRGGBB` — xterm 데코레이션이 요구; 호박색). 라이트에선 xterm `minimumContrastRatio`를 4.5로 둬서 다크 배경용으로 고른 CLI 색도 읽혀요 |
 

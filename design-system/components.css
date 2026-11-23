@@ -886,6 +886,38 @@ body {
 .c-graph__node[data-mark='change'] { color: var(--color-status-working); }
 .c-graph__node[data-dim], .c-graph__edge[data-dim] { opacity: 0.25; }
 
+/* ── Knowledge graph (T66): WebGL canvas host + overlays ─── */
+.c-kgraph { position: relative; flex: 1; min-height: 0; overflow: hidden; background: var(--color-bg-canvas); }
+.c-kgraph__canvas { position: absolute; inset: 0; }
+.c-kgraph__legend {
+  position: absolute; left: var(--space-inset-md); bottom: var(--space-inset-md); z-index: 1;
+  max-width: calc(100% - var(--space-inset-md) * 2); display: flex; flex-wrap: wrap; gap: var(--space-inline-xs) var(--space-inset-md);
+  padding: var(--space-inline-xs) var(--space-inset-sm); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-control);
+  background: var(--color-bg-surface); font-size: var(--font-size-caption); color: var(--color-text-tertiary); pointer-events: none;
+}
+.c-kgraph__key { display: inline-flex; align-items: center; gap: var(--space-inline-xs); white-space: nowrap; }
+.c-kgraph__swatch { flex: none; width: var(--size-dot); height: var(--size-dot); border-radius: 50%; background: var(--color-graph-note); }
+.c-kgraph__swatch[data-kind='tag'] { background: var(--color-graph-tag); }
+.c-kgraph__swatch[data-kind='code'] { background: var(--color-graph-code); }
+.c-kgraph__swatch[data-kind='missing'] { background: transparent; box-shadow: inset 0 0 0 1px var(--color-graph-missing); }
+.c-kgraph__swatch[data-kind='other'] { background: var(--color-graph-other); }
+.c-kgraph__line { width: var(--space-inset-md); border-top: 1px solid var(--color-text-secondary); }
+.c-kgraph__line[data-line='dashed'] { border-top-style: dashed; }
+.c-kgraph__line[data-line='dotted'] { border-top-style: dotted; }
+.c-kgraph__card {
+  position: absolute; top: var(--space-inset-md); left: var(--space-inset-md); right: var(--space-inset-md); z-index: 1;
+  display: flex; align-items: center; gap: var(--space-inline-sm); padding: var(--space-inset-sm) var(--space-inset-md);
+  border: 1px solid var(--color-border-subtle); border-radius: var(--radius-container); background: var(--color-bg-surface);
+}
+.c-kgraph__card-text { flex: 1; min-width: 0; }
+.c-kgraph__card-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.c-kgraph__card-detail {
+  font-family: var(--font-family-mono); font-size: var(--font-size-caption); color: var(--color-text-tertiary);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.c-kgraph__card-actions { flex: none; display: flex; gap: var(--space-inline-xs); }
+.c-kgraph > .c-empty { position: absolute; inset: 0; z-index: 1; }
+
 /* ── Steps (a plan to tick, T64) ──────────────────────────── */
 .c-steps { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; border: 1px solid var(--color-border-subtle); border-radius: var(--radius-control); }
 .c-steps__item { display: flex; align-items: flex-start; gap: var(--space-inline-sm); padding: var(--space-inset-sm) var(--space-inset-md); }

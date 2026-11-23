@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { addSource, mergeStatus, readSources, SourceError, sourceId, tildify, writeSources } from './index';
+import { addSource, GraphService, mergeStatus, readSources, SourceError, sourceId, tildify, writeSources } from './index';
 
 const HOME = '/Users/me';
 
@@ -63,5 +63,28 @@ describe('mergeStatus', () => {
       ['c', 'indexing', 0],
     ]);
     expect(st).toMatchObject({ notes: 3, edges: 2, version: 4 });
+  });
+});
+
+describe('notePath', () => {
+  it('only gives back Markdown files inside an enabled source', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'aquila-notepath-'));
+    const notes = path.join(dir, 'notes');
+    const off = path.join(dir, 'off');
+    fs.mkdirSync(notes);
+    fs.mkdirSync(off);
+    for (const f of [path.join(notes, 'a.md'), path.join(notes, 'a.txt'), path.join(off, 'b.md'), path.join(dir, 'c.md')])
+      fs.writeFileSync(f, '# x');
+    writeSources(path.join(dir, 'sources.json'), [
+      { id: 'notes', path: notes, enabled: true },
+      { id: 'off', path: off, enabled: false },
+    ]);
+    const g = new GraphService({ dir, workerFile: '/nope', saver: false, projects: () => [], onStatus: () => {} });
+    expect(g.notePath(path.join(notes, 'a.md'))).toBe(path.join(notes, 'a.md'));
+    expect(g.notePath(path.join(notes, '..', 'c.md'))).toBeNull();
+    expect(g.notePath(path.join(notes, 'a.txt'))).toBeNull();
+    expect(g.notePath(path.join(off, 'b.md'))).toBeNull();
+    expect(g.notePath(path.join(notes, 'gone.md'))).toBeNull();
+    fs.rmSync(dir, { recursive: true, force: true });
   });
 });

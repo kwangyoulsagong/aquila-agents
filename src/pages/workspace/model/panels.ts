@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 
 /** The right-hand side panels. */
-export type PanelId = 'changes' | 'run' | 'preview';
+export type PanelId = 'changes' | 'run' | 'preview' | 'graph';
 
 /** How many side panels fit next to the sidebar and the terminal's minimum width (always at least one). */
 export function panelsThatFit(

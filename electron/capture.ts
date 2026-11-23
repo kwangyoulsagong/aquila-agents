@@ -504,6 +504,21 @@ export async function runCapture(
       },
       after: () => press('Escape', [], 400),
     },
+    {
+      // Notes graph (T66): the smoke's three fixture folders as sources, ⌘⇧N, one note selected, its neighbours lit.
+      id: 'graph',
+      rect: FULL,
+      stage: async () => {
+        const fixtures = path.join(__dirname, '..', '..', 'electron', 'fixtures', 'graph');
+        for (const dir of ['meetings', 'specs', 'memos'])
+          await js(`window.aquila.graphAddSource(${JSON.stringify(path.join(fixtures, dir))}).catch(() => null)`);
+        await js('window.__graphSettled = null');
+        await press('N', ['meta', 'shift'], 400);
+        await waitFor(`!!window.__graphSettled && window.__graphSettled.nodes > 3`, 15_000);
+        await wait(600);
+      },
+      after: () => press('N', ['meta', 'shift'], 400),
+    },
     { id: 'restore', rect: FULL },
     { id: 'power', rect: TOP_LEFT },
     {

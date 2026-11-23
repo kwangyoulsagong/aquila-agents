@@ -108,6 +108,7 @@ export function appMenuTemplate(t: Translate, opts: MenuOptions, send: (c: MenuC
         sc(t('changes.toggle'), 'toggleChanges'),
         sc(t('preview.toggle'), 'togglePreview'),
         sc(t('run.toggle'), 'toggleRun'),
+        sc(t('graph.toggle'), 'toggleGraph'),
         sc(t('history.title'), 'history'),
         sep,
         { role: 'togglefullscreen', label: t('menu.nativeFullScreen') },

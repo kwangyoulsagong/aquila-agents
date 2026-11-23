@@ -21,6 +21,7 @@ export const SHEET: readonly { titleKey: Key; rows: readonly SheetRow[] }[] = [
       { id: 'toggleChanges', labelKey: 'changes.toggle', ids: ['toggleChanges'] },
       { id: 'togglePreview', labelKey: 'preview.toggle', ids: ['togglePreview'] },
       { id: 'toggleRun', labelKey: 'run.toggle', ids: ['toggleRun'] },
+      { id: 'toggleGraph', labelKey: 'graph.toggle', ids: ['toggleGraph'] },
       { id: 'history', labelKey: 'history.title', ids: ['history'] },
     ],
   },

@@ -2,6 +2,9 @@
 // while every session streams agent-like output. Prints one JSON line `[perf] {...}` and exits 0.
 // Numbers: CPU % per process type (app.getAppMetrics), renderer memory, session:data messages/s reaching the
 // renderer, and renderer frames (fps, longest gap) — the "does it stay smooth" part.
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { app, type BrowserWindow } from 'electron';
 import type { SessionManager } from './sessions';
 
@@ -120,8 +123,93 @@ export async function runPerf(win: BrowserWindow, sessions: SessionManager) {
     );
   }
 
+  const graph = await measureGraph(win);
+
   console.log(
-    `[perf] ${JSON.stringify({ sessions: ids.length, visible, idle, streaming, flood: { ...flood, ctrlCMs } })}`,
+    `[perf] ${JSON.stringify({ sessions: ids.length, visible, idle, streaming, flood: { ...flood, ctrlCMs }, graph })}`,
   );
   void sessions.killAll().finally(() => app.exit(0));
+}
+
+const GRAPH_NOTES = 2000;
+
+/** 2,000 generated notes: a written link or two each, a tag of 20, a shared ID of 300, a mention of another title. */
+function writeNotes(dir: string): void {
+  fs.mkdirSync(dir, { recursive: true });
+  for (let i = 0; i < GRAPH_NOTES; i++) {
+    const link = (i * 7 + 3) % GRAPH_NOTES;
+    const body = [
+      `# Note ${String(i).padStart(4, '0')} about topic${i % 50}`,
+      '',
+      `Follows [[Note ${String(link).padStart(4, '0')} about topic${link % 50}]] and touches DB-${i % 300}.`,
+      i % 3 === 0 ? `See also [[Note ${String((i + 1) % GRAPH_NOTES).padStart(4, '0')} about topic${(i + 1) % 50}]].` : '',
+      '',
+      `#group${i % 20}`,
+    ].join('\n');
+    fs.writeFileSync(path.join(dir, `note-${i}.md`), body);
+  }
+}
+
+/** Main-process memory (MB): the graph index worker is a thread of it. */
+const browserMB = () =>
+  Math.round(app.getAppMetrics().filter((m) => m.type === 'Browser').reduce((a, m) => a + m.memory.workingSetSize, 0) / 1024);
+
+/**
+ * Knowledge graph budget (T63–T71): index 2,000 notes, then idle with the graph closed, open (layout until settled,
+ * then idle), wheel-zoom it, and closed again. Main memory before / after indexing, layout time, frames while zooming.
+ */
+async function measureGraph(win: BrowserWindow) {
+  const js = <T>(code: string) => win.webContents.executeJavaScript(code) as Promise<T>;
+  const dir = path.join(os.tmpdir(), `aquila-perf-notes-${process.pid}`);
+  writeNotes(dir);
+  const mainBefore = browserMB();
+  const t0 = Date.now();
+  await js(`window.aquila.graphAddSource(${JSON.stringify(dir)})`);
+  let notes = 0;
+  for (let i = 0; i < 600 && notes < GRAPH_NOTES; i++) {
+    await wait(100);
+    notes = await js<number>(`window.aquila.graphStatus().then((s) => s.sources.find((x) => x.state === 'ready')?.notes ?? 0)`);
+  }
+  const indexMs = Date.now() - t0;
+  await wait(2000); // code names, index save
+  const mainAfter = browserMB();
+  const closedIdle = await measure(win, 5000);
+
+  await js('window.__graphSettled = null');
+  press(win, 'N', ['meta', 'shift']);
+  let settled: { nodes: number; ms: number; iterations: number; via: string } | null = null;
+  for (let i = 0; i < 200 && !settled; i++) {
+    await wait(100);
+    settled = await js('window.__graphSettled ?? null');
+  }
+  await wait(500);
+  const openIdle = await measure(win, 5000);
+  const box = await js<{ x: number; y: number } | null>(`(() => {
+    const r = document.querySelector('.c-kgraph')?.getBoundingClientRect();
+    return r ? { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) } : null;
+  })()`);
+  let zoom = null;
+  if (box) {
+    const zooming = measure(win, 3000);
+    for (let i = 0; i < 60; i++) {
+      win.webContents.sendInputEvent({ type: 'mouseWheel', x: box.x, y: box.y, deltaX: 0, deltaY: i < 30 ? -40 : 40 });
+      await wait(45);
+    }
+    zoom = await zooming;
+  }
+  press(win, 'N', ['meta', 'shift']);
+  await wait(1000);
+  const canvases = await js<number>(`document.querySelectorAll('.c-kgraph canvas').length`);
+  const reclosedIdle = await measure(win, 5000);
+  fs.rmSync(dir, { recursive: true, force: true });
+  return {
+    notes,
+    indexMs,
+    mainMB: { before: mainBefore, after: mainAfter, index: mainAfter - mainBefore },
+    layout: settled,
+    closedIdle: { cpu: closedIdle.cpu, cpuTotal: closedIdle.cpuTotal, wakeupsPerSec: closedIdle.wakeupsPerSec },
+    openIdle: { cpu: openIdle.cpu, cpuTotal: openIdle.cpuTotal, fps: openIdle.fps, rendererMB: openIdle.rendererMB },
+    zoom: zoom && { fps: zoom.fps, maxFrameGapMs: zoom.maxFrameGapMs, cpu: zoom.cpu },
+    reclosedIdle: { cpu: reclosedIdle.cpu, cpuTotal: reclosedIdle.cpuTotal, canvasesLeft: canvases },
+  };
 }
