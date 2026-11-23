@@ -11,8 +11,8 @@ import type {
 export type GraphMode = 'now' | 'after';
 
 // Geometry on the 4px grid (SVG user units).
-export const NODE_W = 152;
-export const NODE_H = 36;
+export const NODE_W = 160;
+export const NODE_H = 44;
 const ROW_GAP = 8;
 const COL_GAP = 56;
 const PAD = 8;

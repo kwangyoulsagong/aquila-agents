@@ -34,8 +34,6 @@ export interface GraphColumnLabel {
   label: string;
 }
 
-const GLYPH = { add: '+', change: '~', unfit: '×' } as const;
-
 /**
  * `.c-graph` — a static node graph in SVG: boxes, curved edges and column headings, all placed by the caller.
  * Renders on change only (no animation loop); fades and marks come from CSS (`--motion-*`, off under reduced motion).
@@ -59,7 +57,10 @@ export function Graph({
   children?: ReactNode;
 }) {
   return (
-    <svg className="c-graph" width={width} height={height} viewBox={`0 0 ${width} ${height}`} role="img" aria-label={label}>
+    <svg
+      className="c-graph"
+      data-marked={nodes.some((n) => n.mark) || undefined}
+      width={width} height={height} viewBox={`0 0 ${width} ${height}`} role="img" aria-label={label}>
       {columns.map((c) => (
         <text key={c.label} className="c-graph__column" x={c.x} y={c.y}>
           {c.label}
@@ -78,20 +79,16 @@ export function Graph({
           transform={`translate(${n.x} ${n.y})`}
         >
           <title>{[n.label, n.markLabel, n.title].filter(Boolean).join(' · ')}</title>
-          <rect className="c-graph__box" width={n.width} height={n.height} rx={6} />
-          <text className="c-graph__label" x={12} y={n.detail ? 15 : n.height / 2 + 4}>
+          <rect className="c-graph__box" width={n.width} height={n.height} rx={10} />
+          <text className="c-graph__label" x={14} y={n.detail ? n.height / 2 - 4 : n.height / 2 + 4}>
             {n.label}
           </text>
           {n.detail && (
-            <text className="c-graph__detail" x={12} y={28}>
+            <text className="c-graph__detail" x={14} y={n.height / 2 + 12}>
               {n.detail}
             </text>
           )}
-          {n.mark && (
-            <text className="c-graph__mark" x={n.width - 12} y={n.height / 2 + 4} textAnchor="end">
-              {GLYPH[n.mark]}
-            </text>
-          )}
+          {n.mark && <circle className="c-graph__mark" cx={n.width - 16} cy={n.height / 2} r={3.5} />}
         </g>
       ))}
       {children}
