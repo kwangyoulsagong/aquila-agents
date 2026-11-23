@@ -69,7 +69,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 ## Type
 
 - UI: system font (SF Pro + Apple SD Gothic Neo). Mono: JetBrains Mono (bundled), D2Coding fallback.
-- `--font-size-caption` 11 (meta, labels) · `-label` 12 (tabs, buttons) · `-body` 13 (body, terminal) · `-title` 15.
+- `--font-size-caption` 11 (meta, labels) · `-label` 12 (tabs, buttons) · `-body` 13 (body, terminal) · `-title` 15 · `-heading-1/2/3` 20 / 17 / 15 (note editor headings, T67).
 - Section label: 11 / 600 / uppercase / 0.06em / `--color-text-tertiary`.
 
 ## Spacing & radius (by role)
@@ -118,6 +118,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `--size-range` | 96 | Range slider (Designer compare opacity, T62) |
 | `--size-modal` / `--size-modal-height` / `--size-modal-aside` | 760 / 520 / 240 | List + detail modal (guide, release notes) / its list column |
 | `--size-modal-wide` / `--size-modal-wide-height` / `--size-modal-wide-aside` | 960 / 640 / 320 | `.c-modal--wide` (session history: longer rows, a transcript) / its list column |
+| `--size-editor-measure` / `--size-editor-side` | 720 / 240 | Note editor (T67): longest text line in full window / outline + links column |
 
 ## Components (`components.css`)
 
@@ -133,6 +134,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `.c-queue`, `__lead` `__text` `__title` `__meta` | A sidebar queue entry (review queue, T58): dot, title and a mono caption meta line, both ellipsised; same edges as `.c-row`; a button |
 | `.c-risk` | Warning glyph (⚠) in the error color for a possibly destructive command — on the reason line and the tab |
 | `.c-graph`, `__node[data-mark]` `__box` `__label` `__detail` `__mark` `__edge` `__column` | Static SVG node graph (repo skeleton, T64; the knowledge graph uses the same look): boxes placed by the caller, curved edges. Tone-filled boxes with no outline; colour only where something changes: add = green tint + filled dot, change = blue tint + ring dot, unfit = dashed outline + struck label. When any box is marked (`.c-graph[data-marked]`), unmarked labels step back to secondary. `data-dim` / `data-highlight` for a hovered step. No animation loop |
+| `.c-editor`, `__main` `__host` `__side` `__section` `__section-title` `__item` (`--level`) `__empty` `__banner[data-tone]` `__compare` | Note editor (T67): CodeMirror host + outline / links column; a banner across the top (warn = waiting-colour edge). CodeMirror's `.cm-*` and the live-preview marks `.cm-md-*` (headings, emphasis, code, links, `[[links]]`, checkboxes, quotes / callouts, rules, frontmatter, rendered tables) are styled under `.c-editor` with tokens only |
 | `.c-steps`, `__item[data-off]` `__check` `__title` `__meta` | A plan to tick (T64): checkbox · title + badges / mono files line; unticked steps fade |
 | `.c-badge--verdict-apply` `--verdict-partial` `--verdict-skip` | A proposal's verdict (done / waiting / tertiary) |
 | `.c-badge` `--claude` `--codex` `--shell` `--account-shared` `--account-personal` `--risk` | Tags (`--risk`: a changed file worth a second look, waiting colour — T57) |
@@ -218,6 +220,7 @@ from `src/` (ESLint enforces it). New primitive → add the class to `components
 | `CommandList` `label`, `CommandRow` `state` `stateLabel` `command` `time?` `marks?` | `.c-commands`, `.c-command` |
 | `RunList` `label`, `RunItem` `name` `status` `state` `current` `title?` `onClick` | `.c-runs`, `.c-runs__item` |
 | `Graph` `width` `height` `label` `nodes` `edges` `columns?` | `.c-graph` |
+| `NoteEditor` `hostRef` `top?` `side?`, `EditorBanner` `tone?` `actions?`, `EditorCompare`, `EditorSection` `title` `empty?`, `EditorItem` `label` `detail?` `level?` `onClick` | `.c-editor` |
 | `StepList` `label`, `StepItem` `checked` `onToggle` `title` `checkLabel?` `tags?` `meta?` `onHover?` | `.c-steps` |
 | `Media` `src` `kind` `poster` `alt` `still` `placeholder` | `.c-media` (video → poster under reduced motion or `still`) |
 | `ShortcutSheet` `groups` | `.c-shortcuts` |

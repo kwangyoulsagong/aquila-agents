@@ -17,6 +17,7 @@ export type ShortcutId =
   | 'togglePreview'
   | 'toggleRun'
   | 'toggleGraph'
+  | 'quickOpen'
   | 'history'
   | 'nextWaiting'
   | 'copyLastReply'
@@ -50,6 +51,7 @@ export const SHORTCUTS: Readonly<Record<ShortcutId, string>> = {
   toggleRun: 'CommandOrControl+Shift+R',
   // Not ⌘⇧E (T66's spec): quick select (T28) has had that key since before the graph.
   toggleGraph: 'CommandOrControl+Shift+N',
+  quickOpen: 'CommandOrControl+O',
   history: 'CommandOrControl+Y',
   nextWaiting: 'CommandOrControl+J',
   copyLastReply: 'CommandOrControl+Shift+C',
@@ -89,6 +91,8 @@ export const WINDOWS_SHORTCUTS: Readonly<Record<ShortcutId, string>> = {
   openShell: 'Control+Shift+S',
   closeSession: 'Control+Shift+W',
   history: 'Control+Shift+H',
+  // Ctrl+O is the shell's (operate-and-get-next).
+  quickOpen: 'Control+Shift+O',
   nextWaiting: 'Control+Shift+J',
   // Ctrl+F is the terminal's (forward a char). Full window is macOS-only (T37), so F11 just keeps Ctrl+Shift+F free.
   find: 'Control+Shift+F',

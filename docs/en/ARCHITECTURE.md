@@ -479,8 +479,41 @@ own title.
   (explicit / action) and a dashed layer for dashed (mention) and dotted (suggested). Colours are `--color-graph-*`
   read with `getComputedStyle` (again on theme change). Updates wait for sigma's first frame after a rebuild (it
   refuses to repaint items it hasn't drawn). Closing the panel kills sigma, which releases the WebGL context.
-- Open (or double-click) on a note → `graphOpenNote`, which main only allows for a `.md` inside an enabled source
-  (default app; the editor replaces it in T67).
+- Open (or double-click) on a note → the note editor (T67). `graphOpenNote` (default app, only a `.md` inside an
+  enabled source) stays as the editor's ↗ button.
+
+## Note editor (T67)
+
+`features/edit-note`: right panel or full window with one note; opened from the graph, ⌘O (quick open over the
+index) or a `[[link]]` / backlink. `useGraphData` moved to `entities/note` so the graph and the editor share it.
+
+- **Lazy chunk:** `index.ts` is a `React.lazy` wrapper + error boundary like the graph; CodeMirror 6 is only in that
+  chunk. `QuickOpen` is small and reads the snapshot when it opens.
+- **Main side:** `electron/graph/note-file.ts`. `note:open` reads a note (path checked by `GraphService.notePath`) and
+  watches its folder (not the file: rename-over saves) only while it's open; `note:changed` sends the new text or
+  `deleted`. `note:write` writes in place and is refused (`changed`) when the mtime isn't the one the editor read.
+  A BOM is split off and put back; bytes that aren't valid UTF-8 open read-only. `note:attach` saves a pasted image
+  as `attachments/<note>-<time>.<ext>` next to the note (png/jpg/gif/webp, ≤ 20 MB). Images show inline through the
+  `aquila-note://local/<path>` protocol, which serves only image files inside an enabled source (`img-src` allows it);
+  `note:open-url` opens a clicked `[text](url)` in the browser (http/https only). Right after a note opens, the watcher
+  reads it once more (macOS starts folder watches asynchronously).
+- **Byte-for-byte:** the editor keeps the text as read plus every change since, composed into one `ChangeSet`;
+  a save applies only those changes to the original string (`model/serialize.ts`), mapping CodeMirror offsets to the
+  original's line starts. Untouched lines keep their endings (CRLF, CR, mixed) and trailing spaces; new lines use the
+  file's first ending. No Markdown keymap (its Enter renumbers lists): `continueMarkup` continues a list / quote on
+  the new line only, and table Tab / Shift-Tab / Enter (`model/tables.ts`) move between cells and add blank rows without
+  aligning anything. Key commands step aside while an IME is composing.
+- **Live preview** (`model/livePreview.ts`): decorations only. A view plugin hides marks (`#`, `**`, `` ` ``, link
+  targets, `[[ ]]`, `>`) except on lines a selection touches and swaps task markers for checkboxes (a click changes
+  the one character); a state field replaces each table with a rendered block unless the cursor is in it (a cell click
+  puts the cursor there). Frontmatter is shown raw and skipped.
+- **Saving:** on blur, ⌘S and 1 s after typing stops — no other timer. Switching notes or closing saves first.
+- **On-disk change:** the same bytes (our own save) only update the mtime; no unsaved edits → reload in place
+  (only the differing span is replaced, the cursor stays); unsaved edits → banner: Compare (`model/lineDiff.ts` →
+  `DiffView`), Keep mine (save over theirs), Reload.
+- **Beside it:** outline (ATX headings outside code / frontmatter), backlinks (link / frontmatter edges to the note)
+  and unlinked mentions (title edges) from the snapshot; `[[` completion over every note's title, inserting its file
+  name (what the index resolves first).
 
 ## In-app preview (T33)
 

@@ -23,6 +23,7 @@ export type ActionId =
   | 'togglePreview'
   | 'toggleRun'
   | 'toggleGraph'
+  | 'quickOpen'
   | 'history'
   | 'nextWaiting'
   | 'nextReview'
@@ -97,6 +98,7 @@ const ACTIONS: {
   { action: 'togglePreview', label: (t) => t('preview.toggle'), shortcut: 'togglePreview' },
   { action: 'toggleRun', label: (t) => t('run.toggle'), shortcut: 'toggleRun' },
   { action: 'toggleGraph', label: (t) => t('graph.toggle'), shortcut: 'toggleGraph' },
+  { action: 'quickOpen', label: (t) => t('note.quickOpen'), shortcut: 'quickOpen' },
   { action: 'history', label: (t) => t('history.title'), shortcut: 'history' },
   { action: 'nextWaiting', label: (t) => t('attention.next'), shortcut: 'nextWaiting' },
   { action: 'nextReview', label: (t) => t('review.next') },

@@ -68,7 +68,7 @@
 ## 글자
 
 - UI: 시스템 폰트 (SF Pro + Apple SD Gothic Neo). 고정폭: JetBrains Mono (번들), 한글은 D2Coding 대체.
-- `--font-size-caption` 11 (메타, 라벨) · `-label` 12 (탭, 버튼) · `-body` 13 (본문, 터미널) · `-title` 15.
+- `--font-size-caption` 11 (메타, 라벨) · `-label` 12 (탭, 버튼) · `-body` 13 (본문, 터미널) · `-title` 15 · `-heading-1/2/3` 20 / 17 / 15 (노트 에디터 제목, T67).
 - 섹션 라벨: 11 / 600 / 대문자 / 0.06em / `--color-text-tertiary`.
 
 ## 간격·모서리 (역할별)
@@ -117,6 +117,7 @@
 | `--size-range` | 96 | 범위 슬라이더 (디자이너 비교 투명도, T62) |
 | `--size-modal` / `--size-modal-height` / `--size-modal-aside` | 760 / 520 / 240 | 목록 + 상세 모달(가이드, 릴리즈 노트) / 목록 열 너비 |
 | `--size-modal-wide` / `--size-modal-wide-height` / `--size-modal-wide-aside` | 960 / 640 / 320 | `.c-modal--wide` (세션 기록: 긴 행, 대화 미리보기) / 목록 열 너비 |
+| `--size-editor-measure` / `--size-editor-side` | 720 / 240 | 노트 에디터 (T67): 전체 창에서 본문 한 줄 최대 너비 / 목차·링크 열 너비 |
 
 ## 컴포넌트 (`components.css`)
 
@@ -132,6 +133,7 @@
 | `.c-queue`, `__lead` `__text` `__title` `__meta` | 사이드바 대기열 항목(리뷰 대기열, T58): 점, 제목, 고정폭 캡션 메타 줄(둘 다 말줄임). `.c-row`와 같은 가장자리. 버튼 |
 | `.c-risk` | 파괴적일 수 있는 명령의 경고 기호(⚠, 오류 색) — 대기 이유 줄과 탭 |
 | `.c-graph`, `__node[data-mark]` `__box` `__label` `__detail` `__mark` `__edge` `__column` | 정적 SVG 노드 그래프(레포 뼈대, T64; 지식 그래프도 같은 모양): 호출자가 배치한 상자, 곡선 간선. 테두리 없이 면 색으로 채운 상자, 색은 바뀌는 곳에만: add = 초록 면 + 채운 점, change = 파란 면 + 고리 점, unfit = 점선 테두리 + 취소선. 표시된 상자가 있으면(`.c-graph[data-marked]`) 표시 없는 라벨은 secondary로 물러남. 호버한 단계용 `data-dim` / `data-highlight`. 애니메이션 루프 없음 |
+| `.c-editor`, `__main` `__host` `__side` `__section` `__section-title` `__item` (`--level`) `__empty` `__banner[data-tone]` `__compare` | 노트 에디터 (T67): CodeMirror 자리 + 목차·링크 열, 위쪽 배너(warn = 대기 색 테두리). CodeMirror의 `.cm-*`와 라이브 프리뷰 표시 `.cm-md-*`(제목, 강조, 코드, 링크, `[[링크]]`, 체크박스, 인용·콜아웃, 구분선, 프런트매터, 렌더된 표)는 `.c-editor` 아래에서 토큰만으로 꾸밈 |
 | `.c-steps`, `__item[data-off]` `__check` `__title` `__meta` | 체크하는 계획(T64): 체크박스 · 제목 + 배지 / 고정폭 파일 줄. 체크 해제한 단계는 흐려짐 |
 | `.c-badge--verdict-apply` `--verdict-partial` `--verdict-skip` | 제안의 판정(done / waiting / tertiary) |
 | `.c-badge` `--claude` `--codex` `--shell` `--account-shared` `--account-personal` `--risk` | 태그 (`--risk`: 한 번 더 볼 변경 파일, 대기 색 — T57) |
@@ -217,6 +219,7 @@
 | `CommandList` `label`, `CommandRow` `state` `stateLabel` `command` `time?` `marks?` | `.c-commands`, `.c-command` |
 | `RunList` `label`, `RunItem` `name` `status` `state` `current` `title?` `onClick` | `.c-runs`, `.c-runs__item` |
 | `Graph` `width` `height` `label` `nodes` `edges` `columns?` | `.c-graph` |
+| `NoteEditor` `hostRef` `top?` `side?`, `EditorBanner` `tone?` `actions?`, `EditorCompare`, `EditorSection` `title` `empty?`, `EditorItem` `label` `detail?` `level?` `onClick` | `.c-editor` |
 | `StepList` `label`, `StepItem` `checked` `onToggle` `title` `checkLabel?` `tags?` `meta?` `onHover?` | `.c-steps` |
 | `Media` `src` `kind` `poster` `alt` `still` `placeholder` | `.c-media` (reduced motion이나 `still`이면 영상 대신 포스터) |
 | `ShortcutSheet` `groups` | `.c-shortcuts` |

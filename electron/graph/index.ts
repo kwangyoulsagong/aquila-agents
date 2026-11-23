@@ -176,8 +176,13 @@ export class GraphService {
    * at anything else.
    */
   notePath(abs: string): string | null {
+    return this.sourceFile(abs, /\.md$/i);
+  }
+
+  /** An existing file inside an enabled source whose name matches `ext` (an image next to a note, T67), or null. */
+  sourceFile(abs: string, ext: RegExp): string | null {
     const file = path.resolve(abs);
-    if (!/\.md$/i.test(file) || !fs.statSync(file, { throwIfNoEntry: false })?.isFile()) return null;
+    if (!ext.test(file) || !fs.statSync(file, { throwIfNoEntry: false })?.isFile()) return null;
     const inside = this.sources.some((s) => {
       if (!s.enabled) return false;
       const rel = path.relative(untildify(s.path, this.opts.home), file);

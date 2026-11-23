@@ -12,14 +12,14 @@ import {
   Select,
   type GraphSwatch,
 } from '@design-system/react';
-import { api, type GraphNode, type GraphNodeKind, type GraphSourceStatus } from '@/shared/api';
+import type { GraphNode, GraphNodeKind, GraphSourceStatus } from '@/shared/api';
 import { useT } from '@/shared/i18n';
 import { usePanelWidth } from '@/shared/lib/usePanelWidth';
 import { usePowerSaver } from '@/shared/lib/usePowerSaver';
 import { onThemeChange } from '@/shared/lib/theme';
-import { sourceName } from '@/entities/note';
+
 import { readColors } from '../model/colors';
-import { useGraphData } from '../model/useGraphData';
+import { sourceName, useGraphData } from '@/entities/note';
 import {
   DEFAULT_FILTER,
   TIME_WINDOWS,
@@ -39,6 +39,8 @@ export interface KnowledgeGraphPanelProps {
   onClose: () => void;
   /** Opens Settings ▸ Note sources (empty state). */
   onSources: () => void;
+  /** Opens a note in the editor (T67). */
+  onOpenNote: (path: string) => void;
 }
 
 /** `Meetings/2026-11-20 sync.md` for a note (source folder + path inside it); the path for anything else. */
@@ -58,13 +60,14 @@ const swatchOf = (kind: GraphNodeKind): GraphSwatch =>
 /**
  * Right panel (⌘⇧N) and full window: every note source as one WebGL graph (T66). Filters by source, kind, tag, time
  * and link strength; search lights matches; a click selects a note, "Around this note" shows its depth-1/2
- * neighbours; Open (or double-click) opens the file until the editor (T67) lands.
+ * neighbours; Open (or double-click) opens the note in the editor (T67).
  */
 export default function KnowledgeGraphPanel({
   full,
   onToggleFull,
   onClose,
   onSources,
+  onOpenNote,
 }: KnowledgeGraphPanelProps) {
   const t = useT();
   const width = usePanelWidth('aquila.panel.graph');
@@ -99,7 +102,7 @@ export default function KnowledgeGraphPanel({
   }, [selected, snapshot, selectedNode]);
 
   const open = (n: GraphNode) => {
-    if (n.kind === 'note' && n.path) void api.graphOpenNote(n.path);
+    if (n.kind === 'note' && n.path) onOpenNote(n.path);
   };
   useGraphRenderer(host, {
     view,
