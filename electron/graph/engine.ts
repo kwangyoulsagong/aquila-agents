@@ -18,6 +18,8 @@ import { Extractor, type ExtractorOptions, type RunPrompt } from './extract';
 import { parseNote } from './parse';
 import { applyRuleOp, decide, pairKey, proposals, readLinks, writeLinks, type LinkData } from './rules';
 import { SimilarIndex } from './similar';
+import { compileLinkRules, SHARED_FILE, type CompiledLinkRule, type VaultNote } from './vault';
+import type { VaultLinkRule } from '../../src/shared/api/types';
 
 export interface EngineSource {
   id: string;
@@ -51,6 +53,8 @@ export interface EngineOptions {
   extractor?: Omit<ExtractorOptions, 'file' | 'onChange'>;
   saver?: boolean;
   onStatus?: (s: EngineStatus) => void;
+  /** T69: a source's shared settings file (`.aquila-vault.json`) changed. */
+  onVaultFile?: (sourceId: string) => void;
   /** Watch sources for changes (off in tests). */
   watch?: boolean;
   /** Override the project scan (tests). */
@@ -134,6 +138,8 @@ export class GraphEngine {
   private similar = new SimilarIndex();
   private links: LinkData;
   private extractor: Extractor;
+  private vaultLinks = new Map<string, CompiledLinkRule[]>();
+  private vaultKey = '';
 
   constructor(private opts: EngineOptions = {}) {
     this.saver = !!opts.saver;
@@ -226,6 +232,35 @@ export class GraphEngine {
     return this.extractor.idle();
   }
 
+  /** T69: each source's link rules; the graph is rebuilt only when they changed. */
+  setVaultLinks(rules: Readonly<Record<string, readonly VaultLinkRule[]>>): void {
+    const key = JSON.stringify(rules);
+    if (key === this.vaultKey) return;
+    this.vaultKey = key;
+    this.vaultLinks = new Map(
+      Object.entries(rules)
+        .map(([id, list]) => [id, compileLinkRules(list)] as const)
+        .filter(([, list]) => list.length),
+    );
+    this.changed();
+  }
+
+  /** T69: a source's notes as views, companions and "Make with Claude" see them. */
+  sourceNotes(id: string): VaultNote[] {
+    const out: VaultNote[] = [];
+    for (const n of this.notes.values())
+      if (n.sourceId === id)
+        out.push({
+          rel: n.rel,
+          abs: n.abs,
+          title: n.note.title,
+          frontmatter: n.note.frontmatter,
+          headings: n.note.headings.filter((h) => h.level === 2).map((h) => h.text),
+          mtime: n.mtime,
+        });
+    return out.sort((a, b) => a.rel.localeCompare(b.rel));
+  }
+
   /** Starts a first index that was paused in saver. */
   indexNow(id: string): void {
     const s = this.sources.get(id);
@@ -250,6 +285,7 @@ export class GraphEngine {
         similar: this.similar.all(),
         ai: this.extractor.extracts(),
         links: this.links,
+        vaultLinks: this.vaultLinks,
       });
       this.edgeCount = this.cache.edges.length;
     }
@@ -407,6 +443,7 @@ export class GraphEngine {
     try {
       s.watcher = fs.watch(s.root, { recursive: true }, (_event, filename) => {
         const rel = filename ? toPosix(filename.toString()) : '';
+        if (rel === SHARED_FILE) return this.opts.onVaultFile?.(s.id);
         if (rel && ignored(rel)) return;
         if (rel && /\.md$/i.test(rel)) s.pending.add(rel);
         else if (!rel || !/\.[^/]+$/.test(rel))

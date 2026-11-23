@@ -11,6 +11,8 @@ interface SettingsMenuOptions {
   onSources?: () => void;
   /** Settings ▸ Link suggestions… (T68); the page owns the dialog. */
   onLinks?: () => void;
+  /** Settings ▸ Folder settings… (T69); the page owns the dialog. */
+  onVault?: () => void;
 }
 
 /**
@@ -19,7 +21,7 @@ interface SettingsMenuOptions {
  */
 export async function openSettingsMenu(
   t: Translate,
-  { config, onChanged, onGlobalShortcut, onSources, onLinks }: SettingsMenuOptions,
+  { config, onChanged, onGlobalShortcut, onSources, onLinks, onVault }: SettingsMenuOptions,
 ): Promise<void> {
   const id = await api.showContextMenu([
     {
@@ -33,6 +35,7 @@ export async function openSettingsMenu(
     ...(onGlobalShortcut ? [{ id: 'globalShortcut', label: t('globalShortcut.menu') }] : []),
     ...(onSources ? [{ id: 'sources', label: t('sources.menu') }] : []),
     ...(onLinks ? [{ id: 'links', label: t('links.menu') }] : []),
+    ...(onVault ? [{ id: 'vault', label: t('vault.menu') }] : []),
     { separator: true },
     { id: 'config', label: t('action.openConfig') },
   ]);
@@ -43,6 +46,7 @@ export async function openSettingsMenu(
   else if (id === 'globalShortcut') onGlobalShortcut?.();
   else if (id === 'sources') onSources?.();
   else if (id === 'links') onLinks?.();
+  else if (id === 'vault') onVault?.();
   else if (id === 'config') void api.openConfig();
 }
 

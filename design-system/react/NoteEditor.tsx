@@ -95,3 +95,48 @@ export function EditorItem({
     </button>
   );
 }
+
+/** `.c-editor__tabs` — companion files as tabs above the text (T69); `end` sits at the row's right (actions). */
+export function EditorTabs({ label, end, children }: { label: string; end?: ReactNode; children?: ReactNode }) {
+  return (
+    <div className="c-editor__tabs">
+      {children && (
+        <div role="tablist" aria-label={label} className="c-editor__tablist">
+          {children}
+        </div>
+      )}
+      {end && <div className="c-editor__tabs-end">{end}</div>}
+    </div>
+  );
+}
+
+/** `.c-editor__tab` — one companion file; the selected one is the note shown. */
+export function EditorTab({
+  selected,
+  title,
+  onClick,
+  children,
+}: {
+  selected: boolean;
+  title?: string;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      className="c-editor__tab"
+      aria-selected={selected}
+      title={title}
+      onClick={onClick}
+    >
+      {children}
+    </button>
+  );
+}
+
+/** `.c-editor__fields` — form fields inside a side section (typed properties, T69). */
+export function EditorFields({ children }: { children: ReactNode }) {
+  return <div className="c-editor__fields">{children}</div>;
+}

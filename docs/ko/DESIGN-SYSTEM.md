@@ -119,6 +119,7 @@
 | `--size-modal-wide` / `--size-modal-wide-height` / `--size-modal-wide-aside` | 960 / 640 / 320 | `.c-modal--wide` (세션 기록: 긴 행, 대화 미리보기) / 목록 열 너비 |
 | `--size-editor-measure` / `--size-editor-side` | 720 / 240 | 노트 에디터 (T67): 전체 창에서 본문 한 줄 최대 너비 / 목차·링크 열 너비 |
 | `--size-card-list` | 224 | 그래프 카드: 제안된 연결 목록이 스크롤되기 전 높이 (T68) |
+| `--size-board-column` / `--size-code-input` | 256 / 224 | 보드 보기의 열 너비 / 텍스트로 고치는 설정의 높이 (T69) |
 
 ## 컴포넌트 (`components.css`)
 

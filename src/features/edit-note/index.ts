@@ -1,5 +1,5 @@
 import { Component, createElement, lazy, Suspense, type ReactNode } from 'react';
-import type { NoteEditorPanelProps } from './ui/NoteEditorPanel';
+import type { NoteEditorPanelProps, NoteSlotProps } from './ui/NoteEditorPanel';
 
 // Note editor (T67). The panel and CodeMirror are one lazy chunk: nothing of it loads until a note is first opened.
 const Panel = lazy(() => import('./ui/NoteEditorPanel'));
@@ -27,5 +27,5 @@ export function NoteEditorPanel(props: NoteEditorPanelProps) {
     createElement(Suspense, { fallback: null }, createElement(Panel, props)),
   );
 }
-export type { NoteEditorPanelProps };
+export type { NoteEditorPanelProps, NoteSlotProps };
 export { default as QuickOpen } from './ui/QuickOpen';

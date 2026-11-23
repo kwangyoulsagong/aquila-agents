@@ -739,7 +739,7 @@ throttled or hot → `saver`). The rules every task below follows:
   _Left over: local similarity lives in `electron/graph/similar.ts` (owned files + one). Accept / reject works on found-in-text (dashed) edges too, so shared-ID links can be accepted and teach rules; patterns are ID prefixes and URL hosts. AI uses the shared Claude account, 4 notes per call, 40 notes / day / source, starts 30 s after the last change. "[[" appends `[[file name]]` as the last line of the note being viewed (not placed in the text). Smoke: the meeting → spec similar suggestion, "[[" in the graph card writes exactly one line, 3 DB- accepts → proposal → rule, AI on + Run now with a canned reply → a person node. Not done: `npm run perf` has no T68 scenario (similarity runs in the existing index pass); no real haiku run checked by hand; guide text / media not updated._
 
 ### T69 · Graph 5: per-folder customisation
-- [ ] **Goal:** each source can be shaped the way its owner works — nothing about any repo's format is built in.
+- [x] **Goal:** each source can be shaped the way its owner works — nothing about any repo's format is built in.
 - **Spec:** settings per source (personal in `~/.aquila/vaults/`, or **shared** as `.aquila-vault.json` in that folder):
   link rules (pattern → note by name/property, or URL), property types (text/select/date/tags), templates (folder,
   variables, where new notes go), companion files (same name in other folders, shown as tabs), views (board / table /
@@ -749,6 +749,7 @@ throttled or hot → `saver`). The rules every task below follows:
 - **Battery:** settings are read on change (watched with the source), no extra work.
 - **Owns:** `src/features/vault-settings/`, `electron/graph/vault.ts` (+ test).
 - **Done:** a config like the data-bahn requirements one (written as a fixture, not built in) gives a status board, companion tabs and a Changelog action.
+  _Left over: settings are edited as a preview + JSON text (presets / Make with Claude fill it), not a form per field. Views open as a wide modal (not a right panel). `url` link rules are validated and stored but not clickable in the editor yet, and the graph ignores them. Companions match by a key pattern on the file name (default: the whole name), so `DB-6891-downloads.md` pairs with `DB-6891.md`. Settings ▸ Folder settings… (also ⌘K); the editor gets companion tabs + actions above the text and typed properties / views / new note in the side column (slots passed by the page; `useNoteEditor.replace` applies an action as one edit). A missing `[[link]]` can be created from the `newNotes` template. Smoke: the `vault/requirements` fixture (shared config as fixture data) → rule edge DB-7100 → DB-6891, settings preview, board with to-do / in-progress / done, Alt+→ moves the file, spec opens with specs / checklists / retrospects tabs, Changelog saves exactly the dated line + `revised:`, Make with Claude (canned reply) fills the draft without writing. Not done: no real sonnet run checked by hand; no `npm run perf` scenario (views read the existing index); guide text / media not updated._
 
 ### T70 · Graph 6: the app in the graph
 - [ ] **Goal:** notes connect to the work they caused — sessions, changed files, code, trends.

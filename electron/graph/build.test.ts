@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { GraphSnapshot } from '../../src/shared/api/types';
 import { buildGraph, idGroups, noteId, type CodeName, type IndexedNote } from './build';
 import { parseNote } from './parse';
+import { compileLinkRules } from './vault';
 
 const note = (sourceId: string, rel: string, src: string): IndexedNote => ({
   sourceId,
@@ -145,5 +146,31 @@ describe('idGroups', () => {
       { prefix: 'DB', ids: ['DB-2', 'DB-1'], notes: 4 },
       { prefix: 'FE', ids: ['FE-9'], notes: 2 },
     ]);
+  });
+
+  it('T69: a source’s link rules connect notes by file name or property, only inside that source', () => {
+    const notes = [
+      note('req', 'specs/done/DB-6891-downloads.md', '# Downloads'),
+      note('req', 'specs/to-do/DB-7100-search.md', 'Related: DB-6891. Owner: kim'),
+      note('req', 'people/kim.md', '---\nhandle: kim\n---\n# Kim'),
+      note('other', 'x.md', 'DB-6891 again'),
+    ];
+    const rules = new Map([
+      ['req', compileLinkRules([
+        { pattern: '\\bDB-\\d+\\b', to: 'name' },
+        { pattern: 'owner: (\\w+)', to: 'property', key: 'handle' },
+      ])],
+    ]);
+    const g = buildGraph(notes, new Map(), 0, { vaultLinks: rules });
+    const search = noteId('req', 'specs/to-do/DB-7100-search.md');
+    expect(edge(g, search, noteId('req', 'specs/done/DB-6891-downloads.md'))).toMatchObject({
+      kind: 'explicit',
+      source: search,
+      reasons: expect.arrayContaining([{ via: 'rule', label: 'db-6891' }]),
+    });
+    expect(edge(g, search, noteId('req', 'people/kim.md'))?.reasons).toContainEqual({ via: 'rule', label: 'kim' });
+    expect(edge(g, noteId('other', 'x.md'), noteId('req', 'specs/done/DB-6891-downloads.md'))?.reasons ?? []).not.toContainEqual(
+      expect.objectContaining({ via: 'rule' }),
+    );
   });
 });

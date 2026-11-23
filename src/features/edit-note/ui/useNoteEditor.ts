@@ -278,5 +278,22 @@ export function useNoteEditor(host: HTMLElement | null, path: string, cb: Callba
   /** The editor's text right now (for compare). */
   const mine = useCallback(() => textOf(s.current), []);
 
-  return { ...state, save, resolve, goToLine, mine };
+  /**
+   * T69: makes the text `next` (a note action, a property) as one edit of only the part that differs, so it saves
+   * like typing and untouched lines keep their bytes.
+   */
+  const replace = useCallback((next: string) => {
+    const v = view.current;
+    if (!v || !s.current.file || s.current.file.readOnly) return;
+    const cur = v.state.doc.toString();
+    const want = docOf(next).toString();
+    if (cur === want) return;
+    let a = 0;
+    while (a < cur.length && a < want.length && cur[a] === want[a]) a++;
+    let b = 0;
+    while (b < cur.length - a && b < want.length - a && cur[cur.length - 1 - b] === want[want.length - 1 - b]) b++;
+    v.dispatch({ changes: { from: a, to: cur.length - b, insert: want.slice(a, want.length - b) } });
+  }, []);
+
+  return { ...state, save, resolve, goToLine, mine, replace };
 }
