@@ -175,7 +175,7 @@ body {
 
 /* ── Badge ────────────────────────────────────────────────── */
 .c-badge {
-  display: inline-flex; align-items: center; height: var(--size-badge);
+  display: inline-flex; align-items: center; height: var(--size-badge); flex: none; white-space: nowrap;
   font: 600 10px var(--font-family-ui); letter-spacing: 0.04em; text-transform: uppercase;
   padding: 0 var(--space-inline-xs); border-radius: var(--radius-badge);
   background: var(--color-bg-pressed); color: var(--color-text-secondary);
@@ -336,8 +336,12 @@ body {
   font: var(--font-size-caption) var(--font-family-mono); color: var(--color-text-tertiary);
 }
 .c-tab:has(.c-tab__branch) .c-tab__title { flex: 0 1 auto; }
-/* The kind badge in front of a title (T43) gives way first when tabs get narrow, so the title stays readable. */
-.c-tab > .c-badge { flex: 0 1000 auto; min-width: 0; overflow: hidden; white-space: nowrap; } /* clips; never stacks letters */
+/* Badges never shrink (a clipped badge reads as garbage, .c-badge is flex: none); the title truncates instead. The tab's minimum is
+   its fixed parts, so a full bar scrolls rather than cutting a badge or the close button. */
+.c-tab { min-width: min-content; }
+/* One clamped line that may break anywhere: its min-content is one character, so the tab's minimum is just its fixed
+   parts while it still truncates with an ellipsis. */
+.c-tab__title, .c-tab__branch { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; white-space: normal; line-break: anywhere; }
 .c-tab__close {
   width: 18px; height: 18px; border: 0; border-radius: var(--radius-badge); opacity: 0;
   background: none; color: var(--color-text-tertiary); cursor: pointer;
