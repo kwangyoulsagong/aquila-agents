@@ -31,6 +31,9 @@ export const DEFAULT_FILTER: GraphFilter = {
   minStrength: 0,
 };
 
+/** Non-notes shown even with no note behind them (T70). */
+const ROOT_KINDS = new Set<GraphNode['kind']>(['trend', 'apply']);
+
 /** Line style by how sure a link is: written or caused by the app = solid, found in text = dashed, suggested = dotted. */
 export type LineStyle = 'solid' | 'dashed' | 'dotted';
 const LINE: Record<GraphEdgeKind, LineStyle> = {
@@ -67,16 +70,29 @@ export function filterSnapshot(snap: GraphSnapshot, f: GraphFilter, now = Date.n
       if (keepNote(n)) kept.set(n.id, n);
     } else others.set(n.id, n);
   }
-  const edges: GraphEdge[] = [];
+  const candidates: GraphEdge[] = [];
+  const adjacent = new Map<string, string[]>();
   for (const e of snap.edges) {
     if (e.strength < f.minStrength) continue;
-    const a = kept.get(e.source) ?? others.get(e.source);
-    const b = kept.get(e.target) ?? others.get(e.target);
-    if (!a || !b) continue;
-    // A non-note joins only through a kept note.
-    if (!kept.has(a.id) && !kept.has(b.id)) continue;
-    edges.push(e);
+    if (!(kept.has(e.source) || others.has(e.source)) || !(kept.has(e.target) || others.has(e.target)))
+      continue;
+    candidates.push(e);
+    (adjacent.get(e.source) ?? adjacent.set(e.source, []).get(e.source)!).push(e.target);
+    (adjacent.get(e.target) ?? adjacent.set(e.target, []).get(e.target)!).push(e.source);
   }
+  // A non-note joins through a path from a kept note (note → session → changed file), or from a trend / apply
+  // decision (T70: trend → apply → session), which stand on their own.
+  const reached = new Set<string>(kept.keys());
+  for (const n of others.values()) if (ROOT_KINDS.has(n.kind)) reached.add(n.id);
+  const queue = [...reached];
+  while (queue.length) {
+    for (const next of adjacent.get(queue.pop()!) ?? []) {
+      if (reached.has(next)) continue;
+      reached.add(next);
+      queue.push(next);
+    }
+  }
+  const edges = candidates.filter((e) => reached.has(e.source) && reached.has(e.target));
   const linked = new Set<string>();
   for (const e of edges) {
     linked.add(e.source);

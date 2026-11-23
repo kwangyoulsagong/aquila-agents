@@ -40,6 +40,7 @@ const STRENGTH: Record<GraphEdgeReason['via'], number> = {
   tag: 0.8,
   session: 1,
   changed: 1,
+  apply: 1,
   id: 0.7,
   title: 0.6,
   code: 0.5,
@@ -57,6 +58,7 @@ const KIND: Record<GraphEdgeReason['via'], GraphEdgeKind> = {
   accepted: 'explicit',
   session: 'action',
   changed: 'action',
+  apply: 'action',
   id: 'mention',
   title: 'mention',
   code: 'mention',
@@ -179,7 +181,8 @@ class EdgeSet {
       prev.id = `${source}→${target}`;
     }
     if (stronger) prev.kind = kind;
-    if (!prev.reasons.some((r) => r.via === reason.via && r.label === reason.label)) prev.reasons.push(reason);
+    if (!prev.reasons.some((r) => r.via === reason.via && r.label === reason.label))
+      prev.reasons.push(reason);
     prev.strength = Math.max(prev.strength, strength);
   }
 
@@ -358,7 +361,8 @@ function addVaultLinks(
       for (const r of list)
         for (const m of matchesOf(r.re, n.note.text, 50)) {
           const hits = r.to === 'name' ? byName().get(m) : byProp(r.key ?? '').get(m);
-          for (const to of (hits ?? []).slice(0, 5)) edges.add(from, noteId(to.sourceId, to.rel), { via: 'rule', label: m });
+          for (const to of (hits ?? []).slice(0, 5))
+            edges.add(from, noteId(to.sourceId, to.rel), { via: 'rule', label: m });
         }
     }
   }

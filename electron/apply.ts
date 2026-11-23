@@ -472,7 +472,11 @@ export function parseProposal(
     }
     seen.add(node);
     // "Add" to something the repo already has is a change to it.
-    changes.push({ node, kind: kind === 'add' && known.get(node)?.present ? 'change' : kind, why: str(o.why) });
+    changes.push({
+      node,
+      kind: kind === 'add' && known.get(node)?.present ? 'change' : kind,
+      why: str(o.why),
+    });
   }
   const ids = new Set([...known.keys(), ...added.map((n) => n.id)]);
   const unfit: UnfitItem[] = arr(raw.unfit)
@@ -726,6 +730,20 @@ export class ApplyService {
     } catch {
       return null;
     }
+  }
+
+  /** Every kept decision (T70: trend and apply nodes in the graph). */
+  list(): ApplyRecord[] {
+    let names: string[];
+    try {
+      names = fs.readdirSync(this.dir);
+    } catch {
+      return [];
+    }
+    return names.flatMap((n) => {
+      const r = n.endsWith('.json') ? this.read(n.slice(0, -5)) : null;
+      return r?.article && r.id ? [r] : [];
+    });
   }
 
   private write(r: ApplyRecord): void {

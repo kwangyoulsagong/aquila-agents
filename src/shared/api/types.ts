@@ -714,8 +714,10 @@ export interface GraphNode {
   mtime?: number;
   /** Notes: `#tags` and frontmatter tags, without `#`. */
   tags?: string[];
-  /** Code: ids of the projects that have this name. */
+  /** Code: ids of the projects that have this name. Sessions, files, applies (T70): their project. */
   projects?: string[];
+  /** Trends (T70): the article. */
+  url?: string;
 }
 
 /**
@@ -738,7 +740,9 @@ export type GraphEdgeVia =
   | 'rule'
   | 'accepted'
   | 'session'
-  | 'changed';
+  | 'changed'
+  /** T70: a trend → the decision taken on it. */
+  | 'apply';
 
 export interface GraphEdgeReason {
   via: GraphEdgeVia;
@@ -883,7 +887,8 @@ export interface NoteFile {
 /** An open note changed on disk (an agent, another editor): its new contents, or that it's gone. */
 export type NoteChange = NoteFile | { path: string; deleted: true };
 
-export type NoteWriteResult = { ok: true; mtime: number } | { ok: false; reason: 'changed' | 'refused' | 'failed' };
+export type NoteWriteResult =
+  { ok: true; mtime: number } | { ok: false; reason: 'changed' | 'refused' | 'failed' };
 
 // ---- Per-source settings (T69). Nothing about any repo's format is built in: a source is shaped by its config. ----
 
@@ -1029,7 +1034,8 @@ export type VaultEdit = { action: string } | { property: string; value: string |
 /** `projectId`: the local project the note is in (the Claude tab opens there). */
 export type VaultEditResult = { text: string } | { prompt: string; projectId?: string };
 
-export type VaultMoveResult = { ok: true; path: string } | { ok: false; reason: 'exists' | 'refused' | 'failed' };
+export type VaultMoveResult =
+  { ok: true; path: string } | { ok: false; reason: 'exists' | 'refused' | 'failed' };
 
 export type NodeChangeKind = 'add' | 'change' | 'unfit';
 
@@ -1366,6 +1372,8 @@ export interface AquilaApi {
   noteAttach(notePath: string, data: Uint8Array, ext: string): Promise<string | null>;
   /** A link in a note: opened in the browser (http/https only). */
   noteOpenUrl(url: string): Promise<void>;
+  /** T70: the local project a file is in (a note's "Handle with Claude" opens there), or null. */
+  noteProject(path: string): Promise<string | null>;
   /** T69: a source's settings (personal wins over shared). */
   vaultGet(sourceId: string): Promise<VaultState>;
   /** T69: validated and saved as mine or shared (shared writes `.aquila-vault.json` and drops mine). */
@@ -1641,6 +1649,7 @@ export const IPC = {
   noteChanged: 'note:changed',
   noteAttach: 'note:attach',
   noteOpenUrl: 'note:open-url',
+  noteProject: 'note:project',
   vaultGet: 'vault:get',
   vaultSave: 'vault:save',
   vaultRemovePersonal: 'vault:remove-personal',

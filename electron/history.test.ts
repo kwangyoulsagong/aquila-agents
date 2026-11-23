@@ -12,6 +12,8 @@ import {
   mapCodexRows,
   maskSecrets,
   matchProject,
+  mentionsOf,
+  patchFiles,
   parseCodexIndex,
   parseMeta,
   parseText,
@@ -457,5 +459,68 @@ describe('commands (T59)', () => {
     ['npm run build -- --keep-names', 'npm run build -- --keep-names'],
   ])('masks %s', (input, expected) => {
     expect(maskSecrets(input)).toBe(expected);
+  });
+});
+
+describe('work (T70)', () => {
+  const claudeLine = (type: 'user' | 'assistant', content: unknown) =>
+    JSON.stringify({ type, cwd: '/repo', timestamp: '2026-11-20T10:00:00.000Z', message: { content } });
+
+  it('finds @note.md mentions', () => {
+    expect(
+      mentionsOf('Handle this\n\n@/Users/me/notes/DB-12 spec.md and @docs/a.md, not a@b or @x.mdx'),
+    ).toEqual(['/Users/me/notes/DB-12 spec.md', 'docs/a.md']);
+    expect(mentionsOf('@"/Users/me/My Notes/plan.md" please')).toEqual(['/Users/me/My Notes/plan.md']);
+    expect(mentionsOf('@/n/with\\ space.md')).toEqual(['/n/with space.md']);
+  });
+
+  it('reads apply_patch headers', () => {
+    expect(
+      patchFiles('*** Begin Patch\n*** Update File: src/a.ts\n@@\n*** Add File: b.md\n*** End Patch'),
+    ).toEqual(['src/a.ts', 'b.md']);
+  });
+
+  it('Claude: edited files and mentions come with the transcript', () => {
+    const text = [
+      claudeLine('user', 'Handle this note\n\n@/notes/plan.md'),
+      claudeLine('assistant', [
+        { type: 'text', text: 'ok' },
+        { type: 'tool_use', id: 't1', name: 'Edit', input: { file_path: '/repo/src/a.ts' } },
+        { type: 'tool_use', id: 't2', name: 'Write', input: { file_path: '/repo/src/a.ts' } },
+        { type: 'tool_use', id: 't3', name: 'Read', input: { file_path: '/repo/src/b.ts' } },
+        { type: 'tool_use', id: 't4', name: 'NotebookEdit', input: { notebook_path: '/repo/n.ipynb' } },
+      ]),
+    ].join('\n');
+    const parsed = parseText(text, new ClaudeParser()).result(0);
+    expect(parsed?.files).toEqual(['/repo/src/a.ts', '/repo/n.ipynb']);
+    expect(parsed?.mentions).toEqual(['/notes/plan.md']);
+  });
+
+  it('Codex: apply_patch files (custom tool or shell arguments) and mentions', () => {
+    const line = (type: string, payload: unknown) =>
+      JSON.stringify({ type, timestamp: '2026-11-20T10:00:00.000Z', payload });
+    const text = [
+      line('session_meta', { id: 'ABC', cwd: '/repo' }),
+      line('response_item', {
+        type: 'message',
+        role: 'user',
+        content: [{ type: 'input_text', text: 'do @n/a.md' }],
+      }),
+      line('response_item', {
+        type: 'custom_tool_call',
+        name: 'apply_patch',
+        input: '*** Begin Patch\n*** Update File: src/x.ts\n*** End Patch',
+      }),
+      line('response_item', {
+        type: 'function_call',
+        name: 'shell',
+        arguments: JSON.stringify({
+          command: ['apply_patch', '*** Begin Patch\n*** Add File: y.ts\n*** End Patch'],
+        }),
+      }),
+    ].join('\n');
+    const parsed = parseText(text, new CodexParser()).result(0);
+    expect(parsed?.files).toEqual(['src/x.ts', 'y.ts']);
+    expect(parsed?.mentions).toEqual(['n/a.md']);
   });
 });

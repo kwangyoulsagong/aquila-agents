@@ -135,10 +135,12 @@ const api: AquilaApi = {
   graphExtractNow: (id) => ipcRenderer.invoke(IPC.graphExtractNow, id),
   noteOpen: (path) => ipcRenderer.invoke(IPC.noteOpen, path),
   noteClose: (path) => ipcRenderer.send(IPC.noteClose, path),
-  noteWrite: (path, text, bom, baseMtime) => ipcRenderer.invoke(IPC.noteWrite, { path, text, bom, baseMtime }),
+  noteWrite: (path, text, bom, baseMtime) =>
+    ipcRenderer.invoke(IPC.noteWrite, { path, text, bom, baseMtime }),
   onNoteChanged: on(IPC.noteChanged),
   noteAttach: (notePath, data, ext) => ipcRenderer.invoke(IPC.noteAttach, { notePath, data, ext }),
   noteOpenUrl: (url) => ipcRenderer.invoke(IPC.noteOpenUrl, url),
+  noteProject: (path) => ipcRenderer.invoke(IPC.noteProject, path),
   vaultGet: (id) => ipcRenderer.invoke(IPC.vaultGet, id),
   vaultSave: (id, config, scope) => ipcRenderer.invoke(IPC.vaultSave, { id, config, scope }),
   vaultRemovePersonal: (id) => ipcRenderer.invoke(IPC.vaultRemovePersonal, id),
@@ -148,7 +150,8 @@ const api: AquilaApi = {
   vaultMove: (path, viewId, group) => ipcRenderer.invoke(IPC.vaultMove, { path, viewId, group }),
   vaultNoteInfo: (path) => ipcRenderer.invoke(IPC.vaultNoteInfo, path),
   vaultEdit: (path, text, edit) => ipcRenderer.invoke(IPC.vaultEdit, { path, text, edit }),
-  vaultCreateNote: (id, templateId, title) => ipcRenderer.invoke(IPC.vaultCreateNote, { id, templateId, title }),
+  vaultCreateNote: (id, templateId, title) =>
+    ipcRenderer.invoke(IPC.vaultCreateNote, { id, templateId, title }),
   onVaultChanged: on(IPC.vaultChanged),
   globalShortcut: () => ipcRenderer.invoke(IPC.globalShortcutGet),
   setGlobalShortcut: (accelerator) => ipcRenderer.invoke(IPC.globalShortcutSet, accelerator),

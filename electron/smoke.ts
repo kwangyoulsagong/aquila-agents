@@ -180,6 +180,8 @@ export async function runSmoke(
     if (linksError) return fail(linksError);
     const vaultError = await checkVault(win, config, outDir);
     if (vaultError) return fail(vaultError);
+    const appGraphError = await checkAppGraph(win, config, outDir);
+    if (appGraphError) return fail(appGraphError);
     const imeError = await checkIme(win);
     if (imeError) return fail(imeError);
     const reviewError = await checkReviewQueue(win, sessions, outDir);
@@ -1290,7 +1292,10 @@ async function checkNoteEditor(win: BrowserWindow, config: Config, outDir: strin
   fs.mkdirSync(path.join(dir, 'attachments'));
   fs.writeFileSync(
     path.join(dir, 'attachments', 'dot.png'),
-    Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64'),
+    Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      'base64',
+    ),
   );
   fs.appendFileSync(file, '![dot](attachments/dot.png)\r\n');
   const original = fs.readFileSync(file, 'utf8');
@@ -1324,7 +1329,11 @@ async function checkNoteEditor(win: BrowserWindow, config: Config, outDir: strin
       ))
     )
       return 'note editor: no live preview (rendered table + two checkboxes) after ⌘O';
-    if (!(await until(`(() => { const i = document.querySelector('.c-editor img.cm-md-img'); return !!i && i.complete && i.naturalWidth > 0; })()`)))
+    if (
+      !(await until(
+        `(() => { const i = document.querySelector('.c-editor img.cm-md-img'); return !!i && i.complete && i.naturalWidth > 0; })()`,
+      ))
+    )
       return 'note editor: the image next to the note did not load inline';
 
     // 1. A checkbox: one character changes.
@@ -1424,7 +1433,11 @@ async function checkNoteEditor(win: BrowserWindow, config: Config, outDir: strin
  * in the card; "Make a rule" adds it. ⌘K → "Link suggestions…": the rule is listed; AI on + Run now (a canned
  * Claude reply) adds a suggested person node.
  */
-async function checkLinkSuggestions(win: BrowserWindow, config: Config, outDir: string): Promise<string | null> {
+async function checkLinkSuggestions(
+  win: BrowserWindow,
+  config: Config,
+  outDir: string,
+): Promise<string | null> {
   const t = translator(config.language);
   const js = <T>(code: string) => win.webContents.executeJavaScript(code) as Promise<T>;
   const until = async (code: string, ms = 8000) => {
@@ -1455,12 +1468,17 @@ async function checkLinkSuggestions(win: BrowserWindow, config: Config, outDir: 
     const spec = id('specs/printable-reports.md');
     const edgeOf = (a: string, b: string) =>
       `window.aquila.graphSnapshot().then((g) => g.edges.find((e) => (e.source === ${a} && e.target === ${b}) || (e.source === ${b} && e.target === ${a})) ?? null)`;
-    if (!(await until(`${edgeOf(meeting, spec)}.then((e) => e?.kind === 'suggested' && e.reasons[0].via === 'similar')`)))
+    if (
+      !(await until(
+        `${edgeOf(meeting, spec)}.then((e) => e?.kind === 'suggested' && e.reasons[0].via === 'similar')`,
+      ))
+    )
       return 'links: no suggested (similar) edge between the meeting note and the spec';
 
     // Graph card: select the meeting note, the spec is listed with a dotted line; "[[" accepts and writes the link.
     press(win, 'N', ['meta', 'shift']);
-    if (!(await until(`!!document.querySelector('aside .c-kgraph canvas')`))) return 'links: graph panel did not open';
+    if (!(await until(`!!document.querySelector('aside .c-kgraph canvas')`)))
+      return 'links: graph panel did not open';
     await js(`(() => {
       const input = document.querySelector('aside .c-panel__bar input[type=search]');
       const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
@@ -1474,7 +1492,10 @@ async function checkLinkSuggestions(win: BrowserWindow, config: Config, outDir: 
     if (!(await until(`!!${row}?.querySelector('.c-suggest__line[data-line=dotted]')`)))
       return 'links: the graph card does not list the spec as a dotted suggestion';
     await wait(500);
-    fs.writeFileSync(path.join(outDir, 'smoke-links-card.png'), (await win.webContents.capturePage()).toPNG());
+    fs.writeFileSync(
+      path.join(outDir, 'smoke-links-card.png'),
+      (await win.webContents.capturePage()).toPNG(),
+    );
     await js(`${row}.querySelector('button[aria-label=${JSON.stringify(t('links.insert'))}]').click()`);
     const want = `${before}[[printable-reports]]\n`;
     for (let i = 0; i < 40 && fs.readFileSync(meetingFile, 'utf8') !== want; i++) await wait(100);
@@ -1515,10 +1536,18 @@ async function checkLinkSuggestions(win: BrowserWindow, config: Config, outDir: 
         return !!b;
       })()`);
     if (!(await click(t('links.aiOn')))) return 'links: no "Turn AI on" for the source';
-    if (!(await until(`(() => { const b = [...(${item})?.querySelectorAll('button') ?? []].find((x) => x.textContent === ${JSON.stringify(t('links.runNow'))}); return !!b && !b.disabled; })()`)))
+    if (
+      !(await until(
+        `(() => { const b = [...(${item})?.querySelectorAll('button') ?? []].find((x) => x.textContent === ${JSON.stringify(t('links.runNow'))}); return !!b && !b.disabled; })()`,
+      ))
+    )
       return 'links: "Run now" never became available';
     await click(t('links.runNow'));
-    if (!(await until(`window.aquila.graphSnapshot().then((g) => g.nodes.some((n) => n.id === 'person:mina' && n.kind === 'person'))`)))
+    if (
+      !(await until(
+        `window.aquila.graphSnapshot().then((g) => g.nodes.some((n) => n.id === 'person:mina' && n.kind === 'person'))`,
+      ))
+    )
       return 'links: AI extraction (canned reply) added no person node';
     await wait(300);
     fs.writeFileSync(path.join(outDir, 'smoke-links.png'), (await win.webContents.capturePage()).toPNG());
@@ -1551,8 +1580,13 @@ async function checkVault(win: BrowserWindow, config: Config, outDir: string): P
     }
     return false;
   };
-  const dir = path.join(fs.mkdtempSync(path.join(app.getPath('temp'), 'aquila-smoke-vault-')), 'requirements');
-  fs.cpSync(path.join(__dirname, '..', '..', 'electron', 'fixtures', 'vault', 'requirements'), dir, { recursive: true });
+  const dir = path.join(
+    fs.mkdtempSync(path.join(app.getPath('temp'), 'aquila-smoke-vault-')),
+    'requirements',
+  );
+  fs.cpSync(path.join(__dirname, '..', '..', 'electron', 'fixtures', 'vault', 'requirements'), dir, {
+    recursive: true,
+  });
   const spec = path.join(dir, 'specs', 'done', 'DB-6891-downloads.md');
   const specBefore = fs.readFileSync(spec, 'utf8');
   let sourceId = '';
@@ -1560,7 +1594,8 @@ async function checkVault(win: BrowserWindow, config: Config, outDir: string): P
     const st = await js<{ sources: { id: string; path: string }[] }>(
       `window.aquila.graphAddSource(${JSON.stringify(dir)})`,
     );
-    sourceId = st.sources.find((x) => x.path.endsWith(`${path.basename(path.dirname(dir))}/requirements`))?.id ?? '';
+    sourceId =
+      st.sources.find((x) => x.path.endsWith(`${path.basename(path.dirname(dir))}/requirements`))?.id ?? '';
     if (!sourceId) return 'vault: the fixture source was not added';
     const id = (rel: string) => JSON.stringify(`note:${sourceId}:${rel}`);
     if (
@@ -1576,17 +1611,33 @@ async function checkVault(win: BrowserWindow, config: Config, outDir: string): P
     const item = `document.getElementById(${JSON.stringify(`vault-source-${sourceId}`)})`;
     if (!(await until(`!!${item}`))) return 'vault: the settings do not list the source';
     await js(`${item}.click()`);
-    if (!(await until(`(() => { const b = document.querySelector('.c-modal[open] .c-modal__bullets')?.textContent ?? ''; return b.includes('Board') && b.includes('Changelog') && b.includes('checklists'); })()`)))
+    if (
+      !(await until(
+        `(() => { const b = document.querySelector('.c-modal[open] .c-modal__bullets')?.textContent ?? ''; return b.includes('Board') && b.includes('Changelog') && b.includes('checklists'); })()`,
+      ))
+    )
       return 'vault: the settings preview does not show the board, companions and Changelog';
     await wait(300);
-    fs.writeFileSync(path.join(outDir, 'smoke-vault-settings.png'), (await win.webContents.capturePage()).toPNG());
+    fs.writeFileSync(
+      path.join(outDir, 'smoke-vault-settings.png'),
+      (await win.webContents.capturePage()).toPNG(),
+    );
 
     // Open the board: three status columns from the folders.
-    await js(`[...document.querySelectorAll('.c-modal[open] button')].find((b) => b.textContent === 'Board').click()`);
-    if (!(await until(`[...document.querySelectorAll('.c-modal[open] .c-board__head')].map((h) => h.firstChild.textContent).join() === 'to-do,in-progress,done'`)))
+    await js(
+      `[...document.querySelectorAll('.c-modal[open] button')].find((b) => b.textContent === 'Board').click()`,
+    );
+    if (
+      !(await until(
+        `[...document.querySelectorAll('.c-modal[open] .c-board__head')].map((h) => h.firstChild.textContent).join() === 'to-do,in-progress,done'`,
+      ))
+    )
       return 'vault: the board does not show to-do / in-progress / done';
     await wait(300);
-    fs.writeFileSync(path.join(outDir, 'smoke-vault-board.png'), (await win.webContents.capturePage()).toPNG());
+    fs.writeFileSync(
+      path.join(outDir, 'smoke-vault-board.png'),
+      (await win.webContents.capturePage()).toPNG(),
+    );
     // Alt+→ on the to-do card moves its file into in-progress.
     await js(`(() => {
       const card = [...document.querySelectorAll('.c-modal[open] .c-board__card')].find((c) => c.textContent.includes('DB-7100'));
@@ -1599,18 +1650,36 @@ async function checkVault(win: BrowserWindow, config: Config, outDir: string): P
       return 'vault: moving a card did not move its file to in-progress';
 
     // A card opens the spec in the editor, with its companions as tabs and the Changelog action.
-    await js(`[...document.querySelectorAll('.c-modal[open] .c-board__card')].find((c) => c.textContent.includes('DB-6891')).click()`);
-    if (!(await until(`[...document.querySelectorAll('.c-editor__tab')].map((b) => b.textContent).join() === 'specs,checklists,retrospects'`, 10_000)))
+    await js(
+      `[...document.querySelectorAll('.c-modal[open] .c-board__card')].find((c) => c.textContent.includes('DB-6891')).click()`,
+    );
+    if (
+      !(await until(
+        `[...document.querySelectorAll('.c-editor__tab')].map((b) => b.textContent).join() === 'specs,checklists,retrospects'`,
+        10_000,
+      ))
+    )
       return 'vault: the spec does not show specs / checklists / retrospects tabs';
     const changelog = `[...document.querySelectorAll('.c-editor__tabs-end button')].find((b) => b.textContent === 'Changelog')`;
-    if (!(await until(`!!${changelog} && !${changelog}.disabled`))) return 'vault: no Changelog action on the spec';
+    if (!(await until(`!!${changelog} && !${changelog}.disabled`)))
+      return 'vault: no Changelog action on the spec';
     await wait(300);
-    fs.writeFileSync(path.join(outDir, 'smoke-vault-note.png'), (await win.webContents.capturePage()).toPNG());
+    fs.writeFileSync(
+      path.join(outDir, 'smoke-vault-note.png'),
+      (await win.webContents.capturePage()).toPNG(),
+    );
     await js(`${changelog}.click()`);
     const date = isoDate(new Date());
     const want = applyAction(
       specBefore,
-      { id: 'changelog', name: 'Changelog', kind: 'insert', under: 'Changelog', block: '- **{{date}}**: \n  - 사유: \n  - 영향: ', set: { revised: '{{date}}' } },
+      {
+        id: 'changelog',
+        name: 'Changelog',
+        kind: 'insert',
+        under: 'Changelog',
+        block: '- **{{date}}**: \n  - 사유: \n  - 영향: ',
+        set: { revised: '{{date}}' },
+      },
       { date },
     );
     for (let i = 0; i < 50 && fs.readFileSync(spec, 'utf8') !== want; i++) await wait(100);
@@ -1618,8 +1687,14 @@ async function checkVault(win: BrowserWindow, config: Config, outDir: string): P
       return `vault: Changelog did not save exactly the dated line and revised: ${JSON.stringify(fs.readFileSync(spec, 'utf8').slice(-160))}`;
 
     // A tab opens the checklist.
-    await js(`[...document.querySelectorAll('.c-editor__tab')].find((b) => b.textContent === 'checklists').click()`);
-    if (!(await until(`document.querySelector('.c-editor__tab[aria-selected=true]')?.textContent === 'checklists'`)))
+    await js(
+      `[...document.querySelectorAll('.c-editor__tab')].find((b) => b.textContent === 'checklists').click()`,
+    );
+    if (
+      !(await until(
+        `document.querySelector('.c-editor__tab[aria-selected=true]')?.textContent === 'checklists'`,
+      ))
+    )
       return 'vault: the checklists tab did not open the checklist';
 
     // Make with Claude (canned reply) fills the draft; nothing is saved.
@@ -1628,14 +1703,23 @@ async function checkVault(win: BrowserWindow, config: Config, outDir: string): P
     await js(`${item}.click()`);
     await wait(300);
     const shared = fs.readFileSync(path.join(dir, '.aquila-vault.json'), 'utf8');
-    await js(`[...document.querySelectorAll('.c-modal[open] button')].find((b) => b.textContent === ${JSON.stringify(t('vault.claudeMake'))}).click()`);
-    if (!(await until(`(document.querySelector('.c-modal[open] textarea.c-input--code')?.value ?? '').includes('"verify"') === false && (document.querySelector('.c-modal[open] .c-modal__bullets')?.textContent ?? '').includes('Board')`)))
+    await js(
+      `[...document.querySelectorAll('.c-modal[open] button')].find((b) => b.textContent === ${JSON.stringify(t('vault.claudeMake'))}).click()`,
+    );
+    if (
+      !(await until(
+        `(document.querySelector('.c-modal[open] textarea.c-input--code')?.value ?? '').includes('"verify"') === false && (document.querySelector('.c-modal[open] .c-modal__bullets')?.textContent ?? '').includes('Board')`,
+      ))
+    )
       return 'vault: "Make with Claude" did not fill the draft';
-    if (fs.readFileSync(path.join(dir, '.aquila-vault.json'), 'utf8') !== shared) return 'vault: the draft was written before Save';
+    if (fs.readFileSync(path.join(dir, '.aquila-vault.json'), 'utf8') !== shared)
+      return 'vault: the draft was written before Save';
     press(win, 'Escape', []);
     await wait(300);
     // Close the editor.
-    await js(`document.querySelector('aside .c-panel__actions button[aria-label=${JSON.stringify(t('action.close'))}]')?.click()`);
+    await js(
+      `document.querySelector('aside .c-panel__actions button[aria-label=${JSON.stringify(t('action.close'))}]')?.click()`,
+    );
     await wait(300);
     console.log(
       '[smoke] vault: shared link rule, settings preview, board (3 columns, Alt+→ moved the file), companion tabs, Changelog saved exactly, Make with Claude (canned)',
@@ -1644,6 +1728,109 @@ async function checkVault(win: BrowserWindow, config: Config, outDir: string): P
   } finally {
     if (sourceId) await js(`window.aquila.graphRemoveSource(${JSON.stringify(sourceId)})`);
     fs.rmSync(path.dirname(dir), { recursive: true, force: true });
+  }
+}
+
+/**
+ * The app in the graph (T70): a note in a throwaway source, and a Claude transcript (written into the smoke's graph
+ * folder, read like history) that got the note as `@"path"` and edited a file. The snapshot has the solid path
+ * note → session → changed file; in the graph the session's card offers Resume, the note's "Handle with Claude".
+ */
+async function checkAppGraph(win: BrowserWindow, config: Config, outDir: string): Promise<string | null> {
+  const t = translator(config.language);
+  const js = <T>(code: string) => win.webContents.executeJavaScript(code) as Promise<T>;
+  const until = async (code: string, ms = 8000) => {
+    for (let i = 0; i < ms / 100; i++) {
+      if (await js<boolean>(code)) return true;
+      await wait(100);
+    }
+    return false;
+  };
+  const select = async (label: string) => {
+    await js(`(() => {
+      const input = document.querySelector('aside .c-panel__bar input[type=search]');
+      const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+      input.focus();
+      set.call(input, ${JSON.stringify(label)});
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    })()`);
+    await wait(300);
+    press(win, 'Enter', []);
+    return until(
+      `document.querySelector('aside .c-kgraph__card-title')?.textContent === ${JSON.stringify(label)}`,
+      3000,
+    );
+  };
+  const cardHas = (text: string) =>
+    until(
+      `[...document.querySelectorAll('aside .c-kgraph__card button')].some((b) => b.textContent.trim() === ${JSON.stringify(text)})`,
+      3000,
+    );
+  const root = fs.mkdtempSync(path.join(app.getPath('temp'), 'aquila-smoke-app-'));
+  const notes = path.join(root, 'notes');
+  fs.mkdirSync(notes);
+  const note = path.join(notes, 'login plan.md');
+  fs.writeFileSync(note, '# Login plan\n\nValidate the form before sending.\n');
+  const repo = path.join(root, 'repo');
+  const changed = path.join(repo, 'src', 'LoginForm.tsx');
+  const transcripts = path.join(app.getPath('temp'), `aquila-smoke-graph-${process.pid}`, 'transcripts');
+  const transcript = path.join(transcripts, 'smoke-t70.jsonl');
+  const intro = t('note.handle.note');
+  let sourceId = '';
+  try {
+    const st = await js<{ sources: { id: string; path: string }[] }>(
+      `window.aquila.graphAddSource(${JSON.stringify(notes)})`,
+    );
+    sourceId = st.sources.find((x) => x.path.endsWith(`${path.basename(root)}/notes`))?.id ?? '';
+    if (!sourceId) return 'app graph: the note source was not added';
+    const noteId = JSON.stringify(`note:${sourceId}:login plan.md`);
+    if (
+      !(await until(
+        `window.aquila.graphSnapshot().then((g) => g.nodes.some((n) => n.id === ${noteId}))`,
+        10_000,
+      ))
+    )
+      return 'app graph: the note was not indexed';
+    const at = new Date().toISOString();
+    const line = (type: string, content: unknown) =>
+      JSON.stringify({ type, cwd: repo, timestamp: at, message: { content } });
+    fs.mkdirSync(transcripts, { recursive: true });
+    fs.writeFileSync(
+      transcript,
+      [
+        line('user', `${intro}\n\n@"${note}"`),
+        line('assistant', [
+          { type: 'text', text: 'Done.' },
+          { type: 'tool_use', id: 'e1', name: 'Edit', input: { file_path: changed } },
+        ]),
+      ].join('\n'),
+    );
+    const sid = JSON.stringify('session:claude:smoke-t70');
+    const fid = JSON.stringify(`file:${changed}`);
+    const path3 = `window.aquila.graphSnapshot().then((g) => [[${noteId}, ${sid}], [${sid}, ${fid}]].every(([a, b]) => g.edges.some((e) => e.source === a && e.target === b && e.kind === 'action' && e.strength === 1)))`;
+    if (!(await until(path3)))
+      return 'app graph: no solid note → session → changed file path in the snapshot';
+    if ((await js<string | null>(`window.aquila.noteProject(${JSON.stringify(note)})`)) !== null)
+      return 'app graph: a note outside every project got a project';
+
+    await js('window.__graphSettled = null');
+    press(win, 'N', ['meta', 'shift']);
+    if (!(await until('!!window.__graphSettled', 15_000))) return 'app graph: the graph never settled';
+    if (!(await select(intro))) return 'app graph: the session node could not be selected';
+    if (!(await cardHas(t('graph.resume')))) return 'app graph: the session card has no Resume';
+    fs.writeFileSync(path.join(outDir, 'smoke-app-graph.png'), (await win.webContents.capturePage()).toPNG());
+    if (!(await select('Login plan'))) return 'app graph: the note could not be selected';
+    if (!(await cardHas(t('note.handle')))) return `app graph: the note card has no "${t('note.handle')}"`;
+    press(win, 'N', ['meta', 'shift']);
+    await wait(300);
+    console.log(
+      '[smoke] app graph: note → session → changed file (solid), Resume on the session, Handle with Claude on the note',
+    );
+    return null;
+  } finally {
+    fs.rmSync(transcript, { force: true });
+    if (sourceId) await js(`window.aquila.graphRemoveSource(${JSON.stringify(sourceId)})`);
+    fs.rmSync(root, { recursive: true, force: true });
   }
 }
 

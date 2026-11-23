@@ -7,6 +7,7 @@ import path from 'node:path';
 import { Worker } from 'node:worker_threads';
 import type {
   GraphDecision,
+  GraphNode,
   GraphRuleOp,
   GraphSnapshot,
   GraphSource,
@@ -14,6 +15,7 @@ import type {
   GraphStatus,
   VaultLinkRule,
 } from '../../src/shared/api/types';
+import type { AppGraph } from './app-nodes';
 import type { CodeProject } from './code';
 import type { EngineStatus } from './engine';
 import type { VaultGraph, VaultNote } from './vault';
@@ -124,6 +126,8 @@ export interface GraphServiceOptions {
   vaultLinks?: (ids: string[]) => Record<string, VaultLinkRule[]>;
   /** T69: a source's `.aquila-vault.json` changed on disk. */
   onVaultFile?: (id: string) => void;
+  /** T70: sessions, changed files, trends and applies for the index's nodes (merged into every snapshot). */
+  app?: (nodes: GraphNode[]) => Promise<AppGraph>;
   /** Tests / smoke: a fake folder dialog has nothing to do with this; `home` for `~/…` paths. */
   home?: string;
 }
@@ -137,6 +141,9 @@ export class GraphService implements VaultGraph {
   private req = 0;
   private waiting = new Map<number, (s: GraphSnapshot) => void>();
   private waitingNotes = new Map<number, (n: VaultNote[]) => void>();
+  /** T70: goes up when the app's part changed (added to the index version, so the open graph refetches). */
+  private appVersion = 0;
+  private appTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(private opts: GraphServiceOptions) {
     this.sources = readSources(this.file);
@@ -199,15 +206,37 @@ export class GraphService implements VaultGraph {
     return this.current();
   }
 
-  snapshot(): Promise<GraphSnapshot> {
+  async snapshot(): Promise<GraphSnapshot> {
     this.start();
     const w = this.worker;
-    if (!w) return Promise.resolve(EMPTY);
+    if (!w) return EMPTY;
     const req = ++this.req;
-    return new Promise((resolve) => {
+    const appVersion = this.appVersion;
+    const snap = await new Promise<GraphSnapshot>((resolve) => {
       this.waiting.set(req, resolve);
       w.postMessage({ type: 'snapshot', req } satisfies ToWorker);
     });
+    if (!this.opts.app || snap === EMPTY) return snap;
+    const app = await this.opts.app(snap.nodes);
+    const ids = new Set(snap.nodes.map((n) => n.id));
+    const nodes = [...snap.nodes, ...app.nodes.filter((n) => !ids.has(n.id))];
+    for (const n of app.nodes) ids.add(n.id);
+    const edges = [...snap.edges, ...app.edges.filter((e) => ids.has(e.source) && ids.has(e.target))];
+    return { ...snap, nodes, edges, version: snap.version + appVersion };
+  }
+
+  /**
+   * T70: the app's part changed (a turn ended, an apply was decided). Coalesced; costs nothing until the graph was
+   * first asked for — the open panel refetches on the new version, a closed one doesn't.
+   */
+  appChanged(): void {
+    if (!this.started || this.appTimer) return;
+    this.appTimer = setTimeout(() => {
+      this.appTimer = null;
+      this.appVersion++;
+      this.opts.onStatus(this.current());
+    }, 1000);
+    this.appTimer.unref?.();
   }
 
   /**
@@ -273,13 +302,15 @@ export class GraphService implements VaultGraph {
   }
 
   close(): void {
+    if (this.appTimer) clearTimeout(this.appTimer);
     this.stopWorker();
   }
 
   // ---- internals ----
 
   private current(): GraphStatus {
-    return mergeStatus(this.sources, this.engine);
+    const st = mergeStatus(this.sources, this.engine);
+    return { ...st, version: st.version + this.appVersion };
   }
 
   private save(next: GraphSource[]): void {
