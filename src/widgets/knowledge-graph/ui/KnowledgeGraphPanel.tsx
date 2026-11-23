@@ -20,6 +20,7 @@ import { onThemeChange } from '@/shared/lib/theme';
 
 import { readColors } from '../model/colors';
 import { sourceName, useGraphData } from '@/entities/note';
+import { LinkSuggestions } from '@/features/link-suggestions';
 import {
   DEFAULT_FILTER,
   TIME_WINDOWS,
@@ -287,7 +288,15 @@ export default function KnowledgeGraphPanel({
                 </Button>
               </>
             }
-          />
+          >
+            <LinkSuggestions
+              variant="card"
+              nodeId={selectedNode.id}
+              snapshot={snapshot}
+              status={status}
+              onOpen={(n) => setSelected(n.id)}
+            />
+          </GraphCard>
         )}
         {empty ? (
           <EmptyState

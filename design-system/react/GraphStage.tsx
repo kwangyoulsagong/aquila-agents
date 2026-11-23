@@ -57,11 +57,14 @@ export function GraphCard({
   title,
   detail,
   actions,
+  children,
 }: {
   kind: GraphSwatch;
   title: ReactNode;
   detail?: ReactNode;
   actions?: ReactNode;
+  /** Below the title row, full width, scrolls when long (the note's suggested links, T68). */
+  children?: ReactNode;
 }) {
   return (
     <div className="c-kgraph__card" role="status">
@@ -71,6 +74,7 @@ export function GraphCard({
         {detail && <div className="c-kgraph__card-detail">{detail}</div>}
       </div>
       {actions && <div className="c-kgraph__card-actions">{actions}</div>}
+      {children && <div className="c-kgraph__card-body">{children}</div>}
     </div>
   );
 }

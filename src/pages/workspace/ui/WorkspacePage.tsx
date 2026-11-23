@@ -17,6 +17,7 @@ import { ReviewQueue, useReviewQueue } from '@/features/review-queue';
 import { SessionCommandsModal } from '@/features/session-commands';
 import { GlobalShortcutDialog } from '@/features/global-shortcut';
 import { SourcesDialog } from '@/features/graph-sources';
+import { LinkSettingsDialog, LinkSuggestions } from '@/features/link-suggestions';
 import { NoteEditorPanel, QuickOpen } from '@/features/edit-note';
 import { copyLastReply, toggleQuickSelect } from '@/features/terminal-helpers';
 import { openFind } from '@/features/terminal-search';
@@ -116,6 +117,7 @@ export default function WorkspacePage() {
   // Global shortcut (T41): main already brought the window up; go to the session that needs the user.
   const [globalShortcutOpen, setGlobalShortcutOpen] = useState(false);
   const [sourcesOpen, setSourcesOpen] = useState(false);
+  const [linksOpen, setLinksOpen] = useState(false);
   const summonRef = useRef({ sessions, focusedId, selectSession });
   summonRef.current = { sessions, focusedId, selectSession };
   useEffect(
@@ -253,6 +255,7 @@ export default function WorkspacePage() {
           onChanged: setConfig,
           onGlobalShortcut: () => setGlobalShortcutOpen(true),
           onSources: () => setSourcesOpen(true),
+          onLinks: () => setLinksOpen(true),
         });
     },
     addProject: () => void addProject(),
@@ -311,6 +314,7 @@ export default function WorkspacePage() {
     }
     a.globalShortcut = () => setGlobalShortcutOpen(true);
     a.sources = () => setSourcesOpen(true);
+    a.links = () => setLinksOpen(true);
     a.firstRun = reopenFirstRun;
     a.guide = showGuide;
     a.whatsNew = showNotes;
@@ -398,6 +402,7 @@ export default function WorkspacePage() {
                   onChanged={ws.setConfig}
                   onGlobalShortcut={() => setGlobalShortcutOpen(true)}
                   onSources={() => setSourcesOpen(true)}
+                  onLinks={() => setLinksOpen(true)}
                 />
                 <TrendsButton
                   open={trendsOpen}
@@ -546,6 +551,7 @@ export default function WorkspacePage() {
         )}
         {globalShortcutOpen && <GlobalShortcutDialog onClose={() => setGlobalShortcutOpen(false)} />}
         {sourcesOpen && <SourcesDialog onClose={() => setSourcesOpen(false)} />}
+        {linksOpen && <LinkSettingsDialog onClose={() => setLinksOpen(false)} />}
         <QuickOpen open={quickOpenOn} onClose={() => setQuickOpen(false)} onPick={setNotePath} />
         {commandsOpen && focusedSession && (
           <SessionCommandsModal
@@ -587,6 +593,9 @@ export default function WorkspacePage() {
               setNoteFull(false);
             }}
             onOpenNote={setNotePath}
+            renderLinks={(p) => (
+              <LinkSuggestions {...p} variant="side" onOpen={(n) => n.path && setNotePath(n.path)} />
+            )}
           />
         )}
         {graphOpen && !fullscreen.on && !previewFull && !noteFull && (

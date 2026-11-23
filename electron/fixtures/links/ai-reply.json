@@ -1,0 +1,18 @@
+{
+  "notes": [
+    {
+      "id": "2026-11-18 Planning",
+      "people": ["Mina", "Joon"],
+      "decisions": ["Wide tables print in landscape"],
+      "todos": ["Mina drafts the footer with page numbers"],
+      "related": ["Printable reports", "Import crash"]
+    },
+    {
+      "id": "Auth memo",
+      "people": [],
+      "decisions": [],
+      "todos": ["Stop clearing the session cookie twice"],
+      "related": ["Login loop"]
+    }
+  ]
+}

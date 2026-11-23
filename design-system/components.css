@@ -916,7 +916,35 @@ body {
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .c-kgraph__card-actions { flex: none; display: flex; gap: var(--space-inline-xs); }
+.c-kgraph__card:has(.c-kgraph__card-body:not(:empty)) { flex-wrap: wrap; }
+.c-kgraph__card-body:empty { display: none; }
+.c-kgraph__card-body {
+  flex-basis: 100%; max-height: var(--size-card-list); overflow: auto;
+  margin: 0 calc(var(--space-inset-md) * -1) calc(var(--space-inset-sm) * -1); border-top: 1px solid var(--color-border-subtle);
+}
 .c-kgraph > .c-empty { position: absolute; inset: 0; z-index: 1; }
+
+/* ── Link suggestions (T68): suggested connections with Link / [[ ]] / Not related ─── */
+.c-suggest { margin: 0; padding: 0; list-style: none; }
+.c-suggest__item, .c-suggest__proposal {
+  display: flex; align-items: center; gap: var(--space-inline-sm); padding: var(--space-inline-xs) var(--space-inset-md);
+}
+.c-suggest__item:hover { background: var(--color-bg-hover); }
+.c-suggest__line { flex: none; width: var(--space-inset-sm); border-top: 1px dotted var(--color-text-tertiary); }
+.c-suggest__line[data-line='dashed'] { border-top-style: dashed; }
+.c-suggest__text {
+  flex: 1; min-width: 0; padding: 0; border: 0; background: none; color: var(--color-text-secondary);
+  font: inherit; text-align: left; cursor: pointer;
+}
+.c-suggest__text:disabled { cursor: default; }
+.c-suggest__text:hover:enabled .c-suggest__label { color: var(--color-text-primary); }
+.c-suggest__label, .c-suggest__why { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.c-suggest__label { font-size: var(--font-size-label); }
+.c-suggest__why { font-size: var(--font-size-caption); color: var(--color-text-tertiary); }
+.c-suggest__actions { flex: none; display: flex; gap: var(--space-inline-xs); }
+.c-suggest__proposal { box-shadow: inset var(--size-focus-line) 0 0 var(--color-action-primary); font-size: var(--font-size-label); }
+.c-suggest__proposal[data-tone='warn'] { box-shadow: inset var(--size-focus-line) 0 0 var(--color-status-waiting); }
+.c-suggest__proposal-text { flex: 1; min-width: 0; }
 
 /* ── Note editor (T67): CodeMirror live preview + outline / links column ─── */
 .c-editor { flex: 1; min-height: 0; display: flex; background: var(--color-bg-canvas); }

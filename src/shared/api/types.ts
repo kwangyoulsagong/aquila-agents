@@ -736,6 +736,7 @@ export type GraphEdgeVia =
   | 'similar'
   | 'ai'
   | 'rule'
+  | 'accepted'
   | 'session'
   | 'changed';
 
@@ -780,6 +781,8 @@ export interface GraphSource {
   /** Stored as `~/…` under home. */
   path: string;
   enabled: boolean;
+  /** T68: changed notes go to a hidden `claude -p` (haiku) for people / decisions / to-dos / related notes. Off by default. */
+  ai?: boolean;
 }
 
 /**
@@ -804,7 +807,67 @@ export interface GraphStatus {
   /** Offered as groups in Settings → Sources ("looks like an ID"). */
   idGroups: GraphIdGroup[];
   version: number;
+  /** T68: rules, rule proposals and AI extraction per source (absent until the index runs). */
+  links?: GraphLinksState;
 }
+
+/** What makes connections always link (T68): notes sharing an ID of this prefix, or a URL on this host. */
+export type GraphRulePattern = { kind: 'id'; prefix: string } | { kind: 'url'; host: string };
+
+export interface GraphRule {
+  id: string;
+  pattern: GraphRulePattern;
+  enabled: boolean;
+  createdAt: number;
+}
+
+/** The same pattern accepted 3+ times with no rule for it yet: "`DB-<n>` always links?". */
+export interface GraphRuleProposal {
+  /** `id:DB`, `url:github.com`. */
+  key: string;
+  pattern: GraphRulePattern;
+  accepts: number;
+}
+
+/** AI extraction of one source (only sources with `ai` on). */
+export interface GraphAiState {
+  sourceId: string;
+  /** Notes sent today / the daily cap. */
+  today: number;
+  cap: number;
+  /** Changed notes waiting to be read. */
+  queued: number;
+  running: boolean;
+  /** Queued because of power saver: runs on power, or by hand. */
+  waitingForPower: boolean;
+  /** Last failure (Claude missing, bad reply); automatic runs stop until the next "Run now". */
+  error?: string;
+}
+
+export interface GraphLinksState {
+  rules: GraphRule[];
+  proposals: GraphRuleProposal[];
+  ai: GraphAiState[];
+  accepted: number;
+  rejected: number;
+}
+
+/** Accept (becomes solid) or reject (never suggested again) a suggested / mentioned connection. */
+export interface GraphDecision {
+  source: string;
+  target: string;
+  accept: boolean;
+  /** Accept and also write `[[linkTo]]` at the end of this note (a `.md` in an enabled source). */
+  insertInto?: string;
+  linkTo?: string;
+}
+
+export type GraphRuleOp =
+  | { op: 'add'; pattern: GraphRulePattern }
+  | { op: 'update'; rule: GraphRule }
+  | { op: 'remove'; id: string }
+  /** "Not now" on a proposal: not offered again. */
+  | { op: 'dismiss'; key: string };
 
 /** A note open in the editor (T67). The text is the file's bytes as UTF-8, with a leading BOM split off into `bom`. */
 export interface NoteFile {
@@ -1138,6 +1201,14 @@ export interface AquilaApi {
   graphSnapshot(): Promise<GraphSnapshot>;
   /** Opens a note of an enabled source in the default app (T66, until the editor T67). Other paths are refused. */
   graphOpenNote(path: string): Promise<boolean>;
+  /** T68: accept / reject a suggestion. `inserted`: the `[[link]]` was written (false when asked and refused). */
+  graphDecide(d: GraphDecision): Promise<{ inserted: boolean }>;
+  /** T68: add / edit / remove a link rule, or dismiss a proposal. The new state comes with `onGraphStatus`. */
+  graphRule(op: GraphRuleOp): Promise<void>;
+  /** T68: AI extraction on/off for a source (uses the user's Claude quota). */
+  graphSetSourceAi(id: string, ai: boolean): Promise<GraphStatus>;
+  /** T68: read the queued notes of a source now (also in power saver). */
+  graphExtractNow(id: string): Promise<void>;
   /** Note editor (T67): reads a note of an enabled source and watches it until `noteClose`. Other paths → null. */
   noteOpen(path: string): Promise<NoteFile | null>;
   noteClose(path: string): void;
@@ -1393,6 +1464,10 @@ export const IPC = {
   graphIndexNow: 'graph:index-now',
   graphSnapshot: 'graph:snapshot',
   graphOpenNote: 'graph:open-note',
+  graphDecide: 'graph:decide',
+  graphRule: 'graph:rule',
+  graphSetSourceAi: 'graph:set-source-ai',
+  graphExtractNow: 'graph:extract-now',
   noteOpen: 'note:open',
   noteClose: 'note:close',
   noteWrite: 'note:write',

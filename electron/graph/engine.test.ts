@@ -156,3 +156,76 @@ describe('walkMarkdown', () => {
     expect((await walkMarkdown(root)).sort()).toEqual(['a/in.MD', 'top.md']);
   });
 });
+
+describe('GraphEngine links (T68)', () => {
+  const LINKS = path.join(__dirname, '..', 'fixtures', 'links');
+  const id = (rel: string) => `note:links:${rel}`;
+  const meeting = id('meetings/2026-11-18 planning.md');
+  const spec = id('specs/printable-reports.md');
+  const between = (g: GraphSnapshot, a: string, b: string) =>
+    g.edges.find((e) => (e.source === a && e.target === b) || (e.source === b && e.target === a));
+
+  it('a fixture meeting note gets a suggested edge to a spec; three accepts of DB- links propose a rule (T68 done)', async () => {
+    const dir = mkTmp();
+    const statuses: EngineStatus[] = [];
+    const engine = new GraphEngine({
+      watch: false,
+      codeNames,
+      linksFile: path.join(dir, 'links.json'),
+      onStatus: (s) => statuses.push(s),
+    });
+    await engine.setSources([{ id: 'links', root: LINKS }]);
+    await engine.idle();
+    const suggested = between(engine.snapshot(), meeting, spec);
+    expect(suggested).toMatchObject({ kind: 'suggested' });
+    expect(suggested!.strength).toBeLessThan(0.4);
+    expect(suggested!.reasons[0]).toMatchObject({ via: 'similar' });
+
+    const pairs: [string, string][] = [
+      [meeting, id('bugs/import-crash.md')],
+      [id('bugs/slow-search.md'), id('memos/search-memo.md')],
+      [id('bugs/login-loop.md'), id('memos/auth-memo.md')],
+    ];
+    for (const [a, b] of pairs) {
+      expect(between(engine.snapshot(), a, b)?.reasons.some((r) => r.via === 'id')).toBe(true);
+      engine.decide({ source: a, target: b, accept: true });
+    }
+    expect(between(engine.snapshot(), pairs[0][0], pairs[0][1])).toMatchObject({ kind: 'explicit' });
+    expect(engine.status().links.proposals).toEqual([
+      { key: 'id:DB', pattern: { kind: 'id', prefix: 'DB' }, accepts: 3 },
+    ]);
+    engine.ruleOp({ op: 'add', pattern: { kind: 'id', prefix: 'DB' } });
+    expect(engine.status().links.proposals).toEqual([]);
+    expect(engine.status().links.rules).toHaveLength(1);
+
+    // Rejected: gone, and stays gone after a restart (decisions are kept in links.json).
+    engine.decide({ source: meeting, target: spec, accept: false });
+    expect(between(engine.snapshot(), meeting, spec)).toBeUndefined();
+    engine.close();
+    const again = new GraphEngine({ watch: false, codeNames, linksFile: path.join(dir, 'links.json') });
+    await again.setSources([{ id: 'links', root: LINKS }]);
+    await again.idle();
+    expect(between(again.snapshot(), meeting, spec)).toBeUndefined();
+    expect(between(again.snapshot(), pairs[1][0], pairs[1][1])?.reasons).toContainEqual({
+      via: 'rule',
+      label: 'DB-<n>',
+    });
+    again.close();
+  });
+
+  it('AI extracts become suggested people / to-do nodes, only for sources with AI on', async () => {
+    const { fixtureRun } = await import('./extract');
+    const engine = new GraphEngine({ watch: false, codeNames, extractor: { delayMs: 1 } });
+    await engine.setSources([{ id: 'links', root: LINKS }]);
+    await engine.idle();
+    engine.configureAi(['links'], fixtureRun(path.join(LINKS, 'ai-reply.json')));
+    await new Promise((r) => setTimeout(r, 30));
+    await engine.extractIdle();
+    const g = engine.snapshot();
+    expect(g.nodes.find((n) => n.id === 'person:mina')).toMatchObject({ kind: 'person', label: 'Mina' });
+    expect(between(g, meeting, 'person:mina')).toMatchObject({ kind: 'suggested', reasons: [{ via: 'ai' }] });
+    expect(g.nodes.some((n) => n.kind === 'todo')).toBe(true);
+    expect(engine.status().links.ai[0]).toMatchObject({ sourceId: 'links', today: 7, queued: 0 });
+    engine.close();
+  });
+});

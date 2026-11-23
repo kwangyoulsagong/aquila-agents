@@ -8,7 +8,10 @@ import type {
   GraphNode,
   GraphSnapshot,
 } from '../../src/shared/api/types';
+import type { AiExtract } from './extract';
 import type { ParsedNote } from './parse';
+import { pairKey, ruleFor, type LinkData } from './rules';
+import type { SimilarPair } from './similar';
 
 export interface IndexedNote {
   sourceId: string;
@@ -41,6 +44,7 @@ const STRENGTH: Record<GraphEdgeReason['via'], number> = {
   code: 0.5,
   url: 0.4,
   rule: 0.9,
+  accepted: 0.9,
   similar: 0.3,
   ai: 0.3,
 };
@@ -49,6 +53,7 @@ const KIND: Record<GraphEdgeReason['via'], GraphEdgeKind> = {
   frontmatter: 'explicit',
   tag: 'explicit',
   rule: 'explicit',
+  accepted: 'explicit',
   session: 'action',
   changed: 'action',
   id: 'mention',
@@ -117,10 +122,32 @@ function contains(text: string, title: string): boolean {
   return false;
 }
 
+/** T68 additions: suggestions (local similarity, AI) and the user's decisions / rules. */
+export interface BuildExtras {
+  similar?: readonly SimilarPair[];
+  ai?: ReadonlyMap<string, AiExtract>;
+  links?: Pick<LinkData, 'accepted' | 'rejected' | 'rules'>;
+}
+
+/** Similarity 0–1 → a suggested edge's strength (always under a mention's 0.4). */
+export const similarStrength = (score: number) => Math.round((0.1 + 0.25 * Math.min(1, score)) * 100) / 100;
+
 class EdgeSet {
   private map = new Map<string, GraphEdge>();
 
-  add(source: string, target: string, reason: GraphEdgeReason): void {
+  has(a: string, b: string): boolean {
+    return this.map.has(pairKey(a, b));
+  }
+
+  get(key: string): GraphEdge | undefined {
+    return this.map.get(key);
+  }
+
+  delete(key: string): void {
+    this.map.delete(key);
+  }
+
+  add(source: string, target: string, reason: GraphEdgeReason, strength = STRENGTH[reason.via]): void {
     if (source === target) return;
     const kind = KIND[reason.via];
     // A shared ID / URL or a similarity has no direction; a link or a mention goes from the note that wrote it.
@@ -135,7 +162,7 @@ class EdgeSet {
         source: s,
         target: t,
         kind,
-        strength: STRENGTH[reason.via],
+        strength,
         reasons: [reason],
       });
       return;
@@ -150,7 +177,7 @@ class EdgeSet {
     }
     if (stronger) prev.kind = kind;
     if (!prev.reasons.some((r) => r.via === reason.via && r.label === reason.label)) prev.reasons.push(reason);
-    prev.strength = Math.max(prev.strength, STRENGTH[reason.via]);
+    prev.strength = Math.max(prev.strength, strength);
   }
 
   values(): GraphEdge[] {
@@ -178,6 +205,7 @@ export function buildGraph(
   notes: Iterable<IndexedNote>,
   codeNames: ReadonlyMap<string, CodeName>,
   version = 0,
+  extras: BuildExtras = {},
 ): GraphSnapshot {
   const all = [...notes].sort((a, b) => (a.abs < b.abs ? -1 : a.abs > b.abs ? 1 : 0));
   const nodes = new Map<string, GraphNode>();
@@ -283,8 +311,59 @@ export function buildGraph(
   }
   shared(edges, byId, 'id');
   shared(edges, byUrl, 'url');
+  addSuggestions(nodes, edges, extras);
+  applyDecisions(nodes, edges, extras.links);
 
   return { nodes: [...nodes.values()], edges: edges.values(), idGroups: idGroups(byId), version };
+}
+
+const AI_KINDS = new Set<GraphNode['kind']>(['person', 'decision', 'todo']);
+
+/** Local similarity and AI extracts → suggested edges (only where nothing connects the two yet) and AI nodes. */
+function addSuggestions(nodes: Map<string, GraphNode>, edges: EdgeSet, extras: BuildExtras): void {
+  for (const p of extras.similar ?? []) {
+    if (!nodes.has(p.a) || !nodes.has(p.b) || edges.has(p.a, p.b)) continue;
+    edges.add(p.a, p.b, { via: 'similar', label: p.terms.join(', ') }, similarStrength(p.score));
+  }
+  for (const [from, x] of extras.ai ?? []) {
+    if (nodes.get(from)?.kind !== 'note') continue;
+    const item = (kind: 'person' | 'decision' | 'todo', label: string, id: string) => {
+      if (!nodes.has(id)) nodes.set(id, { id, kind, label });
+      edges.add(from, id, { via: 'ai', label: kind });
+    };
+    for (const name of x.people) item('person', name, `person:${name.toLowerCase()}`);
+    // Decisions and to-dos belong to the note that has them.
+    for (const d of x.decisions) item('decision', d, `decision:${from}:${d.toLowerCase()}`);
+    for (const t of x.todos) item('todo', t, `todo:${from}:${t.toLowerCase()}`);
+    for (const to of x.related) if (nodes.has(to) && !edges.has(from, to)) edges.add(from, to, { via: 'ai' });
+  }
+}
+
+/**
+ * The user's decisions: an enabled rule makes the connections it covers explicit, accepted pairs become explicit,
+ * rejected pairs disappear unless something written connects them. AI nodes left with no edge go too.
+ */
+function applyDecisions(nodes: Map<string, GraphNode>, edges: EdgeSet, links: BuildExtras['links']): void {
+  if (!links) return;
+  if (links.rules.length)
+    for (const e of edges.values()) {
+      for (const r of e.reasons) {
+        const rule = ruleFor(r, links.rules);
+        if (!rule) continue;
+        const label = rule.pattern.kind === 'id' ? `${rule.pattern.prefix}-<n>` : rule.pattern.host;
+        edges.add(e.source, e.target, { via: 'rule', label });
+        break;
+      }
+    }
+  for (const a of links.accepted)
+    if (nodes.has(a.a) && nodes.has(a.b)) edges.add(a.a, a.b, { via: 'accepted' });
+  for (const key of links.rejected) {
+    const e = edges.get(key);
+    if (e && RANK[e.kind] < RANK.action) edges.delete(key);
+  }
+  const linked = new Set<string>();
+  for (const e of edges.values()) linked.add(e.source).add(e.target);
+  for (const [id, n] of nodes) if (AI_KINDS.has(n.kind) && !linked.has(id)) nodes.delete(id);
 }
 
 /** IDs seen in 2+ notes, grouped by prefix: "looks like an ID". */
