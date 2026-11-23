@@ -12,9 +12,11 @@ import type {
   GraphSource,
   GraphSourceStatus,
   GraphStatus,
+  VaultLinkRule,
 } from '../../src/shared/api/types';
 import type { CodeProject } from './code';
 import type { EngineStatus } from './engine';
+import type { VaultGraph, VaultNote } from './vault';
 import type { AiConfig, FromWorker, ToWorker, WorkerInit } from './worker';
 
 const HOME = os.homedir();
@@ -118,11 +120,15 @@ export interface GraphServiceOptions {
   onStatus: (s: GraphStatus) => void;
   /** T68: how AI extraction reaches Claude (the shared account; a fixture reply in smoke). */
   claude?: () => Omit<AiConfig, 'sources'>;
+  /** T69: link rules of these (enabled) sources, sent to the index. */
+  vaultLinks?: (ids: string[]) => Record<string, VaultLinkRule[]>;
+  /** T69: a source's `.aquila-vault.json` changed on disk. */
+  onVaultFile?: (id: string) => void;
   /** Tests / smoke: a fake folder dialog has nothing to do with this; `home` for `~/…` paths. */
   home?: string;
 }
 
-export class GraphService {
+export class GraphService implements VaultGraph {
   private sources: GraphSource[];
   private worker: Worker | null = null;
   private engine: EngineStatus | null = null;
@@ -130,6 +136,7 @@ export class GraphService {
   private saver: boolean;
   private req = 0;
   private waiting = new Map<number, (s: GraphSnapshot) => void>();
+  private waitingNotes = new Map<number, (n: VaultNote[]) => void>();
 
   constructor(private opts: GraphServiceOptions) {
     this.sources = readSources(this.file);
@@ -223,6 +230,43 @@ export class GraphService {
     return inside ? file : null;
   }
 
+  /** T69: a source's folder (enabled or not), or null. */
+  sourceRoot(id: string): string | null {
+    const s = this.sources.find((x) => x.id === id);
+    return s ? untildify(s.path, this.opts.home) : null;
+  }
+
+  /** T69: the enabled source a `.md` file is in, with its path inside the source. */
+  sourceOf(abs: string): { id: string; root: string; rel: string } | null {
+    const file = this.notePath(abs);
+    if (!file) return null;
+    for (const s of this.sources) {
+      if (!s.enabled) continue;
+      const root = untildify(s.path, this.opts.home);
+      const rel = path.relative(root, file);
+      if (rel && !rel.startsWith('..') && !path.isAbsolute(rel))
+        return { id: s.id, root, rel: rel.split(path.sep).join('/') };
+    }
+    return null;
+  }
+
+  /** T69: an enabled source's notes from the index (starts it like any graph call). */
+  notes(id: string): Promise<VaultNote[]> {
+    this.start();
+    const w = this.worker;
+    if (!w || !this.sources.some((s) => s.id === id && s.enabled)) return Promise.resolve([]);
+    const req = ++this.req;
+    return new Promise((resolve) => {
+      this.waitingNotes.set(req, resolve);
+      w.postMessage({ type: 'notes', req, id } satisfies ToWorker);
+    });
+  }
+
+  /** T69: settings changed — send the link rules again. */
+  refreshVaults(): void {
+    if (this.started) this.postVaultLinks();
+  }
+
   setSaver(saver: boolean): void {
     this.saver = saver;
     this.post({ type: 'saver', saver });
@@ -267,6 +311,13 @@ export class GraphService {
     const claude = this.opts.claude?.();
     const ai = enabled.filter((s) => s.ai).map((s) => s.id);
     this.post({ type: 'ai', config: { binary: 'claude', ...claude, sources: claude ? ai : [] } });
+    this.postVaultLinks();
+  }
+
+  private postVaultLinks(): void {
+    if (!this.worker || !this.opts.vaultLinks) return;
+    const ids = this.sources.filter((s) => s.enabled).map((s) => s.id);
+    this.post({ type: 'vaultLinks', rules: this.opts.vaultLinks(ids) });
   }
 
   private startWorker(): void {
@@ -282,6 +333,10 @@ export class GraphService {
       if (m.type === 'status') {
         this.engine = m.status;
         this.opts.onStatus(this.current());
+      } else if (m.type === 'vaultFile') this.opts.onVaultFile?.(m.id);
+      else if (m.type === 'notes') {
+        this.waitingNotes.get(m.req)?.(m.notes);
+        this.waitingNotes.delete(m.req);
       } else {
         this.waiting.get(m.req)?.(m.snapshot);
         this.waiting.delete(m.req);
@@ -294,6 +349,8 @@ export class GraphService {
       this.engine = null;
       for (const resolve of this.waiting.values()) resolve(EMPTY);
       this.waiting.clear();
+      for (const resolve of this.waitingNotes.values()) resolve([]);
+      this.waitingNotes.clear();
     });
   }
 
@@ -307,6 +364,8 @@ export class GraphService {
     setTimeout(() => void w.terminate(), 2000).unref();
     for (const resolve of this.waiting.values()) resolve(EMPTY);
     this.waiting.clear();
+    for (const resolve of this.waitingNotes.values()) resolve([]);
+    this.waitingNotes.clear();
   }
 
   private post(m: ToWorker): void {

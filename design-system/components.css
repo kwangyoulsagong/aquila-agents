@@ -1013,6 +1013,54 @@ body {
 .c-editor .cm-md-table th, .c-editor .cm-md-table td { padding: var(--space-inline-xs) var(--space-inset-sm); border: 1px solid var(--color-border-subtle); cursor: text; }
 .c-editor .cm-md-table th { font-weight: 600; background: var(--color-bg-surface); }
 
+/* Companion files as tabs above the text, the note's actions at the end of the row (T69). */
+.c-editor__tabs {
+  flex: none; display: flex; align-items: center; gap: var(--space-inline-xs); min-height: var(--size-row);
+  padding: 0 var(--space-inset-sm); border-bottom: 1px solid var(--color-border-subtle); background: var(--color-bg-surface); overflow-x: auto;
+}
+.c-editor__tab {
+  flex: none; height: calc(var(--size-row) - var(--space-inline-xs) * 2); padding: 0 var(--space-inset-sm); border: 0; border-radius: var(--radius-control);
+  background: none; color: var(--color-text-secondary); font: inherit; font-size: var(--font-size-label); cursor: pointer;
+}
+.c-editor__tab:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
+.c-editor__tab[aria-selected='true'] { background: var(--color-bg-selected); color: var(--color-text-primary); }
+.c-editor__tablist { display: flex; gap: var(--space-inline-xs); }
+.c-editor__tabs-end { margin-left: auto; display: flex; gap: var(--space-inline-xs); }
+/* Typed properties in the side column (T69). */
+.c-editor__fields { display: flex; flex-direction: column; gap: var(--space-inset-sm); padding: var(--space-inline-xs) var(--space-inset-md); }
+
+/* ── Board / table / list views of a source (T69) ──────────── */
+/* Columns of cards; a card is a button (opens the note), draggable to another column. */
+.c-board { flex: 1; min-height: 0; display: flex; gap: var(--space-inset-md); overflow-x: auto; align-items: stretch; }
+.c-board__column {
+  flex: none; width: var(--size-board-column); display: flex; flex-direction: column; min-height: 0;
+  border: 1px solid var(--color-border-subtle); border-radius: var(--radius-container); background: var(--color-bg-canvas);
+  transition: border-color var(--motion-fast) var(--motion-ease), background var(--motion-fast) var(--motion-ease);
+}
+.c-board__column[data-drop='true'] { border-color: var(--color-action-primary); background: var(--color-bg-hover); }
+.c-board__head {
+  flex: none; display: flex; align-items: center; gap: var(--space-inline-sm); height: var(--size-row);
+  padding: 0 var(--space-inset-md); font-size: var(--font-size-label); font-weight: 600; color: var(--color-text-primary);
+}
+.c-board__count { color: var(--color-text-tertiary); font-weight: 400; font-variant-numeric: tabular-nums; }
+.c-board__cards { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-inline-sm); padding: 0 var(--space-inset-sm) var(--space-inset-sm); }
+.c-board__card {
+  display: flex; flex-direction: column; gap: var(--space-inline-xs); padding: var(--space-inset-sm) var(--space-inset-md);
+  border: 1px solid var(--color-border-subtle); border-radius: var(--radius-control); background: var(--color-bg-surface);
+  color: var(--color-text-primary); font: inherit; font-size: var(--font-size-label); text-align: left; cursor: pointer;
+}
+.c-board__card:hover { border-color: var(--color-border-default); }
+.c-board__card[data-moving] { opacity: 0.5; }
+.c-board__card-meta { font-size: var(--font-size-caption); color: var(--color-text-tertiary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.c-table { width: 100%; border-collapse: collapse; font-size: var(--font-size-label); }
+.c-table th, .c-table td { padding: var(--space-inline-xs) var(--space-inset-sm); border-bottom: 1px solid var(--color-border-subtle); text-align: left; vertical-align: top; }
+.c-table th { font-weight: 400; color: var(--color-text-tertiary); }
+.c-table td { color: var(--color-text-secondary); }
+.c-table td:first-child { color: var(--color-text-primary); }
+.c-table__group th { padding-top: var(--space-inset-md); font-weight: 600; color: var(--color-text-primary); }
+.c-table__open { padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.c-table__open:hover { color: var(--color-action-primary); }
+
 /* ── Steps (a plan to tick, T64) ──────────────────────────── */
 .c-steps { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; border: 1px solid var(--color-border-subtle); border-radius: var(--radius-control); }
 .c-steps__item { display: flex; align-items: flex-start; gap: var(--space-inline-sm); padding: var(--space-inset-sm) var(--space-inset-md); }
@@ -1097,6 +1145,8 @@ body {
   height: auto; min-height: calc(var(--size-control) * 2); padding: var(--space-inline-xs) var(--space-inset-sm);
   resize: vertical; line-height: 1.5;
 }
+/* Settings edited as text (T69): monospace, taller. */
+.c-input--code { min-height: var(--size-code-input); font-family: var(--font-family-mono); font-size: var(--font-size-label); white-space: pre; tab-size: 2; }
 /* Edits a title in place (a tab, T43): the line's own size and font, no box until focused. */
 .c-input--inline {
   flex: 1; min-width: 0; width: auto; height: auto; padding: 0 var(--space-inline-xs);

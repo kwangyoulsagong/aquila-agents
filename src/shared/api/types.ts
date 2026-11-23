@@ -885,6 +885,152 @@ export type NoteChange = NoteFile | { path: string; deleted: true };
 
 export type NoteWriteResult = { ok: true; mtime: number } | { ok: false; reason: 'changed' | 'refused' | 'failed' };
 
+// ---- Per-source settings (T69). Nothing about any repo's format is built in: a source is shaped by its config. ----
+
+/** A starting point for a source's settings. */
+export type VaultPresetId = 'basic' | 'status-board' | 'daily' | 'meeting' | 'empty';
+
+/** Where a source's settings live: `~/.aquila/vaults/<id>.json` (mine) or `.aquila-vault.json` in the folder (shared). */
+export type VaultScope = 'personal' | 'shared';
+
+export type VaultPropertyType = 'text' | 'select' | 'date' | 'tags';
+
+/** A frontmatter key and how it is edited / shown. `select` options are also a board's column order. */
+export interface VaultProperty {
+  key: string;
+  type: VaultPropertyType;
+  options?: string[];
+}
+
+/**
+ * Text matching `pattern` (a regular expression, case-insensitive) links to: the note whose file name is the match
+ * (or starts with it and `-` / a space: `DB-12` → `DB-12-login.md`), the note whose `key` property is the match, or
+ * a URL (`$0` the match, `$1`… its groups; kept for the editor, not used yet). With a group, group 1 is the value.
+ */
+export interface VaultLinkRule {
+  pattern: string;
+  to: 'name' | 'property' | 'url';
+  key?: string;
+  url?: string;
+}
+
+/**
+ * A new note: `file` (`{{date}} {{title}}.md`) inside `folder`, starting with `body`. Variables: `{{title}}`,
+ * `{{slug}}`, `{{date}}` (YYYY-MM-DD), `{{time}}` (HH:MM), `{{id}}` (the first ID-like token of the title).
+ */
+export interface VaultTemplate {
+  id: string;
+  name: string;
+  folder: string;
+  file: string;
+  body: string;
+}
+
+/**
+ * Files with the same key in these folders (searched below them) are one thing shown as tabs: a spec, its checklist,
+ * its retrospect. The key is the file name's first match of `key` (its group 1 when it has one), else the whole name.
+ */
+export interface VaultCompanions {
+  folders: string[];
+  key?: string;
+}
+
+/**
+ * Notes under `folder` (the whole source when empty) grouped by a property or by the sub-folder they are in.
+ * Moving a card sets the property or moves the file. `order` puts these groups first; `columns` are the properties
+ * a table shows.
+ */
+export interface VaultView {
+  id: string;
+  name: string;
+  kind: 'board' | 'table' | 'list';
+  folder?: string;
+  group: 'property' | 'folder';
+  key?: string;
+  order?: string[];
+  columns?: string[];
+}
+
+/**
+ * A button on a note: `insert` adds `block` at the end of the section under the heading `under` (the end of the note
+ * when there is none) and sets properties (`set`); `claude` opens a Claude tab with `prompt` and the note as `@path`.
+ * Same variables as templates, plus `{{path}}`. `folder` limits it to notes under that folder.
+ */
+export interface VaultAction {
+  id: string;
+  name: string;
+  kind: 'insert' | 'claude';
+  block?: string;
+  under?: string;
+  set?: Record<string, string>;
+  prompt?: string;
+  folder?: string;
+}
+
+export interface VaultConfig {
+  v: 1;
+  /** The preset it started from (shown only). */
+  preset?: VaultPresetId;
+  links: VaultLinkRule[];
+  properties: VaultProperty[];
+  templates: VaultTemplate[];
+  /** The template a missing `[[link]]` is created with (its folder is where new notes go). */
+  newNotes?: string;
+  companions?: VaultCompanions;
+  views: VaultView[];
+  actions: VaultAction[];
+}
+
+export interface VaultState {
+  sourceId: string;
+  /** null: nothing saved yet (an empty config). */
+  scope: VaultScope | null;
+  /** A shared `.aquila-vault.json` exists in the folder (mine wins while I have one). */
+  hasShared: boolean;
+  config: VaultConfig;
+  /** What was dropped when reading it (an invalid pattern, an unknown kind). */
+  problems: string[];
+}
+
+/** "Make with Claude": a config to preview before it's saved, or why there is none. */
+export type VaultSuggestion = { config: VaultConfig; problems: string[] } | { error: string };
+
+export interface VaultCard {
+  path: string;
+  /** Inside the source. */
+  rel: string;
+  title: string;
+  props: Record<string, string | string[]>;
+  mtime: number;
+}
+
+export interface VaultViewData {
+  view: VaultView;
+  groups: { key: string; cards: VaultCard[] }[];
+  /** Property types, for the table's cells and the board's move. */
+  properties: VaultProperty[];
+}
+
+/** What the editor shows for one note: its companion tabs, typed properties, actions and the source's views. */
+export interface VaultNoteInfo {
+  sourceId: string;
+  companions: { label: string; path: string }[];
+  properties: VaultProperty[];
+  /** The note's frontmatter as last indexed. */
+  values: Record<string, string | string[]>;
+  actions: { id: string; name: string; kind: VaultAction['kind'] }[];
+  views: { id: string; name: string }[];
+  templates: { id: string; name: string }[];
+}
+
+/** An edit of a note's text (the open editor applies it, so it saves like typing). */
+export type VaultEdit = { action: string } | { property: string; value: string | string[] };
+
+/** `projectId`: the local project the note is in (the Claude tab opens there). */
+export type VaultEditResult = { text: string } | { prompt: string; projectId?: string };
+
+export type VaultMoveResult = { ok: true; path: string } | { ok: false; reason: 'exists' | 'refused' | 'failed' };
+
 export type NodeChangeKind = 'add' | 'change' | 'unfit';
 
 export interface NodeChange {
@@ -1220,6 +1366,27 @@ export interface AquilaApi {
   noteAttach(notePath: string, data: Uint8Array, ext: string): Promise<string | null>;
   /** A link in a note: opened in the browser (http/https only). */
   noteOpenUrl(url: string): Promise<void>;
+  /** T69: a source's settings (personal wins over shared). */
+  vaultGet(sourceId: string): Promise<VaultState>;
+  /** T69: validated and saved as mine or shared (shared writes `.aquila-vault.json` and drops mine). */
+  /** `problems`: what was dropped from the given config while validating it. */
+  vaultSave(sourceId: string, config: VaultConfig, scope: VaultScope): Promise<VaultState>;
+  /** T69: drop my settings so the shared ones apply. */
+  vaultRemovePersonal(sourceId: string): Promise<VaultState>;
+  /** T69: a preset's config. */
+  vaultPreset(preset: VaultPresetId): Promise<VaultConfig>;
+  /** T69: "Make with Claude" — the folder's outline and the description go to a hidden `claude -p` (user's quota). */
+  vaultSuggest(sourceId: string, description: string): Promise<VaultSuggestion>;
+  vaultView(sourceId: string, viewId: string): Promise<VaultViewData | null>;
+  /** T69: a card moved to another group: sets the property, or moves the file into that folder. */
+  vaultMove(path: string, viewId: string, group: string): Promise<VaultMoveResult>;
+  vaultNoteInfo(path: string): Promise<VaultNoteInfo | null>;
+  /** T69: the note's text after an action / a property change (not written), or a Claude prompt to send. */
+  vaultEdit(path: string, text: string, edit: VaultEdit): Promise<VaultEditResult | null>;
+  /** T69: a new note from a template (the source's `newNotes` one when null): its path, or null. */
+  vaultCreateNote(sourceId: string, templateId: string | null, title: string): Promise<string | null>;
+  /** T69: a source's settings changed (saved here, or the shared file changed on disk). */
+  onVaultChanged(cb: (sourceId: string) => void): Unsubscribe;
   /** Global shortcut (T41): the saved key and whether the OS gave it to us. */
   globalShortcut(): Promise<GlobalShortcutState>;
   /** Saves and registers a new key (null = off). A taken key keeps the old one and reports `taken`. */
@@ -1474,6 +1641,17 @@ export const IPC = {
   noteChanged: 'note:changed',
   noteAttach: 'note:attach',
   noteOpenUrl: 'note:open-url',
+  vaultGet: 'vault:get',
+  vaultSave: 'vault:save',
+  vaultRemovePersonal: 'vault:remove-personal',
+  vaultPreset: 'vault:preset',
+  vaultSuggest: 'vault:suggest',
+  vaultView: 'vault:view',
+  vaultMove: 'vault:move',
+  vaultNoteInfo: 'vault:note-info',
+  vaultEdit: 'vault:edit',
+  vaultCreateNote: 'vault:create-note',
+  vaultChanged: 'vault:changed',
   globalShortcutGet: 'global-shortcut:get',
   globalShortcutSet: 'global-shortcut:set',
   globalShortcutFired: 'global-shortcut:fired',

@@ -406,6 +406,53 @@
   </section>
 
   <section>
+    <h2>Folder settings · companion tabs, actions, properties, board, table (T69)</h2>
+    <div class="mock" style="display:flex; flex-direction:column; height:220px;">
+      <div class="c-editor">
+        <div class="c-editor__main">
+          <div class="c-editor__tabs">
+            <div role="tablist" aria-label="짝 파일" class="c-editor__tablist">
+              <button class="c-editor__tab" role="tab" aria-selected="true">specs</button>
+              <button class="c-editor__tab" role="tab" aria-selected="false">checklists</button>
+              <button class="c-editor__tab" role="tab" aria-selected="false">retrospects</button>
+            </div>
+            <div class="c-editor__tabs-end"><button class="c-btn c-btn--ghost">Changelog</button><button class="c-btn c-btn--ghost">Verify with Claude</button></div>
+          </div>
+          <div class="c-editor__host"><div class="cm-editor"><div class="cm-scroller"><div class="cm-content">
+            <div class="cm-line cm-md-h cm-md-h2">Changelog</div>
+            <div class="cm-line"><span class="cm-md-listmark">-</span> <span class="cm-md-strong">2026-11-23</span>: </div>
+          </div></div></div></div>
+        </div>
+        <aside class="c-editor__side">
+          <section class="c-editor__section"><div class="c-editor__section-title">속성</div>
+            <div class="c-editor__fields">
+              <label class="c-field"><span class="c-field__label">priority</span><span class="c-select"><select class="c-select__control"><option>medium</option></select></span></label>
+              <label class="c-field"><span class="c-field__label">revised</span><input class="c-input" type="date" value="2026-11-23"></label>
+            </div>
+          </section>
+        </aside>
+      </div>
+    </div>
+    <div class="mock" style="display:flex; height:240px; padding:16px;">
+      <div class="c-board" role="group" aria-label="Board">
+        <section class="c-board__column"><div class="c-board__head">to-do<span class="c-board__count">1</span></div>
+          <div class="c-board__cards"><button class="c-board__card">Search modal keeps the last query<span class="c-board__card-meta">specs/to-do/DB-7100-search.md</span></button></div></section>
+        <section class="c-board__column" data-drop="true"><div class="c-board__head">in-progress<span class="c-board__count">1</span></div>
+          <div class="c-board__cards"><button class="c-board__card" data-moving="true">Drive summary<span class="c-board__card-meta">specs/in-progress/DB-7049.md</span></button></div></section>
+        <section class="c-board__column"><div class="c-board__head">done<span class="c-board__count">0</span></div><div class="c-board__cards"></div></section>
+      </div>
+    </div>
+    <div class="mock" style="display:block; padding:16px;">
+      <table class="c-table" aria-label="By priority">
+        <thead><tr><th scope="col">제목</th><th scope="col">labels</th><th scope="col">revised</th></tr></thead>
+        <tbody><tr class="c-table__group"><th colspan="3" scope="rowgroup">high <span class="c-board__count">1</span></th></tr>
+          <tr><td><button class="c-table__open">Search modal keeps the last query</button></td><td>search</td><td>2026-11-10</td></tr></tbody>
+      </table>
+      <textarea class="c-input c-input--multiline c-input--code" style="margin-top:12px; width:100%;">{ "v": 1, "views": [] }</textarea>
+    </div>
+  </section>
+
+  <section>
     <h2>Title bar · full window (T37, ⇧⌘F)</h2>
     <div class="mock" style="display:flex; flex-direction:column; height:120px; background: var(--color-terminal-bg);">
       <div class="c-titlebar">

@@ -12,6 +12,7 @@ import type { AiExtract } from './extract';
 import type { ParsedNote } from './parse';
 import { pairKey, ruleFor, type LinkData } from './rules';
 import type { SimilarPair } from './similar';
+import { matchesOf, nameKeys, type CompiledLinkRule } from './vault';
 
 export interface IndexedNote {
   sourceId: string;
@@ -127,6 +128,8 @@ export interface BuildExtras {
   similar?: readonly SimilarPair[];
   ai?: ReadonlyMap<string, AiExtract>;
   links?: Pick<LinkData, 'accepted' | 'rejected' | 'rules'>;
+  /** T69: each source's link rules (pattern → note by name / property). */
+  vaultLinks?: ReadonlyMap<string, readonly CompiledLinkRule[]>;
 }
 
 /** Similarity 0–1 → a suggested edge's strength (always under a mention's 0.4). */
@@ -311,10 +314,54 @@ export function buildGraph(
   }
   shared(edges, byId, 'id');
   shared(edges, byUrl, 'url');
+  if (extras.vaultLinks?.size) addVaultLinks(all, edges, extras.vaultLinks);
   addSuggestions(nodes, edges, extras);
   applyDecisions(nodes, edges, extras.links);
 
   return { nodes: [...nodes.values()], edges: edges.values(), idGroups: idGroups(byId), version };
+}
+
+/**
+ * T69: a source's link rules. Text matching a rule (case-insensitive, in the lowercased body) links to the note of
+ * the same source named by the match (`DB-12` → `DB-12-login.md`) or whose property has that value — explicit.
+ */
+function addVaultLinks(
+  all: readonly IndexedNote[],
+  edges: EdgeSet,
+  rules: ReadonlyMap<string, readonly CompiledLinkRule[]>,
+): void {
+  for (const [sourceId, list] of rules) {
+    const notes = all.filter((n) => n.sourceId === sourceId);
+    let names: Map<string, IndexedNote[]> | null = null;
+    const props = new Map<string, Map<string, IndexedNote[]>>();
+    const byName = () => {
+      if (!names) {
+        names = new Map();
+        for (const n of notes) for (const k of nameKeys(n.rel)) push(names, k, n);
+      }
+      return names;
+    };
+    const byProp = (key: string) => {
+      let m = props.get(key);
+      if (!m) {
+        m = new Map();
+        for (const n of notes) {
+          const v = n.note.frontmatter[key];
+          for (const x of Array.isArray(v) ? v : v ? [v] : []) push(m, x.trim().toLowerCase(), n);
+        }
+        props.set(key, m);
+      }
+      return m;
+    };
+    for (const n of notes) {
+      const from = noteId(n.sourceId, n.rel);
+      for (const r of list)
+        for (const m of matchesOf(r.re, n.note.text, 50)) {
+          const hits = r.to === 'name' ? byName().get(m) : byProp(r.key ?? '').get(m);
+          for (const to of (hits ?? []).slice(0, 5)) edges.add(from, noteId(to.sourceId, to.rel), { via: 'rule', label: m });
+        }
+    }
+  }
 }
 
 const AI_KINDS = new Set<GraphNode['kind']>(['person', 'decision', 'todo']);

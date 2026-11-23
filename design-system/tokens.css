@@ -239,6 +239,8 @@
   --size-editor-measure: 720px;     /* note editor: longest line in full window (T67) */
   --size-editor-side: 240px;        /* note editor: outline + links column */
   --size-card-list: var(--p-size-224); /* graph card: suggested links before they scroll (T68) */
+  --size-board-column: 256px;       /* a board view's column (T69) */
+  --size-code-input: var(--p-size-224); /* a settings file edited as text (T69) */
 
   /* Motion */
   --motion-ease: cubic-bezier(0.2, 0, 0, 1);        /* standard: settles quickly */

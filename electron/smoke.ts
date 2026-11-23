@@ -18,6 +18,7 @@ import type { SessionManager } from './sessions';
 import { checkRemoteSession } from './remote/smoke';
 import { checkRealHost } from './remote/realHostSmoke';
 import { readHookBody } from './hooks';
+import { applyAction, isoDate } from './graph/vault';
 import { IPC, type Config, type ConnectionUpdate, type ContextMenuItem } from '../src/shared/api/types';
 import { translator } from '../src/shared/i18n/dictionary';
 
@@ -177,6 +178,8 @@ export async function runSmoke(
     if (noteError) return fail(noteError);
     const linksError = await checkLinkSuggestions(win, config, outDir);
     if (linksError) return fail(linksError);
+    const vaultError = await checkVault(win, config, outDir);
+    if (vaultError) return fail(vaultError);
     const imeError = await checkIme(win);
     if (imeError) return fail(imeError);
     const reviewError = await checkReviewQueue(win, sessions, outDir);
@@ -1528,6 +1531,119 @@ async function checkLinkSuggestions(win: BrowserWindow, config: Config, outDir: 
   } finally {
     if (sourceId) await js(`window.aquila.graphRemoveSource(${JSON.stringify(sourceId)})`);
     fs.rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+/**
+ * Per-source settings (T69), on a copy of the `vault/requirements` fixture (a data-bahn-like requirements folder
+ * whose shared `.aquila-vault.json` is fixture data, nothing built in): its link rule links DB-7100 → DB-6891;
+ * ⌘K → "Folder settings…" shows the config; "Board" opens three status columns; Alt+→ on a card moves its file to
+ * the next folder; a card opens the spec with its checklist / retrospect as tabs; "Changelog" adds exactly the dated
+ * line and `revised:` (saved like typing); a tab opens the checklist; "Make with Claude" (canned reply) fills the draft.
+ */
+async function checkVault(win: BrowserWindow, config: Config, outDir: string): Promise<string | null> {
+  const t = translator(config.language);
+  const js = <T>(code: string) => win.webContents.executeJavaScript(code) as Promise<T>;
+  const until = async (code: string, ms = 8000) => {
+    for (let i = 0; i < ms / 100; i++) {
+      if (await js<boolean>(code)) return true;
+      await wait(100);
+    }
+    return false;
+  };
+  const dir = path.join(fs.mkdtempSync(path.join(app.getPath('temp'), 'aquila-smoke-vault-')), 'requirements');
+  fs.cpSync(path.join(__dirname, '..', '..', 'electron', 'fixtures', 'vault', 'requirements'), dir, { recursive: true });
+  const spec = path.join(dir, 'specs', 'done', 'DB-6891-downloads.md');
+  const specBefore = fs.readFileSync(spec, 'utf8');
+  let sourceId = '';
+  try {
+    const st = await js<{ sources: { id: string; path: string }[] }>(
+      `window.aquila.graphAddSource(${JSON.stringify(dir)})`,
+    );
+    sourceId = st.sources.find((x) => x.path.endsWith(`${path.basename(path.dirname(dir))}/requirements`))?.id ?? '';
+    if (!sourceId) return 'vault: the fixture source was not added';
+    const id = (rel: string) => JSON.stringify(`note:${sourceId}:${rel}`);
+    if (
+      !(await until(
+        `window.aquila.graphSnapshot().then((g) => g.edges.some((e) => e.source === ${id('specs/to-do/DB-7100-search.md')} && e.target === ${id('specs/done/DB-6891-downloads.md')} && e.reasons.some((r) => r.via === 'rule')))`,
+        10_000,
+      ))
+    )
+      return 'vault: the shared link rule did not link DB-7100 → DB-6891';
+
+    // ⌘K → Folder settings…: select the source; the preview lists the board, companions and the Changelog action.
+    if (!(await paletteRun(win, t('vault.menu')))) return `palette has no "${t('vault.menu')}" action`;
+    const item = `document.getElementById(${JSON.stringify(`vault-source-${sourceId}`)})`;
+    if (!(await until(`!!${item}`))) return 'vault: the settings do not list the source';
+    await js(`${item}.click()`);
+    if (!(await until(`(() => { const b = document.querySelector('.c-modal[open] .c-modal__bullets')?.textContent ?? ''; return b.includes('Board') && b.includes('Changelog') && b.includes('checklists'); })()`)))
+      return 'vault: the settings preview does not show the board, companions and Changelog';
+    await wait(300);
+    fs.writeFileSync(path.join(outDir, 'smoke-vault-settings.png'), (await win.webContents.capturePage()).toPNG());
+
+    // Open the board: three status columns from the folders.
+    await js(`[...document.querySelectorAll('.c-modal[open] button')].find((b) => b.textContent === 'Board').click()`);
+    if (!(await until(`[...document.querySelectorAll('.c-modal[open] .c-board__head')].map((h) => h.firstChild.textContent).join() === 'to-do,in-progress,done'`)))
+      return 'vault: the board does not show to-do / in-progress / done';
+    await wait(300);
+    fs.writeFileSync(path.join(outDir, 'smoke-vault-board.png'), (await win.webContents.capturePage()).toPNG());
+    // Alt+→ on the to-do card moves its file into in-progress.
+    await js(`(() => {
+      const card = [...document.querySelectorAll('.c-modal[open] .c-board__card')].find((c) => c.textContent.includes('DB-7100'));
+      card.focus();
+      card.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', altKey: true, bubbles: true }));
+    })()`);
+    const movedTo = path.join(dir, 'specs', 'in-progress', 'DB-7100-search.md');
+    for (let i = 0; i < 40 && !fs.existsSync(movedTo); i++) await wait(100);
+    if (!fs.existsSync(movedTo) || fs.existsSync(path.join(dir, 'specs', 'to-do', 'DB-7100-search.md')))
+      return 'vault: moving a card did not move its file to in-progress';
+
+    // A card opens the spec in the editor, with its companions as tabs and the Changelog action.
+    await js(`[...document.querySelectorAll('.c-modal[open] .c-board__card')].find((c) => c.textContent.includes('DB-6891')).click()`);
+    if (!(await until(`[...document.querySelectorAll('.c-editor__tab')].map((b) => b.textContent).join() === 'specs,checklists,retrospects'`, 10_000)))
+      return 'vault: the spec does not show specs / checklists / retrospects tabs';
+    const changelog = `[...document.querySelectorAll('.c-editor__tabs-end button')].find((b) => b.textContent === 'Changelog')`;
+    if (!(await until(`!!${changelog} && !${changelog}.disabled`))) return 'vault: no Changelog action on the spec';
+    await wait(300);
+    fs.writeFileSync(path.join(outDir, 'smoke-vault-note.png'), (await win.webContents.capturePage()).toPNG());
+    await js(`${changelog}.click()`);
+    const date = isoDate(new Date());
+    const want = applyAction(
+      specBefore,
+      { id: 'changelog', name: 'Changelog', kind: 'insert', under: 'Changelog', block: '- **{{date}}**: \n  - 사유: \n  - 영향: ', set: { revised: '{{date}}' } },
+      { date },
+    );
+    for (let i = 0; i < 50 && fs.readFileSync(spec, 'utf8') !== want; i++) await wait(100);
+    if (fs.readFileSync(spec, 'utf8') !== want)
+      return `vault: Changelog did not save exactly the dated line and revised: ${JSON.stringify(fs.readFileSync(spec, 'utf8').slice(-160))}`;
+
+    // A tab opens the checklist.
+    await js(`[...document.querySelectorAll('.c-editor__tab')].find((b) => b.textContent === 'checklists').click()`);
+    if (!(await until(`document.querySelector('.c-editor__tab[aria-selected=true]')?.textContent === 'checklists'`)))
+      return 'vault: the checklists tab did not open the checklist';
+
+    // Make with Claude (canned reply) fills the draft; nothing is saved.
+    if (!(await paletteRun(win, t('vault.menu')))) return `palette has no "${t('vault.menu')}" action`;
+    if (!(await until(`!!${item}`))) return 'vault: the settings do not list the source (again)';
+    await js(`${item}.click()`);
+    await wait(300);
+    const shared = fs.readFileSync(path.join(dir, '.aquila-vault.json'), 'utf8');
+    await js(`[...document.querySelectorAll('.c-modal[open] button')].find((b) => b.textContent === ${JSON.stringify(t('vault.claudeMake'))}).click()`);
+    if (!(await until(`(document.querySelector('.c-modal[open] textarea.c-input--code')?.value ?? '').includes('"verify"') === false && (document.querySelector('.c-modal[open] .c-modal__bullets')?.textContent ?? '').includes('Board')`)))
+      return 'vault: "Make with Claude" did not fill the draft';
+    if (fs.readFileSync(path.join(dir, '.aquila-vault.json'), 'utf8') !== shared) return 'vault: the draft was written before Save';
+    press(win, 'Escape', []);
+    await wait(300);
+    // Close the editor.
+    await js(`document.querySelector('aside .c-panel__actions button[aria-label=${JSON.stringify(t('action.close'))}]')?.click()`);
+    await wait(300);
+    console.log(
+      '[smoke] vault: shared link rule, settings preview, board (3 columns, Alt+→ moved the file), companion tabs, Changelog saved exactly, Make with Claude (canned)',
+    );
+    return null;
+  } finally {
+    if (sourceId) await js(`window.aquila.graphRemoveSource(${JSON.stringify(sourceId)})`);
+    fs.rmSync(path.dirname(dir), { recursive: true, force: true });
   }
 }
 

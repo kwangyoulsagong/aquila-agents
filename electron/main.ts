@@ -82,6 +82,8 @@ import {
 } from './apply';
 import { GraphService } from './graph';
 import { linkable, withLink } from './graph/rules';
+import { VaultService } from './graph/vault';
+import { runClaudeHaiku } from './graph/extract';
 import {
   IMAGE_FILE,
   imageUrlPath,
@@ -143,6 +145,10 @@ import {
   type NoteWriteResult,
   type GraphDecision,
   type GraphRuleOp,
+  type VaultConfig,
+  type VaultEdit,
+  type VaultPresetId,
+  type VaultScope,
   type ToolId,
 } from '../src/shared/api/types';
 
@@ -787,6 +793,30 @@ app.whenReady().then(async () => {
         ? { fixture: path.join(__dirname, '..', '..', 'electron', 'fixtures', 'links', 'ai-reply.json') }
         : {}),
     }),
+    // T69: each source's link rules, and its shared settings file changing on disk.
+    vaultLinks: (ids) => vault.linkRules(ids),
+    onVaultFile: (id) => vault.fileChanged(id),
+  });
+  // Per-source settings (T69): mine in ~/.aquila/vaults, shared as `.aquila-vault.json` in the folder (only when the
+  // user saves them as shared). "Make with Claude" is a hidden `claude -p` (sonnet); smoke reads a canned reply.
+  const vault: VaultService = new VaultService({
+    dir: isSmoke ? path.join(graphDir, 'vaults') : path.join(APP_DIR, 'vaults'),
+    graph,
+    lang: () => loadConfig().language,
+    run: () =>
+      isSmoke
+        ? async () =>
+            fs.readFileSync(path.join(__dirname, '..', '..', 'electron', 'fixtures', 'vault', 'suggest-reply.json'), 'utf8')
+        : runClaudeHaiku(binaryFor('claude'), undefined, 'sonnet'),
+    onChanged: (id) => send(IPC.vaultChanged, id),
+    projectOf: (abs) => {
+      const file = path.resolve(abs);
+      return loadConfig()
+        .projects.filter((p) => !p.remote)
+        .map((p) => ({ id: p.id, root: path.resolve(expand(p.path)) }))
+        .filter((p) => file.startsWith(p.root + path.sep))
+        .sort((a, b) => b.root.length - a.root.length)[0]?.id;
+    },
   });
   power.onChange(() => graph.setSaver(powerState().saver));
   // Note editor (T67): only notes of enabled sources; watched only while open in the editor.
@@ -853,6 +883,28 @@ app.whenReady().then(async () => {
     const file = graph.notePath(String(a.notePath));
     return file && a.data instanceof Uint8Array ? saveAttachment(file, a.data, String(a.ext)) : null;
   });
+  ipcMain.handle(IPC.vaultGet, (_e, id: string) => vault.state(String(id)));
+  ipcMain.handle(IPC.vaultSave, (_e, a: { id: string; config: VaultConfig; scope: VaultScope }) =>
+    vault.save(String(a.id), a.config, a.scope === 'shared' ? 'shared' : 'personal'),
+  );
+  ipcMain.handle(IPC.vaultRemovePersonal, (_e, id: string) => vault.removePersonal(String(id)));
+  ipcMain.handle(IPC.vaultPreset, (_e, p: VaultPresetId) => vault.preset(p));
+  ipcMain.handle(IPC.vaultSuggest, (_e, a: { id: string; description: string }) =>
+    vault.suggest(String(a.id), String(a.description ?? '')),
+  );
+  ipcMain.handle(IPC.vaultView, (_e, a: { id: string; viewId: string }) =>
+    vault.view(String(a.id), String(a.viewId)),
+  );
+  ipcMain.handle(IPC.vaultMove, (_e, a: { path: string; viewId: string; group: string }) =>
+    vault.move(String(a.path), String(a.viewId), String(a.group)),
+  );
+  ipcMain.handle(IPC.vaultNoteInfo, (_e, p: string) => vault.noteInfo(String(p)));
+  ipcMain.handle(IPC.vaultEdit, (_e, a: { path: string; text: string; edit: VaultEdit }) =>
+    a?.edit && typeof a.edit === 'object' ? vault.edit(String(a.path), a.text, a.edit) : null,
+  );
+  ipcMain.handle(IPC.vaultCreateNote, (_e, a: { id: string; templateId: string | null; title: string }) =>
+    vault.createNote(String(a.id), a.templateId ? String(a.templateId) : null, String(a.title ?? '')),
+  );
   ipcMain.handle(IPC.sessionRestore, () => restoreSessions());
   ipcMain.handle(IPC.sessionStart, (_e, id: string) => s.wake(loadConfig(), id));
   ipcMain.handle(IPC.sessionReopen, (_e, id: string) => s.reopen(loadConfig(), String(id)));

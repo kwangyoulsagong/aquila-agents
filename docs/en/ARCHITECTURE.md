@@ -541,6 +541,34 @@ index) or a `[[link]]` / backlink. `useGraphData` moved to `entities/note` so th
   features). Settings ▸ Link suggestions… (also ⌘K): AI per source with the quota note and today's count, proposals,
   rules (edit / turn off / remove / add).
 
+## Folder settings (T69)
+
+`electron/graph/vault.ts` + `features/vault-settings`. Each source is shaped by a config (`VaultConfig` in
+`shared/api/types.ts`); nothing about any repo's format is built in — presets and "Make with Claude" only fill one in.
+
+- **Where:** mine in `~/.aquila/vaults/<sourceId>.json`, or shared as `.aquila-vault.json` in the source folder
+  (written only when the user saves as shared; saving shared drops mine). Mine wins while it exists ("Use shared
+  settings" deletes it). Every input (file, settings text, Claude's reply) goes through `cleanVault`: patterns must
+  compile and not match the empty string, folders stay inside the source, unknown kinds are dropped and reported.
+- **Read on change only:** `VaultService` caches per source; the index watcher reports `.aquila-vault.json` changes
+  (`vaultFile` from the worker) → reload, re-send link rules, `vault:changed` to the renderer. No extra watcher.
+- **Link rules:** `name` / `property` rules go to the worker (`vaultLinks`), compiled once; `buildGraph` adds an
+  explicit `rule` edge from a note to the note of the same source named by the match (`DB-12` → `DB-12-login.md`,
+  any prefix ending before `-` / space) or whose property has that value (group 1 when the pattern has one). `url`
+  rules are validated and kept but not used yet.
+- **Views:** `vault:view` asks the worker for the source's notes (`notes`: rel, title, frontmatter, ## headings)
+  and groups them by sub-folder or a property (`order`, then select options, then found groups, "none" last).
+  Moving a card renames the file into the other folder (refused when the name is taken) or rewrites only the
+  property's frontmatter lines (`setProperty`, mtime-checked like an editor save).
+- **Editor:** the page passes `VaultNoteTop` (companion tabs + actions) and `VaultNoteSide` (typed properties, views,
+  new note) into `NoteEditorPanel` as slots. Actions and property changes come back from main as the note's new
+  text and are applied with the editor's `replace` — one minimal edit, saved like typing, other bytes unchanged.
+  Claude actions return a prompt + `@path`; the page opens a Claude tab in the note's project and pastes it
+  (`pasteWhenReady`, not sent). A missing `[[link]]` gets "Create" (the `newNotes` template; an existing file is opened).
+- **Make with Claude:** an outline (folders + counts + sample names, frontmatter keys with common values, common
+  `##` headings — never note bodies) and the request, both quoted as data, go to a hidden `claude -p` (sonnet);
+  the first JSON object in the reply is validated and shown as a draft. Nothing is saved until Save.
+
 ## In-app preview (T33)
 
 `electron/preview.ts` + `widgets/preview` (`PreviewPanel`, ⌘⇧P or the ◫ button in the tab bar; local projects only).

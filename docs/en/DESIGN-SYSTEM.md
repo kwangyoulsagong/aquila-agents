@@ -120,6 +120,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `--size-modal-wide` / `--size-modal-wide-height` / `--size-modal-wide-aside` | 960 / 640 / 320 | `.c-modal--wide` (session history: longer rows, a transcript) / its list column |
 | `--size-editor-measure` / `--size-editor-side` | 720 / 240 | Note editor (T67): longest text line in full window / outline + links column |
 | `--size-card-list` | 224 | Graph card: suggested links before they scroll (T68) |
+| `--size-board-column` / `--size-code-input` | 256 / 224 | A board view's column / the height of settings edited as text (T69) |
 
 ## Components (`components.css`)
 

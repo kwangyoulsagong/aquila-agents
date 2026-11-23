@@ -56,4 +56,14 @@ export { Graph, type GraphNodeBox, type GraphEdgeLine, type GraphColumnLabel } f
 export { StepList, StepItem } from './StepList';
 export { GraphStage, GraphLegend, GraphCard, type GraphSwatch, type GraphLine } from './GraphStage';
 export { SuggestionList, SuggestionItem, SuggestionProposal } from './Suggestion';
-export { NoteEditor, EditorBanner, EditorCompare, EditorSection, EditorItem } from './NoteEditor';
+export {
+  NoteEditor,
+  EditorBanner,
+  EditorCompare,
+  EditorSection,
+  EditorItem,
+  EditorTabs,
+  EditorTab,
+  EditorFields,
+} from './NoteEditor';
+export { Board, BoardColumn, BoardCard, DataTable } from './Board';

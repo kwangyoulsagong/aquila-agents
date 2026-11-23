@@ -499,6 +499,32 @@ import하지 않음).
   카드와 에디터 옆 열에(페이지가 `renderLinks`로 넘김 — feature끼리는 import하지 않음). 설정 ▸ 링크 제안…(⌘K도):
   소스별 AI와 사용량 안내·오늘 개수, 규칙 제안, 규칙(고치기 / 끄기 / 빼기 / 추가).
 
+## 폴더 설정 (T69)
+
+`electron/graph/vault.ts` + `features/vault-settings`. 소스마다 설정(`shared/api/types.ts`의 `VaultConfig`)으로
+모양을 잡는다. 특정 레포의 형식은 아무것도 내장하지 않고, 프리셋과 "Claude로 만들기"는 설정을 채워 줄 뿐이다.
+
+- **위치:** 내 설정은 `~/.aquila/vaults/<sourceId>.json`, 공유는 소스 폴더의 `.aquila-vault.json`(공유로 저장할
+  때만 씀. 공유로 저장하면 내 설정은 지움). 내 설정이 있으면 그게 먼저("공유 설정 쓰기"가 내 것을 지움). 모든
+  입력(파일, 설정 텍스트, Claude 답)은 `cleanVault`를 거친다: 패턴은 컴파일되고 빈 문자열에 맞지 않아야 하고,
+  폴더는 소스 안, 모르는 종류는 빼고 알려 줌.
+- **바뀔 때만 읽음:** `VaultService`가 소스별로 캐시. 색인 감시가 `.aquila-vault.json` 변경을 알려 주면(워커의
+  `vaultFile`) 다시 읽고, 링크 규칙을 다시 보내고, 렌더러에 `vault:changed`. 감시를 더 만들지 않음.
+- **링크 규칙:** `name` / `property` 규칙은 워커로(`vaultLinks`), 한 번만 컴파일. `buildGraph`가 매치로 이름 붙은
+  같은 소스의 노트(`DB-12` → `DB-12-login.md`, `-`·공백 앞에서 끝나는 접두어)나 그 값을 속성으로 가진 노트로
+  explicit `rule` 엣지를 더함(패턴에 그룹이 있으면 그룹 1). `url` 규칙은 검사해서 보관만 하고 아직 쓰지 않음.
+- **보기:** `vault:view`가 워커에 소스의 노트(`notes`: 경로, 제목, 프론트매터, ## 제목)를 받아 하위 폴더나
+  속성으로 묶음(`order`, select 옵션, 찾은 그룹, "없음"은 끝). 카드를 옮기면 파일을 다른 폴더로 옮기거나(같은
+  이름이 있으면 거부) 그 속성의 프론트매터 줄만 고침(`setProperty`, 에디터 저장처럼 mtime 확인).
+- **에디터:** 페이지가 `VaultNoteTop`(짝 탭 + 액션)과 `VaultNoteSide`(타입 있는 속성, 보기, 새 노트)를
+  `NoteEditorPanel` 슬롯으로 넘김. 액션과 속성 변경은 main에서 노트의 새 텍스트로 돌아오고 에디터의 `replace`로
+  적용 — 최소 한 번의 수정이라 타이핑처럼 저장되고 나머지 바이트는 그대로. Claude 액션은 프롬프트 + `@경로`를
+  돌려주고, 페이지가 노트의 프로젝트에 Claude 탭을 열어 붙여 넣음(`pasteWhenReady`, 보내지 않음). 없는
+  `[[링크]]`엔 "만들기"(`newNotes` 템플릿. 이미 있는 파일이면 그걸 엶).
+- **Claude로 만들기:** 개요(폴더·개수·파일 이름 몇 개, 프론트매터 키와 흔한 값, 흔한 `##` 제목 — 노트 본문은
+  안 보냄)와 요청을 둘 다 데이터로 감싸 숨은 `claude -p`(sonnet)에 보냄. 답의 첫 JSON 객체를 검사해 초안으로
+  보여 줌. 저장 전까지는 아무것도 쓰지 않음.
+
 ## 앱 내 프리뷰 (T33)
 
 `electron/preview.ts` + `widgets/preview`(`PreviewPanel`, ⌘⇧P 또는 탭 바의 ◫ 버튼, 로컬 프로젝트만).

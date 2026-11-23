@@ -1,0 +1,61 @@
+{
+  "v": 1,
+  "links": [{ "pattern": "\\b(?:DB|COVEY)-\\d+\\b", "to": "name" }],
+  "properties": [
+    { "key": "priority", "type": "select", "options": ["high", "medium", "low"] },
+    { "key": "labels", "type": "tags" },
+    { "key": "created", "type": "date" },
+    { "key": "revised", "type": "date" }
+  ],
+  "templates": [
+    {
+      "id": "spec",
+      "name": "Spec",
+      "folder": "specs/to-do",
+      "file": "{{id}}-{{slug}}.md",
+      "body": "---\nid: {{id}}\ntitle: {{title}}\npriority: medium\nlabels: []\ncreated: {{date}}\nrevised: {{date}}\n---\n\n# {{title}}\n\n## Background\n\n## Requirements\n\n## Changelog\n"
+    }
+  ],
+  "newNotes": "spec",
+  "companions": {
+    "folders": ["specs", "reports/checklists", "reports/retrospects"],
+    "key": "^([A-Z]+-\\d+)"
+  },
+  "views": [
+    {
+      "id": "board",
+      "name": "Board",
+      "kind": "board",
+      "folder": "specs",
+      "group": "folder",
+      "order": ["to-do", "in-progress", "done"]
+    },
+    {
+      "id": "by-priority",
+      "name": "By priority",
+      "kind": "table",
+      "folder": "specs",
+      "group": "property",
+      "key": "priority",
+      "columns": ["labels", "revised"]
+    }
+  ],
+  "actions": [
+    {
+      "id": "changelog",
+      "name": "Changelog",
+      "kind": "insert",
+      "folder": "specs",
+      "under": "Changelog",
+      "block": "- **{{date}}**: \n  - 사유: \n  - 영향: ",
+      "set": { "revised": "{{date}}" }
+    },
+    {
+      "id": "verify",
+      "name": "Verify with Claude",
+      "kind": "claude",
+      "folder": "specs",
+      "prompt": "Check the requirements in this spec against the code and list what is missing."
+    }
+  ]
+}

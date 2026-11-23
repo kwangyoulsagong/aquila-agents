@@ -58,9 +58,20 @@ export function InlineInput({ className, ...rest }: InputHTMLAttributes<HTMLInpu
 /** `.c-input--multiline` — a textarea with the input look (comments, notes). */
 export function Textarea({
   className,
+  code,
   ...rest
-}: TextareaHTMLAttributes<HTMLTextAreaElement> & { ref?: Ref<HTMLTextAreaElement> }) {
-  return <textarea className={cx('c-input c-input--multiline', className)} rows={3} {...rest} />;
+}: TextareaHTMLAttributes<HTMLTextAreaElement> & {
+  ref?: Ref<HTMLTextAreaElement>;
+  /** `.c-input--code`: monospace and taller (a settings file edited as text). */
+  code?: boolean;
+}) {
+  return (
+    <textarea
+      className={cx('c-input c-input--multiline', code && 'c-input--code', className)}
+      rows={3}
+      {...rest}
+    />
+  );
 }
 
 export interface SelectOption {

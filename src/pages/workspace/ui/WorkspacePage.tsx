@@ -19,6 +19,7 @@ import { GlobalShortcutDialog } from '@/features/global-shortcut';
 import { SourcesDialog } from '@/features/graph-sources';
 import { LinkSettingsDialog, LinkSuggestions } from '@/features/link-suggestions';
 import { NoteEditorPanel, QuickOpen } from '@/features/edit-note';
+import { VaultNoteSide, VaultNoteTop, VaultSettingsDialog, VaultViewModal } from '@/features/vault-settings';
 import { copyLastReply, toggleQuickSelect } from '@/features/terminal-helpers';
 import { openFind } from '@/features/terminal-search';
 import { focusSession } from '@/entities/session';
@@ -118,6 +119,9 @@ export default function WorkspacePage() {
   const [globalShortcutOpen, setGlobalShortcutOpen] = useState(false);
   const [sourcesOpen, setSourcesOpen] = useState(false);
   const [linksOpen, setLinksOpen] = useState(false);
+  // Folder settings (T69) and a source's board / table / list view.
+  const [vaultOpen, setVaultOpen] = useState<{ source?: string } | null>(null);
+  const [vaultView, setVaultView] = useState<{ sourceId: string; viewId: string } | null>(null);
   const summonRef = useRef({ sessions, focusedId, selectSession });
   summonRef.current = { sessions, focusedId, selectSession };
   useEffect(
@@ -256,6 +260,7 @@ export default function WorkspacePage() {
           onGlobalShortcut: () => setGlobalShortcutOpen(true),
           onSources: () => setSourcesOpen(true),
           onLinks: () => setLinksOpen(true),
+          onVault: () => setVaultOpen({}),
         });
     },
     addProject: () => void addProject(),
@@ -268,6 +273,16 @@ export default function WorkspacePage() {
   const figmaLogin = (projectId: string, account: string) => {
     void openSession('claude', account, projectId).then((id) => {
       if (id) void typeWhenSettled(id, LOGIN_COMMAND);
+    });
+  };
+  // A note's Claude action (T69): a Claude tab in the note's project (else the selected one) with the prompt and
+  // `@note` pasted, not sent — after the "trust this folder?" answer if Claude asks.
+  const sendNoteToClaude = (prompt: string, projectId: string | undefined) => {
+    const target = projectId ?? ws.activeProjectId;
+    if (!target) return showError(t('vault.noProject'));
+    if (target !== ws.activeProjectId) ws.selectProject(target);
+    void openSession('claude', undefined, target).then((id) => {
+      if (id) void pasteWhenReady(id, prompt);
     });
   };
   const { splitFocused, toggleZoom, paneCount } = ws.split;
@@ -315,6 +330,7 @@ export default function WorkspacePage() {
     a.globalShortcut = () => setGlobalShortcutOpen(true);
     a.sources = () => setSourcesOpen(true);
     a.links = () => setLinksOpen(true);
+    a.vault = () => setVaultOpen({});
     a.firstRun = reopenFirstRun;
     a.guide = showGuide;
     a.whatsNew = showNotes;
@@ -552,6 +568,25 @@ export default function WorkspacePage() {
         {globalShortcutOpen && <GlobalShortcutDialog onClose={() => setGlobalShortcutOpen(false)} />}
         {sourcesOpen && <SourcesDialog onClose={() => setSourcesOpen(false)} />}
         {linksOpen && <LinkSettingsDialog onClose={() => setLinksOpen(false)} />}
+        {vaultOpen && (
+          <VaultSettingsDialog
+            initialSource={vaultOpen.source}
+            onClose={() => setVaultOpen(null)}
+            onOpenView={(sourceId, viewId) => {
+              setVaultOpen(null);
+              setVaultView({ sourceId, viewId });
+            }}
+          />
+        )}
+        {vaultView && (
+          <VaultViewModal
+            key={`${vaultView.sourceId}:${vaultView.viewId}`}
+            sourceId={vaultView.sourceId}
+            viewId={vaultView.viewId}
+            onClose={() => setVaultView(null)}
+            onOpenNote={setNotePath}
+          />
+        )}
         <QuickOpen open={quickOpenOn} onClose={() => setQuickOpen(false)} onPick={setNotePath} />
         {commandsOpen && focusedSession && (
           <SessionCommandsModal
@@ -596,6 +631,20 @@ export default function WorkspacePage() {
             renderLinks={(p) => (
               <LinkSuggestions {...p} variant="side" onOpen={(n) => n.path && setNotePath(n.path)} />
             )}
+            renderTop={(slot) => (
+              <VaultNoteTop slot={slot} onOpenNote={setNotePath} onClaude={sendNoteToClaude} />
+            )}
+            renderSide={(slot) => (
+              <VaultNoteSide
+                slot={slot}
+                onOpenNote={setNotePath}
+                onOpenView={(sourceId, viewId) => setVaultView({ sourceId, viewId })}
+              />
+            )}
+            onCreateNote={(name, sourceId) => {
+              if (!sourceId) return;
+              void api.vaultCreateNote(sourceId, null, name).then((p) => p && setNotePath(p));
+            }}
           />
         )}
         {graphOpen && !fullscreen.on && !previewFull && !noteFull && (

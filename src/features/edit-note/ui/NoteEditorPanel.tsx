@@ -32,6 +32,21 @@ export interface NoteEditorPanelProps {
     snapshot: GraphSnapshot | null;
     status: GraphStatus | null;
   }) => ReactNode;
+  /** T69: companion tabs / note actions above the text, typed properties beside it (from another feature). */
+  renderTop?: (p: NoteSlotProps) => ReactNode;
+  renderSide?: (p: NoteSlotProps) => ReactNode;
+  /** T69: a `[[link]]` to a missing note can be created (where new notes go is the source's setting). */
+  onCreateNote?: (name: string, sourceId: string | undefined) => void;
+}
+
+/** What a slot gets: the note, its text right now, and a way to change it as one edit (saved like typing). */
+export interface NoteSlotProps {
+  path: string;
+  text: () => string;
+  /** The editor's text after edits settle (re-render trigger). */
+  version: string;
+  apply: (next: string) => void;
+  readOnly: boolean;
 }
 
 const fileName = (p: string) => p.split(/[/\\]/).pop() ?? p;
@@ -48,6 +63,9 @@ export default function NoteEditorPanel({
   onClose,
   onOpenNote,
   renderLinks,
+  renderTop,
+  renderSide,
+  onCreateNote,
 }: NoteEditorPanelProps) {
   const t = useT();
   const width = usePanelWidth('aquila.panel.note');
@@ -84,6 +102,13 @@ export default function NoteEditorPanel({
     [comparing, conflict, path, ed.text],
   );
 
+  const slot: NoteSlotProps = {
+    path,
+    text: ed.mine,
+    version: ed.text,
+    apply: ed.replace,
+    readOnly: !ed.file || !!ed.file.readOnly,
+  };
   const title = node?.label ?? fileName(path).replace(/\.md$/i, '');
   const saveLabel =
     ed.saveState === 'saving'
@@ -138,9 +163,22 @@ export default function NoteEditorPanel({
     banner = (
       <EditorBanner
         actions={
-          <Button variant="ghost" icon onClick={() => setMissing(null)} aria-label={t('action.close')}>
-            ×
-          </Button>
+          <>
+            {onCreateNote && (
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setMissing(null);
+                  onCreateNote(missing, node?.sourceId);
+                }}
+              >
+                {t('note.createMissing')}
+              </Button>
+            )}
+            <Button variant="ghost" icon onClick={() => setMissing(null)} aria-label={t('action.close')}>
+              ×
+            </Button>
+          </>
         }
       >
         {t('note.missingLink', { name: missing })}
@@ -211,6 +249,7 @@ export default function NoteEditorPanel({
           hostRef={setHost}
           top={
             <>
+              {renderTop?.(slot)}
               {banner}
               {comparing && conflict?.kind === 'changed' && (
                 <EditorCompare>
@@ -253,6 +292,7 @@ export default function NoteEditorPanel({
                     />
                   ))}
                 </EditorSection>
+                {renderSide?.(slot)}
                 {renderLinks?.({ nodeId: node?.id, snapshot, status })}
               </>
             ) : undefined

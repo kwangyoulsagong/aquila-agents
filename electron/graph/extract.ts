@@ -157,7 +157,7 @@ export function parseExtract(
 
 /** Hidden `claude -p`: haiku, one turn, no session file, prompt on stdin. */
 export const runClaudeHaiku =
-  (binary: string, configDir?: string): RunPrompt =>
+  (binary: string, configDir?: string, model = 'haiku'): RunPrompt =>
   (prompt) => {
     const env: NodeJS.ProcessEnv = { ...process.env };
     delete env.CLAUDE_CONFIG_DIR;
@@ -167,7 +167,7 @@ export const runClaudeHaiku =
     return new Promise((resolve, reject) => {
       const child = spawn(
         binary,
-        ['-p', '--no-session-persistence', '--max-turns', '1', '--model', 'haiku', '--output-format', 'text'],
+        ['-p', '--no-session-persistence', '--max-turns', '1', '--model', model, '--output-format', 'text'],
         { cwd: os.tmpdir(), env, stdio: ['pipe', 'pipe', 'pipe'] },
       );
       let out = '';
