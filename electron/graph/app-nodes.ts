@@ -9,7 +9,14 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import type { ApplyRecord, GraphEdge, GraphEdgeReason, GraphNode } from '../../src/shared/api/types';
+import type {
+  ApplyRecord,
+  GraphEdge,
+  GraphEdgeReason,
+  GraphNode,
+  HistoryEntry,
+  Language,
+} from '../../src/shared/api/types';
 import { ClaudeParser, displayTitle, parseText, type SessionWork } from '../history';
 
 /** Most recent sessions kept. */
@@ -29,7 +36,25 @@ export interface AppData {
   sessions: SessionWork[];
   applies: ApplyRecord[];
   projects: AppProject[];
+  /** Files Claude turns changed by any means (`TurnFiles`), by Claude session id. */
+  turnFiles?: Record<string, string[]>;
 }
+
+/** FSD layers: `src/<layer>` is a folder of its own in the skeleton (as in T64's scan). */
+const FSD_LAYERS = new Set(['app', 'pages', 'widgets', 'features', 'entities', 'shared']);
+
+/**
+ * The code-skeleton folder a project file belongs to, from its path alone (no scan): `src/<layer>` for an FSD
+ * layer, else the top-level folder; null for a file at the root.
+ */
+export function skeletonFolder(rel: string): string | null {
+  const parts = rel.split('/');
+  if (parts.length < 2) return null;
+  if (parts[0] === 'src' && parts.length > 2 && FSD_LAYERS.has(parts[1]!)) return `src/${parts[1]}`;
+  return parts[0]!;
+}
+
+export const folderNodeId = (projectId: string, folder: string) => `code:dir:${projectId}:${folder}`;
 
 export interface AppGraph {
   nodes: GraphNode[];
@@ -117,7 +142,7 @@ export function appGraph(index: readonly GraphNode[], data: AppData, home = os.h
 
   const sessions = [...data.sessions].sort((a, b) => b.entry.updatedAt - a.entry.updatedAt);
   let kept = 0;
-  for (const { entry, files, mentions } of sessions) {
+  for (const { entry, files: edited, mentions } of sessions) {
     if (kept >= MAX_SESSIONS) break;
     if (entry.host) continue; // remote transcripts: paths are on another machine
     const sent = [
@@ -127,6 +152,10 @@ export function appGraph(index: readonly GraphNode[], data: AppData, home = os.h
       entry.projectId && entry.branch ? appliedOn.get(`${entry.projectId}\0${entry.branch}`) : undefined;
     if (!sent.length && !apply) continue;
     kept++;
+    const files =
+      entry.agent === 'claude' && data.turnFiles?.[entry.id]
+        ? [...new Set([...edited, ...data.turnFiles[entry.id]!])]
+        : edited;
     const sid = sessionNodeId(entry.agent, entry.id);
     put({
       id: sid,
@@ -164,6 +193,19 @@ export function appGraph(index: readonly GraphNode[], data: AppData, home = os.h
       const name = path.basename(abs);
       const code = codeByName.get(name.toLowerCase());
       if (code) edges.add(fid, code, { via: 'code', label: name }, CODE_STRENGTH);
+      // The skeleton folder it is in (`src/features`, `electron`): files of one area meet there.
+      const folder = project && skeletonFolder(path.relative(project.root, abs).split(path.sep).join('/'));
+      if (project && folder) {
+        const did = folderNodeId(project.id, folder);
+        put({
+          id: did,
+          kind: 'code',
+          label: `${folder}/`,
+          path: path.join(project.root, folder),
+          projects: [project.id],
+        });
+        edges.add(fid, did, { via: 'code', label: folder }, CODE_STRENGTH);
+      }
       shown++;
     }
   }
@@ -229,4 +271,116 @@ export function transcriptsWork(dir: string, projectOf: (abs: string) => string 
       },
     ];
   });
+}
+
+// ── Daily note of the day's sessions (T70, optional) ──────────────────────────
+
+/** Sessions listed in one daily note at most. */
+export const MAX_DAILY = 60;
+const DAILY_FILES = 5;
+
+export interface DailyInput {
+  /** Every session the history index knows (local and the last SSH scan). */
+  entries: HistoryEntry[];
+  work: SessionWork[];
+  turnFiles?: Record<string, string[]>;
+  projects: (AppProject & { name: string })[];
+  /** The absolute path is a note of an enabled source (it gets a `[[link]]`). */
+  isNote: (abs: string) => boolean;
+  language: Language;
+  now: Date;
+  home?: string;
+}
+
+/** `claude:1a2b3c4d` (`@host` for a remote one): how a line is found again, so a session is listed once. */
+export const sessionToken = (e: Pick<HistoryEntry, 'agent' | 'id' | 'host'>) =>
+  `${e.agent}:${e.id.slice(0, 8)}${e.host ? `@${e.host}` : ''}`;
+
+const pad = (n: number) => String(n).padStart(2, '0');
+export const localDate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+export const dailyHeading = (language: Language) => (language === 'ko' ? '## 세션' : '## Sessions');
+export const dailyTitle = (d: Date, language: Language) =>
+  `${localDate(d)} ${language === 'ko' ? '세션' : 'sessions'}`;
+
+/**
+ * The day's sessions as list lines, oldest first: time · agent · title · project (or host) · the notes it got as
+ * `[[links]]` · the files it changed (a few) · its token.
+ */
+export function dailyLines(input: DailyInput): string[] {
+  const home = input.home ?? os.homedir();
+  const start = new Date(input.now);
+  start.setHours(0, 0, 0, 0);
+  const end = start.getTime() + 86_400_000;
+  const work = new Map(input.work.map((w) => [`${w.entry.agent}:${w.entry.id}@${w.entry.host ?? ''}`, w]));
+  const names = new Map(input.projects.map((p) => [p.id, p.name]));
+  return input.entries
+    .filter((e) => e.updatedAt >= start.getTime() && e.updatedAt < end)
+    .sort((a, b) => a.startedAt - b.startedAt)
+    .slice(-MAX_DAILY)
+    .map((e) => {
+      const w = work.get(`${e.agent}:${e.id}@${e.host ?? ''}`);
+      const at = new Date(Math.max(e.startedAt, start.getTime()));
+      const parts = [
+        `${pad(at.getHours())}:${pad(at.getMinutes())}`,
+        e.agent === 'claude' ? 'Claude' : 'Codex',
+        sessionLabel(displayTitle(e)).replace(/\s+/g, ' ').slice(0, 80),
+      ];
+      const where = e.host ?? (e.projectId ? names.get(e.projectId) : undefined);
+      if (where) parts.push(where);
+      if (!e.host && w) {
+        const notes = [
+          ...new Set(
+            w.mentions
+              .map((m) => resolveIn(e.cwd, m, home))
+              .filter((abs) => input.isNote(abs))
+              .map((abs) => `[[${path.basename(abs).replace(/\.md$/i, '')}]]`),
+          ),
+        ];
+        if (notes.length) parts.push(notes.join(' '));
+        const project = e.projectId ? input.projects.find((p) => p.id === e.projectId) : undefined;
+        const root = project?.root ?? e.cwd;
+        const files = [
+          ...new Set([...w.files, ...(e.agent === 'claude' ? (input.turnFiles?.[e.id] ?? []) : [])]),
+        ]
+          .map((f) => resolveIn(e.cwd, f, home))
+          .filter((abs) => !input.isNote(abs))
+          .map((abs) => (inside(abs, root) ? path.relative(root, abs).split(path.sep).join('/') : abs));
+        if (files.length)
+          parts.push(
+            files
+              .slice(0, DAILY_FILES)
+              .map((f) => `\`${f}\``)
+              .join(', ') + (files.length > DAILY_FILES ? ` +${files.length - DAILY_FILES}` : ''),
+          );
+      }
+      return `- ${parts.join(' · ')} \`${sessionToken(e)}\``;
+    });
+}
+
+/**
+ * `text` with the lines it doesn't have yet (by token) added at the end of the `heading` section — the section is
+ * added at the end when missing. Everything else is left byte for byte.
+ */
+export function addToSection(text: string, heading: string, lines: string[]): string {
+  const fresh = lines.filter((l) => {
+    const token = /`([^`]+)`$/.exec(l)?.[1];
+    return !token || !text.includes(`\`${token}\``);
+  });
+  if (!fresh.length) return text;
+  const eol = text.includes('\r\n') ? '\r\n' : '\n';
+  const all = text.split(/\r?\n/);
+  const at = all.findIndex((l) => l.trim() === heading);
+  if (at < 0) {
+    const body = text.replace(/\s*$/, '');
+    return `${body}${body ? eol + eol : ''}${heading}${eol}${eol}${fresh.join(eol)}${eol}`;
+  }
+  let end = all.findIndex((l, i) => i > at && /^#{1,2} /.test(l));
+  if (end < 0) end = all.length;
+  // After the section's last non-empty line.
+  let last = end;
+  while (last > at + 1 && !all[last - 1]!.trim()) last--;
+  const insertAt = last === at + 1 ? at + 1 : last;
+  const before = all.slice(0, insertAt);
+  if (insertAt === at + 1) before.push('');
+  return [...before, ...fresh, ...all.slice(insertAt)].join(eol);
 }

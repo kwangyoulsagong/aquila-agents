@@ -196,6 +196,20 @@ export default function KnowledgeGraphPanel({
           </span>
         )}
         <div className="c-panel__actions">
+          {enabled.length > 0 && (
+            <Button
+              variant="ghost"
+              onClick={() =>
+                void api
+                  .graphDailyNote(filter.sources[0] ?? null)
+                  .then((p) => (p ? onOpenNote(p) : onError(t('graph.daily.failed'))))
+                  .catch(() => onError(t('graph.daily.failed')))
+              }
+              title={t('graph.daily.hint')}
+            >
+              {t('graph.daily')}
+            </Button>
+          )}
           <Button
             variant="ghost"
             icon

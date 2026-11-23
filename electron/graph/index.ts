@@ -259,6 +259,16 @@ export class GraphService implements VaultGraph {
     return inside ? file : null;
   }
 
+  /** T70: some source is enabled (the graph is in use, so turns' changed files are worth recording). */
+  hasEnabled(): boolean {
+    return this.sources.some((s) => s.enabled);
+  }
+
+  /** T70: enabled sources, in the order they were added. */
+  enabledIds(): string[] {
+    return this.sources.filter((s) => s.enabled).map((s) => s.id);
+  }
+
   /** T69: a source's folder (enabled or not), or null. */
   sourceRoot(id: string): string | null {
     const s = this.sources.find((x) => x.id === id);

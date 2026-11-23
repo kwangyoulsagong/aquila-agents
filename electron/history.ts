@@ -238,6 +238,10 @@ function isClaudeNoise(text: string): boolean {
   );
 }
 
+const TIMESTAMP_RE = /"timestamp":"([^"]+)"/;
+/** Lite: user lines longer than this aren't read for `@mentions`. */
+const LITE_USER_LINE = 64 * 1024;
+
 const time = (v: unknown): number | undefined => {
   if (typeof v !== 'string') return undefined;
   const n = Date.parse(v);
@@ -276,9 +280,15 @@ export class ClaudeParser {
   private c: Collector;
   private runs = new CommandCollector();
   private work = new WorkCollector();
-  /** `full`: no caps (Markdown export). */
-  constructor(full = false) {
-    this.c = full ? new Collector(Infinity, Infinity) : new Collector();
+  /**
+   * `full`: no caps (Markdown export). `lite` (T70, the graph): no message text or commands kept, and a line that
+   * can't hold an edit or an `@mention` isn't JSON-parsed at all — only its timestamp is read.
+   */
+  constructor(
+    full = false,
+    private lite = false,
+  ) {
+    this.c = full ? new Collector(Infinity, Infinity) : lite ? new Collector(0, 0) : new Collector();
   }
   private cwd = '';
   private branch?: string;
@@ -289,6 +299,7 @@ export class ClaudeParser {
 
   line(line: string): void {
     if (!line || line.length > MAX_LINE || line.startsWith('{"type":"api-request')) return;
+    if (this.lite && this.cwd && this.c.first && this.skippable(line)) return;
     let o: Record<string, unknown>;
     try {
       o = JSON.parse(line) as Record<string, unknown>;
@@ -314,9 +325,9 @@ export class ClaudeParser {
     const message = o.message as { content?: unknown } | undefined;
     if (!message) return;
     if (type === 'assistant') {
-      this.runs.assistant(message.content, at);
+      if (!this.lite) this.runs.assistant(message.content, at);
       this.work.claudeTools(message.content);
-    } else {
+    } else if (!this.lite) {
       const r = o.toolUseResult as { interrupted?: unknown } | undefined;
       this.runs.user(message.content, !!r && typeof r === 'object' && r.interrupted === true);
     }
@@ -329,6 +340,23 @@ export class ClaudeParser {
     } else {
       this.c.add('assistant', textOf(message.content, ['text']), at);
     }
+  }
+
+  /** Lite: an assistant line with no tool call or a user line with no `@` — counted and timed, not parsed. */
+  private skippable(line: string): boolean {
+    const assistant = line.includes('"type":"assistant"');
+    const user = !assistant && line.includes('"type":"user"');
+    // A user line this long is a tool result (a file read, command output), not something typed.
+    const typed = user && line.length <= LITE_USER_LINE && line.includes('@');
+    if (!(assistant && !line.includes('"tool_use"')) && !(user && !typed)) return false;
+    if (line.includes('"isSidechain":true')) return true;
+    const at = time(TIMESTAMP_RE.exec(line)?.[1]);
+    if (at !== undefined) {
+      this.startedAt ??= at;
+      this.updatedAt = at;
+    }
+    this.c.count++;
+    return true;
   }
 
   /** null when there was no conversation (or no cwd to group it by). */
@@ -345,7 +373,7 @@ export class ClaudeParser {
       count: this.c.count,
       messages: this.c.messages,
       truncated: this.c.truncated,
-      commands: this.runs.result(),
+      ...(this.lite ? {} : { commands: this.runs.result() }),
       ...this.work.result(),
     };
   }
@@ -364,8 +392,9 @@ export async function readClaudeCommands(file: string): Promise<CommandRun[]> {
 /** Line-by-line parser of a codex rollout (`rollout-<time>-<id>.jsonl`). */
 export class CodexParser {
   private c: Collector;
-  constructor(full = false) {
-    this.c = full ? new Collector(Infinity, Infinity) : new Collector();
+  /** `lite` (T70): no message text kept. */
+  constructor(full = false, lite = false) {
+    this.c = full ? new Collector(Infinity, Infinity) : lite ? new Collector(0, 0) : new Collector();
   }
   id = '';
   private cwd = '';
@@ -752,7 +781,8 @@ interface Indexed {
   text?: { original: string; lower: string };
 }
 
-interface CacheItem {
+/** A parsed transcript and the file state it was read at (T70: carried across short-lived lite workers). */
+export interface CacheItem {
   mtimeMs: number;
   size: number;
   parsed: ParsedSession | null;
@@ -812,10 +842,14 @@ export class HistoryIndex {
   private remote = new Map<string, RemoteState>();
   private remoteBuilding: Promise<HistoryList> | null = null;
 
-  /** `exec` runs scripts on SSH hosts (T36); without it remote hosts are never scanned. */
+  /**
+   * `exec` runs scripts on SSH hosts (T36); without it remote hosts are never scanned. `lite` (T70, the graph):
+   * titles, edited files and `@mentions` only — no message text, so no search or transcripts from this index.
+   */
   constructor(
     private sources: Sources = DEFAULT_SOURCES,
     private exec?: RemoteExec,
+    private opts: { lite?: boolean } = {},
   ) {}
 
   private async parseCached<P extends { line(l: string): void }>(
@@ -886,7 +920,7 @@ export class HistoryIndex {
         seenFiles.add(file);
         const parsed = await this.parseCached(
           file,
-          () => new ClaudeParser(),
+          () => new ClaudeParser(false, this.opts.lite),
           (p, mtime) => p.result(mtime),
         );
         if (!parsed) return;
@@ -940,7 +974,7 @@ export class HistoryIndex {
       const parsed = file
         ? await this.parseCached(
             file,
-            () => new CodexParser(),
+            () => new CodexParser(false, this.opts.lite),
             (p, mtime) => p.result(mtime),
           )
         : null;
@@ -1127,6 +1161,20 @@ export class HistoryIndex {
 
   get(ref: HistoryRef): HistoryEntry | undefined {
     return this.item(ref)?.entry;
+  }
+
+  /** T70: the parse cache, so a lite index in a short-lived worker thread starts warm. */
+  cacheEntries(): [string, CacheItem][] {
+    return [...this.cache];
+  }
+
+  loadCache(entries: readonly [string, CacheItem][]): void {
+    this.cache = new Map(entries);
+  }
+
+  /** SSH hosts' entries from the last `refreshRemote` (no scan). */
+  remoteEntries(): HistoryEntry[] {
+    return [...this.remote.values()].flatMap((st) => [...st.items.values()].map((i) => i.entry));
   }
 
   /**

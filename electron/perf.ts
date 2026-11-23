@@ -142,7 +142,9 @@ function writeNotes(dir: string): void {
       `# Note ${String(i).padStart(4, '0')} about topic${i % 50}`,
       '',
       `Follows [[Note ${String(link).padStart(4, '0')} about topic${link % 50}]] and touches DB-${i % 300}.`,
-      i % 3 === 0 ? `See also [[Note ${String((i + 1) % GRAPH_NOTES).padStart(4, '0')} about topic${(i + 1) % 50}]].` : '',
+      i % 3 === 0
+        ? `See also [[Note ${String((i + 1) % GRAPH_NOTES).padStart(4, '0')} about topic${(i + 1) % 50}]].`
+        : '',
       '',
       `#group${i % 20}`,
     ].join('\n');
@@ -150,9 +152,44 @@ function writeNotes(dir: string): void {
   }
 }
 
+const APP_SESSIONS = 300;
+const APP_FILES = 20;
+
+/**
+ * T70: Claude transcripts in the perf run's graph folder (read like history in smoke / perf): each got one of the
+ * notes as `@path` and edited files in five areas.
+ */
+function writeTranscripts(dir: string, notesDir: string): void {
+  fs.mkdirSync(dir, { recursive: true });
+  const at = new Date().toISOString();
+  for (let i = 0; i < APP_SESSIONS; i++) {
+    const cwd = path.join(os.tmpdir(), 'aquila-perf-repo');
+    const line = (type: string, content: unknown) =>
+      JSON.stringify({ type, cwd, timestamp: at, message: { content } });
+    const edits = Array.from({ length: APP_FILES }, (_, k) => ({
+      type: 'tool_use',
+      id: `e${k}`,
+      name: 'Edit',
+      input: { file_path: path.join(cwd, 'src', `area${k % 5}`, `file${(i * 3 + k) % 400}.ts`) },
+    }));
+    fs.writeFileSync(
+      path.join(dir, `perf-${i}.jsonl`),
+      [
+        line('user', `Session ${i}\n\n@${path.join(notesDir, `note-${(i * 13) % GRAPH_NOTES}.md`)}`),
+        line('assistant', edits),
+      ].join('\n'),
+    );
+  }
+}
+
 /** Main-process memory (MB): the graph index worker is a thread of it. */
 const browserMB = () =>
-  Math.round(app.getAppMetrics().filter((m) => m.type === 'Browser').reduce((a, m) => a + m.memory.workingSetSize, 0) / 1024);
+  Math.round(
+    app
+      .getAppMetrics()
+      .filter((m) => m.type === 'Browser')
+      .reduce((a, m) => a + m.memory.workingSetSize, 0) / 1024,
+  );
 
 /**
  * Knowledge graph budget (T63–T71): index 2,000 notes, then idle with the graph closed, open (layout until settled,
@@ -168,12 +205,32 @@ async function measureGraph(win: BrowserWindow) {
   let notes = 0;
   for (let i = 0; i < 600 && notes < GRAPH_NOTES; i++) {
     await wait(100);
-    notes = await js<number>(`window.aquila.graphStatus().then((s) => s.sources.find((x) => x.state === 'ready')?.notes ?? 0)`);
+    notes = await js<number>(
+      `window.aquila.graphStatus().then((s) => s.sources.find((x) => x.state === 'ready')?.notes ?? 0)`,
+    );
   }
   const indexMs = Date.now() - t0;
   await wait(2000); // code names, index save
   const mainAfter = browserMB();
   const closedIdle = await measure(win, 5000);
+
+  // T70: sessions in the graph. Smoke / perf re-read the transcripts on every snapshot (no hooks), so this is the
+  // cold load each time; the app reads them once per finished turn.
+  const transcripts = path.join(app.getPath('temp'), `aquila-smoke-graph-${process.pid}`, 'transcripts');
+  writeTranscripts(transcripts, dir);
+  const snapMs: number[] = [];
+  let appCounts = { sessions: 0, files: 0, edges: 0 };
+  for (let i = 0; i < 3; i++) {
+    const s0 = Date.now();
+    appCounts = await js(`window.aquila.graphSnapshot().then((g) => ({
+      sessions: g.nodes.filter((n) => n.kind === 'session').length,
+      files: g.nodes.filter((n) => n.kind === 'file').length,
+      edges: g.edges.filter((e) => e.kind === 'action').length,
+    }))`);
+    snapMs.push(Date.now() - s0);
+  }
+  await wait(1500); // the scan workers exit
+  const mainWithApp = browserMB();
 
   await js('window.__graphSettled = null');
   press(win, 'N', ['meta', 'shift']);
@@ -192,7 +249,13 @@ async function measureGraph(win: BrowserWindow) {
   if (box) {
     const zooming = measure(win, 3000);
     for (let i = 0; i < 60; i++) {
-      win.webContents.sendInputEvent({ type: 'mouseWheel', x: box.x, y: box.y, deltaX: 0, deltaY: i < 30 ? -40 : 40 });
+      win.webContents.sendInputEvent({
+        type: 'mouseWheel',
+        x: box.x,
+        y: box.y,
+        deltaX: 0,
+        deltaY: i < 30 ? -40 : 40,
+      });
       await wait(45);
     }
     zoom = await zooming;
@@ -202,13 +265,24 @@ async function measureGraph(win: BrowserWindow) {
   const canvases = await js<number>(`document.querySelectorAll('.c-kgraph canvas').length`);
   const reclosedIdle = await measure(win, 5000);
   fs.rmSync(dir, { recursive: true, force: true });
+  fs.rmSync(transcripts, { recursive: true, force: true });
   return {
     notes,
     indexMs,
+    app: { ...appCounts, snapshotMs: snapMs, mainMB: mainWithApp - mainAfter },
     mainMB: { before: mainBefore, after: mainAfter, index: mainAfter - mainBefore },
     layout: settled,
-    closedIdle: { cpu: closedIdle.cpu, cpuTotal: closedIdle.cpuTotal, wakeupsPerSec: closedIdle.wakeupsPerSec },
-    openIdle: { cpu: openIdle.cpu, cpuTotal: openIdle.cpuTotal, fps: openIdle.fps, rendererMB: openIdle.rendererMB },
+    closedIdle: {
+      cpu: closedIdle.cpu,
+      cpuTotal: closedIdle.cpuTotal,
+      wakeupsPerSec: closedIdle.wakeupsPerSec,
+    },
+    openIdle: {
+      cpu: openIdle.cpu,
+      cpuTotal: openIdle.cpuTotal,
+      fps: openIdle.fps,
+      rendererMB: openIdle.rendererMB,
+    },
     zoom: zoom && { fps: zoom.fps, maxFrameGapMs: zoom.maxFrameGapMs, cpu: zoom.cpu },
     reclosedIdle: { cpu: reclosedIdle.cpu, cpuTotal: reclosedIdle.cpuTotal, canvasesLeft: canvases },
   };

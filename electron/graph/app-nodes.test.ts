@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import type { ApplyRecord, GraphNode, HistoryEntry } from '../../src/shared/api/types';
 import type { SessionWork } from '../history';
 import {
+  addToSection,
+  dailyLines,
+  skeletonFolder,
   AppNodes,
   MAX_FILES_PER_SESSION,
   appGraph,
@@ -216,5 +219,88 @@ describe('AppNodes', () => {
     nodes.invalidate();
     await nodes.graph(index);
     expect(loads).toBe(2);
+  });
+});
+
+describe('skeleton and turn files', () => {
+  it('folders from paths: FSD layers, else the top level', () => {
+    expect(skeletonFolder('src/features/edit-note/ui/A.tsx')).toBe('src/features');
+    expect(skeletonFolder('electron/graph/x.ts')).toBe('electron');
+    expect(skeletonFolder('src/main.ts')).toBe('src');
+    expect(skeletonFolder('package.json')).toBeNull();
+  });
+
+  it('changed files meet at their skeleton folder; shell-changed files of a turn are added', () => {
+    const g = appGraph(
+      index,
+      data({
+        sessions: [work({}, ['/Users/me/app/src/features/a/A.tsx'], ['/Users/me/notes/memo.md'])],
+        turnFiles: { s1: ['/Users/me/app/src/features/b/gen.ts'] },
+      }),
+      HOME,
+    );
+    const dir = 'code:dir:app:src/features';
+    expect(g.nodes.find((n) => n.id === dir)).toMatchObject({ kind: 'code', label: 'src/features/' });
+    expect(edge(g, 'file:/Users/me/app/src/features/a/A.tsx', dir)).toBeDefined();
+    expect(edge(g, 'session:claude:s1', 'file:/Users/me/app/src/features/b/gen.ts')).toBeDefined();
+    expect(edge(g, 'file:/Users/me/app/src/features/b/gen.ts', dir)).toBeDefined();
+  });
+});
+
+describe('daily note', () => {
+  const now = new Date(2026, 10, 23, 18, 0);
+  const at = (h: number) => new Date(2026, 10, 23, h, 5).getTime();
+  const input = {
+    entries: [
+      entry({ id: 'aaaaaaaa-1', startedAt: at(10), updatedAt: at(11) }),
+      entry({
+        id: 'bbbbbbbb-2',
+        agent: 'codex',
+        firstMessage: 'Refactor',
+        startedAt: at(9),
+        updatedAt: at(9),
+      }),
+      entry({
+        id: 'cccccccc-3',
+        host: 'box',
+        firstMessage: 'On the server',
+        startedAt: at(12),
+        updatedAt: at(12),
+      }),
+      entry({ id: 'dddddddd-4', startedAt: at(9) - 86_400_000, updatedAt: at(9) - 86_400_000 }),
+    ],
+    work: [
+      work(
+        { id: 'aaaaaaaa-1' },
+        ['/Users/me/app/src/a.ts', '/Users/me/notes/memo.md'],
+        ['/Users/me/notes/specs/DB-12 login.md'],
+      ),
+    ],
+    turnFiles: { 'aaaaaaaa-1': ['/Users/me/app/gen.ts'] },
+    projects: [{ id: 'app', root: '/Users/me/app', name: 'App' }],
+    isNote: (p: string) => p.startsWith('/Users/me/notes/'),
+    language: 'en' as const,
+    now,
+    home: HOME,
+  };
+
+  it("lists today's sessions oldest first, local and remote, with notes and files", () => {
+    expect(dailyLines(input)).toEqual([
+      '- 09:05 · Codex · Refactor · App `codex:bbbbbbbb`',
+      '- 10:05 · Claude · Handle this note · App · [[DB-12 login]] · `src/a.ts`, `gen.ts` `claude:aaaaaaaa`',
+      '- 12:05 · Claude · On the server · box `claude:cccccccc@box`',
+    ]);
+  });
+
+  it('adds only new lines, at the end of the section, keeping the rest', () => {
+    const lines = dailyLines(input);
+    const first = addToSection('# Day\n\nNotes here.\n', '## Sessions', lines.slice(0, 1));
+    expect(first).toBe(`# Day\n\nNotes here.\n\n## Sessions\n\n${lines[0]}\n`);
+    const second = addToSection(`${first}\n## Later\nx\n`, '## Sessions', lines);
+    expect(second).toBe(`# Day\n\nNotes here.\n\n## Sessions\n\n${lines.join('\n')}\n\n## Later\nx\n`);
+    expect(addToSection(second, '## Sessions', lines)).toBe(second);
+    expect(addToSection('a\r\n', '## Sessions', lines.slice(0, 1))).toBe(
+      `a\r\n\r\n## Sessions\r\n\r\n${lines[0]}\r\n`,
+    );
   });
 });

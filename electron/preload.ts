@@ -141,6 +141,7 @@ const api: AquilaApi = {
   noteAttach: (notePath, data, ext) => ipcRenderer.invoke(IPC.noteAttach, { notePath, data, ext }),
   noteOpenUrl: (url) => ipcRenderer.invoke(IPC.noteOpenUrl, url),
   noteProject: (path) => ipcRenderer.invoke(IPC.noteProject, path),
+  graphDailyNote: (sourceId) => ipcRenderer.invoke(IPC.graphDailyNote, sourceId),
   vaultGet: (id) => ipcRenderer.invoke(IPC.vaultGet, id),
   vaultSave: (id, config, scope) => ipcRenderer.invoke(IPC.vaultSave, { id, config, scope }),
   vaultRemovePersonal: (id) => ipcRenderer.invoke(IPC.vaultRemovePersonal, id),

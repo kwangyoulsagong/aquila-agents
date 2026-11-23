@@ -965,6 +965,14 @@ export class VaultService {
     }
   }
 
+  /** T70: the source's template for a day's note (its file is named by `{{date}}` alone), or null. */
+  dateTemplate(id: string): string | null {
+    const t = this.read(id)?.config.templates.find(
+      (x) => x.file.includes('{{date}}') && !/\{\{(?:title|slug|id)\}\}/.test(x.file),
+    );
+    return t?.id ?? null;
+  }
+
   /** Link rules of every source that has some (the index worker applies them). */
   linkRules(ids: readonly string[]): Record<string, VaultLinkRule[]> {
     const out: Record<string, VaultLinkRule[]> = {};

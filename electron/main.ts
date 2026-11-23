@@ -14,6 +14,7 @@ import {
   powerMonitor,
   protocol,
   shell,
+  utilityProcess,
 } from 'electron';
 import { restoreShellPath } from './env';
 import { isWindows, platform } from './platform';
@@ -81,7 +82,16 @@ import {
   tmpAppliesDir,
 } from './apply';
 import { GraphService } from './graph';
-import { AppNodes, transcriptsWork } from './graph/app-nodes';
+import {
+  AppNodes,
+  addToSection,
+  dailyHeading,
+  dailyLines,
+  dailyTitle,
+  transcriptsWork,
+} from './graph/app-nodes';
+import { TurnFiles } from './graph/turn-files';
+import { WorkScanner, type WorkScanOut } from './graph/history-worker';
 import { linkable, withLink } from './graph/rules';
 import { VaultService } from './graph/vault';
 import { runClaudeHaiku } from './graph/extract';
@@ -817,12 +827,40 @@ app.whenReady().then(async () => {
     loadConfig()
       .projects.filter((p) => !p.remote)
       .map((p) => ({ id: p.id, root: path.resolve(expand(p.path)) }));
+  // Its own lite scan (titles, edited files, @mentions — no message text), in a short-lived child process so the
+  // memory of reading every transcript goes away with it; only changed transcripts are read again.
+  const workerPath = path
+    .join(__dirname, 'graph', 'history-worker.js')
+    .replace(/app\.asar([/\\])/, 'app.asar.unpacked$1');
+  const workScanner = new WorkScanner(
+    (input) =>
+      new Promise<WorkScanOut>((resolve) => {
+        const child = utilityProcess.fork(workerPath, [], { serviceName: 'Aquila history scan' });
+        let done = false;
+        child.once('message', (out: WorkScanOut) => {
+          done = true;
+          resolve(out);
+        });
+        child.once('exit', (code) => {
+          if (!done) resolve({ error: `history scan exited (${code})` });
+        });
+        child.postMessage(input);
+      }),
+  );
   const appNodes = new AppNodes(async () => {
-    await history.list(loadConfig());
+    const scan = await workScanner.scan(loadConfig());
     // Smoke: plus transcripts it writes into its throwaway graph folder.
     const extra = isSmoke ? transcriptsWork(path.join(graphDir, 'transcripts'), projectOfFile) : [];
-    return { sessions: [...history.work(), ...extra], applies: applies.list(), projects: localProjects() };
+    return {
+      sessions: [...scan.work, ...extra],
+      applies: applies.list(),
+      projects: localProjects(),
+      turnFiles: turns.all(),
+    };
   });
+  // Files a Claude turn changed by any means, shell included: the folder's git status at the prompt and at Stop.
+  // Only while a note source is enabled (two git calls per turn).
+  const turns = new TurnFiles({ file: path.join(graphDir, 'turns.json'), onChange: () => appTouched() });
   const projectOfFile = (abs: string) => {
     const file = path.resolve(abs);
     return localProjects()
@@ -834,9 +872,45 @@ app.whenReady().then(async () => {
     graph.appChanged();
   };
   onGraphHook = (hook) => {
+    if (hook.sessionId && hook.cwd && graph.hasEnabled()) {
+      if (hook.event === 'UserPromptSubmit') turns.start(hook.sessionId, hook.cwd);
+      else if (hook.event === 'Stop') void turns.stop(hook.sessionId).catch(() => undefined);
+    }
     if (hook.event === 'Stop' || hook.event === 'UserPromptSubmit' || hook.event === 'SessionEnd')
       appTouched();
   };
+  // Daily note (T70): today's sessions (local and the last SSH scan) appended to the day's note, on the button only.
+  ipcMain.handle(IPC.graphDailyNote, async (_e, sourceId: string | null) => {
+    // The source picked in the graph, else one with a day template (a journal), else the first.
+    const ids = graph.enabledIds();
+    const id =
+      (typeof sourceId === 'string' && ids.includes(sourceId) && sourceId) ||
+      ids.find((x) => vault.dateTemplate(x)) ||
+      ids[0];
+    if (!id) return null;
+    const config = loadConfig();
+    const now = new Date();
+    const tid = vault.dateTemplate(id);
+    const file = vault.createNote(id, tid ?? '', dailyTitle(now, config.language));
+    if (!file) return null;
+    const scan = await workScanner.scan(config);
+    const lines = dailyLines({
+      // Remote: whatever the history panel's last SSH scan found (no scan here).
+      entries: [...scan.entries, ...history.remoteEntries()],
+      work: scan.work,
+      turnFiles: turns.all(),
+      projects: config.projects
+        .filter((p) => !p.remote)
+        .map((p) => ({ id: p.id, name: p.name, root: path.resolve(expand(p.path)) })),
+      isNote: (abs) => !!graph.notePath(abs),
+      language: config.language,
+      now,
+    });
+    const text = fs.readFileSync(file, 'utf8');
+    const next = addToSection(text, dailyHeading(config.language), lines);
+    if (next !== text) fs.writeFileSync(file, next);
+    return file;
+  });
   // Per-source settings (T69): mine in ~/.aquila/vaults, shared as `.aquila-vault.json` in the folder (only when the
   // user saves them as shared). "Make with Claude" is a hidden `claude -p` (sonnet); smoke reads a canned reply.
   const vault: VaultService = new VaultService({
@@ -860,6 +934,7 @@ app.whenReady().then(async () => {
   app.on('will-quit', () => {
     noteWatcher.close();
     graph.close();
+    turns.flush();
     if (isSmoke) fs.rmSync(graphDir, { recursive: true, force: true });
   });
   ipcMain.handle(IPC.graphStatus, () => graph.status());

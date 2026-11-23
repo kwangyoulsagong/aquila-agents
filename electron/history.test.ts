@@ -524,3 +524,45 @@ describe('work (T70)', () => {
     expect(parsed?.mentions).toEqual(['n/a.md']);
   });
 });
+
+describe('lite parse (T70)', () => {
+  it('keeps what the graph needs and no message text', () => {
+    const line = (type: 'user' | 'assistant', content: unknown, ts: string, extra = {}) =>
+      JSON.stringify({
+        type,
+        cwd: '/repo',
+        gitBranch: 'main',
+        timestamp: ts,
+        ...extra,
+        message: { content },
+      });
+    const text = [
+      JSON.stringify({ type: 'custom-title', customTitle: 'Mine' }),
+      line('user', 'First question', '2026-11-20T10:00:00.000Z'),
+      line('assistant', [{ type: 'text', text: 'long answer' }], '2026-11-20T10:00:01.000Z'),
+      line('user', 'see @notes/a.md', '2026-11-20T10:00:02.000Z'),
+      line(
+        'assistant',
+        [{ type: 'tool_use', id: 't', name: 'Write', input: { file_path: '/repo/x.ts' } }],
+        '2026-11-20T10:00:03.000Z',
+      ),
+      line('assistant', [{ type: 'text', text: 'side' }], '2026-11-20T10:09:00.000Z', { isSidechain: true }),
+      line('assistant', [{ type: 'text', text: 'done' }], '2026-11-20T10:00:04.000Z'),
+    ].join('\n');
+    const full = parseText(text, new ClaudeParser()).result(0)!;
+    const lite = parseText(text, new ClaudeParser(false, true)).result(0)!;
+    for (const k of [
+      'cwd',
+      'branch',
+      'title',
+      'firstMessage',
+      'startedAt',
+      'updatedAt',
+      'files',
+      'mentions',
+    ] as const)
+      expect(lite[k]).toEqual(full[k]);
+    expect(lite.messages).toEqual([]);
+    expect(lite.commands).toBeUndefined();
+  });
+});

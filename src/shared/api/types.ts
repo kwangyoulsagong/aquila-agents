@@ -1374,6 +1374,11 @@ export interface AquilaApi {
   noteOpenUrl(url: string): Promise<void>;
   /** T70: the local project a file is in (a note's "Handle with Claude" opens there), or null. */
   noteProject(path: string): Promise<string | null>;
+  /**
+   * T70: today's sessions added to the day's note of a source (when null: one with a date template, else the first
+   * enabled) — its date template when it has one, else `<date> sessions.md` — only lines it doesn't have yet. The note's path, or null.
+   */
+  graphDailyNote(sourceId: string | null): Promise<string | null>;
   /** T69: a source's settings (personal wins over shared). */
   vaultGet(sourceId: string): Promise<VaultState>;
   /** T69: validated and saved as mine or shared (shared writes `.aquila-vault.json` and drops mine). */
@@ -1650,6 +1655,7 @@ export const IPC = {
   noteAttach: 'note:attach',
   noteOpenUrl: 'note:open-url',
   noteProject: 'note:project',
+  graphDailyNote: 'graph:daily-note',
   vaultGet: 'vault:get',
   vaultSave: 'vault:save',
   vaultRemovePersonal: 'vault:remove-personal',

@@ -1821,10 +1821,45 @@ async function checkAppGraph(win: BrowserWindow, config: Config, outDir: string)
     fs.writeFileSync(path.join(outDir, 'smoke-app-graph.png'), (await win.webContents.capturePage()).toPNG());
     if (!(await select('Login plan'))) return 'app graph: the note could not be selected';
     if (!(await cardHas(t('note.handle')))) return `app graph: the note card has no "${t('note.handle')}"`;
+    // Daily note: the source gets the Daily journal preset, so the button (no source picked) goes to its
+    // `journal/<date>.md` and adds today's sessions under the heading; a second click adds nothing.
+    await js(
+      `window.aquila.vaultPreset('daily').then((c) => window.aquila.vaultSave(${JSON.stringify(sourceId)}, c, 'personal'))`,
+    );
+    const clickDaily = () =>
+      js(
+        `[...document.querySelectorAll('aside .c-panel__head button')].find((b) => b.textContent.trim() === ${JSON.stringify(t('graph.daily'))})?.click()`,
+      );
+    const journal = path.join(notes, 'journal');
+    const daily = () => (fs.existsSync(journal) ? fs.readdirSync(journal)[0] : undefined);
+    await clickDaily();
+    for (let i = 0; i < 80 && !daily(); i++) await wait(100);
+    const dailyName = daily();
+    if (!dailyName) {
+      const btn = await js<string[]>(
+        `[...document.querySelectorAll('aside .c-panel__head button')].map((b) => b.textContent.trim())`,
+      );
+      return `app graph: no journal note was made (head buttons: ${JSON.stringify(btn)}, files: ${JSON.stringify(fs.readdirSync(notes))})`;
+    }
+    const dailyFile = path.join(journal, dailyName);
+    const heading = config.language === 'ko' ? '## 세션' : '## Sessions';
+    await wait(500);
+    const once = fs.readFileSync(dailyFile, 'utf8');
+    if (!once.includes(heading))
+      return `app graph: the daily note has no "${heading}": ${JSON.stringify(once.slice(0, 200))}`;
+    await clickDaily();
+    await wait(800);
+    if (fs.readFileSync(dailyFile, 'utf8') !== once)
+      return 'app graph: a second click changed the daily note';
+    const listed = once.split('\n').filter((l) => l.startsWith('- ')).length;
     press(win, 'N', ['meta', 'shift']);
     await wait(300);
+    await js(
+      `document.querySelector('aside .c-panel__actions button[aria-label=${JSON.stringify(t('action.close'))}]')?.click()`,
+    );
+    await wait(300);
     console.log(
-      '[smoke] app graph: note → session → changed file (solid), Resume on the session, Handle with Claude on the note',
+      `[smoke] app graph: note → session → changed file (solid), Resume on the session, Handle with Claude on the note, daily note "${dailyName}" (${listed} sessions today, second click unchanged)`,
     );
     return null;
   } finally {

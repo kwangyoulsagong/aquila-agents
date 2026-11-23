@@ -19,6 +19,11 @@ asarUnpack:
   - node_modules/node-pty/**
   # The knowledge-graph index worker (T65) is started from a file: keep it (and the modules it requires) on disk.
   - dist-electron/electron/graph/**
+  # The lite history worker (T70) requires history.ts and what it imports (config, state, remote, i18n…).
+  - dist-electron/electron/*.js
+  - dist-electron/electron/remote/**
+  - dist-electron/electron/platform/**
+  - dist-electron/src/**
 # No rebuild at pack time: `postinstall` already rebuilt node-pty for Electron on the host (macOS build), and Windows
 # uses node-pty's N-API prebuilds (see win below). Rebuilding here would try to cross-compile and fail.
 npmRebuild: false

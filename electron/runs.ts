@@ -6,7 +6,7 @@ import { spawn, execFile, type ChildProcess } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { RunCommand, RunInfo, RunList } from '../src/shared/api/types';
-import { findDevUrls } from './preview';
+import { findDevUrls } from './devUrls';
 
 /** Output kept per run for a log pane opened later. */
 const LOG_TAIL = 256 * 1024;
@@ -237,7 +237,11 @@ export class RunManager {
   active(): SavedRun[] {
     return [...this.runs.values()]
       .filter((r) => r.info.alive && !r.stopping)
-      .map((r) => ({ projectId: r.projectId, name: r.name, ...(r.worktree ? { worktree: r.worktree } : {}) }));
+      .map((r) => ({
+        projectId: r.projectId,
+        name: r.name,
+        ...(r.worktree ? { worktree: r.worktree } : {}),
+      }));
   }
 
   log(id: string): string {

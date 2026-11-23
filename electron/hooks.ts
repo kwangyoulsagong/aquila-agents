@@ -191,6 +191,8 @@ export type HookEvent = HookSignal & {
   detail?: string;
   /** UserPromptSubmit: the prompt's first line, cut for a tab title (T43); absent for slash commands. */
   prompt?: string;
+  /** The folder Claude runs in (T70: files a turn changed). */
+  cwd?: string;
 };
 
 /** A tab title from the first prompt is about this long (T43). */
@@ -241,6 +243,7 @@ export function readHookBody(body: string): HookEvent | null {
     ...(isSessionId(sessionId) ? { sessionId } : {}),
     ...(detail ? { detail } : {}),
     ...(prompt ? { prompt } : {}),
+    ...(str('cwd') ? { cwd: str('cwd') } : {}),
   };
 }
 
