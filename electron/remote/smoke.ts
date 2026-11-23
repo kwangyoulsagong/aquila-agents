@@ -1,6 +1,6 @@
 // Smoke step for remote sessions (T29). There is no SSH server or tmux on a dev Mac, so `ssh` and `tmux` are
 // stand-ins on PATH that run the real remote script locally (HOME = a temp dir):
-//   1st ssh: "Connection refused", exit 255        → reconnecting, retried after 3 s
+//   1st ssh -t: "Connection refused", exit 255     → reconnecting, retried after 3 s
 //   2nd ssh: the remote script → fake tmux → shell → connected; we type a marker and see it
 //   `exit 77` in that shell makes the fake ssh exit 255 (link dropped) → reconnecting → connected again
 //   closing the tab sends `tmux kill-session` for its session over ssh
@@ -15,9 +15,12 @@ import { STABLE_MS } from './reconnect';
 const FAKE_SSH = `#!/bin/sh
 # smoke stand-in for ssh: skip options up to "--", run the remote script locally.
 dir=$(cd "$(dirname "$0")" && pwd)
-while [ "$#" -gt 0 ] && [ "$1" != "--" ]; do shift; done
+# Only the tab's interactive ssh (-t) is refused once: the session's own BatchMode calls (git HEAD at start) run
+# alongside it and must not use up the refusal, or the tab connects first try and never shows "reconnecting".
+tty=
+while [ "$#" -gt 0 ] && [ "$1" != "--" ]; do [ "$1" = -t ] && tty=1; shift; done
 shift
-if [ ! -f "$dir/refused" ]; then : > "$dir/refused"; echo "ssh: connect to host smoke port 22: Connection refused" >&2; exit 255; fi
+if [ -n "$tty" ] && [ ! -f "$dir/refused" ]; then : > "$dir/refused"; echo "ssh: connect to host smoke port 22: Connection refused" >&2; exit 255; fi
 HOME="$dir/home" /bin/sh -c "$1"
 code=$?
 [ "$code" = 77 ] && exit 255
