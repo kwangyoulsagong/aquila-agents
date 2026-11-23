@@ -187,6 +187,10 @@ body {
 .c-badge--account-personal { color: var(--color-account-personal); }
 /* A changed file worth a second look (T57): migration, lockfile, env, prompt, CI. */
 .c-badge--risk { flex: none; color: var(--color-status-waiting); }
+/* Apply a trend (T64): the proposal's verdict. */
+.c-badge--verdict-apply { color: var(--color-status-done); }
+.c-badge--verdict-partial { color: var(--color-status-waiting); }
+.c-badge--verdict-skip { color: var(--color-text-tertiary); }
 /* Remote host (T29): the alias as typed (not uppercased) with a connection dot. */
 .c-badge--host { gap: var(--space-inline-xs); text-transform: none; letter-spacing: 0; }
 .c-badge__conn { width: var(--size-dot-sm); height: var(--size-dot-sm); border-radius: 50%; flex: none; background: var(--color-status-idle); }
@@ -853,6 +857,37 @@ body {
   line-height: var(--line-height-body);
 }
 
+/* ── Graph (repo skeleton, T64) ──────────────────────────── */
+/* Static SVG: boxes placed by the caller, curved edges, marks for add / change / unfit. */
+.c-graph { display: block; flex: none; max-width: 100%; height: auto; font-family: var(--font-family-ui); }
+.c-graph__column { fill: var(--color-text-tertiary); font-size: var(--font-size-caption); }
+.c-graph__edge { fill: none; stroke: var(--color-border-default); stroke-width: 1; }
+.c-graph__box { fill: var(--color-bg-hover); stroke: var(--color-border-default); stroke-width: 1; }
+.c-graph__label { fill: var(--color-text-primary); font-size: var(--font-size-label); }
+.c-graph__detail { fill: var(--color-text-tertiary); font-size: var(--font-size-caption); }
+.c-graph__mark { font-size: var(--font-size-body); font-weight: 600; }
+.c-graph__node[data-mark='add'] .c-graph__box { fill: var(--color-diff-add-bg); stroke: var(--color-diff-add-text); }
+.c-graph__node[data-mark='add'] .c-graph__mark { fill: var(--color-diff-add-text); }
+.c-graph__node[data-mark='change'] .c-graph__box { stroke: var(--color-status-working); }
+.c-graph__node[data-mark='change'] .c-graph__mark { fill: var(--color-status-working); }
+.c-graph__node[data-mark='unfit'] .c-graph__box { fill: transparent; stroke: var(--color-status-waiting); stroke-dasharray: 4 4; }
+.c-graph__node[data-mark='unfit'] .c-graph__mark { fill: var(--color-status-waiting); }
+.c-graph__node[data-mark='unfit'] .c-graph__label { fill: var(--color-text-secondary); }
+.c-graph__node[data-highlight] .c-graph__box { stroke-width: 2; }
+.c-graph__node[data-dim], .c-graph__edge[data-dim] { opacity: 0.3; }
+
+/* ── Steps (a plan to tick, T64) ──────────────────────────── */
+.c-steps { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; border: 1px solid var(--color-border-subtle); border-radius: var(--radius-control); }
+.c-steps__item { display: flex; align-items: flex-start; gap: var(--space-inline-sm); padding: var(--space-inset-sm) var(--space-inset-md); }
+.c-steps__item + .c-steps__item { border-top: 1px solid var(--color-border-subtle); }
+.c-steps__item:hover { background: var(--color-bg-hover); }
+.c-steps__item[data-off] .c-steps__main { opacity: 0.5; }
+.c-steps__check { flex: none; margin: var(--space-inline-xs) 0 0; accent-color: var(--color-action-primary); }
+.c-steps__main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-inline-xs); }
+.c-steps__title { display: flex; align-items: center; gap: var(--space-inline-sm); color: var(--color-text-primary); line-height: var(--line-height-body); }
+.c-steps__title > .c-input { flex: 1; min-width: 0; }
+.c-steps__meta { font-family: var(--font-family-mono); font-size: var(--font-size-caption); color: var(--color-text-tertiary); overflow-wrap: anywhere; }
+
 /* ── Meta list (label · value rows) ───────────────────────── */
 .c-meta {
   display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--space-inline-xs) var(--space-inset-md);
@@ -992,6 +1027,8 @@ body {
 .c-modal[open] { animation: c-fade-up var(--motion-medium) var(--motion-ease) both; }
 .c-modal[open]::backdrop { animation: c-fade-in var(--motion-medium) var(--motion-ease) both; }
 .c-modal__item { transition: background var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease); }
+.c-graph__node, .c-graph__edge { transition: opacity var(--motion-fast) var(--motion-ease); }
+.c-steps__main { transition: opacity var(--motion-fast) var(--motion-ease); }
 
 /* Terminal helpers: the jump button and notes rise in; labels fade in. */
 .c-term-overlay__jump, .c-term-overlay__note, .c-term-overlay__banner, .c-term-overlay__chips, .c-term-find { animation: c-fade-up var(--motion-medium) var(--motion-ease) both; }

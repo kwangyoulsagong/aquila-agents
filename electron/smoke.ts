@@ -167,6 +167,8 @@ export async function runSmoke(
     if (notesError) return fail(notesError);
     const trendsError = await checkTrends(win, outDir);
     if (trendsError) return fail(trendsError);
+    const applyError = await checkApplyTrend(win, outDir);
+    if (applyError) return fail(applyError);
     const imeError = await checkIme(win);
     if (imeError) return fail(imeError);
     const reviewError = await checkReviewQueue(win, sessions, outDir);
@@ -1243,6 +1245,79 @@ async function checkTrends(win: BrowserWindow, outDir: string): Promise<string |
   return (await js<boolean>(`!!document.querySelector('.c-modal[open]')`))
     ? 'Esc did not close AI trends'
     : null;
+}
+
+/**
+ * Apply a trend (T64): Korea → the fixture Graphify item → "Apply to project" opens the proposal modal for the
+ * focused project: a scan (read-only), then the fixture Claude reply — a partial verdict, an added node, a change and
+ * unfit reasons (the `~/.zshrc` step forced there). Now hides the added node; hovering a step dims the others. Cancel
+ * drops it. Apply itself (worktree + tab) is not run here: it would make a branch in the user's first project.
+ */
+async function checkApplyTrend(win: BrowserWindow, outDir: string): Promise<string | null> {
+  const js = <T>(code: string): Promise<T> => win.webContents.executeJavaScript(code) as Promise<T>;
+  await js(`document.querySelector('.c-sidebar__foot .c-btn--icon').click()`);
+  await wait(400);
+  await js(`document.querySelectorAll('.c-modal[open] .c-segment__item')[1]?.click()`); // Industry
+  await wait(200);
+  await js(`document.querySelectorAll('.c-modal[open] .c-segment__item')[3]?.click()`); // Korea
+  await wait(300);
+  const picked = await js<boolean>(`(() => {
+    const row = [...document.querySelectorAll('.c-modal[open] .c-modal__item')].find((el) => /Graphify/.test(el.textContent));
+    row?.click();
+    return !!row;
+  })()`);
+  if (!picked) return 'apply: no Graphify item in the Korea tab';
+  await wait(200);
+  const clicked = await js<boolean>(`(() => {
+    const b = [...document.querySelectorAll('.c-modal[open] .c-btn')].find((el) => /Apply to project|프로젝트에 적용/.test(el.textContent));
+    b?.click();
+    return !!b;
+  })()`);
+  if (!clicked) return 'apply: no "Apply to project" button on the trend';
+  let verdict = '';
+  for (let i = 0; i < 40 && !verdict; i++) {
+    await wait(150);
+    verdict = await js<string>(`document.querySelector('.c-modal[open] [class*="c-badge--verdict-"]')?.className ?? ''`);
+  }
+  if (!/verdict-partial/.test(verdict)) {
+    const note = await js<string>(`document.querySelector('.c-modal[open]')?.textContent?.slice(0, 300) ?? ''`);
+    return `apply: no partial verdict (badge "${verdict}", modal "${note}")`;
+  }
+  const after = await js<{ add: number; change: number; unfit: number; steps: number; unfitText: string }>(`(() => {
+    const m = document.querySelector('.c-modal[open]');
+    const n = (k) => m.querySelectorAll('.c-graph__node[data-mark="' + k + '"]').length;
+    return { add: n('add'), change: n('change'), unfit: n('unfit'), steps: m.querySelectorAll('.c-steps__item').length,
+      unfitText: [...m.querySelectorAll('.c-modal__bullets li')].map((li) => li.textContent).join(' | ') };
+  })()`);
+  if (after.add < 1 || after.change < 1 || after.unfit < 1 || after.steps !== 3 || !/gfy alias/.test(after.unfitText))
+    return `apply: After view ${JSON.stringify(after)}, expected an added node, a change, an unfit node, 3 steps, the alias unfit`;
+  fs.writeFileSync(path.join(outDir, 'smoke-apply.png'), (await win.webContents.capturePage()).toPNG());
+  // Hover the second step (the skill): nodes it doesn't touch fade.
+  await js(`document.querySelectorAll('.c-modal[open] .c-steps__item')[1].dispatchEvent(new MouseEvent('mouseover', { bubbles: true }))`);
+  await wait(150);
+  const dimmed = await js<number>(`document.querySelectorAll('.c-modal[open] .c-graph__node[data-dim]').length`);
+  const lit = await js<number>(`document.querySelectorAll('.c-modal[open] .c-graph__node[data-highlight]').length`);
+  if (!dimmed || !lit) return `apply: hovering a step lit ${lit} and dimmed ${dimmed} nodes`;
+  await js(`document.querySelectorAll('.c-modal[open] .c-steps__item')[1].dispatchEvent(new MouseEvent('mouseout', { bubbles: true }))`);
+  // Now: same layout, no marks, the added nodes gone.
+  await js(`[...document.querySelectorAll('.c-modal[open] .c-segment__item')].find((el) => /^(Now|지금)$/.test(el.textContent))?.click()`);
+  await wait(150);
+  const now = await js<number>(`document.querySelectorAll('.c-modal[open] .c-graph__node[data-mark]').length`);
+  if (now) return `apply: Now view still shows ${now} marks`;
+  fs.writeFileSync(path.join(outDir, 'smoke-apply-now.png'), (await win.webContents.capturePage()).toPNG());
+  // Edit: titles become inputs, a request field appears.
+  await js(`[...document.querySelectorAll('.c-modal[open] .c-btn')].find((el) => /^(Edit|수정)$/.test(el.textContent))?.click()`);
+  await wait(150);
+  const inputs = await js<number>(`document.querySelectorAll('.c-modal[open] .c-steps__item .c-input').length`);
+  const request = await js<boolean>(`!!document.querySelector('.c-modal[open] textarea')`);
+  if (inputs !== 3 || !request) return `apply: Edit shows ${inputs} title inputs, request field ${request}`;
+  await js(`[...document.querySelectorAll('.c-modal[open] .c-btn')].find((el) => /^(Back|돌아가기)$/.test(el.textContent))?.click()`);
+  await wait(100);
+  await js(`[...document.querySelectorAll('.c-modal[open] .c-btn')].find((el) => /^(Cancel|취소)$/.test(el.textContent))?.click()`);
+  await wait(400);
+  if (await js<boolean>(`!!document.querySelector('.c-modal[open]')`)) return 'apply: Cancel did not close the modal';
+  console.log(`[smoke] apply: partial, ${after.add} added, ${after.change} changed, ${after.unfit} unfit node, ${after.steps} steps`);
+  return null;
 }
 
 /**

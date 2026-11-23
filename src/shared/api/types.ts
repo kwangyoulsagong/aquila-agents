@@ -648,6 +648,121 @@ export interface NewsState {
   summary: NewsSummary | null;
 }
 
+// ── Apply a trend to a repo (T64) ────────────────────────────────────────────
+
+/** `harness`: how agents are set up (AGENTS.md, hooks, skills, scripts, tests, CI); `code`: folders. */
+export type RepoColumn = 'harness' | 'code';
+
+/** One box of the repo skeleton. Ids: `h:<slot>`, `c:<folder>`, `new:<slug>` (added by a proposal). */
+export interface RepoNode {
+  id: string;
+  label: string;
+  column: RepoColumn;
+  /** Repo-relative path it stands for. */
+  path?: string;
+  /** A harness slot the repo doesn't have yet (shown only when a proposal adds it). */
+  present: boolean;
+  /** Short count ("12 scripts", "84 files"). */
+  detail?: string;
+}
+
+/** Folder-level imports (code) or a reference between harness files; `weight` = how many. */
+export interface RepoEdge {
+  from: string;
+  to: string;
+  weight: number;
+}
+
+/** What the scan (no AI) finds: ≤30 nodes. */
+export interface RepoSkeleton {
+  nodes: RepoNode[];
+  edges: RepoEdge[];
+}
+
+export type ApplyVerdict = 'apply' | 'partial' | 'skip';
+export type NodeChangeKind = 'add' | 'change' | 'unfit';
+
+export interface NodeChange {
+  node: string;
+  kind: NodeChangeKind;
+  why: string;
+}
+
+export type StepSize = 'S' | 'M' | 'L';
+export type StepRisk = 'low' | 'medium' | 'high';
+
+export interface ApplyStep {
+  id: string;
+  title: string;
+  /** Repo-relative paths. */
+  files: string[];
+  nodes: string[];
+  size: StepSize;
+  risk: StepRisk;
+}
+
+export interface UnfitItem {
+  title: string;
+  why: string;
+}
+
+/** Claude's answer, validated (unknown nodes dropped, steps outside the repo moved to `unfit`). */
+export interface ApplyProposal {
+  verdict: ApplyVerdict;
+  summary: string;
+  benefits: string[];
+  changes: NodeChange[];
+  /** Nodes the proposal adds (`new:<slug>`). */
+  added: RepoNode[];
+  steps: ApplyStep[];
+  unfit: UnfitItem[];
+}
+
+export interface ApplyArticle {
+  itemId: string;
+  title: string;
+  url: string;
+  source: NewsSourceId;
+}
+
+export interface ApplyAnalyseRequest {
+  /** Made by the renderer, so the run can be cancelled before it answers; re-analysing keeps it. */
+  id: string;
+  projectId: string;
+  itemId: string;
+  language: Language;
+  /** "Edit": the user's extra request ("no Python"). */
+  request?: string;
+  /** "Edit": the steps the user kept or rewrote. */
+  steps?: ApplyStep[];
+}
+
+export type ApplyDecision = 'pending' | 'dropped' | 'applied';
+
+/** One decision, kept in `~/.aquila/applies/<id>.json`. */
+export interface ApplyRecord {
+  id: string;
+  projectId: string;
+  article: ApplyArticle;
+  createdAt: number;
+  /** Times it was analysed (Edit → Analyse again adds one). */
+  rounds: number;
+  request?: string;
+  skeleton: RepoSkeleton;
+  proposal: ApplyProposal;
+  decision: ApplyDecision;
+  decidedAt?: number;
+  /** Applied: the worktree branch and the steps that were pasted. */
+  branch?: string;
+  approved?: ApplyStep[];
+}
+
+/** "Apply": the new tab and the text to paste into it (the approved steps only). */
+export interface ApplyStartResult {
+  session: SessionInfo;
+  prompt: string;
+}
+
 export type Unsubscribe = () => void;
 
 /** The system-wide key that brings Aquila up (T41), from `~/.aquila/global-shortcut.json`. */
@@ -858,6 +973,16 @@ export interface AquilaApi {
   newsOpen(url: string): void;
   /** Opt-in: summarizes the industry items with a hidden `claude -p` (the account's quota). Rejects on failure. */
   newsSummarize(language: Language, account?: string): Promise<NewsState>;
+  /** Apply a trend (T64), local projects only: the repo skeleton (no AI, one pass, no watcher). */
+  applyScan(projectId: string): Promise<RepoSkeleton>;
+  /** Hidden `claude -p --permission-mode plan` (the project account's quota) → a validated proposal. Rejects on failure. */
+  applyAnalyse(req: ApplyAnalyseRequest): Promise<ApplyRecord>;
+  /** Stops a running analysis (its `applyAnalyse` rejects). */
+  applyCancel(id: string): void;
+  /** Cancel: kept as dropped. */
+  applyDrop(id: string): Promise<void>;
+  /** Apply: worktree `trend/<slug>` + a Claude tab there; the renderer pastes `prompt`. */
+  applyStart(id: string, steps: ApplyStep[]): Promise<ApplyStartResult>;
   /** Global shortcut (T41): the saved key and whether the OS gave it to us. */
   globalShortcut(): Promise<GlobalShortcutState>;
   /** Saves and registers a new key (null = off). A taken key keeps the old one and reports `taken`. */
@@ -1089,6 +1214,11 @@ export const IPC = {
   newsOpened: 'news:opened',
   newsOpen: 'news:open',
   newsSummarize: 'news:summarize',
+  applyScan: 'apply:scan',
+  applyAnalyse: 'apply:analyse',
+  applyCancel: 'apply:cancel',
+  applyDrop: 'apply:drop',
+  applyStart: 'apply:start',
   globalShortcutGet: 'global-shortcut:get',
   globalShortcutSet: 'global-shortcut:set',
   globalShortcutFired: 'global-shortcut:fired',

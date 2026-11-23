@@ -664,7 +664,7 @@ throttled or hot → `saver`). The rules every task below follows:
   _Left over: Toss ignores `Range` (checked live: 200 with ~700 KB), so the body is read as a stream and cut at 64 KB. AI타임스 dates have no offset and are read as KST. The keywords that fit no existing group became three new ones — MCP & skills, Context engineering, Vibe & agentic coding (with their English names, so the Global tab uses them too). The Korea tab is the default when the app is in Korean. GeekNews / AI타임스 fixtures were captured 2026-11-23 and moved back three days to fit the fixture date. Guide media recaptured (the trends shot ends on Industry → Korea); the capture's commands step now waits for the history list instead of a fixed pause (it raced and timed out in en). The full ko + en run can hit the 240 s capture timeout on a busy machine; `CAPTURE_LANGS=en` runs one language._
 
 ### T64 · Apply a trend to this repo
-- [ ] **Goal:** from a trend item, see what it would change in a project as a graph (now vs after), then apply, edit, or drop it.
+- [x] **Goal:** from a trend item, see what it would change in a project as a graph (now vs after), then apply, edit, or drop it.
 - **Spec:**
   - Trend row → **Apply to project** (default: focused project; local only, remote = analysis only).
   - **Scan (no AI):** a skeleton graph of ≤30 nodes with ids — harness column (`AGENTS.md`, `CLAUDE.md`, hooks in
@@ -686,6 +686,7 @@ throttled or hot → `saver`). The rules every task below follows:
   SVG view + test), `src/features/apply-trend/`, `src/widgets/trend-apply/`, one IPC group.
 - **Done:** on this repo, a fixture "Graphify" article gives a partial verdict with an added node and an unfit
   reason; Apply opens a worktree tab with the ticked steps only.
+  _Left over: CLI releases get **Apply to project** too, and the harness column also has Commands, MCP servers (`.mcp.json`) and Rules (Cursor / Claude / Copilot / Windsurf / Cline rule files), so features nobody listed can be placed; anything with no slot becomes a `new:` node. "Add" to a slot the repo already has becomes "change". Remote projects are left out of the picker (no analysis over SSH yet). Smoke covers trend → proposal (fixture Claude reply) → Now / After → hover → Edit → Cancel, but not Apply itself (it would make a branch in the user's first project); the worktree + paste path was not run end to end, and no real `claude -p` analysis was tried (it uses the user's quota). The article page is fetched once (512 KB head, `<article>`/`<main>` text, 12k chars); a page that can't be read falls back to the excerpt._
 
 ### T65 · Graph 1: sources and index
 - [ ] **Goal:** any folders of Markdown — inside repos or not (meeting notes, memos) — become one index of notes and links.

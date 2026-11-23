@@ -1,0 +1,26 @@
+{
+  "verdict": "partial",
+  "summary": "A project skill that maps folder-level imports would help agents find their way around src/ and electron/, but the Python extractor and the shell alias don't fit this repo.",
+  "benefits": [
+    "Agents read the FSD layer map instead of opening many files",
+    "Import rules (app → pages → … → shared) become visible to the agent",
+    "The map is rebuilt by an npm script, no new runtime"
+  ],
+  "changes": [
+    { "node": "new:repo-map", "kind": "add", "label": "Repo map skill", "column": "harness", "why": "A skill that tells agents to read the generated layer map first." },
+    { "node": "h:skills", "kind": "add", "why": "The project has no .claude/skills folder yet." },
+    { "node": "h:scripts", "kind": "change", "why": "A `map` script rebuilds the import map." },
+    { "node": "h:agents-md", "kind": "change", "why": "One line pointing agents to the map." },
+    { "node": "h:hooks", "kind": "unfit", "why": "Rebuilding on every commit would slow the Stop hook that already runs typecheck." },
+    { "node": "c:nope", "kind": "change", "why": "Unknown node — must be dropped." }
+  ],
+  "steps": [
+    { "title": "Add a `map` npm script that writes the folder-level import graph to docs/map.json", "files": ["package.json", "scripts/map.ts"], "nodes": ["h:scripts", "c:src/shared"], "size": "M", "risk": "low" },
+    { "title": "Add a repo-map skill that reads docs/map.json before exploring", "files": [".claude/skills/repo-map/SKILL.md"], "nodes": ["new:repo-map", "h:skills"], "size": "S", "risk": "low" },
+    { "title": "Point agents to the map in AGENTS.md", "files": ["AGENTS.md"], "nodes": ["h:agents-md", "c:ghost"], "size": "S", "risk": "low" },
+    { "title": "Add the gfy alias", "files": ["~/.zshrc"], "nodes": ["h:scripts"], "size": "S", "risk": "low" }
+  ],
+  "unfit": [
+    { "title": "Python 3.11 + tree-sitter extractor", "why": "The repo is TypeScript only; a Python toolchain is a new dependency for every contributor." }
+  ]
+}

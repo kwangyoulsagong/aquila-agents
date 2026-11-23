@@ -68,6 +68,16 @@ import { listRemoteDirs } from './remote/browse';
 import { connect as figmaConnect, FIGMA_DOCS_URL, readProfiles as figmaProfiles } from './figma';
 import { PowerWatcher, type PowerSource } from './power';
 import { FIXTURE_NOW, fixtureFetcher, NewsService, readHead } from './news';
+import {
+  applyPrompt,
+  ApplyService,
+  articleText,
+  branchFor,
+  fixtureClaude,
+  runClaudePlan,
+  scanRepo,
+  tmpAppliesDir,
+} from './apply';
 import { DevUrlTracker, orderTargets, PreviewViews, readLaunchJson } from './preview';
 import { SessionManager } from './sessions';
 import { checkRemote } from './remote/check';
@@ -114,6 +124,9 @@ import {
   type SavedLayout,
   type SessionInfo,
   type SessionKind,
+  type ApplyAnalyseRequest,
+  type ApplyStep,
+  type NewsSourceId,
   type ToolId,
 } from '../src/shared/api/types';
 
@@ -647,6 +660,86 @@ app.whenReady().then(async () => {
       return removeWorktree(loadConfig(), projectId, String(target ?? ''), openWorktreePaths());
     },
   );
+  // Apply a trend (T64): only on the button. Scan = one pass; analysis = one hidden `claude -p` in plan mode the user
+  // can cancel; Apply = worktree `trend/<slug>` + a Claude tab (the renderer pastes the approved steps).
+  // Smoke / capture: a fixture reply and article, decisions in a throwaway folder.
+  const fixtures = path.join(__dirname, '..', '..', 'electron', 'fixtures', 'apply');
+  const applies = new ApplyService({
+    runClaude: isSmoke
+      ? fixtureClaude(path.join(fixtures, 'graphify-reply.json'))
+      : (prompt, cwd, configDir) => runClaudePlan(binaryFor('claude'))(prompt, cwd, configDir),
+    fetchText: async (url) => {
+      if (!news.isKnownUrl(url)) return null;
+      if (isSmoke)
+        return /news\.hada\.io\/topic\?id=37690/.test(url)
+          ? articleText(fs.readFileSync(path.join(fixtures, 'graphify.html'), 'utf8'))
+          : null;
+      const r = await net.fetch(url, {
+        headers: { 'User-Agent': 'aquila-agents' },
+        signal: AbortSignal.timeout(15_000),
+      });
+      if (!r.ok || !r.body || !/html|text/.test(r.headers.get('content-type') ?? '')) return null;
+      return articleText(await readHead(r.body.getReader(), 512 * 1024));
+    },
+    ...(isSmoke ? { dir: tmpAppliesDir() } : {}),
+  });
+  if (isSmoke) app.on('will-quit', () => fs.rmSync(tmpAppliesDir(), { recursive: true, force: true }));
+  const projectRoot = (projectId: string) => {
+    localOnly(projectId);
+    const p = loadConfig().projects.find((x) => x.id === projectId);
+    if (!p) throw new Error(`Unknown project: ${projectId}`);
+    return expand(p.path);
+  };
+  ipcMain.handle(IPC.applyScan, (_e, projectId: string) => scanRepo(projectRoot(String(projectId))));
+  ipcMain.handle(IPC.applyAnalyse, (_e, req: ApplyAnalyseRequest) => {
+    const root = projectRoot(String(req?.projectId));
+    // An industry item, or a CLI release (`claude@2.1.329`): new CLI features are trends too.
+    const state = news.state();
+    const found = state.industry.find((i) => i.id === req.itemId);
+    const release = found
+      ? null
+      : state.cli.flatMap((c) =>
+          c.releases
+            .filter((r) => `${c.tool}@${r.version}` === req.itemId)
+            .map((r) => ({
+              id: req.itemId,
+              title: `${c.tool === 'claude' ? 'Claude Code' : 'Codex'} ${r.version}`,
+              url: r.url,
+              source: (c.tool === 'claude' ? 'claude-code' : 'codex') as NewsSourceId,
+              excerpt: r.added.map((a) => `- ${a}`).join('\n'),
+            })),
+        )[0];
+    const item = found ?? release;
+    if (!item) throw new Error('Unknown trend item');
+    const config = loadConfig();
+    const account = config.projects.find((p) => p.id === req.projectId)?.account;
+    const a = account ? config.accounts[account] : undefined;
+    return applies.analyse({
+      id: String(req.id),
+      projectId: req.projectId,
+      root,
+      article: { itemId: item.id, title: item.title, url: item.url, source: item.source, excerpt: item.excerpt },
+      language: req.language === 'ko' ? 'ko' : 'en',
+      configDir: a?.claudeConfigDir && account ? claudeConfigDir(config, account) : undefined,
+      request: typeof req.request === 'string' ? req.request.slice(0, 1000) : undefined,
+      steps: Array.isArray(req.steps) ? req.steps.slice(0, 12) : undefined,
+    });
+  });
+  ipcMain.on(IPC.applyCancel, (_e, id: string) => applies.cancel(String(id)));
+  ipcMain.handle(IPC.applyDrop, (_e, id: string) => applies.drop(String(id)));
+  ipcMain.handle(IPC.applyStart, async (_e, { id, steps }: { id: string; steps: ApplyStep[] }) => {
+    const record = applies.read(String(id));
+    if (!record) throw new Error('Unknown proposal');
+    localOnly(record.projectId);
+    const config = loadConfig();
+    const branch = branchFor(record.article.title, record.id);
+    // Validated before anything is created: no steps → nothing happens.
+    const approved = applies.applied(record.id, Array.isArray(steps) ? steps : [], branch).approved ?? [];
+    const { worktree, created } = await ensureWorktree(config, record.projectId, branch);
+    const setup = created ? config.projects.find((p) => p.id === record.projectId)?.setupScript : undefined;
+    const session = s.create(config, record.projectId, 'claude', undefined, {}, worktree, setup);
+    return { session, prompt: applyPrompt(approved, config.language) };
+  });
   ipcMain.handle(IPC.sessionRestore, () => restoreSessions());
   ipcMain.handle(IPC.sessionStart, (_e, id: string) => s.wake(loadConfig(), id));
   ipcMain.handle(IPC.sessionReopen, (_e, id: string) => s.reopen(loadConfig(), String(id)));

@@ -34,6 +34,7 @@ import { RunPanel } from '@/features/run-slot';
 import { HistoryPanel } from '@/widgets/history-panel';
 import { UsageGauge } from '@/widgets/usage-gauge';
 import { TrendsButton, TrendsModal, hasCliUpdate, useTrends } from '@/widgets/trends';
+import { TrendApplyModal, type ApplyItem } from '@/widgets/trend-apply';
 import { CommandPalette, type ActionId } from '@/widgets/command-palette';
 import { useWorkspace } from '../model/useWorkspace';
 import { useShortcuts } from '../model/useShortcuts';
@@ -56,6 +57,8 @@ export default function WorkspacePage() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const toggleHistory = useCallback(() => setHistoryOpen((o) => !o), []);
   const [trendsOpen, setTrendsOpen] = useState(false);
+  // Apply a trend (T64): the item being applied (its modal replaces the trends modal).
+  const [applyItem, setApplyItem] = useState<ApplyItem | null>(null);
   const [commandsOpen, setCommandsOpen] = useState(false);
   // T43: the tab whose title is being edited; when the edit ends, typing goes back to its terminal.
   const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -591,6 +594,24 @@ export default function WorkspacePage() {
           trends={trends}
           language={config.language}
           account={project && !project.remote ? project.account : undefined}
+          onApply={(item) => {
+            setTrendsOpen(false);
+            setApplyItem(item);
+          }}
+        />
+        <TrendApplyModal
+          item={applyItem}
+          projects={config.projects.filter((p) => !p.remote).map((p) => ({ id: p.id, label: p.name }))}
+          defaultProjectId={localProjectId}
+          language={config.language}
+          onClose={() => setApplyItem(null)}
+          onStarted={(projectId, { session, prompt }) => {
+            setApplyItem(null);
+            if (projectId !== ws.activeProjectId) ws.selectProject(projectId);
+            ws.adoptResumed({ session });
+            // Bracketed paste: one block in Claude's prompt, no Enter — the user reads it and sends.
+            void typeWhenSettled(session.id, `\x1b[200~${prompt}\x1b[201~`);
+          }}
         />
         <CommandPalette
           open={paletteOpen}

@@ -15,6 +15,18 @@
 <logo>https://social.news.hada.io/WideLogo500.png</logo>
 <category term='technology'/>
 <entry>
+  <title><![CDATA[Graphify - 코드베이스를 Claude Code가 쓰는 지식 그래프로 바꾸는 스킬]]></title>
+  <link rel='alternate' type='text/html' href='https://news.hada.io/topic?id=37690&amp;utm_source=geeknews&amp;utm_medium=rss&amp;utm_campaign=news' />
+  <id>https://news.hada.io/topic?id=37690</id>
+  <updated>2026-11-20T10:05:00+09:00</updated>
+  <published>2026-11-20T10:05:00+09:00</published>
+  <author>
+    <name>fixture</name>
+    <uri>https://news.hada.io/user/fixture</uri>
+  </author>
+  <content type='html' xml:lang='ko'><![CDATA[<div><ul><li><strong>Graphify</strong>는 폴더의 코드·문서를 지식 그래프로 만들어 Claude Code 같은 AI 에이전트가 파일을 다 읽지 않고 그래프로 질의하게 하는 스킬</li><li>스킬 설치, 커밋 훅으로 그래프 갱신, 셸 alias 추가를 안내</li></ul></div>]]></content>
+</entry>
+<entry>
   <title><![CDATA[Nyx, 세계에서 가장 오래된 인터넷 서비스 제공업체]]></title>
   <link rel='alternate' type='text/html' href='https://news.hada.io/topic?id=37681&amp;utm_source=geeknews&amp;utm_medium=rss&amp;utm_campaign=news' />
   <id>https://news.hada.io/topic?id=37681</id>
