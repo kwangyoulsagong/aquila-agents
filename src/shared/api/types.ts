@@ -680,6 +680,132 @@ export interface RepoSkeleton {
 }
 
 export type ApplyVerdict = 'apply' | 'partial' | 'skip';
+
+// ---- Knowledge graph (T65–T70). T65 fixes these types; every other graph task uses them. ----
+
+/**
+ * What a graph node stands for. T65: `note` (a `.md` file), `missing` (a `[[link]]` to a note that doesn't exist),
+ * `tag`, `code` (a file name / exported symbol of a project mentioned in notes). T68: `person` / `decision` / `todo`
+ * (suggested by AI). T70: `session`, `file` (changed by a session), `trend`, `apply`.
+ */
+export type GraphNodeKind =
+  | 'note'
+  | 'missing'
+  | 'tag'
+  | 'code'
+  | 'person'
+  | 'decision'
+  | 'todo'
+  | 'session'
+  | 'file'
+  | 'trend'
+  | 'apply';
+
+export interface GraphNode {
+  /** Stable: `note:<sourceId>:<relPath>`, `missing:<name>`, `tag:<tag>`, `code:<name>`, `<kind>:<id>` for the rest. */
+  id: string;
+  kind: GraphNodeKind;
+  label: string;
+  /** Notes: the source they belong to. */
+  sourceId?: string;
+  /** Notes: absolute file path. Code: where the name was found (first project). */
+  path?: string;
+  /** Notes: file mtime (ms), for the time filter. */
+  mtime?: number;
+  /** Notes: `#tags` and frontmatter tags, without `#`. */
+  tags?: string[];
+  /** Code: ids of the projects that have this name. */
+  projects?: string[];
+}
+
+/**
+ * How sure an edge is, strongest first: written (`[[link]]`, tag, frontmatter) · caused by the app (T70) ·
+ * found in text (title, ID, code name, URL) · suggested (T68, not accepted yet).
+ */
+export type GraphEdgeKind = 'explicit' | 'action' | 'mention' | 'suggested';
+
+/** Why two nodes are linked. One edge can have several reasons. */
+export type GraphEdgeVia =
+  | 'link'
+  | 'tag'
+  | 'frontmatter'
+  | 'title'
+  | 'id'
+  | 'code'
+  | 'url'
+  | 'similar'
+  | 'ai'
+  | 'rule'
+  | 'session'
+  | 'changed';
+
+export interface GraphEdgeReason {
+  via: GraphEdgeVia;
+  /** The ID, code name, URL, frontmatter key or heading behind it. */
+  label?: string;
+}
+
+export interface GraphEdge {
+  /** `<source>→<target>`: from the note that wrote the link / mention; sorted when every reason is symmetric (shared ID / URL, similarity). */
+  id: string;
+  source: string;
+  target: string;
+  /** The strongest of its reasons. */
+  kind: GraphEdgeKind;
+  /** 0–1: explicit 1 · action 1 · mention 0.4–0.7 · suggested < 0.4. */
+  strength: number;
+  reasons: GraphEdgeReason[];
+}
+
+/** IDs (`[A-Z][A-Z0-9]+-\d+`) of one prefix seen in 2+ notes: offered as a group ("looks like an ID"). */
+export interface GraphIdGroup {
+  prefix: string;
+  /** The IDs seen in 2+ notes, most notes first (≤20). */
+  ids: string[];
+  /** Notes that mention one of them. */
+  notes: number;
+}
+
+export interface GraphSnapshot {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+  idGroups: GraphIdGroup[];
+  /** Goes up on every change of the index. */
+  version: number;
+}
+
+/** A folder of Markdown files (in a repo or not). Files stay where they are and are never written to. */
+export interface GraphSource {
+  id: string;
+  /** Stored as `~/…` under home. */
+  path: string;
+  enabled: boolean;
+}
+
+/**
+ * `off`: disabled (costs nothing). `paused`: a large first index in power saver, waits for "Index now".
+ * `missing`: the folder is gone.
+ */
+export type GraphSourceState = 'off' | 'indexing' | 'ready' | 'paused' | 'missing' | 'error';
+
+export interface GraphSourceStatus extends GraphSource {
+  state: GraphSourceState;
+  /** Notes indexed from this source. */
+  notes: number;
+  /** While indexing / paused: Markdown files found. */
+  total?: number;
+  error?: string;
+}
+
+export interface GraphStatus {
+  sources: GraphSourceStatus[];
+  notes: number;
+  edges: number;
+  /** Offered as groups in Settings → Sources ("looks like an ID"). */
+  idGroups: GraphIdGroup[];
+  version: number;
+}
+
 export type NodeChangeKind = 'add' | 'change' | 'unfit';
 
 export interface NodeChange {
@@ -983,6 +1109,17 @@ export interface AquilaApi {
   applyDrop(id: string): Promise<void>;
   /** Apply: worktree `trend/<slug>` + a Claude tab there; the renderer pastes `prompt`. */
   applyStart(id: string, steps: ApplyStep[]): Promise<ApplyStartResult>;
+  /** Knowledge graph sources (T65). The first call starts the index (nothing runs before). */
+  graphStatus(): Promise<GraphStatus>;
+  onGraphStatus(cb: (s: GraphStatus) => void): Unsubscribe;
+  /** Adds a folder of Markdown (enabled). Rejects if it's not a folder or overlaps a source. */
+  graphAddSource(path: string): Promise<GraphStatus>;
+  graphRemoveSource(id: string): Promise<GraphStatus>;
+  graphSetSourceEnabled(id: string, enabled: boolean): Promise<GraphStatus>;
+  /** Starts a first index that was paused in power saver. */
+  graphIndexNow(id: string): Promise<GraphStatus>;
+  /** The whole index: notes, tags, code names and their edges. */
+  graphSnapshot(): Promise<GraphSnapshot>;
   /** Global shortcut (T41): the saved key and whether the OS gave it to us. */
   globalShortcut(): Promise<GlobalShortcutState>;
   /** Saves and registers a new key (null = off). A taken key keeps the old one and reports `taken`. */
@@ -1219,6 +1356,13 @@ export const IPC = {
   applyCancel: 'apply:cancel',
   applyDrop: 'apply:drop',
   applyStart: 'apply:start',
+  graphStatus: 'graph:status',
+  graphStatusChanged: 'graph:status-changed',
+  graphAddSource: 'graph:add-source',
+  graphRemoveSource: 'graph:remove-source',
+  graphSetSourceEnabled: 'graph:set-source-enabled',
+  graphIndexNow: 'graph:index-now',
+  graphSnapshot: 'graph:snapshot',
   globalShortcutGet: 'global-shortcut:get',
   globalShortcutSet: 'global-shortcut:set',
   globalShortcutFired: 'global-shortcut:fired',

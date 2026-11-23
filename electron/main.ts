@@ -78,6 +78,7 @@ import {
   scanRepo,
   tmpAppliesDir,
 } from './apply';
+import { GraphService } from './graph';
 import { DevUrlTracker, orderTargets, PreviewViews, readLaunchJson } from './preview';
 import { SessionManager } from './sessions';
 import { checkRemote } from './remote/check';
@@ -294,7 +295,8 @@ app.whenReady().then(async () => {
     if (!p || p.remote) throw new Error('Run is for local projects only');
     const wt = typeof worktree === 'string' && worktree ? worktree : undefined;
     const dir = wt ?? expand(p.path);
-    if (!fs.statSync(dir, { throwIfNoEntry: false })?.isDirectory()) throw new Error(`Folder not found: ${dir}`);
+    if (!fs.statSync(dir, { throwIfNoEntry: false })?.isDirectory())
+      throw new Error(`Folder not found: ${dir}`);
     const commands = p.runCommands?.length ? p.runCommands : defaultRunCommands(dir);
     return { p, wt, dir, commands };
   };
@@ -718,7 +720,13 @@ app.whenReady().then(async () => {
       id: String(req.id),
       projectId: req.projectId,
       root,
-      article: { itemId: item.id, title: item.title, url: item.url, source: item.source, excerpt: item.excerpt },
+      article: {
+        itemId: item.id,
+        title: item.title,
+        url: item.url,
+        source: item.source,
+        excerpt: item.excerpt,
+      },
       language: req.language === 'ko' ? 'ko' : 'en',
       configDir: a?.claudeConfigDir && account ? claudeConfigDir(config, account) : undefined,
       request: typeof req.request === 'string' ? req.request.slice(0, 1000) : undefined,
@@ -740,6 +748,34 @@ app.whenReady().then(async () => {
     const session = s.create(config, record.projectId, 'claude', undefined, {}, worktree, setup);
     return { session, prompt: applyPrompt(approved, config.language) };
   });
+  // Knowledge graph sources (T65): nothing runs until the renderer first asks; the index lives in a worker thread
+  // that runs only while a source is enabled. Smoke: a throwaway folder.
+  const graphDir = isSmoke
+    ? path.join(app.getPath('temp'), `aquila-smoke-graph-${process.pid}`)
+    : path.join(APP_DIR, 'graph');
+  const graph = new GraphService({
+    dir: graphDir,
+    workerFile: path.join(__dirname, 'graph', 'worker.js').replace(/app\.asar([/\\])/, 'app.asar.unpacked$1'),
+    saver: powerState().saver,
+    projects: () =>
+      loadConfig()
+        .projects.filter((p) => !p.remote)
+        .map((p) => ({ id: p.id, root: expand(p.path) })),
+    onStatus: (st) => send(IPC.graphStatusChanged, st),
+  });
+  power.onChange(() => graph.setSaver(powerState().saver));
+  app.on('will-quit', () => {
+    graph.close();
+    if (isSmoke) fs.rmSync(graphDir, { recursive: true, force: true });
+  });
+  ipcMain.handle(IPC.graphStatus, () => graph.status());
+  ipcMain.handle(IPC.graphAddSource, (_e, p: string) => graph.add(String(p)));
+  ipcMain.handle(IPC.graphRemoveSource, (_e, id: string) => graph.remove(String(id)));
+  ipcMain.handle(IPC.graphSetSourceEnabled, (_e, { id, enabled }: { id: string; enabled: boolean }) =>
+    graph.setEnabled(String(id), !!enabled),
+  );
+  ipcMain.handle(IPC.graphIndexNow, (_e, id: string) => graph.indexNow(String(id)));
+  ipcMain.handle(IPC.graphSnapshot, () => graph.snapshot());
   ipcMain.handle(IPC.sessionRestore, () => restoreSessions());
   ipcMain.handle(IPC.sessionStart, (_e, id: string) => s.wake(loadConfig(), id));
   ipcMain.handle(IPC.sessionReopen, (_e, id: string) => s.reopen(loadConfig(), String(id)));
