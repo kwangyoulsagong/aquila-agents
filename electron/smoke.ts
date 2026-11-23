@@ -173,6 +173,8 @@ export async function runSmoke(
     if (sourcesError) return fail(sourcesError);
     const graphError = await checkGraphView(win, config, outDir);
     if (graphError) return fail(graphError);
+    const noteError = await checkNoteEditor(win, config, outDir);
+    if (noteError) return fail(noteError);
     const imeError = await checkIme(win);
     if (imeError) return fail(imeError);
     const reviewError = await checkReviewQueue(win, sessions, outDir);
@@ -1150,7 +1152,9 @@ async function checkGraphSources(win: BrowserWindow, config: Config, out: string
   await wait(500);
   const fixtures = path.join(__dirname, '..', '..', 'electron', 'fixtures', 'graph');
   for (const dir of ['meetings', 'specs', 'memos'])
-    await win.webContents.executeJavaScript(`window.aquila.graphAddSource(${JSON.stringify(path.join(fixtures, dir))})`);
+    await win.webContents.executeJavaScript(
+      `window.aquila.graphAddSource(${JSON.stringify(path.join(fixtures, dir))})`,
+    );
   const rows = () =>
     win.webContents.executeJavaScript(
       `[...document.querySelectorAll('.c-dialog[open] .c-checklist__item')].map((r) => r.textContent)`,
@@ -1173,7 +1177,9 @@ async function checkGraphSources(win: BrowserWindow, config: Config, out: string
   );
   if (!linked) return 'note sources: the snapshot has no DB-12 edge between the meeting note and the spec';
   fs.writeFileSync(out, (await win.webContents.capturePage()).toPNG());
-  console.log(`[smoke] note sources: 3 folders indexed in the worker, DB-12 links two notes, screenshot: ${out}`);
+  console.log(
+    `[smoke] note sources: 3 folders indexed in the worker, DB-12 links two notes, screenshot: ${out}`,
+  );
   press(win, 'Escape', []);
   await wait(400);
   return null;
@@ -1189,7 +1195,9 @@ async function checkGraphView(win: BrowserWindow, config: Config, outDir: string
   const js = <T>(code: string) => win.webContents.executeJavaScript(code) as Promise<T>;
   const settled = async (ms = 15_000) => {
     for (let i = 0; i < ms / 100; i++) {
-      const s = await js<{ nodes: number; iterations: number; ms: number } | null>('window.__graphSettled ?? null');
+      const s = await js<{ nodes: number; iterations: number; ms: number } | null>(
+        'window.__graphSettled ?? null',
+      );
       if (s) return s;
       await wait(100);
     }
@@ -1205,7 +1213,9 @@ async function checkGraphView(win: BrowserWindow, config: Config, outDir: string
   fs.writeFileSync(path.join(outDir, 'smoke-graph.png'), (await win.webContents.capturePage()).toPNG());
   // Select the meeting note through search (its file name is Korean in both languages).
   const meeting = '주간';
-  const snap = await js<{ nodes: { id: string; kind: string; label: string }[] }>('window.aquila.graphSnapshot()');
+  const snap = await js<{ nodes: { id: string; kind: string; label: string }[] }>(
+    'window.aquila.graphSnapshot()',
+  );
   const notes = snap.nodes.filter((n) => n.kind === 'note');
   const target = notes.find((n) => n.label.includes(meeting)) ?? notes[0];
   if (!target) return 'graph: no notes in the snapshot';
@@ -1242,6 +1252,164 @@ async function checkGraphView(win: BrowserWindow, config: Config, outDir: string
     `[smoke] graph: ${whole.nodes} nodes settled in ${whole.ms} ms (${whole.iterations} iterations); around "${target.label}": ${around.nodes} nodes`,
   );
   return null;
+}
+
+/**
+ * Note editor (T67), on a copy of the CRLF fixture in a throwaway source: ⌘O finds it and lazy-loads the editor;
+ * live preview draws the table and checkboxes. A checkbox click, a table cell + Tab + typed text and Korean typed
+ * through the IME (with an Enter mid-composition) each save exactly that change — every other byte, CRLFs
+ * included, stays. Then an outside write under an unsaved edit shows the banner; Compare shows a diff and Reload
+ * takes the disk version (nothing of ours is written).
+ */
+async function checkNoteEditor(win: BrowserWindow, config: Config, outDir: string): Promise<string | null> {
+  const t = translator(config.language);
+  const js = <T>(code: string) => win.webContents.executeJavaScript(code) as Promise<T>;
+  const until = async (code: string, ms = 5000) => {
+    for (let i = 0; i < ms / 100; i++) {
+      if (await js<boolean>(code)) return true;
+      await wait(100);
+    }
+    return false;
+  };
+  const fileUntil = async (want: string, ms = 4000) => {
+    for (let i = 0; i < ms / 100; i++) {
+      if (fs.readFileSync(file, 'utf8') === want) return true;
+      await wait(100);
+    }
+    return false;
+  };
+  const dir = fs.mkdtempSync(path.join(app.getPath('temp'), 'aquila-smoke-notes-'));
+  const file = path.join(dir, 'crlf-table.md');
+  fs.copyFileSync(path.join(__dirname, '..', '..', 'electron', 'fixtures', 'notes', 'crlf-table.md'), file);
+  // A pasted-style image next to the note: live preview shows it through aquila-note://.
+  fs.mkdirSync(path.join(dir, 'attachments'));
+  fs.writeFileSync(
+    path.join(dir, 'attachments', 'dot.png'),
+    Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64'),
+  );
+  fs.appendFileSync(file, '![dot](attachments/dot.png)\r\n');
+  const original = fs.readFileSync(file, 'utf8');
+  const dbg = win.webContents.debugger;
+  try {
+    await js(`window.aquila.graphAddSource(${JSON.stringify(dir)})`);
+    if (
+      !(await until(
+        `window.aquila.graphSnapshot().then((g) => g.nodes.some((n) => n.path === ${JSON.stringify(file)}))`,
+        10_000,
+      ))
+    )
+      return 'note editor: the copied note never reached the index';
+
+    // ⌘O → the note's title → Enter.
+    press(win, 'O', ['meta']);
+    if (!(await until(`!!document.querySelector('.c-palette[open]')`)))
+      return 'note editor: ⌘O opened no palette';
+    await js(`(() => {
+      const input = document.querySelector('.c-palette[open] input');
+      const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+      set.call(input, '릴리스 체크');
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    })()`);
+    await wait(200);
+    press(win, 'Enter', []);
+    if (
+      !(await until(
+        `!!document.querySelector('.c-editor .cm-md-table td') && document.querySelectorAll('.c-editor .cm-md-checkbox').length === 2`,
+        8000,
+      ))
+    )
+      return 'note editor: no live preview (rendered table + two checkboxes) after ⌘O';
+    if (!(await until(`(() => { const i = document.querySelector('.c-editor img.cm-md-img'); return !!i && i.complete && i.naturalWidth > 0; })()`)))
+      return 'note editor: the image next to the note did not load inline';
+
+    // 1. A checkbox: one character changes.
+    await js(`(() => {
+      const b = [...document.querySelectorAll('.c-editor .cm-md-checkbox')].find((x) => !x.checked);
+      b.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+    })()`);
+    let want = original.replace('- [ ] 빌드 확인', '- [x] 빌드 확인');
+    if (!(await fileUntil(want)))
+      return 'note editor: the checkbox click did not save as exactly one changed character';
+
+    // 2. A table cell, Tab, typing: the raw rows show while the cursor is in the table.
+    await js(`(() => {
+      const td = [...document.querySelectorAll('.c-editor .cm-md-table td')].find((x) => x.textContent === 'editor');
+      td.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+    })()`);
+    if (!(await until(`!document.querySelector('.c-editor .cm-md-table')`)))
+      return 'note editor: the table stayed rendered with the cursor in it';
+    press(win, 'Tab', []);
+    await wait(100);
+    win.webContents.insertText('X');
+    await wait(100);
+
+    // 3. Korean through the IME, with an Enter that belongs to the composition (must not add a table row).
+    if (!dbg.isAttached()) dbg.attach('1.3');
+    const cdp = (method: string, params: object = {}) => dbg.sendCommand(method, params);
+    await cdp('Emulation.setFocusEmulationEnabled', { enabled: true });
+    for (const text of ['ㅎ', '하', '한'])
+      await cdp('Input.imeSetComposition', { text, selectionStart: text.length, selectionEnd: text.length });
+    for (const type of ['rawKeyDown', 'keyUp'])
+      await cdp('Input.dispatchKeyEvent', {
+        type,
+        key: 'Enter',
+        code: 'Enter',
+        windowsVirtualKeyCode: 229,
+        nativeVirtualKeyCode: 229,
+      });
+    await cdp('Input.insertText', { text: '한' });
+    await wait(100);
+    press(win, 'S', ['meta']);
+    want = want.replace('| editor | 서연 |', '| editor | X한서연 |');
+    if (!(await fileUntil(want)))
+      return `note editor: table + IME edit saved wrong: ${JSON.stringify(fs.readFileSync(file, 'utf8'))}`;
+
+    // 4. An outside write under an unsaved edit: banner, compare, reload.
+    win.webContents.insertText('Z');
+    const external = `${want}outside line\r\n`;
+    fs.writeFileSync(file, external);
+    if (
+      !(await until(
+        `[...document.querySelectorAll('.c-editor__banner')].some((b) => b.textContent.includes(${JSON.stringify(t('note.changed'))}))`,
+      ))
+    )
+      return 'note editor: no banner after an outside write under an unsaved edit';
+    const button = (label: string) =>
+      js<boolean>(`(() => {
+        const b = [...document.querySelectorAll('.c-editor__banner button')].find((x) => x.textContent.trim() === ${JSON.stringify(label)});
+        b?.click();
+        return !!b;
+      })()`);
+    if (!(await button(t('note.compare')))) return 'note editor: the banner has no Compare';
+    if (!(await until(`!!document.querySelector('.c-editor__compare .c-diff__line--add')`)))
+      return 'note editor: Compare shows no diff';
+    fs.writeFileSync(path.join(outDir, 'smoke-note.png'), (await win.webContents.capturePage()).toPNG());
+    if (!(await button(t('note.reload')))) return 'note editor: the banner has no Reload';
+    if (
+      !(await until(
+        `!document.querySelector('.c-editor__banner') && document.querySelector('.c-editor .cm-content').textContent.includes('outside line')`,
+      ))
+    )
+      return 'note editor: Reload did not load the disk version';
+    await wait(1500);
+    if (fs.readFileSync(file, 'utf8') !== external)
+      return 'note editor: Reload still wrote our edit to the file';
+
+    await js(
+      `document.querySelector('aside[aria-label=${JSON.stringify(t('note.title'))}] .c-panel__actions button:last-child').click()`,
+    );
+    if (!(await until(`!document.querySelector('.c-editor')`)))
+      return 'note editor: close left the editor open';
+    console.log(
+      '[smoke] note editor: ⌘O, live preview, checkbox / table / IME saves byte-exact (CRLF kept), outside-write banner + compare + reload',
+    );
+    return null;
+  } finally {
+    const status = await js<{ sources: { id: string; path: string }[] }>('window.aquila.graphStatus()');
+    const src = status.sources.find((x) => x.path.endsWith(path.basename(dir)));
+    if (src) await js(`window.aquila.graphRemoveSource(${JSON.stringify(src.id)})`);
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 /** ⌘K → "Project settings…" opens the settings dialog with its fields; screenshot, then Esc closes it (nothing saved). */
@@ -1387,46 +1555,85 @@ async function checkApplyTrend(win: BrowserWindow, outDir: string): Promise<stri
   let verdict = '';
   for (let i = 0; i < 40 && !verdict; i++) {
     await wait(150);
-    verdict = await js<string>(`document.querySelector('.c-modal[open] [class*="c-badge--verdict-"]')?.className ?? ''`);
+    verdict = await js<string>(
+      `document.querySelector('.c-modal[open] [class*="c-badge--verdict-"]')?.className ?? ''`,
+    );
   }
   if (!/verdict-partial/.test(verdict)) {
-    const note = await js<string>(`document.querySelector('.c-modal[open]')?.textContent?.slice(0, 300) ?? ''`);
+    const note = await js<string>(
+      `document.querySelector('.c-modal[open]')?.textContent?.slice(0, 300) ?? ''`,
+    );
     return `apply: no partial verdict (badge "${verdict}", modal "${note}")`;
   }
-  const after = await js<{ add: number; change: number; unfit: number; steps: number; unfitText: string }>(`(() => {
+  const after = await js<{
+    add: number;
+    change: number;
+    unfit: number;
+    steps: number;
+    unfitText: string;
+  }>(`(() => {
     const m = document.querySelector('.c-modal[open]');
     const n = (k) => m.querySelectorAll('.c-graph__node[data-mark="' + k + '"]').length;
     return { add: n('add'), change: n('change'), unfit: n('unfit'), steps: m.querySelectorAll('.c-steps__item').length,
       unfitText: [...m.querySelectorAll('.c-modal__bullets li')].map((li) => li.textContent).join(' | ') };
   })()`);
-  if (after.add < 1 || after.change < 1 || after.unfit < 1 || after.steps !== 3 || !/gfy alias/.test(after.unfitText))
+  if (
+    after.add < 1 ||
+    after.change < 1 ||
+    after.unfit < 1 ||
+    after.steps !== 3 ||
+    !/gfy alias/.test(after.unfitText)
+  )
     return `apply: After view ${JSON.stringify(after)}, expected an added node, a change, an unfit node, 3 steps, the alias unfit`;
   fs.writeFileSync(path.join(outDir, 'smoke-apply.png'), (await win.webContents.capturePage()).toPNG());
   // Hover the second step (the skill): nodes it doesn't touch fade.
-  await js(`document.querySelectorAll('.c-modal[open] .c-steps__item')[1].dispatchEvent(new MouseEvent('mouseover', { bubbles: true }))`);
+  await js(
+    `document.querySelectorAll('.c-modal[open] .c-steps__item')[1].dispatchEvent(new MouseEvent('mouseover', { bubbles: true }))`,
+  );
   await wait(150);
-  const dimmed = await js<number>(`document.querySelectorAll('.c-modal[open] .c-graph__node[data-dim]').length`);
-  const lit = await js<number>(`document.querySelectorAll('.c-modal[open] .c-graph__node[data-highlight]').length`);
+  const dimmed = await js<number>(
+    `document.querySelectorAll('.c-modal[open] .c-graph__node[data-dim]').length`,
+  );
+  const lit = await js<number>(
+    `document.querySelectorAll('.c-modal[open] .c-graph__node[data-highlight]').length`,
+  );
   if (!dimmed || !lit) return `apply: hovering a step lit ${lit} and dimmed ${dimmed} nodes`;
-  await js(`document.querySelectorAll('.c-modal[open] .c-steps__item')[1].dispatchEvent(new MouseEvent('mouseout', { bubbles: true }))`);
+  await js(
+    `document.querySelectorAll('.c-modal[open] .c-steps__item')[1].dispatchEvent(new MouseEvent('mouseout', { bubbles: true }))`,
+  );
   // Now: same layout, no marks, the added nodes gone.
-  await js(`[...document.querySelectorAll('.c-modal[open] .c-segment__item')].find((el) => /^(Now|지금)$/.test(el.textContent))?.click()`);
+  await js(
+    `[...document.querySelectorAll('.c-modal[open] .c-segment__item')].find((el) => /^(Now|지금)$/.test(el.textContent))?.click()`,
+  );
   await wait(150);
-  const now = await js<number>(`document.querySelectorAll('.c-modal[open] .c-graph__node[data-mark]').length`);
+  const now = await js<number>(
+    `document.querySelectorAll('.c-modal[open] .c-graph__node[data-mark]').length`,
+  );
   if (now) return `apply: Now view still shows ${now} marks`;
   fs.writeFileSync(path.join(outDir, 'smoke-apply-now.png'), (await win.webContents.capturePage()).toPNG());
   // Edit: titles become inputs, a request field appears.
-  await js(`[...document.querySelectorAll('.c-modal[open] .c-btn')].find((el) => /^(Edit|수정)$/.test(el.textContent))?.click()`);
+  await js(
+    `[...document.querySelectorAll('.c-modal[open] .c-btn')].find((el) => /^(Edit|수정)$/.test(el.textContent))?.click()`,
+  );
   await wait(150);
-  const inputs = await js<number>(`document.querySelectorAll('.c-modal[open] .c-steps__item .c-input').length`);
+  const inputs = await js<number>(
+    `document.querySelectorAll('.c-modal[open] .c-steps__item .c-input').length`,
+  );
   const request = await js<boolean>(`!!document.querySelector('.c-modal[open] textarea')`);
   if (inputs !== 3 || !request) return `apply: Edit shows ${inputs} title inputs, request field ${request}`;
-  await js(`[...document.querySelectorAll('.c-modal[open] .c-btn')].find((el) => /^(Back|돌아가기)$/.test(el.textContent))?.click()`);
+  await js(
+    `[...document.querySelectorAll('.c-modal[open] .c-btn')].find((el) => /^(Back|돌아가기)$/.test(el.textContent))?.click()`,
+  );
   await wait(100);
-  await js(`[...document.querySelectorAll('.c-modal[open] .c-btn')].find((el) => /^(Cancel|취소)$/.test(el.textContent))?.click()`);
+  await js(
+    `[...document.querySelectorAll('.c-modal[open] .c-btn')].find((el) => /^(Cancel|취소)$/.test(el.textContent))?.click()`,
+  );
   await wait(400);
-  if (await js<boolean>(`!!document.querySelector('.c-modal[open]')`)) return 'apply: Cancel did not close the modal';
-  console.log(`[smoke] apply: partial, ${after.add} added, ${after.change} changed, ${after.unfit} unfit node, ${after.steps} steps`);
+  if (await js<boolean>(`!!document.querySelector('.c-modal[open]')`))
+    return 'apply: Cancel did not close the modal';
+  console.log(
+    `[smoke] apply: partial, ${after.add} added, ${after.change} changed, ${after.unfit} unfit node, ${after.steps} steps`,
+  );
   return null;
 }
 

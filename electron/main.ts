@@ -1,5 +1,6 @@
 // Main process: window, config, pty sessions, Claude hook receiver.
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import {
   app,
   BrowserWindow,
@@ -11,6 +12,7 @@ import {
   net,
   Notification,
   powerMonitor,
+  protocol,
   shell,
 } from 'electron';
 import { restoreShellPath } from './env';
@@ -79,6 +81,15 @@ import {
   tmpAppliesDir,
 } from './apply';
 import { GraphService } from './graph';
+import {
+  IMAGE_FILE,
+  imageUrlPath,
+  isWebUrl,
+  NoteWatcher,
+  readNote,
+  saveAttachment,
+  writeNote,
+} from './graph/note-file';
 import { DevUrlTracker, orderTargets, PreviewViews, readLaunchJson } from './preview';
 import { SessionManager } from './sessions';
 import { checkRemote } from './remote/check';
@@ -128,6 +139,7 @@ import {
   type ApplyAnalyseRequest,
   type ApplyStep,
   type NewsSourceId,
+  type NoteWriteResult,
   type ToolId,
 } from '../src/shared/api/types';
 
@@ -187,6 +199,9 @@ function createWindow(): void {
 
 // Windows toast notifications need the app's identity (= electron-builder appId; the installer's Start Menu shortcut carries it).
 if (isWindows) app.setAppUserModelId('dev.aquila.agents');
+
+// Note editor (T67): images next to notes, shown inline. Only files inside an enabled source (checked per request).
+protocol.registerSchemesAsPrivileged([{ scheme: 'aquila-note', privileges: { standard: true, secure: true } }]);
 
 app.whenReady().then(async () => {
   // Release notes (T27): an install from before T27 has state but no record. Read before this launch writes any.
@@ -764,7 +779,10 @@ app.whenReady().then(async () => {
     onStatus: (st) => send(IPC.graphStatusChanged, st),
   });
   power.onChange(() => graph.setSaver(powerState().saver));
+  // Note editor (T67): only notes of enabled sources; watched only while open in the editor.
+  const noteWatcher = new NoteWatcher((c) => send(IPC.noteChanged, c));
   app.on('will-quit', () => {
+    noteWatcher.close();
     graph.close();
     if (isSmoke) fs.rmSync(graphDir, { recursive: true, force: true });
   });
@@ -779,6 +797,33 @@ app.whenReady().then(async () => {
   ipcMain.handle(IPC.graphOpenNote, async (_e, p: string) => {
     const file = graph.notePath(String(p));
     return !!file && (await shell.openPath(file)) === '';
+  });
+  ipcMain.handle(IPC.noteOpen, (_e, p: string) => {
+    const file = graph.notePath(String(p));
+    const note = file ? readNote(file) : null;
+    if (file && note) noteWatcher.watch(file);
+    return note;
+  });
+  ipcMain.on(IPC.noteClose, (_e, p: string) => noteWatcher.unwatch(path.resolve(String(p))));
+  ipcMain.handle(
+    IPC.noteWrite,
+    (_e, a: { path: string; text: string; bom: boolean; baseMtime: number }): NoteWriteResult => {
+      const file = graph.notePath(String(a.path));
+      if (!file || typeof a.text !== 'string') return { ok: false, reason: 'refused' };
+      return writeNote(file, a.text, !!a.bom, Number(a.baseMtime));
+    },
+  );
+  ipcMain.handle(IPC.noteOpenUrl, (_e, url: string) => {
+    if (typeof url === 'string' && isWebUrl(url)) void shell.openExternal(url);
+  });
+  protocol.handle('aquila-note', (req) => {
+    const p = imageUrlPath(req.url);
+    const file = p ? graph.sourceFile(p, IMAGE_FILE) : null;
+    return file ? net.fetch(pathToFileURL(file).toString()) : new Response(null, { status: 404 });
+  });
+  ipcMain.handle(IPC.noteAttach, (_e, a: { notePath: string; data: Uint8Array; ext: string }) => {
+    const file = graph.notePath(String(a.notePath));
+    return file && a.data instanceof Uint8Array ? saveAttachment(file, a.data, String(a.ext)) : null;
   });
   ipcMain.handle(IPC.sessionRestore, () => restoreSessions());
   ipcMain.handle(IPC.sessionStart, (_e, id: string) => s.wake(loadConfig(), id));

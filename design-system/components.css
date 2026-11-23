@@ -918,6 +918,73 @@ body {
 .c-kgraph__card-actions { flex: none; display: flex; gap: var(--space-inline-xs); }
 .c-kgraph > .c-empty { position: absolute; inset: 0; z-index: 1; }
 
+/* ── Note editor (T67): CodeMirror live preview + outline / links column ─── */
+.c-editor { flex: 1; min-height: 0; display: flex; background: var(--color-bg-canvas); }
+.c-editor__main { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.c-editor__host { flex: 1; min-height: 0; overflow: hidden; display: flex; }
+.c-editor__side { flex: none; width: var(--size-editor-side); overflow: auto; border-left: 1px solid var(--color-border-subtle); background: var(--color-bg-surface); }
+.c-editor__section { padding: var(--space-inset-sm) 0; }
+.c-editor__section + .c-editor__section { border-top: 1px solid var(--color-border-subtle); }
+.c-editor__section-title { padding: var(--space-inline-xs) var(--space-inset-md); font-size: var(--font-size-caption); color: var(--color-text-tertiary); }
+.c-editor__item {
+  display: block; width: 100%; padding: var(--space-inline-xs) var(--space-inset-md); padding-left: calc(var(--space-inset-md) + var(--space-inset-sm) * var(--level, 0));
+  border: 0; background: none; color: var(--color-text-secondary); font: inherit; font-size: var(--font-size-label); text-align: left;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer;
+}
+.c-editor__item:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
+.c-editor__item-detail { margin-left: var(--space-inline-xs); color: var(--color-text-tertiary); }
+.c-editor__empty { padding: var(--space-inline-xs) var(--space-inset-md); font-size: var(--font-size-label); color: var(--color-text-tertiary); }
+.c-editor__banner {
+  flex: none; display: flex; align-items: center; gap: var(--space-inline-sm); padding: var(--space-inset-sm) var(--space-inset-md);
+  border-bottom: 1px solid var(--color-border-subtle); background: var(--color-bg-surface); font-size: var(--font-size-label);
+}
+.c-editor__banner[data-tone='warn'] { box-shadow: inset var(--size-focus-line) 0 0 var(--color-status-waiting); }
+.c-editor__banner-text { flex: 1; min-width: 0; }
+.c-editor__compare { flex: none; max-height: 50%; overflow: auto; border-bottom: 1px solid var(--color-border-subtle); }
+/* CodeMirror inside: its own classes, our tokens. */
+.c-editor .cm-editor { flex: 1; min-width: 0; height: 100%; color: var(--color-text-primary); background: var(--color-bg-canvas); font-size: var(--font-size-body); }
+.c-editor .cm-editor.cm-focused { outline: 0; }
+.c-editor .cm-scroller { font-family: var(--font-family-ui); line-height: var(--line-height-body); }
+.c-editor .cm-content { max-width: var(--size-editor-measure); margin: 0 auto; padding: var(--space-stack-md) var(--space-stack-lg); caret-color: var(--color-terminal-cursor); }
+.c-editor .cm-line { padding: 0; }
+.c-editor .cm-cursor { border-left-color: var(--color-terminal-cursor); }
+.c-editor .cm-selectionBackground, .c-editor .cm-focused .cm-selectionBackground, .c-editor .cm-content ::selection { background: var(--color-terminal-selection) !important; }
+.c-editor .cm-searchMatch { background: var(--color-terminal-match); }
+.c-editor .cm-searchMatch-selected { background: var(--color-terminal-match-active); }
+.c-editor .cm-panels { background: var(--color-bg-surface); color: var(--color-text-primary); border-color: var(--color-border-subtle); }
+.c-editor .cm-panel.cm-search { padding: var(--space-inline-xs) var(--space-inset-md); font-size: var(--font-size-label); }
+.c-editor .cm-panel.cm-search input, .c-editor .cm-panel.cm-search button { font: inherit; color: inherit; background: var(--color-bg-hover); border: 1px solid var(--color-border-default); border-radius: var(--radius-badge); }
+.c-editor .cm-tooltip { border: 1px solid var(--color-border-subtle); border-radius: var(--radius-control); background: var(--color-bg-surface); color: var(--color-text-primary); }
+.c-editor .cm-tooltip-autocomplete > ul > li { padding: var(--space-inline-xs) var(--space-inset-sm); }
+.c-editor .cm-tooltip-autocomplete > ul > li[aria-selected] { background: var(--color-bg-selected); color: var(--color-text-primary); }
+.c-editor .cm-completionDetail { margin-left: var(--space-inline-sm); color: var(--color-text-tertiary); font-style: normal; }
+.c-editor .cm-md-h { font-weight: 600; }
+.c-editor .cm-md-h1 { font-size: var(--font-size-heading-1); }
+.c-editor .cm-md-h2 { font-size: var(--font-size-heading-2); }
+.c-editor .cm-md-h3 { font-size: var(--font-size-heading-3); }
+.c-editor .cm-md-em { font-style: italic; }
+.c-editor .cm-md-strong { font-weight: 600; }
+.c-editor .cm-md-strike, .c-editor .cm-md-done { text-decoration: line-through; color: var(--color-text-secondary); }
+.c-editor .cm-md-code { font-family: var(--font-family-mono); font-size: var(--font-size-label); background: var(--color-bg-hover); border-radius: var(--radius-badge); }
+.c-editor .cm-md-codeblock { font-family: var(--font-family-mono); font-size: var(--font-size-label); background: var(--color-bg-surface); }
+.c-editor .cm-md-link, .c-editor .cm-md-wikilink { color: var(--color-action-primary); }
+.c-editor .cm-md-wikilink { cursor: pointer; }
+.c-editor .cm-md-url, .c-editor .cm-md-image { color: var(--color-text-secondary); }
+.c-editor .cm-md-link[data-url] { cursor: pointer; }
+.c-editor .cm-md-img { display: block; max-width: 100%; margin: var(--space-inline-xs) 0; border-radius: var(--radius-control); cursor: text; }
+.c-editor .cm-md-listmark { color: var(--color-text-tertiary); }
+.c-editor .cm-md-checkbox { margin: 0 var(--space-inline-xs) 0 0; vertical-align: middle; accent-color: var(--color-action-primary); cursor: pointer; }
+.c-editor .cm-md-quote, .c-editor .cm-md-callout { padding-left: var(--space-inset-md); box-shadow: inset var(--size-focus-line) 0 0 var(--color-border-default); color: var(--color-text-secondary); }
+.c-editor .cm-md-callout { background: var(--color-bg-surface); box-shadow: inset var(--size-focus-line) 0 0 var(--color-action-primary); }
+.c-editor .cm-md-callout-title { font-weight: 600; color: var(--color-text-primary); }
+.c-editor .cm-md-callout-kind { margin-right: var(--space-inline-sm); font-size: var(--font-size-caption); color: var(--color-action-primary); text-transform: uppercase; }
+.c-editor .cm-md-hr { background: linear-gradient(var(--color-border-default), var(--color-border-default)) center / 100% 1px no-repeat; }
+.c-editor .cm-md-frontmatter { font-family: var(--font-family-mono); font-size: var(--font-size-label); color: var(--color-text-tertiary); }
+.c-editor .cm-md-table { padding: var(--space-inline-xs) 0; overflow-x: auto; }
+.c-editor .cm-md-table table { border-collapse: collapse; font-size: var(--font-size-body); }
+.c-editor .cm-md-table th, .c-editor .cm-md-table td { padding: var(--space-inline-xs) var(--space-inset-sm); border: 1px solid var(--color-border-subtle); cursor: text; }
+.c-editor .cm-md-table th { font-weight: 600; background: var(--color-bg-surface); }
+
 /* ── Steps (a plan to tick, T64) ──────────────────────────── */
 .c-steps { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; border: 1px solid var(--color-border-subtle); border-radius: var(--radius-control); }
 .c-steps__item { display: flex; align-items: flex-start; gap: var(--space-inline-sm); padding: var(--space-inset-sm) var(--space-inset-md); }

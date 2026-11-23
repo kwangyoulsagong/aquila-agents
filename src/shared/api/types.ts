@@ -806,6 +806,22 @@ export interface GraphStatus {
   version: number;
 }
 
+/** A note open in the editor (T67). The text is the file's bytes as UTF-8, with a leading BOM split off into `bom`. */
+export interface NoteFile {
+  path: string;
+  text: string;
+  bom: boolean;
+  /** File mtime (ms) the text was read at: a save is refused when the file changed since. */
+  mtime: number;
+  /** The file isn't valid UTF-8: shown, never saved (saving would change bytes nobody touched). */
+  readOnly?: boolean;
+}
+
+/** An open note changed on disk (an agent, another editor): its new contents, or that it's gone. */
+export type NoteChange = NoteFile | { path: string; deleted: true };
+
+export type NoteWriteResult = { ok: true; mtime: number } | { ok: false; reason: 'changed' | 'refused' | 'failed' };
+
 export type NodeChangeKind = 'add' | 'change' | 'unfit';
 
 export interface NodeChange {
@@ -1122,6 +1138,17 @@ export interface AquilaApi {
   graphSnapshot(): Promise<GraphSnapshot>;
   /** Opens a note of an enabled source in the default app (T66, until the editor T67). Other paths are refused. */
   graphOpenNote(path: string): Promise<boolean>;
+  /** Note editor (T67): reads a note of an enabled source and watches it until `noteClose`. Other paths → null. */
+  noteOpen(path: string): Promise<NoteFile | null>;
+  noteClose(path: string): void;
+  /** Saves in place; refused (`changed`) when the file on disk isn't the one read at `baseMtime`. */
+  noteWrite(path: string, text: string, bom: boolean, baseMtime: number): Promise<NoteWriteResult>;
+  /** A note open in the editor changed on disk. */
+  onNoteChanged(cb: (c: NoteChange) => void): Unsubscribe;
+  /** A pasted image saved as `attachments/<note>-<time>.<ext>` next to the note: the relative path, or null. */
+  noteAttach(notePath: string, data: Uint8Array, ext: string): Promise<string | null>;
+  /** A link in a note: opened in the browser (http/https only). */
+  noteOpenUrl(url: string): Promise<void>;
   /** Global shortcut (T41): the saved key and whether the OS gave it to us. */
   globalShortcut(): Promise<GlobalShortcutState>;
   /** Saves and registers a new key (null = off). A taken key keeps the old one and reports `taken`. */
@@ -1366,6 +1393,12 @@ export const IPC = {
   graphIndexNow: 'graph:index-now',
   graphSnapshot: 'graph:snapshot',
   graphOpenNote: 'graph:open-note',
+  noteOpen: 'note:open',
+  noteClose: 'note:close',
+  noteWrite: 'note:write',
+  noteChanged: 'note:changed',
+  noteAttach: 'note:attach',
+  noteOpenUrl: 'note:open-url',
   globalShortcutGet: 'global-shortcut:get',
   globalShortcutSet: 'global-shortcut:set',
   globalShortcutFired: 'global-shortcut:fired',

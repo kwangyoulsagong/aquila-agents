@@ -91,6 +91,8 @@
   --p-font-12: 12px;
   --p-font-13: 13px;
   --p-font-15: 15px;
+  --p-font-17: 17px; /* note headings (T67) */
+  --p-font-20: 20px;
 }
 
 /* ══════════════ 2. SEMANTIC ══════════════ */
@@ -177,6 +179,9 @@
   --font-size-label: var(--p-font-12);   /* tabs, buttons */
   --font-size-body: var(--p-font-13);    /* body, rows, terminal */
   --font-size-title: var(--p-font-15);   /* panel titles */
+  --font-size-heading-1: var(--p-font-20); /* note editor headings (T67) */
+  --font-size-heading-2: var(--p-font-17);
+  --font-size-heading-3: var(--p-font-15);
   --line-height-body: 1.5;
 
   /* Spacing — by role */
@@ -231,6 +236,8 @@
   --size-modal-wide: 960px;         /* session history: longer rows, a transcript */
   --size-modal-wide-height: 640px;
   --size-modal-wide-aside: 320px;   /* its list column */
+  --size-editor-measure: 720px;     /* note editor: longest line in full window (T67) */
+  --size-editor-side: 240px;        /* note editor: outline + links column */
 
   /* Motion */
   --motion-ease: cubic-bezier(0.2, 0, 0, 1);        /* standard: settles quickly */

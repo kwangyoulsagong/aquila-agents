@@ -17,6 +17,7 @@ import { ReviewQueue, useReviewQueue } from '@/features/review-queue';
 import { SessionCommandsModal } from '@/features/session-commands';
 import { GlobalShortcutDialog } from '@/features/global-shortcut';
 import { SourcesDialog } from '@/features/graph-sources';
+import { NoteEditorPanel, QuickOpen } from '@/features/edit-note';
 import { copyLastReply, toggleQuickSelect } from '@/features/terminal-helpers';
 import { openFind } from '@/features/terminal-search';
 import { focusSession } from '@/entities/session';
@@ -57,6 +58,11 @@ export default function WorkspacePage() {
   const [graphOpen, setGraphOpen] = useState(false);
   const [graphFullOn, setGraphFull] = useState(false);
   const toggleGraph = useCallback(() => setGraphOpen((o) => !o), []);
+  // Note editor (T67): one note at a time, opened from the graph, ⌘O or a link; right panel or full window.
+  const [notePath, setNotePath] = useState<string | null>(null);
+  const [noteFullOn, setNoteFull] = useState(false);
+  const [quickOpenOn, setQuickOpen] = useState(false);
+  const quickOpen = useCallback(() => setQuickOpen(true), []);
   const [previewRequest, setPreviewRequest] = useState<{ url: string; at: number } | null>(null);
   const clearPreviewRequest = useCallback(() => setPreviewRequest(null), []);
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -164,6 +170,7 @@ export default function WorkspacePage() {
     togglePreview,
     toggleRun,
     toggleGraph,
+    quickOpen,
     togglePalette,
     toggleGuide,
     toggleHistory,
@@ -178,8 +185,9 @@ export default function WorkspacePage() {
   // Only while the preview is actually shown: a remote project or full window would otherwise leave nothing on screen.
   const previewFull = previewFullOn && previewOpen && !fullscreen.on && !!project && !project.remote;
   const graphFull = graphFullOn && graphOpen && !fullscreen.on && !previewFull;
+  const noteFull = noteFullOn && !!notePath && !fullscreen.on && !previewFull && !graphFull;
   // One panel alone in the window: the sidebar, the terminals and the other panels step aside.
-  const panelFull = previewFull || graphFull;
+  const panelFull = previewFull || graphFull || noteFull;
   // More side panels than the window holds: the oldest one closes (changes · run · preview).
   const local = !!project && !project.remote;
   const closePanel = useCallback((p: PanelId) => {
@@ -188,18 +196,22 @@ export default function WorkspacePage() {
     else if (p === 'graph') {
       setGraphOpen(false);
       setGraphFull(false);
+    } else if (p === 'note') {
+      setNotePath(null);
+      setNoteFull(false);
     } else {
       setPreviewOpen(false);
       setPreviewFull(false);
     }
   }, []);
   usePanelFit(
-    { changes: changesOpen, run: runOpen, preview: previewOpen, graph: graphOpen },
+    { changes: changesOpen, run: runOpen, preview: previewOpen, graph: graphOpen, note: !!notePath },
     {
       changes: changesOpen && !fullscreen.on && !panelFull,
       run: runOpen && !fullscreen.on && !panelFull && local,
-      preview: previewOpen && !fullscreen.on && local && !graphFull,
-      graph: graphOpen && !fullscreen.on && !previewFull,
+      preview: previewOpen && !fullscreen.on && local && !graphFull && !noteFull,
+      graph: graphOpen && !fullscreen.on && !previewFull && !noteFull,
+      note: !!notePath && !fullscreen.on && !previewFull && !graphFull,
     },
     closePanel,
   );
@@ -283,6 +295,7 @@ export default function WorkspacePage() {
     a.addRemote = addRemote;
     a.history = toggleHistory;
     a.toggleGraph = toggleGraph;
+    a.quickOpen = quickOpen;
     if (activeSessionId) a.closeSession = () => closeSession(activeSessionId);
     // Edited in its tab, which full window hides.
     if (activeSessionId && !fullscreen.on) a.renameSession = () => renameTab(activeSessionId);
@@ -326,6 +339,7 @@ export default function WorkspacePage() {
     togglePreview,
     toggleRun,
     toggleGraph,
+    quickOpen,
     openWorktreeDialog,
     paletteWorktrees.length,
     openCleanup,
@@ -532,6 +546,7 @@ export default function WorkspacePage() {
         )}
         {globalShortcutOpen && <GlobalShortcutDialog onClose={() => setGlobalShortcutOpen(false)} />}
         {sourcesOpen && <SourcesDialog onClose={() => setSourcesOpen(false)} />}
+        <QuickOpen open={quickOpenOn} onClose={() => setQuickOpen(false)} onPick={setNotePath} />
         {commandsOpen && focusedSession && (
           <SessionCommandsModal
             key={focusedSession.id}
@@ -562,10 +577,33 @@ export default function WorkspacePage() {
           />
         )}
         {/* Last column: the native preview view only has to follow its own size and the window. */}
-        {graphOpen && !fullscreen.on && !previewFull && (
+        {notePath && !fullscreen.on && !previewFull && !graphFull && (
+          <NoteEditorPanel
+            path={notePath}
+            full={noteFull}
+            onToggleFull={() => setNoteFull((f) => !f)}
+            onClose={() => {
+              setNotePath(null);
+              setNoteFull(false);
+            }}
+            onOpenNote={setNotePath}
+          />
+        )}
+        {graphOpen && !fullscreen.on && !previewFull && !noteFull && (
           <KnowledgeGraphPanel
             full={graphFull}
-            onToggleFull={() => setGraphFull((f) => !f)}
+            onToggleFull={() => {
+              setNoteFull(false);
+              setGraphFull((f) => !f);
+            }}
+            onOpenNote={(p) => {
+              setNotePath(p);
+              // From the full-window graph, the note takes the window.
+              if (graphFull) {
+                setGraphFull(false);
+                setNoteFull(true);
+              }
+            }}
             onClose={() => {
               setGraphOpen(false);
               setGraphFull(false);
@@ -573,7 +611,7 @@ export default function WorkspacePage() {
             onSources={() => setSourcesOpen(true)}
           />
         )}
-        {previewOpen && !fullscreen.on && !graphFull && project && !project.remote && (
+        {previewOpen && !fullscreen.on && !graphFull && !noteFull && project && !project.remote && (
           <PreviewPanel
             key={`preview:${project.id}`}
             project={project}

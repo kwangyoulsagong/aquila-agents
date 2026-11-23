@@ -55,3 +55,4 @@ export { TitleBar } from './TitleBar';
 export { Graph, type GraphNodeBox, type GraphEdgeLine, type GraphColumnLabel } from './Graph';
 export { StepList, StepItem } from './StepList';
 export { GraphStage, GraphLegend, GraphCard, type GraphSwatch, type GraphLine } from './GraphStage';
+export { NoteEditor, EditorBanner, EditorCompare, EditorSection, EditorItem } from './NoteEditor';

@@ -24,6 +24,8 @@ interface Deps {
   toggleRun: () => void;
   /** Knowledge graph panel (T66). */
   toggleGraph: () => void;
+  /** ⌘O: find a note and open it in the editor (T67). */
+  quickOpen: () => void;
   togglePalette: () => void;
   toggleGuide: () => void;
   toggleHistory: () => void;
@@ -58,6 +60,7 @@ export function useShortcuts({
   togglePreview,
   toggleRun,
   toggleGraph,
+  quickOpen,
   togglePalette,
   toggleGuide,
   toggleHistory,
@@ -96,6 +99,8 @@ export function useShortcuts({
           return toggleRun();
         case 'toggleGraph':
           return toggleGraph();
+        case 'quickOpen':
+          return quickOpen();
         case 'history':
           return toggleHistory();
         case 'nextWaiting':
@@ -135,6 +140,8 @@ export function useShortcuts({
     const onKey = (e: KeyboardEvent) => {
       const id = matchShortcut(e);
       if (!id) return;
+      // In the note editor (T67), ⌘F is its own find.
+      if (id === 'find' && e.target instanceof Element && e.target.closest('.cm-editor')) return;
       // A project key with no project there stays the terminal's.
       const project = projectIndex(id);
       if (project !== null && !config?.projects[project]) return;
@@ -166,7 +173,8 @@ export function useShortcuts({
     toggleChanges,
     togglePreview,
     toggleRun,
-  toggleGraph,
+    toggleGraph,
+    quickOpen,
     togglePalette,
     toggleGuide,
     toggleHistory,
