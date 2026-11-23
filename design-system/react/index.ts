@@ -52,3 +52,5 @@ export { Transcript, TranscriptMessage } from './Transcript';
 export { Media } from './Media';
 export { ShortcutSheet, type ShortcutSheetGroup } from './ShortcutSheet';
 export { TitleBar } from './TitleBar';
+export { Graph, type GraphNodeBox, type GraphEdgeLine, type GraphColumnLabel } from './Graph';
+export { StepList, StepItem } from './StepList';

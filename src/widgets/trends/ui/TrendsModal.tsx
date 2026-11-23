@@ -39,6 +39,8 @@ interface Props {
   language: Language;
   /** Claude account the opt-in summary runs with (the current local project's); undefined = the shared one. */
   account?: string;
+  /** T64 "Apply to project" on an item or a CLI release (new CLI features are trends too). */
+  onApply?: (item: { itemId: string; title: string }) => void;
 }
 
 /**
@@ -47,7 +49,7 @@ interface Props {
  * opt-in Claude summary. Opening it is what fetches (cache older than 30 min); rows newer than the previous visit get
  * a dot.
  */
-export default function TrendsModal({ open, onClose, trends, language, account }: Props) {
+export default function TrendsModal({ open, onClose, trends, language, account, onApply }: Props) {
   const t = useT();
   const { state, opened, refresh, summarize } = trends;
   const baseId = useId();
@@ -219,7 +221,13 @@ export default function TrendsModal({ open, onClose, trends, language, account }
           {r.added.length ? <ModalBullets items={r.added} /> : <ModalNote>{t('trends.noLines')}</ModalNote>}
           <ModalActions>
             <Button onClick={() => trends.open(r.url)}>{t('trends.releaseNotes')} ↗</Button>
+            {onApply && (
+              <Button onClick={() => onApply({ itemId: selected, title: `${TOOL_NAMES[c.tool]} ${r.version}` })}>
+                {t('trends.apply')}
+              </Button>
+            )}
           </ModalActions>
+          {onApply && <ModalNote>{t('trends.applyNote')}</ModalNote>}
           {r.publishedAt && (
             <ModalNote>
               {new Date(r.publishedAt).toLocaleDateString(locale, { dateStyle: 'medium' })}
@@ -245,7 +253,11 @@ export default function TrendsModal({ open, onClose, trends, language, account }
           {item.discussion && item.discussion !== item.url && (
             <Button onClick={() => trends.open(item.discussion as string)}>{t('trends.discussion')} ↗</Button>
           )}
+          {onApply && (
+            <Button onClick={() => onApply({ itemId: item.id, title: item.title })}>{t('trends.apply')}</Button>
+          )}
         </ModalActions>
+        {onApply && <ModalNote>{t('trends.applyNote')}</ModalNote>}
       </>
     );
   })();

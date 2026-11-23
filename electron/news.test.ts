@@ -458,7 +458,7 @@ describe('Korea (T63)', () => {
   it('GeekNews (Atom): AI items only', () => {
     const items = parseFeed(fixture('geeknews.xml'), 'geeknews', { aiOnly: true });
     const all = parseFeed(fixture('geeknews.xml'), 'geeknews');
-    expect(all.length).toBe(20);
+    expect(all.length).toBe(21); // 20 captured + the Graphify item T64 tests apply with
     expect(items.length).toBeGreaterThan(2);
     expect(items.length).toBeLessThan(all.length);
     expect(items.every((i) => i.url.startsWith('https://news.hada.io/'))).toBe(true);

@@ -130,6 +130,9 @@
 | `.c-reason` | 대기 중인 세션이 기다리는 것("Bash: npm install"). 프로젝트 행 아래 한 줄(고정폭 캡션, 이름과 정렬). 누르면 그 세션을 보여 주는 버튼. `data-risk` = 파괴적일 수 있음: 오류 색 + `.c-risk` |
 | `.c-queue`, `__lead` `__text` `__title` `__meta` | 사이드바 대기열 항목(리뷰 대기열, T58): 점, 제목, 고정폭 캡션 메타 줄(둘 다 말줄임). `.c-row`와 같은 가장자리. 버튼 |
 | `.c-risk` | 파괴적일 수 있는 명령의 경고 기호(⚠, 오류 색) — 대기 이유 줄과 탭 |
+| `.c-graph`, `__node[data-mark]` `__box` `__label` `__detail` `__mark` `__edge` `__column` | 정적 SVG 노드 그래프(레포 뼈대, T64): 호출자가 배치한 상자, 곡선 간선, 표시 add(diff-add) / change(working) / unfit(waiting, 점선). 호버한 단계용 `data-dim` / `data-highlight`. 애니메이션 루프 없음 |
+| `.c-steps`, `__item[data-off]` `__check` `__title` `__meta` | 체크하는 계획(T64): 체크박스 · 제목 + 배지 / 고정폭 파일 줄. 체크 해제한 단계는 흐려짐 |
+| `.c-badge--verdict-apply` `--verdict-partial` `--verdict-skip` | 제안의 판정(done / waiting / tertiary) |
 | `.c-badge` `--claude` `--codex` `--shell` `--account-shared` `--account-personal` `--risk` | 태그 (`--risk`: 한 번 더 볼 변경 파일, 대기 색 — T57) |
 | `.c-badge--host`, `.c-badge__conn[data-conn=connecting\|connected\|reconnecting\|lost]` | 원격 호스트 이름(대문자로 안 바꿈)과 연결 점: 회색 / 초록 / 주황 깜빡임 / 빨강 (T29) |
 | `.c-term-overlay__banner` `__banner-text` `__banner-meta` | 터미널 위쪽을 가로지르는 클릭 가능한 바, 빨간 테두리: 연결 끊김 + 카운트다운 + 동작 (T29) |
@@ -212,6 +215,8 @@
 | `Transcript` `label`, `TranscriptMessage` `role` `label` | `.c-transcript` |
 | `CommandList` `label`, `CommandRow` `state` `stateLabel` `command` `time?` `marks?` | `.c-commands`, `.c-command` |
 | `RunList` `label`, `RunItem` `name` `status` `state` `current` `title?` `onClick` | `.c-runs`, `.c-runs__item` |
+| `Graph` `width` `height` `label` `nodes` `edges` `columns?` | `.c-graph` |
+| `StepList` `label`, `StepItem` `checked` `onToggle` `title` `checkLabel?` `tags?` `meta?` `onHover?` | `.c-steps` |
 | `Media` `src` `kind` `poster` `alt` `still` `placeholder` | `.c-media` (reduced motion이나 `still`이면 영상 대신 포스터) |
 | `ShortcutSheet` `groups` | `.c-shortcuts` |
 

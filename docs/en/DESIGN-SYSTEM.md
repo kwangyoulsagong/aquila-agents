@@ -131,6 +131,9 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `.c-reason` | What a waiting session waits on ("Bash: npm install"), one mono caption line under its project row (aligned with the name); a button that shows the session. `data-risk` = possibly destructive: error color + `.c-risk` |
 | `.c-queue`, `__lead` `__text` `__title` `__meta` | A sidebar queue entry (review queue, T58): dot, title and a mono caption meta line, both ellipsised; same edges as `.c-row`; a button |
 | `.c-risk` | Warning glyph (⚠) in the error color for a possibly destructive command — on the reason line and the tab |
+| `.c-graph`, `__node[data-mark]` `__box` `__label` `__detail` `__mark` `__edge` `__column` | Static SVG node graph (repo skeleton, T64): boxes placed by the caller, curved edges, marks add (diff-add) / change (working) / unfit (waiting, dashed); `data-dim` / `data-highlight` for a hovered step. No animation loop |
+| `.c-steps`, `__item[data-off]` `__check` `__title` `__meta` | A plan to tick (T64): checkbox · title + badges / mono files line; unticked steps fade |
+| `.c-badge--verdict-apply` `--verdict-partial` `--verdict-skip` | A proposal's verdict (done / waiting / tertiary) |
 | `.c-badge` `--claude` `--codex` `--shell` `--account-shared` `--account-personal` `--risk` | Tags (`--risk`: a changed file worth a second look, waiting colour — T57) |
 | `.c-badge--host`, `.c-badge__conn[data-conn=connecting\|connected\|reconnecting\|lost]` | Remote host alias (not uppercased) with a connection dot: idle grey / green / orange pulsing / red (T29) |
 | `.c-term-overlay__banner` `__banner-text` `__banner-meta` | Bar across the top of a terminal that takes clicks, red edge: connection lost + countdown + an action (T29) |
@@ -213,6 +216,8 @@ from `src/` (ESLint enforces it). New primitive → add the class to `components
 | `Transcript` `label`, `TranscriptMessage` `role` `label` | `.c-transcript` |
 | `CommandList` `label`, `CommandRow` `state` `stateLabel` `command` `time?` `marks?` | `.c-commands`, `.c-command` |
 | `RunList` `label`, `RunItem` `name` `status` `state` `current` `title?` `onClick` | `.c-runs`, `.c-runs__item` |
+| `Graph` `width` `height` `label` `nodes` `edges` `columns?` | `.c-graph` |
+| `StepList` `label`, `StepItem` `checked` `onToggle` `title` `checkLabel?` `tags?` `meta?` `onHover?` | `.c-steps` |
 | `Media` `src` `kind` `poster` `alt` `still` `placeholder` | `.c-media` (video → poster under reduced motion or `still`) |
 | `ShortcutSheet` `groups` | `.c-shortcuts` |
 
