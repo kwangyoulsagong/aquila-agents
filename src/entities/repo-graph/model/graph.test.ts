@@ -76,9 +76,9 @@ describe('repo graph', () => {
   it('edges: across columns edge to edge, a loop within one', () => {
     const a = { node: c('a'), x: 8, y: 32 };
     const b = { node: c('b'), x: 216, y: 76 };
-    expect(edgePath(a, b)).toMatch(/^M160 50 C/);
-    expect(edgePath(b, a)).toMatch(/^M160 50 C/);
-    expect(edgePath(a, { ...a, y: 120 })).toMatch(/^M160 50 C\d+/);
+    expect(edgePath(a, b)).toMatch(/^M168 54 C/);
+    expect(edgePath(b, a)).toMatch(/^M168 54 C/);
+    expect(edgePath(a, { ...a, y: 120 })).toMatch(/^M168 54 C\d+/);
   });
 
   it('cuts long labels', () => {

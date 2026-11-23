@@ -860,21 +860,31 @@ body {
 /* ── Graph (repo skeleton, T64) ──────────────────────────── */
 /* Static SVG: boxes placed by the caller, curved edges, marks for add / change / unfit. */
 .c-graph { display: block; flex: none; max-width: 100%; height: auto; font-family: var(--font-family-ui); }
-.c-graph__column { fill: var(--color-text-tertiary); font-size: var(--font-size-caption); }
-.c-graph__edge { fill: none; stroke: var(--color-border-default); stroke-width: 1; }
-.c-graph__box { fill: var(--color-bg-hover); stroke: var(--color-border-default); stroke-width: 1; }
-.c-graph__label { fill: var(--color-text-primary); font-size: var(--font-size-label); }
+/* Surfaces, not outlines: every box is a soft tone, colour only where something changes. */
+.c-graph__column { fill: var(--color-text-secondary); font-size: var(--font-size-caption); font-weight: 600; letter-spacing: 0.02em; }
+.c-graph__edge { fill: none; stroke: var(--color-border-default); stroke-width: 1.5; stroke-linecap: round; }
+.c-graph__box { fill: var(--color-bg-hover); stroke: none; rx: var(--radius-container); }
+.c-graph__label { fill: var(--color-text-primary); font-size: var(--font-size-label); font-weight: 600; }
 .c-graph__detail { fill: var(--color-text-tertiary); font-size: var(--font-size-caption); }
-.c-graph__mark { font-size: var(--font-size-body); font-weight: 600; }
-.c-graph__node[data-mark='add'] .c-graph__box { fill: var(--color-diff-add-bg); stroke: var(--color-diff-add-text); }
-.c-graph__node[data-mark='add'] .c-graph__mark { fill: var(--color-diff-add-text); }
-.c-graph__node[data-mark='change'] .c-graph__box { stroke: var(--color-status-working); }
-.c-graph__node[data-mark='change'] .c-graph__mark { fill: var(--color-status-working); }
-.c-graph__node[data-mark='unfit'] .c-graph__box { fill: transparent; stroke: var(--color-status-waiting); stroke-dasharray: 4 4; }
-.c-graph__node[data-mark='unfit'] .c-graph__mark { fill: var(--color-status-waiting); }
-.c-graph__node[data-mark='unfit'] .c-graph__label { fill: var(--color-text-secondary); }
-.c-graph__node[data-highlight] .c-graph__box { stroke-width: 2; }
-.c-graph__node[data-dim], .c-graph__edge[data-dim] { opacity: 0.3; }
+/* Mark = a dot on the right: filled (added), ring (changed); unfit has a dashed box instead of a fill. */
+.c-graph__mark { stroke-width: 1.5; }
+.c-graph__node[data-mark='add'] .c-graph__box { fill: var(--color-diff-add-bg); }
+.c-graph__node[data-mark='add'] .c-graph__label { fill: var(--color-diff-add-text); }
+.c-graph__node[data-mark='add'] .c-graph__mark { fill: var(--color-diff-add-text); stroke: none; }
+.c-graph__node[data-mark='change'] .c-graph__box { fill: var(--color-bg-selected); }
+.c-graph__node[data-mark='change'] .c-graph__label { fill: var(--color-status-working); }
+.c-graph__node[data-mark='change'] .c-graph__mark { fill: none; stroke: var(--color-status-working); }
+.c-graph__node[data-mark='unfit'] .c-graph__box { fill: transparent; stroke: var(--color-border-default); stroke-width: 1; stroke-dasharray: 3 3; }
+.c-graph__node[data-mark='unfit'] .c-graph__label { fill: var(--color-text-secondary); text-decoration: line-through; }
+.c-graph__node[data-mark='unfit'] .c-graph__mark { display: none; }
+/* When some boxes are marked, the rest step back so the change reads first. */
+.c-graph[data-marked] .c-graph__node:not([data-mark]) .c-graph__label { fill: var(--color-text-secondary); font-weight: 400; }
+.c-graph__node[data-highlight] .c-graph__box { fill: var(--color-bg-pressed); }
+.c-graph__node[data-highlight][data-mark='add'] .c-graph__box,
+.c-graph__node[data-highlight][data-mark='change'] .c-graph__box { stroke: currentColor; stroke-width: 1.5; }
+.c-graph__node[data-mark='add'] { color: var(--color-diff-add-text); }
+.c-graph__node[data-mark='change'] { color: var(--color-status-working); }
+.c-graph__node[data-dim], .c-graph__edge[data-dim] { opacity: 0.25; }
 
 /* ── Steps (a plan to tick, T64) ──────────────────────────── */
 .c-steps { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; border: 1px solid var(--color-border-subtle); border-radius: var(--radius-control); }
