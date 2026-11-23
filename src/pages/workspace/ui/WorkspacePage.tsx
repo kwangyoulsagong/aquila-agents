@@ -35,6 +35,7 @@ import { HistoryPanel } from '@/widgets/history-panel';
 import { UsageGauge } from '@/widgets/usage-gauge';
 import { TrendsButton, TrendsModal, hasCliUpdate, useTrends } from '@/widgets/trends';
 import { TrendApplyModal, type ApplyItem } from '@/widgets/trend-apply';
+import { pasteWhenReady } from '@/features/apply-trend';
 import { CommandPalette, type ActionId } from '@/widgets/command-palette';
 import { useWorkspace } from '../model/useWorkspace';
 import { useShortcuts } from '../model/useShortcuts';
@@ -609,8 +610,8 @@ export default function WorkspacePage() {
             setApplyItem(null);
             if (projectId !== ws.activeProjectId) ws.selectProject(projectId);
             ws.adoptResumed({ session });
-            // Bracketed paste: one block in Claude's prompt, no Enter — the user reads it and sends.
-            void typeWhenSettled(session.id, `\x1b[200~${prompt}\x1b[201~`);
+            // One bracketed block in Claude's prompt, no Enter; after the "trust this folder?" answer if asked.
+            void pasteWhenReady(session.id, prompt);
           }}
         />
         <CommandPalette
