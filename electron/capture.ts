@@ -132,8 +132,8 @@ export async function runCapture(
   };
   const openPalette = () => press('K', ['meta'], 400);
   /** Wait up to 5 s for a renderer condition. */
-  const waitFor = async (condition: string) => {
-    for (let i = 0; i < 50; i++) {
+  const waitFor = async (condition: string, ms = 5000) => {
+    for (let i = 0; i < ms / 100; i++) {
       if (await js<boolean>(condition)) return;
       await wait(100);
     }
@@ -472,19 +472,22 @@ export async function runCapture(
       stage: async () => {
         await press('Y', ['meta'], 900);
         const title = lang === 'ko' ? '쿠폰 할인' : 'Coupon discount';
-        await js(`[...document.querySelectorAll('.c-modal[open] .c-modal__item')]
-          .find((e) => e.textContent.includes(${JSON.stringify(title)}))?.click()`);
-        await waitFor(`!!document.querySelector('.c-modal[open] .c-commands')`);
+        // The list and then the session's commands load from disk: wait for each instead of a fixed pause.
+        const item = `[...document.querySelectorAll('.c-modal[open] .c-modal__item')].find((e) => e.textContent.includes(${JSON.stringify(title)}))`;
+        await waitFor(`!!${item}`);
+        await js(`${item}.click()`);
+        await waitFor(`!!document.querySelector('.c-modal[open] .c-commands')`, 15_000);
         await js(`document.querySelector('.c-modal[open] .c-commands')?.scrollIntoView({ block: 'center' })`);
         await wait(500);
       },
       after: () => press('Escape', [], 400),
     },
     {
-      // AI trends (T35, T46): the footer's news-icon button fetches the fixture feeds on open; the CLI tab, then the Industry tab.
+      // AI trends (T35, T46, T63): the footer's news-icon button fetches the fixture feeds on open; the CLI tab, then the
+      // Industry tab and its Korea side.
       id: 'trends',
       rect: FULL,
-      ms: 4500,
+      ms: 6000,
       act: async () => {
         await wait(400);
         await click('.c-sidebar__foot .c-btn--icon');
@@ -495,6 +498,8 @@ export async function runCapture(
         );
         await wait(1000);
         await click('.c-modal[open] .c-segment__item', t('trends.tab.industry'));
+        await wait(1400);
+        await click('.c-modal[open] .c-segment__item', t('trends.region.kr'));
         await wait(1400);
       },
       after: () => press('Escape', [], 400),

@@ -497,7 +497,7 @@ const ko = {
   'guide.firstRun.body': 'CLI 설치, PATH, 프로젝트 폴더를 확인해요. {palette} → "시작 점검"으로 다시 열어요.',
   'guide.trends.title': 'AI 트렌드',
   'guide.trends.body':
-    '사이드바 아래 AI 트렌드 버튼(신문 아이콘)에서 내 CLI의 새 버전과 업계 소식을 봐요. 설치된 것보다 새 CLI 버전이 있으면 점이 떠요. 열 때만 가져오고, Claude 요약은 누를 때만 실행돼요.',
+    '사이드바 아래 AI 트렌드 버튼(신문 아이콘)에서 내 CLI의 새 버전과 업계 소식(해외 / 국내)을 봐요. 설치된 것보다 새 CLI 버전이 있으면 점이 떠요. 열 때만 가져오고, Claude 요약은 누를 때만 실행돼요.',
   'guide.remote.title': '원격 서버(SSH)',
   'guide.remote.body':
     '⌘K → "원격 서버 추가…"(또는 사이드바 "+ 프로젝트 추가" → 원격 서버)로 SSH 호스트의 폴더를 프로젝트로 추가해요. 추가 전에 호스트를 먼저 확인하고(연결, tmux, Claude 로그인), 폴더는 찾아보기로 고를 수 있어요. 세션은 호스트의 tmux에서 돌아서 연결이 끊겨도 이어져요.',
@@ -1250,7 +1250,7 @@ const en = {
     'Checks the CLIs, PATH and project folders. Reopen it from {palette} → "Setup checklist".',
   'guide.trends.title': 'AI trends',
   'guide.trends.body':
-    'AI trends (the newspaper icon) at the bottom of the sidebar shows new versions of your CLIs and industry news. A dot means a CLI version newer than yours. Fetched only when you open it; the Claude summary runs only when you click.',
+    'AI trends (the newspaper icon) at the bottom of the sidebar shows new versions of your CLIs and industry news (Global / Korea). A dot means a CLI version newer than yours. Fetched only when you open it; the Claude summary runs only when you click.',
   'guide.remote.title': 'Remote servers (SSH)',
   'guide.remote.body':
     '⌘K → "Add remote server…" (or "+ Add project" → Remote server in the sidebar) adds a folder on an SSH host as a project. The host is checked first (connection, tmux, Claude login), and Browse picks the folder. Sessions run in tmux on the host, so they survive a dropped connection.',
