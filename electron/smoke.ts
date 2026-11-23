@@ -243,15 +243,7 @@ async function checkRunSlot(
   const kid = Number(/kid (\d+)/.exec(runs.log(id))?.[1]);
 
   const label = translator(config.language)('run.toggle');
-  win.show();
-  win.focus();
-  press(win, 'K', ['meta']);
-  await wait(500);
-  const opened = await js<boolean>(`(() => {
-    const item = [...document.querySelectorAll('.c-palette__item')].find((el) => el.textContent?.startsWith(${JSON.stringify(label)}));
-    item?.click();
-    return !!item;
-  })()`);
+  const opened = await paletteRun(win, label, true);
   await wait(600);
   // Several commands → pick the fixture's row.
   await js(`[...document.querySelectorAll('.c-runs__item')].find((b) => b.textContent?.includes(${JSON.stringify(name)}))?.click()`);
@@ -358,6 +350,32 @@ async function checkPreviewPick(previews: PreviewViews): Promise<string | null> 
 function press(win: BrowserWindow, keyCode: string, modifiers: Electron.InputEvent['modifiers']) {
   for (const type of ['keyDown', 'keyUp'] as const)
     win.webContents.sendInputEvent({ type, keyCode, modifiers });
+}
+
+/**
+ * ⌘K, then click the palette item whose text is `label` (or starts with it). Polls instead of a fixed wait (a busy
+ * machine renders late) and presses ⌘K again if the palette did not open. Returns whether the item was clicked.
+ */
+async function paletteRun(win: BrowserWindow, label: string, prefix = false): Promise<boolean> {
+  // The palette runs its command in requestAnimationFrame, which an occluded window doesn't fire.
+  win.show();
+  win.focus();
+  const match = prefix ? `el.textContent?.startsWith(${JSON.stringify(label)})` : `el.textContent === ${JSON.stringify(label)}`;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    press(win, 'K', ['meta']);
+    for (let i = 0; i < 20; i++) {
+      await wait(150);
+      const state: 'clicked' | 'open' | 'closed' = await win.webContents.executeJavaScript(`(() => {
+        const items = [...document.querySelectorAll('.c-palette__item')];
+        const item = items.find((el) => ${match});
+        if (item) { item.click(); return 'clicked'; }
+        return items.length ? 'open' : 'closed';
+      })()`);
+      if (state === 'clicked') return true;
+      if (state === 'closed' && i >= 6) break; // not open after ~1s: press ⌘K again
+    }
+  }
+  return false;
 }
 
 /** Per mounted terminal: on screen, and rendering with WebGL (its canvas) or the DOM renderer (`.xterm-rows`). */
@@ -996,16 +1014,7 @@ const TINY_PNG =
  */
 async function checkFirstRun(win: BrowserWindow, config: Config, out: string): Promise<string | null> {
   const label = translator(config.language)('firstRun.checklist');
-  // The palette runs its command in requestAnimationFrame, which an occluded window doesn't fire.
-  win.show();
-  win.focus();
-  press(win, 'K', ['meta']);
-  await wait(500);
-  const clicked: boolean = await win.webContents.executeJavaScript(`(() => {
-    const item = [...document.querySelectorAll('.c-palette__item')].find((el) => el.textContent === ${JSON.stringify(label)});
-    item?.click();
-    return !!item;
-  })()`);
+  const clicked = await paletteRun(win, label);
   if (!clicked) return `palette has no "${label}" action`;
   const rows = async (): Promise<string[]> =>
     win.webContents.executeJavaScript(
@@ -1092,15 +1101,7 @@ async function checkSummonFromOtherApp(win: BrowserWindow, s: SessionManager): P
  */
 async function checkGlobalShortcut(win: BrowserWindow, config: Config, out: string): Promise<string | null> {
   const t = translator(config.language);
-  win.show();
-  win.focus();
-  press(win, 'K', ['meta']);
-  await wait(500);
-  const clicked: boolean = await win.webContents.executeJavaScript(`(() => {
-    const item = [...document.querySelectorAll('.c-palette__item')].find((el) => el.textContent === ${JSON.stringify(t('globalShortcut.menu'))});
-    item?.click();
-    return !!item;
-  })()`);
+  const clicked = await paletteRun(win, t('globalShortcut.menu'));
   if (!clicked) return `palette has no "${t('globalShortcut.menu')}" action`;
   await wait(500);
   const field = `document.querySelector('.c-dialog[open] .c-input')`;
@@ -1130,15 +1131,7 @@ async function checkGlobalShortcut(win: BrowserWindow, config: Config, out: stri
 /** ⌘K → "Project settings…" opens the settings dialog with its fields; screenshot, then Esc closes it (nothing saved). */
 async function checkProjectSettings(win: BrowserWindow, config: Config, out: string): Promise<string | null> {
   const label = translator(config.language)('settings.action');
-  win.show();
-  win.focus();
-  press(win, 'K', ['meta']);
-  await wait(500);
-  const clicked: boolean = await win.webContents.executeJavaScript(`(() => {
-    const item = [...document.querySelectorAll('.c-palette__item')].find((el) => el.textContent === ${JSON.stringify(label)});
-    item?.click();
-    return !!item;
-  })()`);
+  const clicked = await paletteRun(win, label);
   if (!clicked) return `palette has no "${label}" action`;
   let fields = 0;
   for (let i = 0; i < 20 && fields < 9; i++) {
@@ -1290,15 +1283,7 @@ async function checkGuide(win: BrowserWindow, outDir: string): Promise<string | 
  */
 async function checkWhatsNew(win: BrowserWindow, config: Config, out: string): Promise<string | null> {
   const t = translator(config.language);
-  win.show();
-  win.focus();
-  press(win, 'K', ['meta']);
-  await wait(500);
-  const clicked: boolean = await win.webContents.executeJavaScript(`(() => {
-    const item = [...document.querySelectorAll('.c-palette__item')].find((el) => el.textContent === ${JSON.stringify(t('notes.title'))});
-    item?.click();
-    return !!item;
-  })()`);
+  const clicked = await paletteRun(win, t('notes.title'));
   if (!clicked) return `palette has no "${t('notes.title')}" action`;
   await wait(600);
   const seen: { items: number; groups: number; media: boolean; heading: string } = await win.webContents
