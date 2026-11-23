@@ -929,7 +929,10 @@ export class VaultService {
     const values = vars(title, this.now(), { path: at.rel });
     if (a.kind === 'claude') {
       const projectId = this.opts.projectOf?.(abs);
-      return { prompt: `${fill(a.prompt ?? '', values).trim()}\n\n@${abs}`, ...(projectId ? { projectId } : {}) };
+      return {
+        prompt: `${fill(a.prompt ?? '', values).trim()}\n\n${/\s/.test(abs) ? `@"${abs}"` : `@${abs}`}`,
+        ...(projectId ? { projectId } : {}),
+      };
     }
     return { text: applyAction(src, a, values) };
   }
@@ -960,6 +963,14 @@ export class VaultService {
     } catch {
       return null;
     }
+  }
+
+  /** T70: the source's template for a day's note (its file is named by `{{date}}` alone), or null. */
+  dateTemplate(id: string): string | null {
+    const t = this.read(id)?.config.templates.find(
+      (x) => x.file.includes('{{date}}') && !/\{\{(?:title|slug|id)\}\}/.test(x.file),
+    );
+    return t?.id ?? null;
   }
 
   /** Link rules of every source that has some (the index worker applies them). */

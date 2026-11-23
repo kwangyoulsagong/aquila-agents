@@ -525,6 +525,27 @@ import하지 않음).
   안 보냄)와 요청을 둘 다 데이터로 감싸 숨은 `claude -p`(sonnet)에 보냄. 답의 첫 JSON 객체를 검사해 초안으로
   보여 줌. 저장 전까지는 아무것도 쓰지 않음.
 
+## 그래프 안의 앱 (T70)
+
+`electron/graph/app-nodes.ts`(+ `features/edit-note`의 `HandleWithClaude`). 세션, 세션이 바꾼 파일, 트렌드와 적용
+결정이 `session` / `file` / `trend` / `apply` 노드와 실선 `action` 엣지로 그래프에 들어온다. 앱에 이미 있는
+데이터로만 만든다:
+
+- **히스토리:** 히스토리 파서가 고친 파일(Claude `Edit` / `Write` / `MultiEdit` / `NotebookEdit`, codex
+  `apply_patch` 헤더)과 사용자 메시지의 `@경로.md` 언급(공백 있는 경로는 `@"…"`)도 모은다. `HistoryIndex.work()`가
+  마지막 스캔 결과에서 돌려줌. 따로 스캔하지 않음.
+- **엣지:** 세션에서 `@`로 언급된 노트 → 세션(`session`) → 바뀐 파일마다(`changed`, 세션당 ≤40. 고친 게 노트면
+  그 노트로) · 이름이 색인의 코드 이름인 바뀐 파일 → 그 `code` 노드(0.7). 트렌드 → 적용 결정(`apply`,
+  `~/.aquila/applies`의 기록 전부) → 적용한 워크트리 브랜치의 세션. 노트를 건드렸거나 적용한 트렌드를 돌린
+  세션만 보인다(≤200, 로컬만).
+- **언제:** `GraphService.snapshot()`이 워커 스냅샷에 `AppNodes.graph(nodes)`를 합친다. `AppNodes`는 한 번 읽고,
+  `invalidate()` 뒤에만 다시 읽음 — Claude 훅 `Stop` / `UserPromptSubmit` / `SessionEnd`, 적용 결정 — 그다음
+  `appChanged()`가 상태 버전을 올려(1초로 묶음) 열린 그래프가 다시 가져감. 그래프를 처음 열기 전엔 아무 일도 없음.
+- **UI:** 뷰는 남은 노트에서 이어지는 경로(노트 → 세션 → 파일)나 트렌드 / 적용에서 이어지는 노트 아닌 노드를
+  남긴다. 카드: 노트·할 일엔 "Claude로 처리"(할 일은 가장 강한 노트로. 그 노트의 프로젝트(`note:project`)에
+  Claude 탭을 열고 프롬프트와 `@경로`를 붙여 넣음, 보내지 않음), 세션엔 이어하기, 트렌드엔 링크 열기. 에디터
+  머리에도 같은 "Claude로 처리".
+
 ## 앱 내 프리뷰 (T33)
 
 `electron/preview.ts` + `widgets/preview`(`PreviewPanel`, ⌘⇧P 또는 탭 바의 ◫ 버튼, 로컬 프로젝트만).

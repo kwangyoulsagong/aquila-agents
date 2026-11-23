@@ -17,6 +17,7 @@ import { useGraphData } from '@/entities/note';
 import { linkOptions, linksTo, nodeOfPath, outline, resolveLink } from '../model/links';
 import { lineDiff } from '../model/lineDiff';
 import { useNoteEditor } from './useNoteEditor';
+import { HandleWithClaude } from './HandleWithClaude';
 
 export interface NoteEditorPanelProps {
   /** Absolute path of the note (a `.md` in an enabled source). */
@@ -37,6 +38,8 @@ export interface NoteEditorPanelProps {
   renderSide?: (p: NoteSlotProps) => ReactNode;
   /** T69: a `[[link]]` to a missing note can be created (where new notes go is the source's setting). */
   onCreateNote?: (name: string, sourceId: string | undefined) => void;
+  /** T70: "Handle with Claude" opens a Claude tab with the note (the page's). */
+  onClaude?: (prompt: string, projectId: string | undefined) => void;
 }
 
 /** What a slot gets: the note, its text right now, and a way to change it as one edit (saved like typing). */
@@ -66,6 +69,7 @@ export default function NoteEditorPanel({
   renderTop,
   renderSide,
   onCreateNote,
+  onClaude,
 }: NoteEditorPanelProps) {
   const t = useT();
   const width = usePanelWidth('aquila.panel.note');
@@ -202,6 +206,7 @@ export default function NoteEditorPanel({
           </span>
         )}
         <div className="c-panel__actions">
+          {onClaude && ed.file && <HandleWithClaude notePath={path} onClaude={onClaude} />}
           <Button
             variant="ghost"
             icon

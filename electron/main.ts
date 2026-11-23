@@ -14,6 +14,7 @@ import {
   powerMonitor,
   protocol,
   shell,
+  utilityProcess,
 } from 'electron';
 import { restoreShellPath } from './env';
 import { isWindows, platform } from './platform';
@@ -81,6 +82,16 @@ import {
   tmpAppliesDir,
 } from './apply';
 import { GraphService } from './graph';
+import {
+  AppNodes,
+  addToSection,
+  dailyHeading,
+  dailyLines,
+  dailyTitle,
+  transcriptsWork,
+} from './graph/app-nodes';
+import { TurnFiles } from './graph/turn-files';
+import { WorkScanner, type WorkScanOut } from './graph/history-worker';
 import { linkable, withLink } from './graph/rules';
 import { VaultService } from './graph/vault';
 import { runClaudeHaiku } from './graph/extract';
@@ -210,7 +221,9 @@ function createWindow(): void {
 if (isWindows) app.setAppUserModelId('dev.aquila.agents');
 
 // Note editor (T67): images next to notes, shown inline. Only files inside an enabled source (checked per request).
-protocol.registerSchemesAsPrivileged([{ scheme: 'aquila-note', privileges: { standard: true, secure: true } }]);
+protocol.registerSchemesAsPrivileged([
+  { scheme: 'aquila-note', privileges: { standard: true, secure: true } },
+]);
 
 app.whenReady().then(async () => {
   // Release notes (T27): an install from before T27 has state but no record. Read before this launch writes any.
@@ -245,9 +258,11 @@ app.whenReady().then(async () => {
     }
   };
   let onUsageHook: ((tabId: string, hook: HookEvent) => void) | null = null;
+  let onGraphHook: ((hook: HookEvent) => void) | null = null;
   const hookPort = await startHookServer((tabId, hook) => {
     sessions?.onHook(tabId, hook);
     onUsageHook?.(tabId, hook);
+    onGraphHook?.(hook);
   });
   // Per instance (the port is in the file): dev / smoke / capture no longer repoint the running app's tabs.
   const hookFiles = writeClaudeHookSettings(hookPort);
@@ -758,7 +773,10 @@ app.whenReady().then(async () => {
     });
   });
   ipcMain.on(IPC.applyCancel, (_e, id: string) => applies.cancel(String(id)));
-  ipcMain.handle(IPC.applyDrop, (_e, id: string) => applies.drop(String(id)));
+  ipcMain.handle(IPC.applyDrop, (_e, id: string) => {
+    applies.drop(String(id));
+    appTouched();
+  });
   ipcMain.handle(IPC.applyStart, async (_e, { id, steps }: { id: string; steps: ApplyStep[] }) => {
     const record = applies.read(String(id));
     if (!record) throw new Error('Unknown proposal');
@@ -767,6 +785,7 @@ app.whenReady().then(async () => {
     const branch = branchFor(record.article.title, record.id);
     // Validated before anything is created: no steps → nothing happens.
     const approved = applies.applied(record.id, Array.isArray(steps) ? steps : [], branch).approved ?? [];
+    appTouched();
     const { worktree, created } = await ensureWorktree(config, record.projectId, branch);
     const setup = created ? config.projects.find((p) => p.id === record.projectId)?.setupScript : undefined;
     const session = s.create(config, record.projectId, 'claude', undefined, {}, worktree, setup);
@@ -796,6 +815,101 @@ app.whenReady().then(async () => {
     // T69: each source's link rules, and its shared settings file changing on disk.
     vaultLinks: (ids) => vault.linkRules(ids),
     onVaultFile: (id) => vault.fileChanged(id),
+    // Smoke has no hooks to say a turn ended: it reads again on every snapshot.
+    app: (nodes) => {
+      if (isSmoke) appNodes.invalidate();
+      return appNodes.graph(nodes);
+    },
+  });
+  // The app in the graph (T70): sessions from the history index's scan (only re-parses changed transcripts), the
+  // applies kept on disk. Loaded on a snapshot, again only after a Claude turn ends or an apply is decided.
+  const localProjects = () =>
+    loadConfig()
+      .projects.filter((p) => !p.remote)
+      .map((p) => ({ id: p.id, root: path.resolve(expand(p.path)) }));
+  // Its own lite scan (titles, edited files, @mentions — no message text), in a short-lived child process so the
+  // memory of reading every transcript goes away with it; only changed transcripts are read again.
+  const workerPath = path
+    .join(__dirname, 'graph', 'history-worker.js')
+    .replace(/app\.asar([/\\])/, 'app.asar.unpacked$1');
+  const workScanner = new WorkScanner(
+    (input) =>
+      new Promise<WorkScanOut>((resolve) => {
+        const child = utilityProcess.fork(workerPath, [], { serviceName: 'Aquila history scan' });
+        let done = false;
+        child.once('message', (out: WorkScanOut) => {
+          done = true;
+          resolve(out);
+        });
+        child.once('exit', (code) => {
+          if (!done) resolve({ error: `history scan exited (${code})` });
+        });
+        child.postMessage(input);
+      }),
+  );
+  const appNodes = new AppNodes(async () => {
+    const scan = await workScanner.scan(loadConfig());
+    // Smoke: plus transcripts it writes into its throwaway graph folder.
+    const extra = isSmoke ? transcriptsWork(path.join(graphDir, 'transcripts'), projectOfFile) : [];
+    return {
+      sessions: [...scan.work, ...extra],
+      applies: applies.list(),
+      projects: localProjects(),
+      turnFiles: turns.all(),
+    };
+  });
+  // Files a Claude turn changed by any means, shell included: the folder's git status at the prompt and at Stop.
+  // Only while a note source is enabled (two git calls per turn).
+  const turns = new TurnFiles({ file: path.join(graphDir, 'turns.json'), onChange: () => appTouched() });
+  const projectOfFile = (abs: string) => {
+    const file = path.resolve(abs);
+    return localProjects()
+      .filter((p) => file.startsWith(p.root + path.sep))
+      .sort((a, b) => b.root.length - a.root.length)[0]?.id;
+  };
+  const appTouched = () => {
+    appNodes.invalidate();
+    graph.appChanged();
+  };
+  onGraphHook = (hook) => {
+    if (hook.sessionId && hook.cwd && graph.hasEnabled()) {
+      if (hook.event === 'UserPromptSubmit') turns.start(hook.sessionId, hook.cwd);
+      else if (hook.event === 'Stop') void turns.stop(hook.sessionId).catch(() => undefined);
+    }
+    if (hook.event === 'Stop' || hook.event === 'UserPromptSubmit' || hook.event === 'SessionEnd')
+      appTouched();
+  };
+  // Daily note (T70): today's sessions (local and the last SSH scan) appended to the day's note, on the button only.
+  ipcMain.handle(IPC.graphDailyNote, async (_e, sourceId: string | null) => {
+    // The source picked in the graph, else one with a day template (a journal), else the first.
+    const ids = graph.enabledIds();
+    const id =
+      (typeof sourceId === 'string' && ids.includes(sourceId) && sourceId) ||
+      ids.find((x) => vault.dateTemplate(x)) ||
+      ids[0];
+    if (!id) return null;
+    const config = loadConfig();
+    const now = new Date();
+    const tid = vault.dateTemplate(id);
+    const file = vault.createNote(id, tid ?? '', dailyTitle(now, config.language));
+    if (!file) return null;
+    const scan = await workScanner.scan(config);
+    const lines = dailyLines({
+      // Remote: whatever the history panel's last SSH scan found (no scan here).
+      entries: [...scan.entries, ...history.remoteEntries()],
+      work: scan.work,
+      turnFiles: turns.all(),
+      projects: config.projects
+        .filter((p) => !p.remote)
+        .map((p) => ({ id: p.id, name: p.name, root: path.resolve(expand(p.path)) })),
+      isNote: (abs) => !!graph.notePath(abs),
+      language: config.language,
+      now,
+    });
+    const text = fs.readFileSync(file, 'utf8');
+    const next = addToSection(text, dailyHeading(config.language), lines);
+    if (next !== text) fs.writeFileSync(file, next);
+    return file;
   });
   // Per-source settings (T69): mine in ~/.aquila/vaults, shared as `.aquila-vault.json` in the folder (only when the
   // user saves them as shared). "Make with Claude" is a hidden `claude -p` (sonnet); smoke reads a canned reply.
@@ -806,17 +920,13 @@ app.whenReady().then(async () => {
     run: () =>
       isSmoke
         ? async () =>
-            fs.readFileSync(path.join(__dirname, '..', '..', 'electron', 'fixtures', 'vault', 'suggest-reply.json'), 'utf8')
+            fs.readFileSync(
+              path.join(__dirname, '..', '..', 'electron', 'fixtures', 'vault', 'suggest-reply.json'),
+              'utf8',
+            )
         : runClaudeHaiku(binaryFor('claude'), undefined, 'sonnet'),
     onChanged: (id) => send(IPC.vaultChanged, id),
-    projectOf: (abs) => {
-      const file = path.resolve(abs);
-      return loadConfig()
-        .projects.filter((p) => !p.remote)
-        .map((p) => ({ id: p.id, root: path.resolve(expand(p.path)) }))
-        .filter((p) => file.startsWith(p.root + path.sep))
-        .sort((a, b) => b.root.length - a.root.length)[0]?.id;
-    },
+    projectOf: (abs) => projectOfFile(abs),
   });
   power.onChange(() => graph.setSaver(powerState().saver));
   // Note editor (T67): only notes of enabled sources; watched only while open in the editor.
@@ -824,6 +934,7 @@ app.whenReady().then(async () => {
   app.on('will-quit', () => {
     noteWatcher.close();
     graph.close();
+    turns.flush();
     if (isSmoke) fs.rmSync(graphDir, { recursive: true, force: true });
   });
   ipcMain.handle(IPC.graphStatus, () => graph.status());
@@ -839,7 +950,8 @@ app.whenReady().then(async () => {
   ipcMain.handle(IPC.graphDecide, (_e, d: GraphDecision) => {
     if (typeof d?.source !== 'string' || typeof d?.target !== 'string') return { inserted: false };
     graph.decide({ source: d.source, target: d.target, accept: !!d.accept });
-    if (!d.accept || typeof d.insertInto !== 'string' || typeof d.linkTo !== 'string') return { inserted: false };
+    if (!d.accept || typeof d.insertInto !== 'string' || typeof d.linkTo !== 'string')
+      return { inserted: false };
     const file = graph.notePath(d.insertInto);
     const note = file && linkable(d.linkTo) ? readNote(file) : null;
     if (!file || !note || note.readOnly) return { inserted: false };
@@ -874,6 +986,10 @@ app.whenReady().then(async () => {
   ipcMain.handle(IPC.noteOpenUrl, (_e, url: string) => {
     if (typeof url === 'string' && isWebUrl(url)) void shell.openExternal(url);
   });
+  ipcMain.handle(
+    IPC.noteProject,
+    (_e, p: string) => (typeof p === 'string' && p ? projectOfFile(p) : null) ?? null,
+  );
   protocol.handle('aquila-note', (req) => {
     const p = imageUrlPath(req.url);
     const file = p ? graph.sourceFile(p, IMAGE_FILE) : null;

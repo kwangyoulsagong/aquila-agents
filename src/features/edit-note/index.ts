@@ -29,3 +29,5 @@ export function NoteEditorPanel(props: NoteEditorPanelProps) {
 }
 export type { NoteEditorPanelProps, NoteSlotProps };
 export { default as QuickOpen } from './ui/QuickOpen';
+export { HandleWithClaude, type HandleWithClaudeProps } from './ui/HandleWithClaude';
+export { handleTarget } from './model/handle';

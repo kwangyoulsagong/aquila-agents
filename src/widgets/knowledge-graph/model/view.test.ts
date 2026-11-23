@@ -110,3 +110,34 @@ describe('helpers', () => {
     expect(kindsOf(snap.nodes)).toEqual(['note', 'tag', 'code']);
   });
 });
+
+describe('app nodes (T70)', () => {
+  const session: GraphNode = { id: 'session:claude:s', kind: 'session', label: 's' };
+  const file: GraphNode = { id: 'file:/r/a.ts', kind: 'file', label: 'a.ts' };
+  const trend: GraphNode = { id: 'trend:t', kind: 'trend', label: 't' };
+  const apply: GraphNode = { id: 'apply:x', kind: 'apply', label: 'x' };
+  const orphan: GraphNode = { id: 'session:claude:o', kind: 'session', label: 'o' };
+  const orphanFile: GraphNode = { id: 'file:/r/o.ts', kind: 'file', label: 'o.ts' };
+  const app: GraphSnapshot = {
+    nodes: [a, session, file, trend, apply, orphan, orphanFile],
+    edges: [
+      edge(a.id, session.id, 'action'),
+      edge(session.id, file.id, 'action'),
+      edge(trend.id, apply.id, 'action'),
+      edge(orphan.id, orphanFile.id, 'action'),
+    ],
+    idGroups: [],
+    version: 1,
+  };
+
+  it('keeps note → session → file, and trend → apply; drops what reaches neither', () => {
+    const v = filterSnapshot(app, DEFAULT_FILTER, NOW);
+    expect(v.nodes.map((n) => n.id).sort()).toEqual([a.id, apply.id, file.id, session.id, trend.id].sort());
+    expect(v.edges).toHaveLength(3);
+  });
+
+  it('hiding sessions cuts the path to their files', () => {
+    const v = filterSnapshot(app, { ...DEFAULT_FILTER, hiddenKinds: ['session'] }, NOW);
+    expect(v.nodes.some((n) => n.kind === 'file')).toBe(false);
+  });
+});

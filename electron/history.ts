@@ -70,6 +70,10 @@ export interface ParsedSession {
   truncated: boolean;
   /** Bash commands (Claude, T59): the last MAX_COMMANDS, oldest first. */
   commands?: CommandRun[];
+  /** Files the agent edited or wrote (T70): as written in the tool call (absolute, or relative to `cwd`). */
+  files?: string[];
+  /** `@path.md` mentions in the user's messages (T70): a note sent to the session. */
+  mentions?: string[];
 }
 
 // ── Commands (T59) ─────────────────────────────────────────────────────────────
@@ -145,6 +149,65 @@ class CommandCollector {
   }
 }
 
+// ── Work (T70) ─────────────────────────────────────────────────────────────────
+
+export const MAX_WORK_FILES = 200;
+export const MAX_MENTIONS = 50;
+const EDIT_TOOLS = new Set(['Edit', 'Write', 'MultiEdit', 'NotebookEdit']);
+/**
+ * `@/abs/note.md`, `@rel/note.md`, `@"/path with spaces/note.md"`, and an unquoted path with spaces up to the first
+ * `.md` on the line (how an `@path` is often pasted).
+ */
+const MENTION_RE = /@"([^"\n]+\.md)"|@([^\s"'`<>@][^\n"'`<>@]*?\.md)(?![\w.-])/gi;
+/** apply_patch headers (codex). */
+const PATCH_FILE_RE = /^\*\*\* (?:Add|Update|Delete) File: (.+)$/gm;
+
+/** `@note.md` mentions in a user message. */
+export function mentionsOf(text: string): string[] {
+  const out: string[] = [];
+  for (const m of text.matchAll(MENTION_RE)) {
+    const p = (m[1] ?? m[2] ?? '').replace(/\\ /g, ' ').trim();
+    if (p) out.push(p);
+  }
+  return out;
+}
+
+/** Files named in an apply_patch body. */
+export function patchFiles(text: string): string[] {
+  return [...text.matchAll(PATCH_FILE_RE)].map((m) => m[1]!.trim()).filter(Boolean);
+}
+
+/** Edited files and note mentions, deduplicated in first-seen order, capped. */
+class WorkCollector {
+  private files = new Set<string>();
+  private mentions = new Set<string>();
+
+  file(p: unknown): void {
+    if (typeof p === 'string' && p && this.files.size < MAX_WORK_FILES) this.files.add(p);
+  }
+
+  text(t: string): void {
+    if (!t.includes('@')) return;
+    for (const m of mentionsOf(t)) if (this.mentions.size < MAX_MENTIONS) this.mentions.add(m);
+  }
+
+  /** Claude assistant content: Edit / Write / MultiEdit / NotebookEdit tool calls. */
+  claudeTools(content: unknown): void {
+    if (!Array.isArray(content)) return;
+    for (const b of content as { type?: unknown; name?: unknown; input?: Record<string, unknown> }[]) {
+      if (b?.type !== 'tool_use' || typeof b.name !== 'string' || !EDIT_TOOLS.has(b.name)) continue;
+      this.file(b.input?.file_path ?? b.input?.notebook_path);
+    }
+  }
+
+  result(): Pick<ParsedSession, 'files' | 'mentions'> {
+    return {
+      ...(this.files.size ? { files: [...this.files] } : {}),
+      ...(this.mentions.size ? { mentions: [...this.mentions] } : {}),
+    };
+  }
+}
+
 const oneLine = (s: string) => s.replace(/\s+/g, ' ').trim();
 const cut = (s: string, n: number) => (s.length > n ? `${s.slice(0, n)}…` : s);
 
@@ -174,6 +237,10 @@ function isClaudeNoise(text: string): boolean {
     t.startsWith('[Request interrupted by user')
   );
 }
+
+const TIMESTAMP_RE = /"timestamp":"([^"]+)"/;
+/** Lite: user lines longer than this aren't read for `@mentions`. */
+const LITE_USER_LINE = 64 * 1024;
 
 const time = (v: unknown): number | undefined => {
   if (typeof v !== 'string') return undefined;
@@ -212,9 +279,16 @@ class Collector {
 export class ClaudeParser {
   private c: Collector;
   private runs = new CommandCollector();
-  /** `full`: no caps (Markdown export). */
-  constructor(full = false) {
-    this.c = full ? new Collector(Infinity, Infinity) : new Collector();
+  private work = new WorkCollector();
+  /**
+   * `full`: no caps (Markdown export). `lite` (T70, the graph): no message text or commands kept, and a line that
+   * can't hold an edit or an `@mention` isn't JSON-parsed at all — only its timestamp is read.
+   */
+  constructor(
+    full = false,
+    private lite = false,
+  ) {
+    this.c = full ? new Collector(Infinity, Infinity) : lite ? new Collector(0, 0) : new Collector();
   }
   private cwd = '';
   private branch?: string;
@@ -225,6 +299,7 @@ export class ClaudeParser {
 
   line(line: string): void {
     if (!line || line.length > MAX_LINE || line.startsWith('{"type":"api-request')) return;
+    if (this.lite && this.cwd && this.c.first && this.skippable(line)) return;
     let o: Record<string, unknown>;
     try {
       o = JSON.parse(line) as Record<string, unknown>;
@@ -249,17 +324,39 @@ export class ClaudeParser {
     if (o.isMeta === true || o.isCompactSummary === true) return;
     const message = o.message as { content?: unknown } | undefined;
     if (!message) return;
-    if (type === 'assistant') this.runs.assistant(message.content, at);
-    else {
+    if (type === 'assistant') {
+      if (!this.lite) this.runs.assistant(message.content, at);
+      this.work.claudeTools(message.content);
+    } else if (!this.lite) {
       const r = o.toolUseResult as { interrupted?: unknown } | undefined;
       this.runs.user(message.content, !!r && typeof r === 'object' && r.interrupted === true);
     }
     if (type === 'user') {
       const text = textOf(message.content, ['text']);
-      if (!isClaudeNoise(text)) this.c.add('user', text, at);
+      if (!isClaudeNoise(text)) {
+        this.c.add('user', text, at);
+        this.work.text(text);
+      }
     } else {
       this.c.add('assistant', textOf(message.content, ['text']), at);
     }
+  }
+
+  /** Lite: an assistant line with no tool call or a user line with no `@` — counted and timed, not parsed. */
+  private skippable(line: string): boolean {
+    const assistant = line.includes('"type":"assistant"');
+    const user = !assistant && line.includes('"type":"user"');
+    // A user line this long is a tool result (a file read, command output), not something typed.
+    const typed = user && line.length <= LITE_USER_LINE && line.includes('@');
+    if (!(assistant && !line.includes('"tool_use"')) && !(user && !typed)) return false;
+    if (line.includes('"isSidechain":true')) return true;
+    const at = time(TIMESTAMP_RE.exec(line)?.[1]);
+    if (at !== undefined) {
+      this.startedAt ??= at;
+      this.updatedAt = at;
+    }
+    this.c.count++;
+    return true;
   }
 
   /** null when there was no conversation (or no cwd to group it by). */
@@ -276,7 +373,8 @@ export class ClaudeParser {
       count: this.c.count,
       messages: this.c.messages,
       truncated: this.c.truncated,
-      commands: this.runs.result(),
+      ...(this.lite ? {} : { commands: this.runs.result() }),
+      ...this.work.result(),
     };
   }
 
@@ -294,14 +392,16 @@ export async function readClaudeCommands(file: string): Promise<CommandRun[]> {
 /** Line-by-line parser of a codex rollout (`rollout-<time>-<id>.jsonl`). */
 export class CodexParser {
   private c: Collector;
-  constructor(full = false) {
-    this.c = full ? new Collector(Infinity, Infinity) : new Collector();
+  /** `lite` (T70): no message text kept. */
+  constructor(full = false, lite = false) {
+    this.c = full ? new Collector(Infinity, Infinity) : lite ? new Collector(0, 0) : new Collector();
   }
   id = '';
   private cwd = '';
   private branch?: string;
   private startedAt?: number;
   private updatedAt?: number;
+  private work = new WorkCollector();
 
   line(line: string): void {
     if (!line || line.length > MAX_LINE) return;
@@ -325,12 +425,21 @@ export class CodexParser {
       if (git && typeof git.branch === 'string') this.branch = git.branch;
       return;
     }
-    if (o.type !== 'response_item' || p.type !== 'message') return;
+    if (o.type !== 'response_item') return;
+    // apply_patch: a custom tool call (`input`) or a function call (`arguments`, maybe a shell command).
+    if (p.type === 'custom_tool_call' || p.type === 'function_call') {
+      const body = typeof p.input === 'string' ? p.input : typeof p.arguments === 'string' ? p.arguments : '';
+      if (body.includes('*** ')) for (const f of patchFiles(body.replace(/\\n/g, '\n'))) this.work.file(f);
+      return;
+    }
+    if (p.type !== 'message') return;
     if (p.role === 'user') {
       const text = textOf(p.content, ['input_text']);
       // Environment context, AGENTS.md and other injected instructions come as tagged user messages.
-      if (!text.trimStart().startsWith('<') && !text.trimStart().startsWith('# AGENTS.md'))
+      if (!text.trimStart().startsWith('<') && !text.trimStart().startsWith('# AGENTS.md')) {
         this.c.add('user', text, at);
+        this.work.text(text);
+      }
     } else if (p.role === 'assistant') {
       this.c.add('assistant', textOf(p.content, ['output_text']), at);
     }
@@ -348,6 +457,7 @@ export class CodexParser {
       count: this.c.count,
       messages: this.c.messages,
       truncated: this.c.truncated,
+      ...this.work.result(),
     };
   }
 }
@@ -644,6 +754,13 @@ export function snippet(text: string, index: number, length: number, n = 120): s
   return `${start > 0 ? '…' : ''}${oneLine(text.slice(start, end))}${end < text.length ? '…' : ''}`;
 }
 
+/** What one session touched (T70). Paths as written: absolute, or relative to `entry.cwd`. */
+export interface SessionWork {
+  entry: HistoryEntry;
+  files: string[];
+  mentions: string[];
+}
+
 // ── The index ──────────────────────────────────────────────────────────────────
 
 interface Indexed {
@@ -657,11 +774,15 @@ interface Indexed {
   truncated: boolean;
   /** Bash commands (Claude, T59). */
   commands?: CommandRun[];
+  /** Edited files and `@note.md` mentions (T70). */
+  files?: string[];
+  mentions?: string[];
   /** Name, titles, first message and messages (and lower-cased): what full-text search looks in. */
   text?: { original: string; lower: string };
 }
 
-interface CacheItem {
+/** A parsed transcript and the file state it was read at (T70: carried across short-lived lite workers). */
+export interface CacheItem {
   mtimeMs: number;
   size: number;
   parsed: ParsedSession | null;
@@ -721,10 +842,14 @@ export class HistoryIndex {
   private remote = new Map<string, RemoteState>();
   private remoteBuilding: Promise<HistoryList> | null = null;
 
-  /** `exec` runs scripts on SSH hosts (T36); without it remote hosts are never scanned. */
+  /**
+   * `exec` runs scripts on SSH hosts (T36); without it remote hosts are never scanned. `lite` (T70, the graph):
+   * titles, edited files and `@mentions` only — no message text, so no search or transcripts from this index.
+   */
   constructor(
     private sources: Sources = DEFAULT_SOURCES,
     private exec?: RemoteExec,
+    private opts: { lite?: boolean } = {},
   ) {}
 
   private async parseCached<P extends { line(l: string): void }>(
@@ -795,7 +920,7 @@ export class HistoryIndex {
         seenFiles.add(file);
         const parsed = await this.parseCached(
           file,
-          () => new ClaudeParser(),
+          () => new ClaudeParser(false, this.opts.lite),
           (p, mtime) => p.result(mtime),
         );
         if (!parsed) return;
@@ -811,6 +936,8 @@ export class HistoryIndex {
           messages: parsed.messages,
           truncated: parsed.truncated,
           commands: parsed.commands,
+          ...(parsed.files ? { files: parsed.files } : {}),
+          ...(parsed.mentions ? { mentions: parsed.mentions } : {}),
           entry: this.entry(config, meta, ref, parsed, {
             account,
             expiresAt: days > 0 ? mtime + days * DAY_MS : undefined,
@@ -847,7 +974,7 @@ export class HistoryIndex {
       const parsed = file
         ? await this.parseCached(
             file,
-            () => new CodexParser(),
+            () => new CodexParser(false, this.opts.lite),
             (p, mtime) => p.result(mtime),
           )
         : null;
@@ -870,6 +997,8 @@ export class HistoryIndex {
         file,
         messages: base.messages,
         truncated: base.truncated,
+        ...(parsed?.files ? { files: parsed.files } : {}),
+        ...(parsed?.mentions ? { mentions: parsed.mentions } : {}),
         entry: this.entry(config, meta, ref, base, {}),
       });
     });
@@ -1032,6 +1161,32 @@ export class HistoryIndex {
 
   get(ref: HistoryRef): HistoryEntry | undefined {
     return this.item(ref)?.entry;
+  }
+
+  /** T70: the parse cache, so a lite index in a short-lived worker thread starts warm. */
+  cacheEntries(): [string, CacheItem][] {
+    return [...this.cache];
+  }
+
+  loadCache(entries: readonly [string, CacheItem][]): void {
+    this.cache = new Map(entries);
+  }
+
+  /** SSH hosts' entries from the last `refreshRemote` (no scan). */
+  remoteEntries(): HistoryEntry[] {
+    return [...this.remote.values()].flatMap((st) => [...st.items.values()].map((i) => i.entry));
+  }
+
+  /**
+   * T70: local sessions with what they touched — edited files and `@note.md` mentions — from the last `list` (no
+   * scan of its own). Sessions that touched nothing are left out.
+   */
+  work(): SessionWork[] {
+    const out: SessionWork[] = [];
+    for (const i of this.items.values())
+      if (i.files?.length || i.mentions?.length)
+        out.push({ entry: i.entry, files: i.files ?? [], mentions: i.mentions ?? [] });
+    return out;
   }
 
   /** Full-text search (case-insensitive substring) over names, titles, first message and every indexed message. */

@@ -641,6 +641,7 @@ export default function WorkspacePage() {
                 onOpenView={(sourceId, viewId) => setVaultView({ sourceId, viewId })}
               />
             )}
+            onClaude={sendNoteToClaude}
             onCreateNote={(name, sourceId) => {
               if (!sourceId) return;
               void api.vaultCreateNote(sourceId, null, name).then((p) => p && setNotePath(p));
@@ -650,6 +651,9 @@ export default function WorkspacePage() {
         {graphOpen && !fullscreen.on && !previewFull && !noteFull && (
           <KnowledgeGraphPanel
             full={graphFull}
+            onClaude={sendNoteToClaude}
+            onResumed={ws.adoptResumed}
+            onError={ws.showError}
             onToggleFull={() => {
               setNoteFull(false);
               setGraphFull((f) => !f);

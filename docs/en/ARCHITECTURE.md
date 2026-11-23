@@ -569,6 +569,28 @@ index) or a `[[link]]` / backlink. `useGraphData` moved to `entities/note` so th
   `##` headings — never note bodies) and the request, both quoted as data, go to a hidden `claude -p` (sonnet);
   the first JSON object in the reply is validated and shown as a draft. Nothing is saved until Save.
 
+## The app in the graph (T70)
+
+`electron/graph/app-nodes.ts` (+ `HandleWithClaude` in `features/edit-note`). Sessions, the files they changed,
+trends and apply decisions join the graph as `session` / `file` / `trend` / `apply` nodes with solid `action` edges,
+built from data the app already has:
+
+- **History:** the history parsers also collect edited files (Claude `Edit` / `Write` / `MultiEdit` /
+  `NotebookEdit`, codex `apply_patch` headers) and `@path.md` mentions in user messages (`@"…"` for paths with
+  spaces); `HistoryIndex.work()` returns them from the last scan. No scan of its own.
+- **Edges:** note `@`-mentioned in a session → session (`session`) → each changed file (`changed`, ≤40 per session;
+  an edited note links to the note itself); a changed file whose name is a code name in the index → that `code` node
+  (0.7). Trend → apply decision (`apply`, every record in `~/.aquila/applies`) → the session on the applied worktree
+  branch. Only sessions that touched a note or ran an applied trend appear (≤200, local only).
+- **When:** `GraphService.snapshot()` merges `AppNodes.graph(nodes)` into the worker's snapshot. `AppNodes` loads
+  once and again only after `invalidate()` — Claude hooks `Stop` / `UserPromptSubmit` / `SessionEnd`, an apply
+  decided — then `appChanged()` bumps the status version (coalesced 1 s) so an open graph refetches; nothing happens
+  before the graph was first asked for.
+- **UI:** the view keeps non-notes on a path from a kept note (note → session → file) or from a trend / apply. The
+  card: "Handle with Claude" on a note or to-do (its strongest note; a Claude tab in that note's project,
+  `note:project`, with the prompt and `@path` pasted, not sent), Resume on a session, Open link on a trend. The
+  editor head has the same "Handle with Claude".
+
 ## In-app preview (T33)
 
 `electron/preview.ts` + `widgets/preview` (`PreviewPanel`, ⌘⇧P or the ◫ button in the tab bar; local projects only).
