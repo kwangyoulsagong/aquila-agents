@@ -413,6 +413,24 @@ import하지 않음).
 - **smoke / capture:** `electron/fixtures/news` 픽스처 피드, 임시 캐시, 고정 버전, 픽스처 날짜(`FIXTURE_NOW`). smoke는 열
   때 가져오는지, 행·줄·업계 탭·Esc 확인, capture는 `trends` 가이드 항목을 녹화.
 
+## 지식 그래프 인덱스 (T65)
+
+`electron/graph/` + `entities/note` + `features/graph-sources`. Markdown 폴더(레포 안이든 밖이든)가 **소스**
+(`~/.aquila/graph/sources.json`). 파일은 제자리에 두고 절대 쓰지 않는다.
+
+- **지연 시작:** 렌더러가 그래프 API를 처음 부를 때까지(설정 ▸ 노트 소스…, 나중엔 그래프 패널) 아무것도 안 돈다.
+  `GraphService`(`index.ts`)는 켜진 소스가 있을 때만 `worker_thread`(`worker.ts` → `engine.ts`)를 띄우고, 마지막
+  소스를 끄면 멈춘다. 메인 프로세스는 상태만 들고 노트는 들지 않는다.
+- **인덱스:** 폴더 순회(숨김·빌드 폴더 제외) → 바뀐 `.md`를 50개씩 양보하며 파싱(`parse.ts`: 제목, 제목들,
+  `[[링크]]`, 상대 링크, `#태그`, frontmatter, URL, ID, 코드 같은 단어) → `build.ts`가 `GraphNode` / `GraphEdge`
+  생성(타입은 `shared/api/types.ts`). `~/.aquila/graph/index.json`에 저장, 다음 시작엔 mtime/크기가 바뀐 파일만 다시 파싱.
+- **엣지:** 쌍마다 하나, 가장 강한 종류가 이김: 명시(링크 1, frontmatter 0.9, 태그 0.8) · 행동(T70) · 언급(공통 ID 0.7,
+  제목 0.6, 코드 이름 0.5, 공통 URL 0.4) · 제안(T68). 코드 이름은 로컬 프로젝트의 파일 이름과 export 심볼(`code.ts`,
+  노트 다음에 스캔).
+- **감시:** 켜진 소스마다 재귀 `fs.watch` 하나, 디바운스 400 ms(절전 2초). 파일 500개 넘는 첫 인덱싱은 절전에서
+  "지금 색인"까지 멈춤.
+- 패키징: 워커 파일을 띄울 수 있게 `dist-electron/electron/graph/**`는 asar 밖으로 뺀다.
+
 ## 앱 내 프리뷰 (T33)
 
 `electron/preview.ts` + `widgets/preview`(`PreviewPanel`, ⌘⇧P 또는 탭 바의 ◫ 버튼, 로컬 프로젝트만).

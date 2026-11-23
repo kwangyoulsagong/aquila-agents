@@ -33,6 +33,7 @@ export type ActionId =
   | 'renameSession'
   | 'switchLanguage'
   | 'globalShortcut'
+  | 'sources'
   | 'firstRun'
   | 'guide'
   | 'whatsNew';
@@ -105,6 +106,7 @@ const ACTIONS: {
   { action: 'renameSession', label: (t) => t('action.renameSession') },
   { action: 'switchLanguage', label: (t) => t('palette.switchLanguage') },
   { action: 'globalShortcut', label: (t) => t('globalShortcut.menu') },
+  { action: 'sources', label: (t) => t('sources.menu') },
   { action: 'firstRun', label: (t) => t('firstRun.checklist') },
   { action: 'guide', label: (t) => t('guide.title'), shortcut: 'guide' },
   { action: 'whatsNew', label: (t) => t('notes.title') },

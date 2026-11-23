@@ -7,15 +7,17 @@ interface SettingsMenuOptions {
   onChanged: (c: Config) => void;
   /** Settings ▸ Global shortcut… (T41); the page owns the dialog. */
   onGlobalShortcut?: () => void;
+  /** Settings ▸ Note sources… (T65); the page owns the dialog. */
+  onSources?: () => void;
 }
 
 /**
  * Pops the ⚙ settings menu at the cursor: Language ▸ 한국어 / English (current one checked), Notify when done,
- * Global shortcut… and the settings file. Also what the menu bar's Aquila ▸ Settings… (⌘,) opens (T47).
+ * Global shortcut…, Note sources… and the settings file. Also what the menu bar's Aquila ▸ Settings… (⌘,) opens (T47).
  */
 export async function openSettingsMenu(
   t: Translate,
-  { config, onChanged, onGlobalShortcut }: SettingsMenuOptions,
+  { config, onChanged, onGlobalShortcut, onSources }: SettingsMenuOptions,
 ): Promise<void> {
   const id = await api.showContextMenu([
     {
@@ -27,6 +29,7 @@ export async function openSettingsMenu(
     },
     { id: 'notifyDone', label: t('settings.notifyDone'), checked: !!config.notifyDone },
     ...(onGlobalShortcut ? [{ id: 'globalShortcut', label: t('globalShortcut.menu') }] : []),
+    ...(onSources ? [{ id: 'sources', label: t('sources.menu') }] : []),
     { separator: true },
     { id: 'config', label: t('action.openConfig') },
   ]);
@@ -35,6 +38,7 @@ export async function openSettingsMenu(
     if (language !== config.language) void api.setLanguage(language).then(onChanged);
   } else if (id === 'notifyDone') void api.setNotifyDone(!config.notifyDone).then(onChanged);
   else if (id === 'globalShortcut') onGlobalShortcut?.();
+  else if (id === 'sources') onSources?.();
   else if (id === 'config') void api.openConfig();
 }
 

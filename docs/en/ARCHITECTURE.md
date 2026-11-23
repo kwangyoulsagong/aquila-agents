@@ -442,6 +442,25 @@ own title.
   (`FIXTURE_NOW`); smoke checks that opening fetches, the rows, the lines, the Industry tab and Esc; capture records the
   `trends` guide item.
 
+## Knowledge graph index (T65)
+
+`electron/graph/` + `entities/note` + `features/graph-sources`. Folders of Markdown (in repos or not) are **sources**
+(`~/.aquila/graph/sources.json`); files stay where they are and are never written to.
+
+- **Lazy:** nothing runs until the renderer first calls a graph API (Settings ▸ Note sources…, later the graph panel).
+  `GraphService` (`index.ts`) starts a `worker_thread` (`worker.ts` → `engine.ts`) only while a source is enabled and
+  stops it after the last one is turned off. The main process keeps statuses only, never notes.
+- **Index:** walk (hidden / build folders skipped) → parse changed `.md` in batches of 50 that yield (`parse.ts`:
+  title, headings, `[[links]]`, relative links, `#tags`, frontmatter, URLs, IDs, code-ish words) → `build.ts` makes
+  `GraphNode` / `GraphEdge` (types in `shared/api/types.ts`). Kept in `~/.aquila/graph/index.json`; on the next start
+  only files whose mtime/size changed are parsed again.
+- **Edges:** one per pair, strongest kind wins: explicit (link 1, frontmatter 0.9, tag 0.8) · action (T70) · mention
+  (shared ID 0.7, title 0.6, code name 0.5, shared URL 0.4) · suggested (T68). Code names come from the local projects'
+  file names and exported symbols (`code.ts`, scanned after the notes).
+- **Watch:** one recursive `fs.watch` per enabled source, debounce 400 ms (2 s in power saver). A first index of more
+  than 500 files pauses in saver until "Index now".
+- Packaged: `dist-electron/electron/graph/**` is unpacked from the asar so the worker file can be started.
+
 ## In-app preview (T33)
 
 `electron/preview.ts` + `widgets/preview` (`PreviewPanel`, ⌘⇧P or the ◫ button in the tab bar; local projects only).

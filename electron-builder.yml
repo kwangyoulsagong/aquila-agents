@@ -17,6 +17,8 @@ files:
 # node-pty is native: its .node files and spawn-helper must live outside the asar to load and execute.
 asarUnpack:
   - node_modules/node-pty/**
+  # The knowledge-graph index worker (T65) is started from a file: keep it (and the modules it requires) on disk.
+  - dist-electron/electron/graph/**
 # No rebuild at pack time: `postinstall` already rebuilt node-pty for Electron on the host (macOS build), and Windows
 # uses node-pty's N-API prebuilds (see win below). Rebuilding here would try to cross-compile and fail.
 npmRebuild: false

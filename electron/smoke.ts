@@ -169,6 +169,8 @@ export async function runSmoke(
     if (trendsError) return fail(trendsError);
     const applyError = await checkApplyTrend(win, outDir);
     if (applyError) return fail(applyError);
+    const sourcesError = await checkGraphSources(win, config, path.join(outDir, 'smoke-sources.png'));
+    if (sourcesError) return fail(sourcesError);
     const imeError = await checkIme(win);
     if (imeError) return fail(imeError);
     const reviewError = await checkReviewQueue(win, sessions, outDir);
@@ -1132,6 +1134,47 @@ async function checkGlobalShortcut(win: BrowserWindow, config: Config, out: stri
     `!!document.querySelector('.c-dialog[open]')`,
   );
   return stillOpen ? 'Esc did not close the global shortcut dialog' : null;
+}
+
+/**
+ * Note sources (T65): ⌘K → "Note sources…" opens the dialog; the three fixture folders (a meeting note, a frontmatter
+ * spec, a memo) are added as sources (the folder picker is native, so through the bridge), the index worker reads
+ * them, the rows say "1 notes", the shared ID is offered as a group, and the snapshot links the meeting note and the
+ * spec through DB-12 with no link written. Sources and index live in the smoke's throwaway graph folder.
+ */
+async function checkGraphSources(win: BrowserWindow, config: Config, out: string): Promise<string | null> {
+  const t = translator(config.language);
+  if (!(await paletteRun(win, t('sources.menu')))) return `palette has no "${t('sources.menu')}" action`;
+  await wait(500);
+  const fixtures = path.join(__dirname, '..', '..', 'electron', 'fixtures', 'graph');
+  for (const dir of ['meetings', 'specs', 'memos'])
+    await win.webContents.executeJavaScript(`window.aquila.graphAddSource(${JSON.stringify(path.join(fixtures, dir))})`);
+  const rows = () =>
+    win.webContents.executeJavaScript(
+      `[...document.querySelectorAll('.c-dialog[open] .c-checklist__item')].map((r) => r.textContent)`,
+    ) as Promise<string[]>;
+  const ready = t('sources.state.ready', { count: '1' });
+  let seen: string[] = [];
+  for (let i = 0; i < 50; i++) {
+    seen = await rows();
+    if (seen.length === 3 && seen.every((r) => r.includes(ready))) break;
+    await wait(200);
+  }
+  if (seen.length !== 3 || !seen.every((r) => r.includes(ready)))
+    return `note sources did not index: ${JSON.stringify(seen)}`;
+  const offered: boolean = await win.webContents.executeJavaScript(
+    `[...document.querySelectorAll('.c-dialog[open] .c-meta__value')].some((v) => v.textContent.includes('DB-'))`,
+  );
+  if (!offered) return 'note sources: the shared DB- id is not offered as a group';
+  const linked: boolean = await win.webContents.executeJavaScript(
+    `window.aquila.graphSnapshot().then((g) => g.edges.some((e) => e.reasons.some((r) => r.via === 'id' && r.label === 'DB-12')))`,
+  );
+  if (!linked) return 'note sources: the snapshot has no DB-12 edge between the meeting note and the spec';
+  fs.writeFileSync(out, (await win.webContents.capturePage()).toPNG());
+  console.log(`[smoke] note sources: 3 folders indexed in the worker, DB-12 links two notes, screenshot: ${out}`);
+  press(win, 'Escape', []);
+  await wait(400);
+  return null;
 }
 
 /** ⌘K → "Project settings…" opens the settings dialog with its fields; screenshot, then Esc closes it (nothing saved). */

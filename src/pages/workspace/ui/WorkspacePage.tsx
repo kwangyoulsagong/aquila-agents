@@ -16,6 +16,7 @@ import { nextWaiting, summonTarget } from '@/features/next-waiting';
 import { ReviewQueue, useReviewQueue } from '@/features/review-queue';
 import { SessionCommandsModal } from '@/features/session-commands';
 import { GlobalShortcutDialog } from '@/features/global-shortcut';
+import { SourcesDialog } from '@/features/graph-sources';
 import { copyLastReply, toggleQuickSelect } from '@/features/terminal-helpers';
 import { openFind } from '@/features/terminal-search';
 import { focusSession } from '@/entities/session';
@@ -103,6 +104,7 @@ export default function WorkspacePage() {
   }, [reviewNext, selectSession]);
   // Global shortcut (T41): main already brought the window up; go to the session that needs the user.
   const [globalShortcutOpen, setGlobalShortcutOpen] = useState(false);
+  const [sourcesOpen, setSourcesOpen] = useState(false);
   const summonRef = useRef({ sessions, focusedId, selectSession });
   summonRef.current = { sessions, focusedId, selectSession };
   useEffect(
@@ -225,6 +227,7 @@ export default function WorkspacePage() {
           config,
           onChanged: setConfig,
           onGlobalShortcut: () => setGlobalShortcutOpen(true),
+          onSources: () => setSourcesOpen(true),
         });
     },
     addProject: () => void addProject(),
@@ -280,6 +283,7 @@ export default function WorkspacePage() {
       a.find = find;
     }
     a.globalShortcut = () => setGlobalShortcutOpen(true);
+    a.sources = () => setSourcesOpen(true);
     a.firstRun = reopenFirstRun;
     a.guide = showGuide;
     a.whatsNew = showNotes;
@@ -364,6 +368,7 @@ export default function WorkspacePage() {
                   config={config}
                   onChanged={ws.setConfig}
                   onGlobalShortcut={() => setGlobalShortcutOpen(true)}
+                  onSources={() => setSourcesOpen(true)}
                 />
                 <TrendsButton
                   open={trendsOpen}
@@ -502,6 +507,7 @@ export default function WorkspacePage() {
           />
         )}
         {globalShortcutOpen && <GlobalShortcutDialog onClose={() => setGlobalShortcutOpen(false)} />}
+        {sourcesOpen && <SourcesDialog onClose={() => setSourcesOpen(false)} />}
         {commandsOpen && focusedSession && (
           <SessionCommandsModal
             key={focusedSession.id}
