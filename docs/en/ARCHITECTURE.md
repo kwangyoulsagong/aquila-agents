@@ -461,6 +461,27 @@ own title.
   than 500 files pauses in saver until "Index now".
 - Packaged: `dist-electron/electron/graph/**` is unpacked from the asar so the worker file can be started.
 
+## Knowledge graph view (T66)
+
+`widgets/knowledge-graph`: right panel (⌘⇧N, the tab bar's ◉ Graph button) or full window, any project or none.
+
+- **Lazy chunk:** `index.ts` is a `React.lazy` wrapper (+ an error boundary that closes the panel); sigma.js,
+  graphology and the layout load on first open. `useGraphData` asks for the status (which starts the T65 index) and
+  refetches the snapshot only when its version moves (coalesced to one fetch per 800 ms while indexing).
+- **View:** `model/view.ts` filters the snapshot (source, kind, tag, time, min strength; non-notes stay only while a
+  kept note links them), the local view keeps the selected note's depth 1–2 neighbourhood, search matches labels.
+- **Layout:** ForceAtlas2 (`graphology-layout-forceatlas2/iterate.js` over packed arrays, `model/layout.ts`) in a
+  fresh module worker per data change (`layout.worker.ts`, `runLayout.ts`); it stops when the picture settles or after
+  3 s and is terminated — no worker between runs. Ticks every 100 ms (none in power saver: only the final picture).
+  Known nodes keep their place; new ones start next to a neighbour. If the worker can't load, the same loop runs on
+  the UI thread in 8 ms slices.
+- **Render:** sigma.js v4 (`ui/useGraphRenderer.ts`), redraws on change only. Edges: a plain layer for solid lines
+  (explicit / action) and a dashed layer for dashed (mention) and dotted (suggested). Colours are `--color-graph-*`
+  read with `getComputedStyle` (again on theme change). Updates wait for sigma's first frame after a rebuild (it
+  refuses to repaint items it hasn't drawn). Closing the panel kills sigma, which releases the WebGL context.
+- Open (or double-click) on a note → `graphOpenNote`, which main only allows for a `.md` inside an enabled source
+  (default app; the editor replaces it in T67).
+
 ## In-app preview (T33)
 
 `electron/preview.ts` + `widgets/preview` (`PreviewPanel`, ⌘⇧P or the ◫ button in the tab bar; local projects only).

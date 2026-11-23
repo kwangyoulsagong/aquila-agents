@@ -1120,6 +1120,8 @@ export interface AquilaApi {
   graphIndexNow(id: string): Promise<GraphStatus>;
   /** The whole index: notes, tags, code names and their edges. */
   graphSnapshot(): Promise<GraphSnapshot>;
+  /** Opens a note of an enabled source in the default app (T66, until the editor T67). Other paths are refused. */
+  graphOpenNote(path: string): Promise<boolean>;
   /** Global shortcut (T41): the saved key and whether the OS gave it to us. */
   globalShortcut(): Promise<GlobalShortcutState>;
   /** Saves and registers a new key (null = off). A taken key keeps the old one and reports `taken`. */
@@ -1363,6 +1365,7 @@ export const IPC = {
   graphSetSourceEnabled: 'graph:set-source-enabled',
   graphIndexNow: 'graph:index-now',
   graphSnapshot: 'graph:snapshot',
+  graphOpenNote: 'graph:open-note',
   globalShortcutGet: 'global-shortcut:get',
   globalShortcutSet: 'global-shortcut:set',
   globalShortcutFired: 'global-shortcut:fired',

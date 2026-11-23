@@ -431,6 +431,23 @@ import하지 않음).
   "지금 색인"까지 멈춤.
 - 패키징: 워커 파일을 띄울 수 있게 `dist-electron/electron/graph/**`는 asar 밖으로 뺀다.
 
+## 지식 그래프 뷰 (T66)
+
+`widgets/knowledge-graph`: 오른쪽 패널(⌘⇧N, 탭 바의 ◉ 그래프 버튼) 또는 전체 창. 프로젝트와 상관없음.
+
+- **지연 청크:** `index.ts`는 `React.lazy` 래퍼(+ 실패하면 패널을 닫는 에러 경계). sigma.js, graphology, 레이아웃은
+  처음 열 때 로드. `useGraphData`가 상태를 물어(이때 T65 색인 시작) 버전이 바뀔 때만 스냅샷을 다시 가져온다(색인 중엔 800 ms에 한 번으로 묶음).
+- **뷰:** `model/view.ts`가 스냅샷을 거른다(소스, 종류, 태그, 기간, 최소 강도. 노트가 아닌 노드는 남은 노트가 이을
+  때만 남음). 로컬 뷰는 선택한 노트의 깊이 1–2 이웃만, 검색은 라벨을 찾는다.
+- **레이아웃:** ForceAtlas2(`graphology-layout-forceatlas2/iterate.js`를 배열 위에서, `model/layout.ts`)를 데이터가
+  바뀔 때마다 새 모듈 워커에서(`layout.worker.ts`, `runLayout.ts`). 그림이 안정되거나 3초가 지나면 멈추고 종료 —
+  실행 사이엔 워커가 없다. 100 ms마다 중간 위치(절전에선 없음: 최종 그림만). 있던 노드는 제자리, 새 노드는 이웃
+  옆에서 시작. 워커를 못 띄우면 같은 루프가 UI 스레드에서 8 ms씩 돈다.
+- **렌더:** sigma.js v4(`ui/useGraphRenderer.ts`), 바뀔 때만 그린다. 엣지: 실선(명시/행동)은 plain 레이어, 파선(언급)과
+  점선(제안)은 dashed 레이어. 색은 `--color-graph-*`를 `getComputedStyle`로 읽음(테마가 바뀌면 다시). 다시 만든 뒤엔
+  sigma의 첫 프레임까지 갱신을 미룬다(아직 안 그린 항목은 다시 칠하기를 거부함). 패널을 닫으면 sigma를 kill해 WebGL 컨텍스트를 놓는다.
+- 노트 열기(또는 더블클릭) → `graphOpenNote`. 메인은 켜진 소스 안의 `.md`만 허용(기본 앱. T67에서 에디터로 바뀜).
+
 ## 앱 내 프리뷰 (T33)
 
 `electron/preview.ts` + `widgets/preview`(`PreviewPanel`, ⌘⇧P 또는 탭 바의 ◫ 버튼, 로컬 프로젝트만).

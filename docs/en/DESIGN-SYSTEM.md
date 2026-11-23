@@ -45,6 +45,7 @@ Check: `grep -rn -- '--p-' src design-system/components.css` returns only the ru
 | `--color-action-primary(-hover)` | Primary button |
 | `--color-agent-claude` / `-codex` / `-shell` | Session kind |
 | `--color-account-shared` / `-personal` | Claude account badge (`claude` / `claude-personal`) |
+| `--color-graph-note` / `-tag` / `-code` / `-missing` / `-other` / `-edge` / `-focus` | Knowledge graph canvas (T66): node kinds, links, the focused note. WebGL can't read CSS, so the panel resolves them with `getComputedStyle` and again on theme change |
 | `--color-diff-*` | Diff add / del / hunk |
 | `--color-terminal-*` | xterm theme (read at runtime, re-read when the theme changes): bg, fg, cursor, selection, scrollbar (+ `-hover`), find matches `-match` / `-match-active` (opaque `#RRGGBB`, xterm decorations need it; amber). On light, xterm's `minimumContrastRatio` is 4.5 so CLI colors picked for a dark background stay readable |
 

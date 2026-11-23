@@ -143,6 +143,15 @@
   --color-account-shared: var(--p-slate-400);
   --color-account-personal: var(--p-violet-300);
 
+  /* Knowledge graph (T66, WebGL canvas reads these at runtime): node kinds, links, the focused note */
+  --color-graph-note: var(--p-slate-400);
+  --color-graph-tag: var(--p-teal-300);
+  --color-graph-code: var(--p-peach-300);
+  --color-graph-missing: var(--p-slate-500);
+  --color-graph-other: var(--p-violet-300);    /* AI / app nodes (T68, T70) */
+  --color-graph-edge: var(--p-slate-700);
+  --color-graph-focus: var(--p-blue-400);
+
   /* Diff */
   --color-diff-add-bg: var(--p-green-400-a12);
   --color-diff-add-text: var(--p-green-300);
@@ -281,6 +290,14 @@
 
   --color-account-shared: var(--p-slate-500);
   --color-account-personal: var(--p-violet-600);
+
+  --color-graph-note: var(--p-slate-500);
+  --color-graph-tag: var(--p-teal-600);
+  --color-graph-code: var(--p-peach-600);
+  --color-graph-missing: var(--p-slate-400);
+  --color-graph-other: var(--p-violet-600);
+  --color-graph-edge: var(--p-paper-300);
+  --color-graph-focus: var(--p-blue-600);
 
   --color-diff-add-bg: var(--p-green-600-a12);
   --color-diff-add-text: var(--p-green-700);

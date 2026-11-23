@@ -22,6 +22,8 @@ interface Deps {
   togglePreview: () => void;
   /** Run slot panel (T60). */
   toggleRun: () => void;
+  /** Knowledge graph panel (T66). */
+  toggleGraph: () => void;
   togglePalette: () => void;
   toggleGuide: () => void;
   toggleHistory: () => void;
@@ -55,6 +57,7 @@ export function useShortcuts({
   toggleChanges,
   togglePreview,
   toggleRun,
+  toggleGraph,
   togglePalette,
   toggleGuide,
   toggleHistory,
@@ -91,6 +94,8 @@ export function useShortcuts({
           return togglePreview();
         case 'toggleRun':
           return toggleRun();
+        case 'toggleGraph':
+          return toggleGraph();
         case 'history':
           return toggleHistory();
         case 'nextWaiting':
@@ -161,6 +166,7 @@ export function useShortcuts({
     toggleChanges,
     togglePreview,
     toggleRun,
+  toggleGraph,
     togglePalette,
     toggleGuide,
     toggleHistory,

@@ -33,6 +33,7 @@ import { ChangesPanel } from '@/widgets/changes-panel';
 import { PreviewPanel } from '@/widgets/preview';
 import { RunPanel } from '@/features/run-slot';
 import { HistoryPanel } from '@/widgets/history-panel';
+import { KnowledgeGraphPanel } from '@/widgets/knowledge-graph';
 import { UsageGauge } from '@/widgets/usage-gauge';
 import { TrendsButton, TrendsModal, hasCliUpdate, useTrends } from '@/widgets/trends';
 import { TrendApplyModal, type ApplyItem } from '@/widgets/trend-apply';
@@ -52,6 +53,10 @@ export default function WorkspacePage() {
   // Run slot (T60); "Open in preview" opens the preview on the run's address.
   const [runOpen, setRunOpen] = useState(false);
   const toggleRun = useCallback(() => setRunOpen((o) => !o), []);
+  // Knowledge graph (T66): not tied to a project; right panel or full window.
+  const [graphOpen, setGraphOpen] = useState(false);
+  const [graphFullOn, setGraphFull] = useState(false);
+  const toggleGraph = useCallback(() => setGraphOpen((o) => !o), []);
   const [previewRequest, setPreviewRequest] = useState<{ url: string; at: number } | null>(null);
   const clearPreviewRequest = useCallback(() => setPreviewRequest(null), []);
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -158,6 +163,7 @@ export default function WorkspacePage() {
     toggleChanges,
     togglePreview,
     toggleRun,
+    toggleGraph,
     togglePalette,
     toggleGuide,
     toggleHistory,
@@ -171,22 +177,29 @@ export default function WorkspacePage() {
   const { config, project, activeSessionId, openSession, closeSession, setConfig, showError } = ws;
   // Only while the preview is actually shown: a remote project or full window would otherwise leave nothing on screen.
   const previewFull = previewFullOn && previewOpen && !fullscreen.on && !!project && !project.remote;
+  const graphFull = graphFullOn && graphOpen && !fullscreen.on && !previewFull;
+  // One panel alone in the window: the sidebar, the terminals and the other panels step aside.
+  const panelFull = previewFull || graphFull;
   // More side panels than the window holds: the oldest one closes (changes · run · preview).
   const local = !!project && !project.remote;
   const closePanel = useCallback((p: PanelId) => {
     if (p === 'changes') setChangesOpen(false);
     else if (p === 'run') setRunOpen(false);
-    else {
+    else if (p === 'graph') {
+      setGraphOpen(false);
+      setGraphFull(false);
+    } else {
       setPreviewOpen(false);
       setPreviewFull(false);
     }
   }, []);
   usePanelFit(
-    { changes: changesOpen, run: runOpen, preview: previewOpen },
+    { changes: changesOpen, run: runOpen, preview: previewOpen, graph: graphOpen },
     {
-      changes: changesOpen && !fullscreen.on && !previewFull,
-      run: runOpen && !fullscreen.on && !previewFull && local,
-      preview: previewOpen && !fullscreen.on && local,
+      changes: changesOpen && !fullscreen.on && !panelFull,
+      run: runOpen && !fullscreen.on && !panelFull && local,
+      preview: previewOpen && !fullscreen.on && local && !graphFull,
+      graph: graphOpen && !fullscreen.on && !previewFull,
     },
     closePanel,
   );
@@ -269,6 +282,7 @@ export default function WorkspacePage() {
     a.addProject = () => void addProject();
     a.addRemote = addRemote;
     a.history = toggleHistory;
+    a.toggleGraph = toggleGraph;
     if (activeSessionId) a.closeSession = () => closeSession(activeSessionId);
     // Edited in its tab, which full window hides.
     if (activeSessionId && !fullscreen.on) a.renameSession = () => renameTab(activeSessionId);
@@ -311,6 +325,7 @@ export default function WorkspacePage() {
     toggleChanges,
     togglePreview,
     toggleRun,
+    toggleGraph,
     openWorktreeDialog,
     paletteWorktrees.length,
     openCleanup,
@@ -341,7 +356,7 @@ export default function WorkspacePage() {
   return (
     <I18nContext.Provider value={t}>
       <div className="app">
-        {!fullscreen.on && !previewFull && (
+        {!fullscreen.on && !panelFull && (
           <Sidebar
             config={config}
             sessions={ws.sessions}
@@ -380,7 +395,7 @@ export default function WorkspacePage() {
             }
           />
         )}
-        <main className="app__main" hidden={previewFull}>
+        <main className="app__main" hidden={panelFull}>
           {fullscreen.on ? (
             <FullscreenBar config={config} session={focusedSession} onExit={toggleFullscreen} />
           ) : (
@@ -436,6 +451,15 @@ export default function WorkspacePage() {
                         aria-label={t('run.label')}
                       />
                     )}
+                    <Button
+                      variant="ghost"
+                      glyph="◉"
+                      label={t('graph.label')}
+                      aria-pressed={graphOpen}
+                      onClick={toggleGraph}
+                      title={withShortcut(t('graph.toggle'), 'toggleGraph')}
+                      aria-label={t('graph.label')}
+                    />
                     {fullscreen.available && <FullscreenButton onClick={toggleFullscreen} />}
                   </>
                 )
@@ -517,14 +541,14 @@ export default function WorkspacePage() {
         )}
         {/* Full window hides the side panels too; their open state is kept for when it ends.
             Siblings here need distinct keys: two with the same project id make React mix up their DOM. */}
-        {changesOpen && !fullscreen.on && !previewFull && (
+        {changesOpen && !fullscreen.on && !panelFull && (
           <ChangesPanel
             project={project}
             session={ws.sessions.find((x) => x.id === activeSessionId)}
             onClose={() => setChangesOpen(false)}
           />
         )}
-        {runOpen && !fullscreen.on && !previewFull && project && !project.remote && (
+        {runOpen && !fullscreen.on && !panelFull && project && !project.remote && (
           <RunPanel
             key={`run:${project.id}`}
             project={project}
@@ -538,7 +562,18 @@ export default function WorkspacePage() {
           />
         )}
         {/* Last column: the native preview view only has to follow its own size and the window. */}
-        {previewOpen && !fullscreen.on && project && !project.remote && (
+        {graphOpen && !fullscreen.on && !previewFull && (
+          <KnowledgeGraphPanel
+            full={graphFull}
+            onToggleFull={() => setGraphFull((f) => !f)}
+            onClose={() => {
+              setGraphOpen(false);
+              setGraphFull(false);
+            }}
+            onSources={() => setSourcesOpen(true)}
+          />
+        )}
+        {previewOpen && !fullscreen.on && !graphFull && project && !project.remote && (
           <PreviewPanel
             key={`preview:${project.id}`}
             project={project}

@@ -704,7 +704,7 @@ throttled or hot → `saver`). The rules every task below follows:
   _Left over: the dialog is **Settings ▸ Note sources…** (also in ⌘K), in `src/features/graph-sources/`. The index runs in a worker owned by `electron/graph/engine.ts` (`worker.ts` wraps it, `index.ts` keeps `sources.json` and starts the worker on the first graph call, only while a source is enabled); the graph is built in `build.ts`, project code names come from `code.ts`. Code names count only when they look like code (camelCase, snake_case, `file.ts`), so plain words never link to a file. Title mentions need ≥4 ASCII / ≥3 other letters and skip generic names (README, index…); a shared ID / URL in more than 20 notes is ignored. Code names are scanned after the notes are indexed (scanning every project can take seconds). The shared-ID groups show in the dialog ("Looks like an ID"); turning a group into a rule is T68. `npm run perf` has no 2,000-note scenario yet (T66, with the graph panel). Smoke indexes the three fixtures through the real worker._
 
 ### T66 · Graph 2: graph view
-- [ ] **Goal:** see how everything I wrote connects.
+- [x] **Goal:** see how everything I wrote connects.
 - **Spec:** WebGL graph (sigma.js + graphology, layout in a worker) for thousands of nodes; whole graph and local view
   (current note, depth 1–2); line style by strength (solid explicit/action, dashed mention, dotted suggested);
   strength slider; filters by source, node kind, tag, time; search highlights; click → note in the editor (T67).
@@ -712,6 +712,7 @@ throttled or hot → `saver`). The rules every task below follows:
 - **Battery:** lazy chunk; render on change only; layout worker stops when settled (≤3 s) or hidden; WebGL context released when hidden; saver → no layout animation.
 - **Owns:** `src/widgets/knowledge-graph/`.
 - **Done:** 2,000 fixture notes pan and zoom smoothly; the local view of a note shows its depth-2 neighbours.
+  _Left over: the key is **⌘⇧N**, not ⌘⇧E (quick select, T28, has that key). Until the editor (T67), Open / double-click opens the note in the default app (`graphOpenNote`, only `.md` inside an enabled source). `npm run perf` now indexes 2,000 generated notes (written at run time, not checked in) and opens the graph: index 0.2 s, layout settled in 0.6 s in the worker, graph open and idle 0.1 % CPU (same as closed), wheel zoom max frame gap 9 ms, no canvas left after closing. **Over budget:** main process +63 MB for the 2,000-note index (budget 50 MB) — that's the T65 index worker, not the view; left for a follow-up. Labels at the very edge can be cut (sigma's stage padding counts nodes, not labels). Guide item "Notes graph" + capture (still). Colours: new `--color-graph-*` tokens._
 
 ### T67 · Graph 3: editor
 - [ ] **Goal:** write any Markdown comfortably without leaving the app, saved byte-for-byte as plain Markdown.

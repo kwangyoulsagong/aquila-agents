@@ -128,6 +128,7 @@ const api: AquilaApi = {
   graphSetSourceEnabled: (id, enabled) => ipcRenderer.invoke(IPC.graphSetSourceEnabled, { id, enabled }),
   graphIndexNow: (id) => ipcRenderer.invoke(IPC.graphIndexNow, id),
   graphSnapshot: () => ipcRenderer.invoke(IPC.graphSnapshot),
+  graphOpenNote: (path) => ipcRenderer.invoke(IPC.graphOpenNote, path),
   globalShortcut: () => ipcRenderer.invoke(IPC.globalShortcutGet),
   setGlobalShortcut: (accelerator) => ipcRenderer.invoke(IPC.globalShortcutSet, accelerator),
   onGlobalShortcut: on(IPC.globalShortcutFired),

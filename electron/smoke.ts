@@ -171,6 +171,8 @@ export async function runSmoke(
     if (applyError) return fail(applyError);
     const sourcesError = await checkGraphSources(win, config, path.join(outDir, 'smoke-sources.png'));
     if (sourcesError) return fail(sourcesError);
+    const graphError = await checkGraphView(win, config, outDir);
+    if (graphError) return fail(graphError);
     const imeError = await checkIme(win);
     if (imeError) return fail(imeError);
     const reviewError = await checkReviewQueue(win, sessions, outDir);
@@ -1174,6 +1176,71 @@ async function checkGraphSources(win: BrowserWindow, config: Config, out: string
   console.log(`[smoke] note sources: 3 folders indexed in the worker, DB-12 links two notes, screenshot: ${out}`);
   press(win, 'Escape', []);
   await wait(400);
+  return null;
+}
+
+/**
+ * Notes graph (T66), over the three sources `checkGraphSources` added: ⌘⇧N lazy-loads the panel, the WebGL canvas
+ * draws and the layout worker settles; search + Enter selects the meeting note, "Around this note" keeps its depth-2
+ * neighbourhood (fewer nodes, the spec still in it via DB-12). ⌘⇧N again removes the panel and its canvas.
+ */
+async function checkGraphView(win: BrowserWindow, config: Config, outDir: string): Promise<string | null> {
+  const t = translator(config.language);
+  const js = <T>(code: string) => win.webContents.executeJavaScript(code) as Promise<T>;
+  const settled = async (ms = 15_000) => {
+    for (let i = 0; i < ms / 100; i++) {
+      const s = await js<{ nodes: number; iterations: number; ms: number } | null>('window.__graphSettled ?? null');
+      if (s) return s;
+      await wait(100);
+    }
+    return null;
+  };
+  await js('window.__graphSettled = null');
+  press(win, 'N', ['meta', 'shift']);
+  const whole = await settled();
+  if (!whole) return 'graph: the layout never settled after ⌘⇧N';
+  const canvases = await js<number>(`document.querySelectorAll('aside .c-kgraph canvas').length`);
+  if (!canvases) return 'graph: no canvas in the panel';
+  if (whole.ms > 3500) return `graph: layout ran ${whole.ms} ms (budget 3 s)`;
+  fs.writeFileSync(path.join(outDir, 'smoke-graph.png'), (await win.webContents.capturePage()).toPNG());
+  // Select the meeting note through search (its file name is Korean in both languages).
+  const meeting = '주간';
+  const snap = await js<{ nodes: { id: string; kind: string; label: string }[] }>('window.aquila.graphSnapshot()');
+  const notes = snap.nodes.filter((n) => n.kind === 'note');
+  const target = notes.find((n) => n.label.includes(meeting)) ?? notes[0];
+  if (!target) return 'graph: no notes in the snapshot';
+  // Search narrows by label; type the target's title so Enter selects exactly it.
+  await js(`(() => {
+    const input = document.querySelector('aside .c-panel__bar input[type=search]');
+    const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+    input.focus();
+    set.call(input, ${JSON.stringify(target.label)});
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  })()`);
+  await wait(300);
+  press(win, 'Enter', []);
+  await wait(300);
+  const card = await js<string>(`document.querySelector('aside .c-kgraph__card-title')?.textContent ?? ''`);
+  if (card !== target.label) return `graph: search + Enter selected "${card}", wanted "${target.label}"`;
+  await js('window.__graphSettled = null');
+  const local = await js<boolean>(`(() => {
+    const b = [...document.querySelectorAll('aside .c-segment__item')].find((e) => e.textContent.trim() === ${JSON.stringify(t('graph.local'))});
+    b?.click();
+    return !!b;
+  })()`);
+  if (!local) return 'graph: no "Around this note" switch after selecting';
+  const around = await settled();
+  if (!around) return 'graph: the local view never settled';
+  if (around.nodes < 2 || around.nodes > whole.nodes)
+    return `graph: local view has ${around.nodes} nodes (whole graph ${whole.nodes})`;
+  fs.writeFileSync(path.join(outDir, 'smoke-graph-local.png'), (await win.webContents.capturePage()).toPNG());
+  press(win, 'N', ['meta', 'shift']);
+  await wait(400);
+  const left = await js<number>(`document.querySelectorAll('.c-kgraph').length`);
+  if (left) return 'graph: ⌘⇧N did not close the panel';
+  console.log(
+    `[smoke] graph: ${whole.nodes} nodes settled in ${whole.ms} ms (${whole.iterations} iterations); around "${target.label}": ${around.nodes} nodes`,
+  );
   return null;
 }
 

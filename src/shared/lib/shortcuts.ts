@@ -16,6 +16,7 @@ export type ShortcutId =
   | 'toggleChanges'
   | 'togglePreview'
   | 'toggleRun'
+  | 'toggleGraph'
   | 'history'
   | 'nextWaiting'
   | 'copyLastReply'
@@ -47,6 +48,8 @@ export const SHORTCUTS: Readonly<Record<ShortcutId, string>> = {
   toggleChanges: 'CommandOrControl+Shift+G',
   togglePreview: 'CommandOrControl+Shift+P',
   toggleRun: 'CommandOrControl+Shift+R',
+  // Not ⌘⇧E (T66's spec): quick select (T28) has had that key since before the graph.
+  toggleGraph: 'CommandOrControl+Shift+N',
   history: 'CommandOrControl+Y',
   nextWaiting: 'CommandOrControl+J',
   copyLastReply: 'CommandOrControl+Shift+C',

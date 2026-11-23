@@ -171,6 +171,21 @@ export class GraphService {
     });
   }
 
+  /**
+   * The absolute path of a Markdown file inside an enabled source, or null — so "open note" (T66) can't be pointed
+   * at anything else.
+   */
+  notePath(abs: string): string | null {
+    const file = path.resolve(abs);
+    if (!/\.md$/i.test(file) || !fs.statSync(file, { throwIfNoEntry: false })?.isFile()) return null;
+    const inside = this.sources.some((s) => {
+      if (!s.enabled) return false;
+      const rel = path.relative(untildify(s.path, this.opts.home), file);
+      return !!rel && !rel.startsWith('..') && !path.isAbsolute(rel);
+    });
+    return inside ? file : null;
+  }
+
   setSaver(saver: boolean): void {
     this.saver = saver;
     this.post({ type: 'saver', saver });

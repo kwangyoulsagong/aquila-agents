@@ -776,6 +776,10 @@ app.whenReady().then(async () => {
   );
   ipcMain.handle(IPC.graphIndexNow, (_e, id: string) => graph.indexNow(String(id)));
   ipcMain.handle(IPC.graphSnapshot, () => graph.snapshot());
+  ipcMain.handle(IPC.graphOpenNote, async (_e, p: string) => {
+    const file = graph.notePath(String(p));
+    return !!file && (await shell.openPath(file)) === '';
+  });
   ipcMain.handle(IPC.sessionRestore, () => restoreSessions());
   ipcMain.handle(IPC.sessionStart, (_e, id: string) => s.wake(loadConfig(), id));
   ipcMain.handle(IPC.sessionReopen, (_e, id: string) => s.reopen(loadConfig(), String(id)));
