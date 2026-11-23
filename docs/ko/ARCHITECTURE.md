@@ -397,11 +397,13 @@ import하지 않음).
   30개에 약 10MB), codex는 REST `/releases/latest` 추가(피드 10개가 전부 alpha일 수 있음). `-접미사` 버전은 제외. Claude
   Code `CHANGELOG.md`는 앞 64KB만(`Range`, 잘린 마지막 섹션은 버림). RSS/Atom: OpenAI News, Cursor changelog,
   Antigravity blog, Simon Willison, Latent Space. HN Algolia(`points>100`, 최근 7일, AI 관련 제목만). 한 번에 약 3MB
-  (OpenAI·Latent Space는 `Range`를 무시). XML 파서는 의존성 없이 정규식으로.
+  (OpenAI·Latent Space는 `Range`를 무시). 국내(T63, 업계 탭의 해외 / 국내, `NEWS_REGION`): GeekNews, AI타임스(오프셋
+  없는 날짜는 KST로), 카카오·토스·우아한형제들·당근·LY 기술 블로그. GeekNews와 블로그는 AI 항목만(`AI_TOPIC`, 한국어·영어
+  단어). 토스는 `Range`를 무시해서 본문을 스트림으로 읽다 64KB에서 끊음(`readHead`). XML 파서는 의존성 없이 정규식으로.
 - **내 CLI:** `claude --version` / `codex --version`(지정한 바이너리)과 릴리스 비교: 더 새 것(최대 5개), 없으면 최신
   하나. 각각 "Added" 줄 3~5개("Added"로 시작하는 항목 → "New Features" 섹션 → 앞쪽 항목 순).
 - **업계:** 소스당 최대 15개, 링크당 하나. 항목 본문 전체에 정규식 키워드 분류(subagent / multi-agent, hook, agent view
-  / background agents, ADE, harness), 첫 분류 아래에 표시, 나머지는 "최신". 제목·링크·220자 이하 발췌만. 분류되는
+  / background agents, ADE, harness, MCP·스킬, 컨텍스트 엔지니어링, 바이브·에이전틱 코딩 — 각각 한국어 단어 포함), 첫 분류 아래에 표시, 나머지는 "최신". 제목·링크·220자 이하 발췌만. 분류되는
   항목이 적은 건 키워드 탓이지 버그가 아님.
 - **보관 / 정리:** 아직 안 본 항목은 30일, 이전 방문(`prevSeenAt`) 때 이미 있던 항목은 7일 뒤 목록과 캐시 파일에서
   지움. 지난 방문 이후 새 행에는 점.

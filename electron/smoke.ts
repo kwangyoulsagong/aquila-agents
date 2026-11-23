@@ -246,7 +246,9 @@ async function checkRunSlot(
   const opened = await paletteRun(win, label, true);
   await wait(600);
   // Several commands → pick the fixture's row.
-  await js(`[...document.querySelectorAll('.c-runs__item')].find((b) => b.textContent?.includes(${JSON.stringify(name)}))?.click()`);
+  await js(
+    `[...document.querySelectorAll('.c-runs__item')].find((b) => b.textContent?.includes(${JSON.stringify(name)}))?.click()`,
+  );
   let ui = { dot: '', log: '', preview: false };
   const readUi = () =>
     js<typeof ui>(`({
@@ -360,7 +362,9 @@ async function paletteRun(win: BrowserWindow, label: string, prefix = false): Pr
   // The palette runs its command in requestAnimationFrame, which an occluded window doesn't fire.
   win.show();
   win.focus();
-  const match = prefix ? `el.textContent?.startsWith(${JSON.stringify(label)})` : `el.textContent === ${JSON.stringify(label)}`;
+  const match = prefix
+    ? `el.textContent?.startsWith(${JSON.stringify(label)})`
+    : `el.textContent === ${JSON.stringify(label)}`;
   for (let attempt = 0; attempt < 3; attempt++) {
     press(win, 'K', ['meta']);
     for (let i = 0; i < 20; i++) {
@@ -1215,8 +1219,24 @@ async function checkTrends(win: BrowserWindow, outDir: string): Promise<string |
     path.join(outDir, 'smoke-trends-industry.png'),
     (await win.webContents.capturePage()).toPNG(),
   );
+  // T63: the Industry tab's Global / Korea switch (segments: CLI, Industry, Global, Korea). Korea lists the fixture
+  // GeekNews / AI타임스 / blog items; the second row (after the summary) names its Korean source.
+  await js(`document.querySelectorAll('.c-modal[open] .c-segment__item')[3]?.click()`);
+  await wait(300);
+  await js(`document.querySelectorAll('.c-modal[open] .c-modal__item')[1]?.click()`);
+  await wait(200);
+  const krRows = await js<number>(`document.querySelectorAll('.c-modal[open] .c-modal__item').length`);
+  const krNote = await js<string>(
+    `[...document.querySelectorAll('.c-modal[open] .c-modal__note')].map((n) => n.textContent).join(' ')`,
+  );
+  if (krRows < 4 || !/GeekNews|AI타임스|카카오|토스|우아한형제들|당근|LY Corporation/.test(krNote))
+    return `trends: Korea tab shows ${krRows} rows, detail "${krNote}"`;
+  fs.writeFileSync(
+    path.join(outDir, 'smoke-trends-korea.png'),
+    (await win.webContents.capturePage()).toPNG(),
+  );
   console.log(
-    `[smoke] trends: fetched on open, ${rows.length} CLI rows, ${bullets} added lines, industry "${industry}"`,
+    `[smoke] trends: fetched on open, ${rows.length} CLI rows, ${bullets} added lines, industry "${industry}", korea ${krRows} rows`,
   );
   press(win, 'Escape', []);
   await wait(400);

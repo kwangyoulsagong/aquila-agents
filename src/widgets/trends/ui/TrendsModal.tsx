@@ -15,11 +15,12 @@ import {
   ModalTools,
   Segment,
 } from '@design-system/react';
-import type { CliNews, CliRelease, Language, NewsItem } from '@/shared/api';
+import type { CliNews, CliRelease, Language, NewsItem, NewsRegion } from '@/shared/api';
 import { useT } from '@/shared/i18n';
 import {
   bucketIndustry,
   filterCli,
+  inRegion,
   relativeTime,
   releaseId,
   rowIds,
@@ -52,6 +53,8 @@ export default function TrendsModal({ open, onClose, trends, language, account }
   const baseId = useId();
   const listId = `${baseId}-list`;
   const [tab, setTab] = useState<TrendsTab>('cli');
+  // Kept between openings: someone who reads the Korea tab keeps reading it.
+  const [region, setRegion] = useState<NewsRegion>(language === 'ko' ? 'kr' : 'global');
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [lastSeen, setLastSeen] = useState(0);
@@ -75,7 +78,10 @@ export default function TrendsModal({ open, onClose, trends, language, account }
   }, [open]);
 
   const cli = useMemo(() => filterCli(state?.cli ?? [], query), [state, query]);
-  const buckets = useMemo(() => bucketIndustry(state?.industry ?? [], query), [state, query]);
+  const buckets = useMemo(
+    () => bucketIndustry(inRegion(state?.industry ?? [], region), query),
+    [state, region, query],
+  );
   const ids = useMemo(() => rowIds(tab, cli, buckets), [tab, cli, buckets]);
   const selected = selectedId && ids.includes(selectedId) ? selectedId : (ids[0] ?? null);
   const optionId = (id: string) => `${baseId}-${id.replace(/[^\w-]/g, '_')}`;
@@ -289,6 +295,22 @@ export default function TrendsModal({ open, onClose, trends, language, account }
               ↻
             </Button>
           </ModalTools>
+          {tab === 'industry' && (
+            <ModalTools>
+              <Segment
+                label={t('trends.region')}
+                options={[
+                  { value: 'global', label: t('trends.region.global') },
+                  { value: 'kr', label: t('trends.region.kr') },
+                ]}
+                value={region}
+                onChange={(v) => {
+                  setRegion(v);
+                  setSelectedId(null);
+                }}
+              />
+            </ModalTools>
+          )}
           <ModalList id={listId} label={t('trends.list')}>
             {ids.length === 0 && (
               <ModalEmpty>{state?.loading ? t('trends.loading') : t('trends.empty')}</ModalEmpty>

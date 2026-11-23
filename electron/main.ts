@@ -67,7 +67,7 @@ import { ContextWatcher, statusLineSources, userHasStatusLine } from './context'
 import { listRemoteDirs } from './remote/browse';
 import { connect as figmaConnect, FIGMA_DOCS_URL, readProfiles as figmaProfiles } from './figma';
 import { PowerWatcher, type PowerSource } from './power';
-import { FIXTURE_NOW, fixtureFetcher, NewsService } from './news';
+import { FIXTURE_NOW, fixtureFetcher, NewsService, readHead } from './news';
 import { DevUrlTracker, orderTargets, PreviewViews, readLaunchJson } from './preview';
 import { SessionManager } from './sessions';
 import { checkRemote } from './remote/check';
@@ -473,7 +473,11 @@ app.whenReady().then(async () => {
       ? fixtureFetcher(path.join(__dirname, '..', '..', 'electron', 'fixtures', 'news'))
       : async (url, headers) => {
           const r = await net.fetch(url, { headers, signal: AbortSignal.timeout(20_000) });
-          return { status: r.status, header: (n) => r.headers.get(n), text: () => r.text() };
+          return {
+            status: r.status,
+            header: (n) => r.headers.get(n),
+            text: (max) => (max && r.body ? readHead(r.body.getReader(), max) : r.text()),
+          };
         },
     onChange: (state) => send(IPC.newsChanged, state),
     ...(isSmoke

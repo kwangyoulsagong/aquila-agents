@@ -648,7 +648,7 @@ throttled or hot → `saver`). The rules every task below follows:
   IPC msgs/s and frame gaps for 15 sessions unchanged.
 
 ### T63 · Korean AI trend sources
-- [ ] **Goal:** the trends modal shows what Korean developers read, not only English sources.
+- [x] **Goal:** the trends modal shows what Korean developers read, not only English sources.
 - **Spec:**
   - Industry tab gets **Global / Korea**. Korea sources (checked live 2026-11-22): GeekNews `https://news.hada.io/rss/news`
     (Atom, chronological), AI타임스 `https://www.aitimes.com/rss/allArticle.xml`, and one "tech blogs" group — Kakao
@@ -661,6 +661,7 @@ throttled or hot → `saver`). The rules every task below follows:
 - **Battery:** fetch stays on demand (modal open or ↻, cache 30 min) — no background polling; Toss read with a byte Range.
 - **Owns:** `electron/news.ts` (+ trimmed fixtures in `electron/fixtures/news`), `src/widgets/trends/`.
 - **Done:** fixture feeds give a Korea tab with GeekNews/AI타임스/blog items, Korean keywords bucket at least one item.
+  _Left over: Toss ignores `Range` (checked live: 200 with ~700 KB), so the body is read as a stream and cut at 64 KB. AI타임스 dates have no offset and are read as KST. The keywords that fit no existing group became three new ones — MCP & skills, Context engineering, Vibe & agentic coding (with their English names, so the Global tab uses them too). The Korea tab is the default when the app is in Korean. GeekNews / AI타임스 fixtures were captured 2026-11-23 and moved back three days to fit the fixture date. Guide media not recaptured (the trends shot is still the CLI → Industry path)._
 
 ### T64 · Apply a trend to this repo
 - [ ] **Goal:** from a trend item, see what it would change in a project as a graph (now vs after), then apply, edit, or drop it.

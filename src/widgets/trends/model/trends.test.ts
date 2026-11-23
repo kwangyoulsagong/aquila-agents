@@ -5,6 +5,7 @@ import {
   bucketIndustry,
   filterCli,
   hasCliUpdate,
+  inRegion,
   relativeTime,
   rowIds,
   SUMMARY_ID,
@@ -88,5 +89,18 @@ describe('hasCliUpdate', () => {
     // Not installed: the latest release is shown, but it isn't an update.
     expect(hasCliUpdate({ cli: [news({ installed: null })] })).toBe(false);
     expect(hasCliUpdate({ cli: [news({ releases: [] })] })).toBe(false);
+  });
+});
+
+describe('inRegion (T63)', () => {
+  it('splits the industry items into Global and Korea', () => {
+    const items = [
+      item('a', { source: 'hn' }),
+      item('b', { source: 'geeknews', groups: ['vibe'] }),
+      item('c', { source: 'toss' }),
+    ];
+    expect(inRegion(items, 'global').map((i) => i.id)).toEqual(['a']);
+    expect(inRegion(items, 'kr').map((i) => i.id)).toEqual(['b', 'c']);
+    expect(bucketIndustry(inRegion(items, 'kr'), '').map((b) => b.key)).toEqual(['vibe', 'latest']);
   });
 });
