@@ -9,6 +9,8 @@ interface SettingsMenuOptions {
   onGlobalShortcut?: () => void;
   /** Settings ▸ Note sources… (T65); the page owns the dialog. */
   onSources?: () => void;
+  /** Settings ▸ Link suggestions… (T68); the page owns the dialog. */
+  onLinks?: () => void;
 }
 
 /**
@@ -17,7 +19,7 @@ interface SettingsMenuOptions {
  */
 export async function openSettingsMenu(
   t: Translate,
-  { config, onChanged, onGlobalShortcut, onSources }: SettingsMenuOptions,
+  { config, onChanged, onGlobalShortcut, onSources, onLinks }: SettingsMenuOptions,
 ): Promise<void> {
   const id = await api.showContextMenu([
     {
@@ -30,6 +32,7 @@ export async function openSettingsMenu(
     { id: 'notifyDone', label: t('settings.notifyDone'), checked: !!config.notifyDone },
     ...(onGlobalShortcut ? [{ id: 'globalShortcut', label: t('globalShortcut.menu') }] : []),
     ...(onSources ? [{ id: 'sources', label: t('sources.menu') }] : []),
+    ...(onLinks ? [{ id: 'links', label: t('links.menu') }] : []),
     { separator: true },
     { id: 'config', label: t('action.openConfig') },
   ]);
@@ -39,6 +42,7 @@ export async function openSettingsMenu(
   } else if (id === 'notifyDone') void api.setNotifyDone(!config.notifyDone).then(onChanged);
   else if (id === 'globalShortcut') onGlobalShortcut?.();
   else if (id === 'sources') onSources?.();
+  else if (id === 'links') onLinks?.();
   else if (id === 'config') void api.openConfig();
 }
 

@@ -4,10 +4,20 @@
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
-import type { GraphIdGroup, GraphSnapshot, GraphSourceState } from '../../src/shared/api/types';
+import type {
+  GraphDecision,
+  GraphIdGroup,
+  GraphLinksState,
+  GraphRuleOp,
+  GraphSnapshot,
+  GraphSourceState,
+} from '../../src/shared/api/types';
 import { buildGraph, noteId, type CodeName, type IndexedNote } from './build';
 import { collectCodeNames, SKIP_DIRS, yieldNow, type CodeProject } from './code';
+import { Extractor, type ExtractorOptions, type RunPrompt } from './extract';
 import { parseNote } from './parse';
+import { applyRuleOp, decide, pairKey, proposals, readLinks, writeLinks, type LinkData } from './rules';
+import { SimilarIndex } from './similar';
 
 export interface EngineSource {
   id: string;
@@ -28,11 +38,17 @@ export interface EngineStatus {
   edges: number;
   idGroups: GraphIdGroup[];
   version: number;
+  links: GraphLinksState;
 }
 
 export interface EngineOptions {
   /** Where the index is kept; none = memory only. */
   indexFile?: string;
+  /** T68: decisions and rules (`links.json`) and AI extracts (`ai.json`); none = memory only. */
+  linksFile?: string;
+  aiFile?: string;
+  /** T68: extractor knobs (tests). */
+  extractor?: Omit<ExtractorOptions, 'file' | 'onChange'>;
   saver?: boolean;
   onStatus?: (s: EngineStatus) => void;
   /** Watch sources for changes (off in tests). */
@@ -115,9 +131,19 @@ export class GraphEngine {
   private loaded = false;
   private closed = false;
   private running = new Set<Promise<void>>();
+  private similar = new SimilarIndex();
+  private links: LinkData;
+  private extractor: Extractor;
 
   constructor(private opts: EngineOptions = {}) {
     this.saver = !!opts.saver;
+    this.links = readLinks(opts.linksFile);
+    this.extractor = new Extractor({
+      ...opts.extractor,
+      ...(opts.aiFile ? { file: opts.aiFile } : {}),
+      onChange: (extracts) => (extracts ? this.changed() : this.emit()),
+    });
+    this.extractor.setSaver(this.saver);
   }
 
   /** Sources to index (enabled only) and projects whose code names count. Removed sources drop their notes. */
@@ -163,6 +189,41 @@ export class GraphEngine {
 
   setSaver(saver: boolean): void {
     this.saver = saver;
+    this.extractor.setSaver(saver);
+  }
+
+  /** T68: accept / reject a suggested or mentioned connection. */
+  decide(d: GraphDecision): void {
+    const key = pairKey(d.source, d.target);
+    const edge = this.snapshot().edges.find((e) => pairKey(e.source, e.target) === key);
+    this.links = decide(this.links, d, edge, Date.now());
+    this.saveLinks();
+    this.changed();
+  }
+
+  /** T68: add / edit / remove a rule, dismiss a proposal. */
+  ruleOp(op: GraphRuleOp): void {
+    const next = applyRuleOp(this.links, op, Date.now());
+    if (next === this.links) return;
+    this.links = next;
+    this.saveLinks();
+    this.changed();
+  }
+
+  /** T68: sources with AI extraction on, and how to reach Claude (null: nothing runs). */
+  configureAi(sources: readonly string[], run: RunPrompt | null): void {
+    this.extractor.configure(sources, run);
+    this.emit();
+  }
+
+  /** T68: "Run now" for a source's queued notes. */
+  extractNow(id: string): Promise<void> {
+    return this.extractor.runNow(id);
+  }
+
+  /** Resolves when no AI extraction is running (tests). */
+  extractIdle(): Promise<void> {
+    return this.extractor.idle();
   }
 
   /** Starts a first index that was paused in saver. */
@@ -174,7 +235,22 @@ export class GraphEngine {
 
   snapshot(): GraphSnapshot {
     if (!this.cache) {
-      this.cache = buildGraph(this.notes.values(), this.codeNames, this.version);
+      // Only notes whose file changed are scored / queued again.
+      const docs = [...this.notes.entries()].map(([id, n]) => ({
+        id,
+        sourceId: n.sourceId,
+        abs: n.abs,
+        title: n.note.title,
+        sig: `${n.mtime}:${n.size}`,
+        text: n.note.text,
+      }));
+      this.similar.sync(docs);
+      this.extractor.sync(docs);
+      this.cache = buildGraph(this.notes.values(), this.codeNames, this.version, {
+        similar: this.similar.all(),
+        ai: this.extractor.extracts(),
+        links: this.links,
+      });
       this.edgeCount = this.cache.edges.length;
     }
     return this.cache;
@@ -195,6 +271,13 @@ export class GraphEngine {
       edges: this.edgeCount,
       idGroups: this.cache?.idGroups ?? [],
       version: this.version,
+      links: {
+        rules: this.links.rules,
+        proposals: proposals(this.links),
+        ai: this.extractor.state(),
+        accepted: this.links.accepted.length,
+        rejected: this.links.rejected.length,
+      },
     };
   }
 
@@ -209,6 +292,7 @@ export class GraphEngine {
 
   close(): void {
     this.closed = true;
+    this.extractor.close();
     for (const id of [...this.sources.keys()]) this.stopSource(id);
     this.flushSave();
   }
@@ -378,6 +462,15 @@ export class GraphEngine {
 
   private emit(): void {
     this.opts.onStatus?.(this.status());
+  }
+
+  private saveLinks(): void {
+    if (!this.opts.linksFile) return;
+    try {
+      writeLinks(this.opts.linksFile, this.links);
+    } catch {
+      // kept in memory; the next decision tries again
+    }
   }
 
   private scheduleSave(): void {

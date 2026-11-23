@@ -81,6 +81,7 @@ import {
   tmpAppliesDir,
 } from './apply';
 import { GraphService } from './graph';
+import { linkable, withLink } from './graph/rules';
 import {
   IMAGE_FILE,
   imageUrlPath,
@@ -140,6 +141,8 @@ import {
   type ApplyStep,
   type NewsSourceId,
   type NoteWriteResult,
+  type GraphDecision,
+  type GraphRuleOp,
   type ToolId,
 } from '../src/shared/api/types';
 
@@ -777,6 +780,13 @@ app.whenReady().then(async () => {
         .projects.filter((p) => !p.remote)
         .map((p) => ({ id: p.id, root: expand(p.path) })),
     onStatus: (st) => send(IPC.graphStatusChanged, st),
+    // T68 AI extraction: the shared Claude account; smoke reads a canned reply.
+    claude: () => ({
+      binary: binaryFor('claude'),
+      ...(isSmoke
+        ? { fixture: path.join(__dirname, '..', '..', 'electron', 'fixtures', 'links', 'ai-reply.json') }
+        : {}),
+    }),
   });
   power.onChange(() => graph.setSaver(powerState().saver));
   // Note editor (T67): only notes of enabled sources; watched only while open in the editor.
@@ -794,6 +804,24 @@ app.whenReady().then(async () => {
   );
   ipcMain.handle(IPC.graphIndexNow, (_e, id: string) => graph.indexNow(String(id)));
   ipcMain.handle(IPC.graphSnapshot, () => graph.snapshot());
+  // T68: decisions and rules go to the index worker; the only file write is an asked-for `[[link]]` at the end of a
+  // note of an enabled source (refused when the note isn't plain UTF-8).
+  ipcMain.handle(IPC.graphDecide, (_e, d: GraphDecision) => {
+    if (typeof d?.source !== 'string' || typeof d?.target !== 'string') return { inserted: false };
+    graph.decide({ source: d.source, target: d.target, accept: !!d.accept });
+    if (!d.accept || typeof d.insertInto !== 'string' || typeof d.linkTo !== 'string') return { inserted: false };
+    const file = graph.notePath(d.insertInto);
+    const note = file && linkable(d.linkTo) ? readNote(file) : null;
+    if (!file || !note || note.readOnly) return { inserted: false };
+    const next = withLink(note.text, d.linkTo);
+    if (next === null) return { inserted: true };
+    return { inserted: writeNote(file, next, note.bom, note.mtime).ok };
+  });
+  ipcMain.handle(IPC.graphRule, (_e, op: GraphRuleOp) => graph.rule(op));
+  ipcMain.handle(IPC.graphSetSourceAi, (_e, { id, ai }: { id: string; ai: boolean }) =>
+    graph.setAi(String(id), !!ai),
+  );
+  ipcMain.handle(IPC.graphExtractNow, (_e, id: string) => graph.extractNow(String(id)));
   ipcMain.handle(IPC.graphOpenNote, async (_e, p: string) => {
     const file = graph.notePath(String(p));
     return !!file && (await shell.openPath(file)) === '';

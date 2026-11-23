@@ -5,10 +5,17 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { Worker } from 'node:worker_threads';
-import type { GraphSnapshot, GraphSource, GraphSourceStatus, GraphStatus } from '../../src/shared/api/types';
+import type {
+  GraphDecision,
+  GraphRuleOp,
+  GraphSnapshot,
+  GraphSource,
+  GraphSourceStatus,
+  GraphStatus,
+} from '../../src/shared/api/types';
 import type { CodeProject } from './code';
 import type { EngineStatus } from './engine';
-import type { FromWorker, ToWorker, WorkerInit } from './worker';
+import type { AiConfig, FromWorker, ToWorker, WorkerInit } from './worker';
 
 const HOME = os.homedir();
 export const tildify = (p: string, home = HOME) =>
@@ -94,6 +101,7 @@ export function mergeStatus(sources: readonly GraphSource[], engine: EngineStatu
     edges: engine?.edges ?? 0,
     idGroups: engine?.idGroups ?? [],
     version: engine?.version ?? 0,
+    ...(engine?.links ? { links: engine.links } : {}),
   };
 }
 
@@ -108,6 +116,8 @@ export interface GraphServiceOptions {
   /** Local projects whose code names count. */
   projects: () => CodeProject[];
   onStatus: (s: GraphStatus) => void;
+  /** T68: how AI extraction reaches Claude (the shared account; a fixture reply in smoke). */
+  claude?: () => Omit<AiConfig, 'sources'>;
   /** Tests / smoke: a fake folder dialog has nothing to do with this; `home` for `~/…` paths. */
   home?: string;
 }
@@ -152,6 +162,28 @@ export class GraphService {
     if (!this.sources.some((s) => s.id === id)) throw new SourceError('unknown');
     this.save(this.sources.map((s) => (s.id === id ? { ...s, enabled } : s)));
     return this.status();
+  }
+
+  /** T68: AI extraction on/off for a source (stored in sources.json). */
+  setAi(id: string, ai: boolean): GraphStatus {
+    if (!this.sources.some((s) => s.id === id)) throw new SourceError('unknown');
+    this.save(this.sources.map((s) => (s.id === id ? { ...s, ai } : s)));
+    return this.status();
+  }
+
+  decide(d: GraphDecision): void {
+    this.start();
+    this.post({ type: 'decide', d });
+  }
+
+  rule(op: GraphRuleOp): void {
+    this.start();
+    this.post({ type: 'rule', op });
+  }
+
+  extractNow(id: string): void {
+    this.start();
+    this.post({ type: 'extractNow', id });
   }
 
   indexNow(id: string): GraphStatus {
@@ -232,10 +264,18 @@ export class GraphService {
       sources: enabled.map((s) => ({ id: s.id, root: untildify(s.path, this.opts.home) })),
       projects: this.opts.projects(),
     });
+    const claude = this.opts.claude?.();
+    const ai = enabled.filter((s) => s.ai).map((s) => s.id);
+    this.post({ type: 'ai', config: { binary: 'claude', ...claude, sources: claude ? ai : [] } });
   }
 
   private startWorker(): void {
-    const workerData: WorkerInit = { indexFile: path.join(this.opts.dir, 'index.json'), saver: this.saver };
+    const workerData: WorkerInit = {
+      indexFile: path.join(this.opts.dir, 'index.json'),
+      linksFile: path.join(this.opts.dir, 'links.json'),
+      aiFile: path.join(this.opts.dir, 'ai.json'),
+      saver: this.saver,
+    };
     const w = new Worker(this.opts.workerFile, { workerData });
     this.worker = w;
     w.on('message', (m: FromWorker) => {

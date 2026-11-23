@@ -515,6 +515,32 @@ index) or a `[[link]]` / backlink. `useGraphData` moved to `entities/note` so th
   and unlinked mentions (title edges) from the snapshot; `[[` completion over every note's title, inserting its file
   name (what the index resolves first).
 
+## Link suggestions and rules (T68)
+
+`electron/graph/similar.ts`, `extract.ts`, `rules.ts` (in the index worker) + `features/link-suggestions`.
+
+- **Local similarity (no AI):** `SimilarIndex` keeps TF-IDF word counts per note (stop words, numbers and Korean
+  particles dropped). On each snapshot build only notes whose mtime/size changed are scored again (their old pairs
+  dropped first): lookup by their heaviest words, cosine ≥ 0.2 with ≥ 2 shared words, top 3 per note → `similar`
+  edges (suggested, strength 0.1–0.35, the shared words as the label) — only where nothing else connects the pair.
+- **AI extraction (opt-in per source, `GraphSource.ai`):** `Extractor` queues notes of AI sources whose text hash
+  changed; after 30 s without changes (never in power saver; "Run now" any time) 4 notes per hidden `claude -p`
+  (haiku, one turn, shared account, cwd = tmp) with the notes quoted as data and the known titles. The JSON reply is
+  validated (unknown ids dropped, lists capped / trimmed, `related` only titles that resolve). Daily cap 40 notes
+  per source; a failure stops automatic runs for that source until "Run now". Kept in `~/.aquila/graph/ai.json`;
+  becomes `person:` / `decision:` / `todo:` nodes and `ai` edges (suggested).
+- **Decisions (`links.json`):** accept → `accepted` edge (explicit); reject → the pair is dropped unless something
+  written connects it. Each accept records its patterns (shared ID → `id:DB`, shared URL → `url:host`); 3 accepts of
+  one pattern with no rule and not dismissed → a proposal. An enabled rule adds a `rule` reason (explicit) to every
+  edge it covers. All applied in `buildGraph` after the T65 edges.
+- **`[[link]]`:** "[[" accepts and asks main to append `[[file name]]` as the note's last line in its own line
+  ending (`withLink`; refused for non-UTF-8 notes or a changed mtime) — the only write to a user's file, and only
+  on that click.
+- **UI:** `LinkSuggestions` lists a node's suggested + found-in-text edges (✓ / [[ / ×, proposals on top) in the
+  graph card and in the editor's side column (the page passes it in through `renderLinks`, features don't import
+  features). Settings ▸ Link suggestions… (also ⌘K): AI per source with the quota note and today's count, proposals,
+  rules (edit / turn off / remove / add).
+
 ## In-app preview (T33)
 
 `electron/preview.ts` + `widgets/preview` (`PreviewPanel`, ⌘⇧P or the ◫ button in the tab bar; local projects only).

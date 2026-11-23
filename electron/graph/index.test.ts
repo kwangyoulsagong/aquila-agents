@@ -55,7 +55,14 @@ describe('mergeStatus', () => {
         { id: 'b', path: '~/b', enabled: false },
         { id: 'c', path: '~/c', enabled: true },
       ],
-      { sources: [{ id: 'a', state: 'ready', notes: 3 }], notes: 3, edges: 2, idGroups: [], version: 4 },
+      {
+        sources: [{ id: 'a', state: 'ready', notes: 3 }],
+        notes: 3,
+        edges: 2,
+        idGroups: [],
+        version: 4,
+        links: { rules: [], proposals: [], ai: [], accepted: 0, rejected: 0 },
+      },
     );
     expect(st.sources.map((s) => [s.id, s.state, s.notes])).toEqual([
       ['a', 'ready', 3],

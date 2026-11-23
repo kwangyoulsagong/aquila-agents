@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import {
   Button,
   EditorBanner,
@@ -9,7 +9,7 @@ import {
   NoteEditor,
   ResizeHandle,
 } from '@design-system/react';
-import { api } from '@/shared/api';
+import { api, type GraphSnapshot, type GraphStatus } from '@/shared/api';
 import { useT } from '@/shared/i18n';
 import { usePanelWidth } from '@/shared/lib/usePanelWidth';
 import { DiffView } from '@/entities/diff';
@@ -26,6 +26,12 @@ export interface NoteEditorPanelProps {
   onClose: () => void;
   /** Open another note here (a link, a backlink). */
   onOpenNote: (path: string) => void;
+  /** T68: the note's suggested links, under the mentions (the page passes them in from another feature). */
+  renderLinks?: (p: {
+    nodeId: string | undefined;
+    snapshot: GraphSnapshot | null;
+    status: GraphStatus | null;
+  }) => ReactNode;
 }
 
 const fileName = (p: string) => p.split(/[/\\]/).pop() ?? p;
@@ -41,10 +47,11 @@ export default function NoteEditorPanel({
   onToggleFull,
   onClose,
   onOpenNote,
+  renderLinks,
 }: NoteEditorPanelProps) {
   const t = useT();
   const width = usePanelWidth('aquila.panel.note');
-  const { snapshot } = useGraphData();
+  const { status, snapshot } = useGraphData();
   const [host, setHost] = useState<HTMLDivElement | null>(null);
   const [sideOn, setSide] = useState<boolean | null>(null);
   const [comparing, setComparing] = useState(false);
@@ -246,6 +253,7 @@ export default function NoteEditorPanel({
                     />
                   ))}
                 </EditorSection>
+                {renderLinks?.({ nodeId: node?.id, snapshot, status })}
               </>
             ) : undefined
           }

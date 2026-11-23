@@ -175,6 +175,8 @@ export async function runSmoke(
     if (graphError) return fail(graphError);
     const noteError = await checkNoteEditor(win, config, outDir);
     if (noteError) return fail(noteError);
+    const linksError = await checkLinkSuggestions(win, config, outDir);
+    if (linksError) return fail(linksError);
     const imeError = await checkIme(win);
     if (imeError) return fail(imeError);
     const reviewError = await checkReviewQueue(win, sessions, outDir);
@@ -1408,6 +1410,123 @@ async function checkNoteEditor(win: BrowserWindow, config: Config, outDir: strin
     const status = await js<{ sources: { id: string; path: string }[] }>('window.aquila.graphStatus()');
     const src = status.sources.find((x) => x.path.endsWith(path.basename(dir)));
     if (src) await js(`window.aquila.graphRemoveSource(${JSON.stringify(src.id)})`);
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+/**
+ * Link suggestions (T68), on a copy of the `links` fixtures in a throwaway source: the meeting note gets a dotted
+ * (similar words) suggestion to the spec with no link written; in the graph card, "[[" accepts it and writes
+ * `[[printable-reports]]` as the note's last line (nothing else changes). Three accepts of DB- links propose a rule
+ * in the card; "Make a rule" adds it. ⌘K → "Link suggestions…": the rule is listed; AI on + Run now (a canned
+ * Claude reply) adds a suggested person node.
+ */
+async function checkLinkSuggestions(win: BrowserWindow, config: Config, outDir: string): Promise<string | null> {
+  const t = translator(config.language);
+  const js = <T>(code: string) => win.webContents.executeJavaScript(code) as Promise<T>;
+  const until = async (code: string, ms = 8000) => {
+    for (let i = 0; i < ms / 100; i++) {
+      if (await js<boolean>(code)) return true;
+      await wait(100);
+    }
+    return false;
+  };
+  const fixtures = path.join(__dirname, '..', '..', 'electron', 'fixtures', 'links');
+  const dir = fs.mkdtempSync(path.join(app.getPath('temp'), 'aquila-smoke-links-'));
+  for (const sub of ['meetings', 'specs', 'bugs', 'memos']) {
+    fs.mkdirSync(path.join(dir, sub));
+    for (const f of fs.readdirSync(path.join(fixtures, sub)))
+      fs.copyFileSync(path.join(fixtures, sub, f), path.join(dir, sub, f));
+  }
+  const meetingFile = path.join(dir, 'meetings', '2026-11-18 planning.md');
+  const before = fs.readFileSync(meetingFile, 'utf8');
+  let sourceId = '';
+  try {
+    const st = await js<{ sources: { id: string; path: string }[] }>(
+      `window.aquila.graphAddSource(${JSON.stringify(dir)})`,
+    );
+    sourceId = st.sources.find((x) => x.path.endsWith(path.basename(dir)))?.id ?? '';
+    if (!sourceId) return 'links: the fixture source was not added';
+    const id = (rel: string) => JSON.stringify(`note:${sourceId}:${rel}`);
+    const meeting = id('meetings/2026-11-18 planning.md');
+    const spec = id('specs/printable-reports.md');
+    const edgeOf = (a: string, b: string) =>
+      `window.aquila.graphSnapshot().then((g) => g.edges.find((e) => (e.source === ${a} && e.target === ${b}) || (e.source === ${b} && e.target === ${a})) ?? null)`;
+    if (!(await until(`${edgeOf(meeting, spec)}.then((e) => e?.kind === 'suggested' && e.reasons[0].via === 'similar')`)))
+      return 'links: no suggested (similar) edge between the meeting note and the spec';
+
+    // Graph card: select the meeting note, the spec is listed with a dotted line; "[[" accepts and writes the link.
+    press(win, 'N', ['meta', 'shift']);
+    if (!(await until(`!!document.querySelector('aside .c-kgraph canvas')`))) return 'links: graph panel did not open';
+    await js(`(() => {
+      const input = document.querySelector('aside .c-panel__bar input[type=search]');
+      const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+      input.focus();
+      set.call(input, '2026-11-18 Planning');
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    })()`);
+    await wait(300);
+    press(win, 'Enter', []);
+    const row = `[...document.querySelectorAll('.c-kgraph__card .c-suggest__item')].find((r) => r.textContent.includes('Printable reports'))`;
+    if (!(await until(`!!${row}?.querySelector('.c-suggest__line[data-line=dotted]')`)))
+      return 'links: the graph card does not list the spec as a dotted suggestion';
+    await wait(500);
+    fs.writeFileSync(path.join(outDir, 'smoke-links-card.png'), (await win.webContents.capturePage()).toPNG());
+    await js(`${row}.querySelector('button[aria-label=${JSON.stringify(t('links.insert'))}]').click()`);
+    const want = `${before}[[printable-reports]]\n`;
+    for (let i = 0; i < 40 && fs.readFileSync(meetingFile, 'utf8') !== want; i++) await wait(100);
+    if (fs.readFileSync(meetingFile, 'utf8') !== want)
+      return `links: "[[" did not write exactly one [[link]] line: ${JSON.stringify(fs.readFileSync(meetingFile, 'utf8').slice(-80))}`;
+    if (!(await until(`${edgeOf(meeting, spec)}.then((e) => e?.kind === 'explicit')`)))
+      return 'links: the accepted suggestion did not turn solid';
+
+    // Three accepts of DB- links → a rule proposal in the card → "Make a rule".
+    for (const [a, b] of [
+      [meeting, id('bugs/import-crash.md')],
+      [id('bugs/slow-search.md'), id('memos/search-memo.md')],
+      [id('bugs/login-loop.md'), id('memos/auth-memo.md')],
+    ])
+      await js(`window.aquila.graphDecide({ source: ${a}, target: ${b}, accept: true })`);
+    const proposal = `[...document.querySelectorAll('.c-kgraph__card .c-suggest__proposal')].find((r) => r.textContent.includes('DB-<n>'))`;
+    if (!(await until(`!!${proposal}`))) return 'links: three DB- accepts did not propose a rule';
+    await js(
+      `[...${proposal}.querySelectorAll('button')].find((b) => b.textContent === ${JSON.stringify(t('links.makeRule'))}).click()`,
+    );
+    if (!(await until(`window.aquila.graphStatus().then((s) => s.links?.rules.length === 1)`)))
+      return 'links: "Make a rule" did not add the rule';
+    press(win, 'N', ['meta', 'shift']);
+    await wait(400);
+
+    // ⌘K → Link suggestions…: the rule is listed; AI on + Run now → a suggested person from the canned reply.
+    if (!(await paletteRun(win, t('links.menu')))) return `palette has no "${t('links.menu')}" action`;
+    const item = `[...document.querySelectorAll('.c-dialog[open] .c-checklist__item')].find((r) => r.textContent.includes(${JSON.stringify(path.basename(dir))}))`;
+    if (!(await until(`!!${item}`))) return 'links: the dialog does not list the source';
+    const ruled = await js<boolean>(
+      `[...document.querySelectorAll('.c-dialog[open] .c-checklist__item')].some((r) => r.textContent.includes('DB-<n>'))`,
+    );
+    if (!ruled) return 'links: the dialog does not list the DB-<n> rule';
+    const click = (label: string) =>
+      js<boolean>(`(() => {
+        const b = [...(${item})?.querySelectorAll('button') ?? []].find((x) => x.textContent === ${JSON.stringify(label)} && !x.disabled);
+        b?.click();
+        return !!b;
+      })()`);
+    if (!(await click(t('links.aiOn')))) return 'links: no "Turn AI on" for the source';
+    if (!(await until(`(() => { const b = [...(${item})?.querySelectorAll('button') ?? []].find((x) => x.textContent === ${JSON.stringify(t('links.runNow'))}); return !!b && !b.disabled; })()`)))
+      return 'links: "Run now" never became available';
+    await click(t('links.runNow'));
+    if (!(await until(`window.aquila.graphSnapshot().then((g) => g.nodes.some((n) => n.id === 'person:mina' && n.kind === 'person'))`)))
+      return 'links: AI extraction (canned reply) added no person node';
+    await wait(300);
+    fs.writeFileSync(path.join(outDir, 'smoke-links.png'), (await win.webContents.capturePage()).toPNG());
+    press(win, 'Escape', []);
+    await wait(400);
+    console.log(
+      '[smoke] links: similar-words suggestion meeting → spec, "[[" wrote one line, 3 DB- accepts → rule, AI (canned) → person node',
+    );
+    return null;
+  } finally {
+    if (sourceId) await js(`window.aquila.graphRemoveSource(${JSON.stringify(sourceId)})`);
     fs.rmSync(dir, { recursive: true, force: true });
   }
 }
