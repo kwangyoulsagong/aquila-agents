@@ -37,6 +37,13 @@ import { PreviewPanel } from '@/widgets/preview';
 import { RunPanel } from '@/features/run-slot';
 import { HistoryPanel } from '@/widgets/history-panel';
 import { KnowledgeGraphPanel } from '@/widgets/knowledge-graph';
+import {
+  ExtensionChips,
+  ExtensionPanel,
+  NewExtensionDialog,
+  extensionCommands,
+  useExtensions,
+} from '@/widgets/extension-panel';
 import { UsageGauge } from '@/widgets/usage-gauge';
 import { TrendsButton, TrendsModal, hasCliUpdate, useTrends } from '@/widgets/trends';
 import { TrendApplyModal, type ApplyItem } from '@/widgets/trend-apply';
@@ -60,6 +67,16 @@ export default function WorkspacePage() {
   const [graphOpen, setGraphOpen] = useState(false);
   const [graphFullOn, setGraphFull] = useState(false);
   const toggleGraph = useCallback(() => setGraphOpen((o) => !o), []);
+  // Extensions (T71): the user's own panels from ~/.aquila/extensions; one shown at a time.
+  const extList = useExtensions();
+  const [extOpen, setExtOpen] = useState(false);
+  const [extId, setExtId] = useState<string | null>(null);
+  const [newExtOpen, setNewExtOpen] = useState(false);
+  const toggleExtensions = useCallback(() => setExtOpen((o) => !o), []);
+  const openExtension = useCallback((id: string) => {
+    setExtId(id);
+    setExtOpen(true);
+  }, []);
   // Note editor (T67): one note at a time, opened from the graph, ⌘O or a link; right panel or full window.
   const [notePath, setNotePath] = useState<string | null>(null);
   const [noteFullOn, setNoteFull] = useState(false);
@@ -199,6 +216,7 @@ export default function WorkspacePage() {
   const closePanel = useCallback((p: PanelId) => {
     if (p === 'changes') setChangesOpen(false);
     else if (p === 'run') setRunOpen(false);
+    else if (p === 'extensions') setExtOpen(false);
     else if (p === 'graph') {
       setGraphOpen(false);
       setGraphFull(false);
@@ -211,10 +229,18 @@ export default function WorkspacePage() {
     }
   }, []);
   usePanelFit(
-    { changes: changesOpen, run: runOpen, preview: previewOpen, graph: graphOpen, note: !!notePath },
+    {
+      changes: changesOpen,
+      run: runOpen,
+      extensions: extOpen,
+      preview: previewOpen,
+      graph: graphOpen,
+      note: !!notePath,
+    },
     {
       changes: changesOpen && !fullscreen.on && !panelFull,
       run: runOpen && !fullscreen.on && !panelFull && local,
+      extensions: extOpen && !fullscreen.on && !panelFull,
       preview: previewOpen && !fullscreen.on && local && !graphFull && !noteFull,
       graph: graphOpen && !fullscreen.on && !previewFull && !noteFull,
       note: !!notePath && !fullscreen.on && !previewFull && !graphFull,
@@ -313,6 +339,8 @@ export default function WorkspacePage() {
     a.addRemote = addRemote;
     a.history = toggleHistory;
     a.toggleGraph = toggleGraph;
+    a.toggleExtensions = toggleExtensions;
+    a.newExtension = () => setNewExtOpen(true);
     a.quickOpen = quickOpen;
     if (activeSessionId) a.closeSession = () => closeSession(activeSessionId);
     // Edited in its tab, which full window hides.
@@ -359,6 +387,7 @@ export default function WorkspacePage() {
     togglePreview,
     toggleRun,
     toggleGraph,
+    toggleExtensions,
     quickOpen,
     openWorktreeDialog,
     paletteWorktrees.length,
@@ -384,8 +413,26 @@ export default function WorkspacePage() {
     find,
   ]);
 
+  // ⌘K: each enabled extension's manifest commands open it and send the command.
+  const language = config?.language;
+  const paletteExtra = useMemo(() => {
+    const tr = translator(language);
+    return extensionCommands(extList ?? []).map((c) => ({
+      id: c.id,
+      label: tr('ext.command', { name: c.name, title: c.title }),
+      run: () => {
+        openExtension(c.extensionId);
+        api.extensionsCommand(c.extensionId, c.commandId);
+      },
+    }));
+  }, [extList, language, openExtension]);
+
   if (!config) return null;
   const t = translator(config.language);
+  // A new extension's folder joins the current local project's group and account (else the first ones).
+  const extGroup = project && !project.remote ? project.group : (config.groups[0]?.id ?? '');
+  const extAccount =
+    project && !project.remote ? project.account : (Object.keys(config.accounts)[0] ?? '');
 
   return (
     <I18nContext.Provider value={t}>
@@ -404,12 +451,15 @@ export default function WorkspacePage() {
               )
             }
             aboveFooter={
-              <UsageGauge
-                config={config}
-                onOpenWith={
-                  project && !project.remote ? (account) => void openSession('claude', account) : undefined
-                }
-              />
+              <>
+                <UsageGauge
+                  config={config}
+                  onOpenWith={
+                    project && !project.remote ? (account) => void openSession('claude', account) : undefined
+                  }
+                />
+                <ExtensionChips list={extList} onOpen={openExtension} />
+              </>
             }
             footer={
               <>
@@ -486,6 +536,15 @@ export default function WorkspacePage() {
                         aria-label={t('run.label')}
                       />
                     )}
+                    <Button
+                      variant="ghost"
+                      glyph="⧉"
+                      label={t('ext.label')}
+                      aria-pressed={extOpen}
+                      onClick={toggleExtensions}
+                      title={t('ext.toggle')}
+                      aria-label={t('ext.label')}
+                    />
                     <Button
                       variant="ghost"
                       glyph="◉"
@@ -565,6 +624,20 @@ export default function WorkspacePage() {
             onClose={() => setCleanupOpen(false)}
           />
         )}
+        {newExtOpen && (
+          <NewExtensionDialog
+            group={extGroup}
+            account={extAccount}
+            onClose={() => setNewExtOpen(false)}
+            onCreated={(created) => {
+              setNewExtOpen(false);
+              setConfig(created.config);
+              openExtension(created.id);
+              ws.selectProject(created.projectId);
+              void openSession('claude', undefined, created.projectId);
+            }}
+          />
+        )}
         {globalShortcutOpen && <GlobalShortcutDialog onClose={() => setGlobalShortcutOpen(false)} />}
         {sourcesOpen && <SourcesDialog onClose={() => setSourcesOpen(false)} />}
         {linksOpen && <LinkSettingsDialog onClose={() => setLinksOpen(false)} />}
@@ -615,6 +688,16 @@ export default function WorkspacePage() {
               setPreviewOpen(true);
             }}
             onSettings={() => openSettings(project)}
+          />
+        )}
+        {/* The extension's native view follows this panel and the terminal area (useExtensionView). */}
+        {extOpen && !fullscreen.on && !panelFull && (
+          <ExtensionPanel
+            list={extList}
+            selected={extId}
+            onSelect={setExtId}
+            onNew={() => setNewExtOpen(true)}
+            onClose={() => setExtOpen(false)}
           />
         )}
         {/* Last column: the native preview view only has to follow its own size and the window. */}
@@ -767,6 +850,7 @@ export default function WorkspacePage() {
           actions={paletteActions}
           worktrees={paletteWorktrees}
           onOpenWorktree={localProjectId ? openInWorktree : undefined}
+          extra={paletteExtra}
         />
       </div>
     </I18nContext.Provider>

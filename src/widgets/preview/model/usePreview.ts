@@ -67,23 +67,7 @@ export function useNav(slot: PreviewSlot): PreviewNav | null {
   return nav;
 }
 
-/** True while any native <dialog> is open: the preview is a native view and would cover it. */
-export function useDialogOpen(): boolean {
-  const [open, setOpen] = useState(false);
-  useEffect(() => {
-    const check = () => setOpen(!!document.querySelector('dialog[open]'));
-    check();
-    const mo = new MutationObserver(check);
-    mo.observe(document.body, {
-      subtree: true,
-      childList: true,
-      attributes: true,
-      attributeFilter: ['open'],
-    });
-    return () => mo.disconnect();
-  }, []);
-  return open;
-}
+export { useDialogOpen } from '@/shared/lib/useDialogOpen';
 
 /**
  * Keeps the native view of `slot` over `el`: bounds on every resize, the address, the device width. No address →

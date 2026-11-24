@@ -1408,6 +1408,98 @@ export interface AquilaApi {
   onGlobalShortcut(cb: (p: { wasFocused: boolean }) => void): Unsubscribe;
   /** App menu bar (T47): a menu item was clicked; the renderer runs it like the key. */
   onMenuCommand(cb: (command: MenuCommand) => void): Unsubscribe;
+  /** Extensions (T71): the folders under ~/.aquila/extensions, rescanned. */
+  extensionsList(): Promise<ExtensionInfo[]>;
+  /** An extension installed, removed, enabled, started / suspended, or its chip text changed. */
+  onExtensions(cb: (list: ExtensionInfo[]) => void): Unsubscribe;
+  /** Enable after the user saw its permissions (off also closes it and drops the background allowance). */
+  extensionsSetEnabled(id: string, enabled: boolean): Promise<ExtensionInfo[]>;
+  /** Let an extension that asks `background` keep running while its panel is closed. */
+  extensionsSetBackground(id: string, allowed: boolean): Promise<ExtensionInfo[]>;
+  /** Shows / moves the native view of an extension over the panel's stage; null hides it. */
+  extensionsShow(id: string, state: ExtensionViewState | null): void;
+  /** Rescans the folder and reloads the extension's page (a changed manifest applies). */
+  extensionsReload(id: string): void;
+  /** Runs a manifest command (⌘K): the extension gets a `command` event. */
+  extensionsCommand(id: string, commandId: string): void;
+  /** "New extension": a folder from the template, added as a project so a Claude tab can open in it. */
+  extensionsCreate(name: string, group: string, account: string): Promise<ExtensionCreated>;
+  /** Reveals the extensions folder (or one extension's) in Finder; creates it first. */
+  extensionsOpenFolder(id?: string): Promise<void>;
+  /** Opens the extension in a floating window (or brings it forward) / puts it back in the panel. */
+  extensionsFloat(id: string, floating: boolean): Promise<ExtensionInfo[]>;
+  /** Opacity (0.2–1) and always-on-top of its floating window. */
+  extensionsFloatStyle(id: string, style: { opacity?: number; onTop?: boolean }): Promise<ExtensionInfo[]>;
+}
+
+/** Extensions (T71): what an extension may ask for in its manifest (plus `network:<domain>` entries). */
+export type ExtensionPermission = 'system' | 'sessions:status' | 'usage' | 'storage' | 'notify' | 'background';
+
+/** A manifest command, listed in ⌘K as "<extension>: <title>". */
+export interface ExtensionCommand {
+  id: string;
+  title: string;
+}
+
+/** One folder under ~/.aquila/extensions. */
+export interface ExtensionInfo {
+  /** The folder name. */
+  id: string;
+  name: string;
+  description?: string;
+  version?: string;
+  /** One or two characters for the chip and the picker. */
+  glyph?: string;
+  dir: string;
+  /** False: the manifest can't be used (`problems` says why). */
+  valid: boolean;
+  /** What was wrong or dropped while reading the manifest. */
+  problems: string[];
+  permissions: ExtensionPermission[];
+  /** Domains it may reach over https. */
+  network: string[];
+  commands: ExtensionCommand[];
+  /** The user enabled it after seeing the permissions. */
+  enabled: boolean;
+  /** The user allowed it to run while hidden (only with the `background` permission). */
+  background: boolean;
+  /** Its page is loaded (shown, or hidden and not yet suspended). */
+  running: boolean;
+  /** Text it set with `chip.set`, shown in the sidebar. */
+  chip?: string;
+  /** In its own floating window (moved, resized, faded by the user) instead of the panel. */
+  floating: boolean;
+  /** Floating window opacity, 0.2–1. */
+  opacity: number;
+  /** Floating window stays above other apps. */
+  onTop: boolean;
+}
+
+export interface ExtensionViewState {
+  bounds: PreviewRect;
+  /** A dialog is open over the panel: the native view would cover it. */
+  hidden: boolean;
+}
+
+/** `system` (T71): one shared poll in main. Bytes, CPU in percent of all cores. */
+export interface ExtensionSystem {
+  cpu: number;
+  cores: number;
+  /** 1-minute load average. */
+  load: number;
+  memory: { used: number; total: number };
+  /** Main process resident memory. */
+  appMemory: number;
+  onBattery: boolean;
+  saver: boolean;
+  at: number;
+}
+
+export interface ExtensionCreated {
+  id: string;
+  dir: string;
+  projectId: string;
+  config: Config;
 }
 
 /** App menu bar (T47): a shortcut of the map, or a menu-only command. */
@@ -1671,4 +1763,18 @@ export const IPC = {
   globalShortcutSet: 'global-shortcut:set',
   globalShortcutFired: 'global-shortcut:fired',
   menuCommand: 'menu:command',
+  extensionsList: 'extensions:list',
+  extensionsChanged: 'extensions:changed',
+  extensionsSetEnabled: 'extensions:set-enabled',
+  extensionsSetBackground: 'extensions:set-background',
+  extensionsShow: 'extensions:show',
+  extensionsReload: 'extensions:reload',
+  extensionsCommand: 'extensions:command',
+  extensionsCreate: 'extensions:create',
+  extensionsOpenFolder: 'extensions:open-folder',
+  extensionsFloat: 'extensions:float',
+  extensionsFloatStyle: 'extensions:float-style',
+  /** From an extension's own view (its preload), not the app window. */
+  extensionRequest: 'ext:request',
+  extensionEvent: 'ext:event',
 } as const;

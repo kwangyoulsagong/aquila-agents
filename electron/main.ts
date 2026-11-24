@@ -15,6 +15,10 @@ import {
   protocol,
   shell,
   utilityProcess,
+  WebContentsView,
+  Menu,
+  screen,
+  session as electronSession,
 } from 'electron';
 import { restoreShellPath } from './env';
 import { isWindows, platform } from './platform';
@@ -105,6 +109,7 @@ import {
   writeNote,
 } from './graph/note-file';
 import { DevUrlTracker, orderTargets, PreviewViews, readLaunchJson } from './preview';
+import { EXT_SCHEME, ExtensionHost } from './extensions';
 import { SessionManager } from './sessions';
 import { checkRemote } from './remote/check';
 import { ensureControlDir, sshExec } from './remote/exec';
@@ -161,12 +166,15 @@ import {
   type VaultPresetId,
   type VaultScope,
   type ToolId,
+  type StatusUpdate,
+  type ExtensionViewState,
 } from '../src/shared/api/types';
 
 const isDev = process.env.AQUILA_DEV === '1';
 let win: BrowserWindow | null = null;
 let sessions: SessionManager | null = null;
 let previews: PreviewViews | null = null;
+let extensions: ExtensionHost | null = null;
 let runs: RunManager | null = null;
 /** Runs up at quit start again next launch (T60); written as they change, frozen once quitting starts. */
 const RUNS_PATH = path.join(APP_DIR, 'runs.json');
@@ -211,8 +219,13 @@ function createWindow(): void {
     sessions?.resetFlow();
     // The new page has no preview panel yet: don't leave native views over it.
     previews?.destroyAll();
+    extensions?.destroyAll();
   });
-  win.on('closed', () => (win = null));
+  win.on('closed', () => {
+    win = null;
+    // Floating extension windows (T71) must not keep the app alive without its window.
+    extensions?.destroyAll();
+  });
   // Back to the window: the banners of what's on screen have been read (T45).
   win.on('focus', () => sessions?.seen());
 }
@@ -223,6 +236,8 @@ if (isWindows) app.setAppUserModelId('dev.aquila.agents');
 // Note editor (T67): images next to notes, shown inline. Only files inside an enabled source (checked per request).
 protocol.registerSchemesAsPrivileged([
   { scheme: 'aquila-note', privileges: { standard: true, secure: true } },
+  // Extensions (T71): one origin per extension, `aquila-ext://<id>/` (its own storage, CSP'd, sandboxed).
+  { scheme: EXT_SCHEME, privileges: { standard: true, secure: true } },
 ]);
 
 app.whenReady().then(async () => {
@@ -284,7 +299,19 @@ app.whenReady().then(async () => {
     return figmaConnect(account, a.claudeConfigDir ? claudeConfigDir(config, account) : undefined);
   });
   ipcMain.handle(IPC.figmaOpenDocs, () => shell.openExternal(FIGMA_DOCS_URL));
-  const send = (channel: string, payload: unknown) => win?.webContents.send(channel, payload);
+  /** Usage last reported (T30): extensions read it instead of starting a transcript scan of their own. */
+  let lastUsage: AccountUsage[] | null = null;
+  const send = (channel: string, payload: unknown) => {
+    // Extensions (T71) see session statuses as counts and usage as percent; taken from what the window is sent.
+    if (channel === IPC.sessionStatus) {
+      const u = payload as StatusUpdate;
+      extensions?.sessionStatus(u.id, u.status);
+    } else if (channel === IPC.usageChanged) {
+      lastUsage = payload as AccountUsage[];
+      extensions?.usageChanged(lastUsage);
+    }
+    win?.webContents.send(channel, payload);
+  };
   // In-app preview (T33): dev server addresses from launch.json + the project's terminals; one native view per slot.
   // Per worktree (T50): its own launch.json, the addresses its tabs printed, and its PORT (as sessions.ts sets it).
   const slots = new Map<string, number>();
@@ -436,6 +463,7 @@ app.whenReady().then(async () => {
     onEnded: (id) => {
       context.remove(id);
       devUrls.forgetSession(id);
+      extensions?.sessionEnded(id);
     },
     onOutput: (projectId, id, data, worktree) => devUrls.feed(projectId, worktree, id, data),
     onTabsChanged: isSmoke ? undefined : saveTabs,
@@ -511,6 +539,94 @@ app.whenReady().then(async () => {
       usageSoon = setTimeout(() => void pushUsage(usage.refresh()), 3_000);
     }
   };
+  // Extensions (T71): folders under ~/.aquila/extensions (smoke: a temp folder of its own). Nothing runs until the
+  // panel shows one, or the user allowed one in the background.
+  const extDir = isSmoke ? path.join(app.getPath('temp'), `aquila-smoke-ext-${process.pid}`) : path.join(APP_DIR, 'extensions');
+  extensions = new ExtensionHost({
+    dir: extDir,
+    prefsPath: isSmoke ? path.join(extDir, '.prefs.json') : path.join(APP_DIR, 'extensions.json'),
+    dataDir: isSmoke ? path.join(extDir, '.data') : path.join(APP_DIR, 'extensions-data'),
+    getWindow: () => win,
+    electron: {
+      WebContentsView,
+      BrowserWindow,
+      Menu,
+      fromPartition: (p) => electronSession.fromPartition(p),
+      displays: () => screen.getAllDisplays().map((d) => d.workArea),
+    },
+    canvas: windowBackground,
+    translate: () => translator(loadConfig().language),
+    preload: path.join(__dirname, 'extension-preload.js'),
+    power: powerState,
+    usage: () => (lastUsage ? Promise.resolve(lastUsage) : usage.refresh()),
+    notify: (title, body) => {
+      if (Notification.isSupported()) new Notification({ title, body }).show();
+    },
+    onChanged: (list) => send(IPC.extensionsChanged, list),
+  });
+  const ext = extensions;
+  power.onChange(() => ext.powerChanged(powerState()));
+  app.on('will-quit', () => ext.dispose());
+  ipcMain.handle(IPC.extensionsList, () => {
+    ext.scan();
+    ext.watch();
+    return ext.list();
+  });
+  ipcMain.handle(IPC.extensionsSetEnabled, (_e, { id, enabled }: { id: string; enabled: boolean }) =>
+    ext.setEnabled(String(id), enabled === true),
+  );
+  ipcMain.handle(IPC.extensionsSetBackground, (_e, { id, allowed }: { id: string; allowed: boolean }) =>
+    ext.setBackground(String(id), allowed === true),
+  );
+  ipcMain.on(IPC.extensionsShow, (e, { id, state }: { id: string; state: ExtensionViewState | null }) => {
+    // Only the app window places views.
+    if (e.sender !== win?.webContents) return;
+    if (state) ext.hideAll(id);
+    ext.show(String(id), state);
+  });
+  ipcMain.handle(IPC.extensionsFloat, (_e, { id, floating }: { id: string; floating: boolean }) =>
+    ext.setFloat(String(id), floating === true),
+  );
+  ipcMain.handle(
+    IPC.extensionsFloatStyle,
+    (_e, { id, style }: { id: string; style: { opacity?: unknown; onTop?: unknown } }) =>
+      ext.setFloatStyle(String(id), {
+        opacity: typeof style?.opacity === 'number' ? style.opacity : undefined,
+        onTop: typeof style?.onTop === 'boolean' ? style.onTop : undefined,
+      }),
+  );
+  ipcMain.on(IPC.extensionsReload, (_e, id: string) => ext.reload(String(id)));
+  ipcMain.on(IPC.extensionsCommand, (_e, { id, commandId }: { id: string; commandId: string }) =>
+    ext.command(String(id), String(commandId)),
+  );
+  ipcMain.handle(
+    IPC.extensionsCreate,
+    (_e, { name, group, account }: { name: string; group: string; account: string }) => {
+      const created = ext.create(String(name ?? ''));
+      // Added as a project (named like the extension) so "New extension" can open a Claude tab in its folder.
+      let config = loadConfig();
+      let projectId = projectForPath(config, created.dir);
+      if (!projectId) {
+        config = appMenu.refresh(
+          editProjects({ op: 'addProject', path: created.dir, name: String(name ?? '').trim(), group, account }),
+        );
+        projectId = projectForPath(config, created.dir);
+      }
+      if (!projectId) throw new Error('could not add the extension folder as a project');
+      return { ...created, projectId, config };
+    },
+  );
+  ipcMain.handle(IPC.extensionsOpenFolder, async (_e, id?: string) => {
+    fs.mkdirSync(extDir, { recursive: true });
+    const target = typeof id === 'string' && /^[a-z0-9-]+$/.test(id) ? path.join(extDir, id) : extDir;
+    const err = await shell.openPath(fs.existsSync(target) ? target : extDir);
+    if (err) throw new Error(err);
+  });
+  // Requests from extension views: the host checks the sender is one of its views and the manifest allows it.
+  ipcMain.handle(IPC.extensionRequest, (e, method: unknown, params: unknown) =>
+    ext.request(e.sender, method, params),
+  );
+
   if (!isSmoke)
     setInterval(() => {
       if (win && refreshDue(Date.now() - usage.lastRefresh, win.isFocused(), powerState().saver))
@@ -1267,12 +1383,15 @@ app.whenReady().then(async () => {
   app.on('will-quit', () => shortcut.dispose());
 
   createWindow();
+  // Extensions (T71): floating windows reopen where they were and background ones start with the page (a reload
+  // closed them).
+  win?.webContents.on('did-finish-load', () => extensions?.restore());
   // T27: notify when a newer release is out (packaged builds only).
   if (app.isPackaged && !isSmoke && !process.env.AQUILA_CAPTURE)
     safe('updater', () => startUpdater(() => translator(loadConfig().language)));
   if (isSmoke && win) {
     const w = win;
-    w.webContents.once('did-finish-load', () => runSmoke(w, s, loadConfig(), smokeOutput, previews, runs));
+    w.webContents.once('did-finish-load', () => runSmoke(w, s, loadConfig(), smokeOutput, previews, runs, extensions));
   }
   app.on('activate', () => BrowserWindow.getAllWindows().length === 0 && createWindow());
 });

@@ -542,7 +542,7 @@ export async function runCapture(
   ];
 
   const grab = async (rect: Rectangle) =>
-    (await retryViz(async () => withViews(await win.webContents.capturePage(rect), rect, previews)))
+    (await retryViz(async () => withViews(await win.webContents.capturePage(rect), rect, previews?.visible() ?? [])))
       .resize({ ...OUT, quality: 'best' })
       .toPNG();
 
@@ -644,12 +644,11 @@ async function retryViz<T>(fn: () => Promise<T>, tries = 3): Promise<T> {
  * Native preview views (T33) aren't part of the page `capturePage` sees: copy their pixels in at their bounds.
  * Same display, so both images share one scale factor.
  */
-async function withViews(
+export async function withViews(
   base: NativeImage,
   rect: Rectangle,
-  previews?: PreviewViews | null,
+  views: { bounds: Rectangle; capture: () => Promise<NativeImage> }[],
 ): Promise<NativeImage> {
-  const views = previews?.visible() ?? [];
   if (!views.length) return base;
   // capturePage images are in device pixels: the scale is pixels per DIP of what was captured.
   const out = Buffer.from(base.toBitmap());

@@ -661,6 +661,51 @@ built from data the app already has:
   `⇧⌘T` on macOS (Apple order ⌃⌥⇧⌘) and `Ctrl+Shift+T` elsewhere for the palette, buttons and tooltips; native menus
   get the accelerator via `ContextMenuItem.accelerator` (display only). New shortcut → add it to the map, never a literal.
 
+## Extensions (T71)
+
+`electron/extensions.ts` (`ExtensionHost`) + `electron/extension-preload.ts` + `widgets/extension-panel`. The user's own
+small panels; **nothing is bundled** — `~/.aquila/extensions/<id>/` holds what the user (or a Claude tab) wrote.
+
+- **Folder:** `manifest.json` (`name`, `description`, `version`, `glyph`, `entry` = an .html inside the folder,
+  `permissions`, `commands`) + plain HTML/JS. Parsed defensively (`parseManifest`): unknown permissions, bad domains and
+  commands are dropped with a problem line; a missing name / entry / bad folder name makes it unusable. The top folder
+  is watched (debounced rescan) while the panel has asked for the list.
+- **Review first:** an extension runs only after the user enabled it in the panel, which lists its permissions, domains,
+  commands and folder (`~/.aquila/extensions.json`). "New extension" enables what it creates.
+- **Isolation:** one `WebContentsView` per running extension: `sandbox`, `contextIsolation`, no Node, its own partition
+  `persist:aquila-ext-<id>` and origin `aquila-ext://<id>/` (privileged standard + secure scheme, served per partition
+  by `protocol.handle`: only files inside its folder, realpath-checked, with a CSP: `default-src 'none'`, scripts/styles
+  from itself, `connect-src` only its `network:` domains). The partition's `webRequest` cancels everything else (http,
+  other hosts or ports, `file:`, other extensions) — so it holds even if the page navigates. Window opens, navigation
+  away, downloads, webviews and every permission request are denied.
+- **API (postMessage):** the page posts `{ aquila: 'request', id, method, params }`; the preload forwards it over
+  `ext:request`; main finds the extension **by the sender's webContents** (never by what the page says) and checks the
+  method against the manifest (`methodAllowed`). `system` (one shared poll in main: CPU share between `os.cpus()`
+  samples, memory, load, app RSS, battery/saver from `power.ts`; 2 s, 10 s in saver; only while an extension with
+  `system` is loaded), `sessions:status` (counts by status + a `waiting` event — taken from the status updates main
+  sends the window; no ids, titles or output), `usage` (percent per account, from the last usage update), `storage`
+  (`~/.aquila/extensions-data/<id>.json`, 512 KB), `notify` (one banner per 10 s, titled with its name). Always:
+  `info`, `power` + `power` event, `chip.set` (16 chars, shown in the sidebar band), `visible` and `command` events.
+  There is no method that reads terminal output or writes to a session. The template's `aquila.js` wraps it in promises.
+- **Views:** the panel's stage reports its rect (`extensions:show`, ResizeObserver on the stage and `.app__main` — the
+  panel isn't the last column — plus the slide-in's `animationend`); hidden while a `<dialog>` is open. Another
+  extension picked or the panel closed → hidden; a hidden view is closed after 5 min unless the manifest asks
+  `background` and the user allowed it (those start at launch). A renderer reload closes them all.
+- **Floating window:** ⇱ in the panel bar (or the page's right-click menu) moves the view into its own native window:
+  title bar to move it, edges to resize it (min 160×96), `setOpacity` for transparency (0–80 %, never invisible) and
+  always-on-top (`floating` level) — set from the panel (a Range and a toggle) or the right-click menu. The view keeps
+  running (no reload) and is never suspended while floating, even minimized. Position, size, opacity and on-top are kept
+  per extension in `extensions.json` (`float`); a floating one reopens floating at launch, where it was if that spot is
+  still on a display (`placeFloat`), else at the app window's top-right. Its close button docks it; closing the app
+  window closes them all (they don't keep the app alive). "Back to panel" hands the same view back to the panel.
+- **⌘K / tab bar / sidebar:** ⧉ Extensions in the tab bar and "Show extensions panel" / "New extension" in ⌘K; each
+  manifest command is a ⌘K item "<name>: <title>" that opens the extension and sends it a `command` event.
+- **New extension:** a name → `<slug>/` with `manifest.json` (`system` only), `index.html`, `aquila.js`, `AGENTS.md`
+  (the API for the agent) and `CLAUDE.md` (`@AGENTS.md`); the folder is added as a project and a Claude tab opens in it.
+- Smoke makes one in a temp folder: review → enable → live `system` values, `fetch` blocked without `network`, an
+  undeclared method refused, `window.open` denied, the chip, `waiting` heard from a real shell; screenshots
+  `dist/smoke-extension-review.png`, `dist/smoke-extension.png` (native view composited by capture's `withViews`).
+
 ## Korean IME
 
 - xterm's `CompositionHelper` handles Hangul composition (it shows the syllable in `.composition-view` and sends it on

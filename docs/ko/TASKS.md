@@ -743,7 +743,7 @@ T66–T70은 그 타입에 맞춰 각자 워크트리에서 병렬로 진행한�
   _남은 것: "Claude에 보냄"은 트랜스크립트에서 읽는다 — 사용자 메시지에 `@`로 언급된 노트(폴더 액션과 Claude로 처리는 경로에 공백이 있으면 `@"경로"`로 붙임) — 그래서 손으로 친 `@note.md`도 센다. 바뀐 파일은 트랜스크립트의 편집 도구 호출 / `apply_patch`, 그리고 Claude 턴이 어떤 방법으로든(셸 포함) 바꾼 파일: UserPromptSubmit와 Stop 때 폴더의 `git status` + 수정 시각 비교(`graph/turn-files.ts`, `~/.aquila/graph/turns.json`; 노트 소스가 켜져 있을 때만). 세션은 가벼운 스캔(제목, 편집 파일, `@언급`, 메시지 본문 없음)으로 짧게 사는 `utilityProcess`(`graph/history-worker.ts`)에서 읽어, 모든 트랜스크립트를 읽은 메모리가 프로세스와 함께 사라진다. 파싱 캐시는 다음 스캔으로 넘긴다. 코드: 바뀐 파일은 같은 이름의 `code` 노드(T65 코드 이름)와, 바뀐 경로에서 뽑은 뼈대 폴더(FSD면 `src/<레이어>`, 아니면 최상위 폴더)로 이어짐 — 레포 스캔 없음. 그래프 머리의 **오늘 세션 노트**는 오늘 세션(로컬 + 마지막 SSH 스캔)을 고른 소스(없으면 `{{date}}` 템플릿이 있는 소스, 없으면 첫 소스)의 그날 노트 "세션" 아래에 덧붙인다. 이미 있는 줄은 건너뜀. 안 한 것: 원격 세션을 그래프 노드로, URL로 노트 → 트렌드. 담당 파일 밖에서 고친 곳(작고 덧붙이기만): `history.ts`(files / mentions, `work()`, 가벼운 파싱, 캐시 넣고 빼기, `remoteEntries()`), `hooks.ts`(`cwd`), `preview.ts` → `devUrls.ts`(워커가 Electron을 불러오지 않게), `apply.ts`(`list()`), `GraphService`(합치기, `appChanged`, `enabledIds`), `vault.ts`(`dateTemplate`), 그래프 뷰 필터와 머리 버튼, `note:project` / `graph:daily-note` IPC, `electron-builder.yml`(워커 모듈 풀어두기). Smoke: 노트 → 세션 → 파일 경로, 이어하기, Claude로 처리, 데일리 노트(두 번째 클릭은 그대로). `npm run perf`: 노트 2,000개 + 트랜스크립트 300개 → 세션 200개(상한), 파일 2,000개, 액션 연결 4,200개. 첫 스냅샷 ~2.9초, 이후 ~155ms, main +58MB._
 
 ### T71 · 익스텐션
-- [ ] **목표:** 사용자가 작은 패널 — 출퇴근 타이머, CPU/메모리, 뽀모도로, 미니 게임 — 을 브라우저 익스텐션처럼 안전하게 붙인다.
+- [x] **목표:** 사용자가 작은 패널 — 출퇴근 타이머, CPU/메모리, 뽀모도로, 미니 게임 — 을 브라우저 익스텐션처럼 안전하게 붙인다.
 - **스펙:**
   - `~/.aquila/extensions/<id>/`에 `manifest.json` + HTML/JS. 오른쪽 패널 슬롯, 상태 바 칩, ⌘K 명령으로 보인다.
   - 각각 `WebContentsView`에서 `sandbox`, `contextIsolation`, Node 없음, 고유 `aquila-ext://<id>/` 출처,
@@ -757,4 +757,5 @@ T66–T70은 그 타입에 맞춰 각자 워크트리에서 병렬로 진행한�
 - **배터리:** 숨은 익스텐션 뷰는 감속하고 5분 뒤 일시정지(manifest가 `background`를 요청하고 사용자가 허용한 경우 제외). `system`은 메인에서 하나만 폴링(2초, 절전 10초)해서 나눠 줌. 익스텐션이 느려질 수 있게 `power:saver` 이벤트.
 - **담당:** `electron/extensions.ts`(+ 테스트: manifest, 권한), `src/widgets/extension-panel/`, IPC 그룹 하나.
 - **완료:** 시스템 미터가 실시간 값을 보여 주고, `network`가 없는 익스텐션은 fetch할 수 없고, 답을 기다리는 세션이 생기면 퍼즐이 멈춘다.
+  _남은 것: 요청에 따라 **기본 예제는 넣지 않음** — 확장은 사용자가 직접 만든다("새 확장"이 템플릿 폴더 + AGENTS.md를 만들고 폴더를 프로젝트로 추가한 뒤 Claude 탭을 연다). 완료 조건은 smoke에서 임시 확장으로 확인: 실시간 `system` 값, `network` 없이 `fetch` 차단, 선언 안 한 메서드 거부, `window.open` 거부, 사이드바 칩, 실제 셸이 답을 기다리면 페이지가 멈춤. 배터리는 `onBattery` + 절전(Electron에는 배터리 잔량이 없음). "상태 바 칩"은 푸터 위 사이드바 띠(상태 바가 없음). 확장은 사용자가 권한 확인 화면에서 켠 뒤에만 실행. 떠 있는 창(요청): ⇱로 확장을 별도 창으로 띄움 — 이동, 크기, 투명도, 항상 위, 확장마다 기억. 안 한 것: 리뷰를 거치는 레지스트리. 담당 밖에서 건드린 곳(작게, 추가만): `main.ts`(`aquila-ext` 스킴, 호스트 + IPC, 상태/사용량용 `send` 탭), `preload.ts`, `types.ts`, `dictionary.ts`, `components.css`(`.c-ext*`), 명령 팔레트(`toggleExtensions`, `newExtension`, `extra` 명령), 워크스페이스 페이지와 `panels.ts`, `shared/lib/useDialogOpen.ts`(프리뷰에서 옮김), `capture.ts`(`withViews` export), `smoke.ts`._
 

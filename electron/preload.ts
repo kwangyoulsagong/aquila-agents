@@ -158,6 +158,18 @@ const api: AquilaApi = {
   setGlobalShortcut: (accelerator) => ipcRenderer.invoke(IPC.globalShortcutSet, accelerator),
   onGlobalShortcut: on(IPC.globalShortcutFired),
   onMenuCommand: on(IPC.menuCommand),
+  extensionsList: () => ipcRenderer.invoke(IPC.extensionsList),
+  onExtensions: on(IPC.extensionsChanged),
+  extensionsSetEnabled: (id, enabled) => ipcRenderer.invoke(IPC.extensionsSetEnabled, { id, enabled }),
+  extensionsSetBackground: (id, allowed) => ipcRenderer.invoke(IPC.extensionsSetBackground, { id, allowed }),
+  extensionsShow: (id, state) => ipcRenderer.send(IPC.extensionsShow, { id, state }),
+  extensionsReload: (id) => ipcRenderer.send(IPC.extensionsReload, id),
+  extensionsCommand: (id, commandId) => ipcRenderer.send(IPC.extensionsCommand, { id, commandId }),
+  extensionsCreate: (name, group, account) =>
+    ipcRenderer.invoke(IPC.extensionsCreate, { name, group, account }),
+  extensionsOpenFolder: (id) => ipcRenderer.invoke(IPC.extensionsOpenFolder, id),
+  extensionsFloat: (id, floating) => ipcRenderer.invoke(IPC.extensionsFloat, { id, floating }),
+  extensionsFloatStyle: (id, style) => ipcRenderer.invoke(IPC.extensionsFloatStyle, { id, style }),
 };
 
 contextBridge.exposeInMainWorld('aquila', api);

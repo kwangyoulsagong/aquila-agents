@@ -609,6 +609,46 @@ import하지 않음).
   `⇧⌘T`(Apple 순서 ⌃⌥⇧⌘), 그 외에서 `Ctrl+Shift+T`를 돌려줘 팔레트·버튼·툴팁이 씁니다. 네이티브 메뉴는
   `ContextMenuItem.accelerator`로 받습니다(표시만). 새 단축키는 맵에 추가하고 문자열로 직접 쓰지 않습니다.
 
+## 확장 (T71)
+
+`electron/extensions.ts`(`ExtensionHost`) + `electron/extension-preload.ts` + `widgets/extension-panel`. 사용자가 직접
+만드는 작은 패널. **기본으로 들어 있는 것은 없음** — `~/.aquila/extensions/<id>/`에는 사용자(또는 Claude 탭)가 쓴 것만 있다.
+
+- **폴더:** `manifest.json`(`name`, `description`, `version`, `glyph`, `entry` = 폴더 안의 .html, `permissions`,
+  `commands`) + 평범한 HTML/JS. 방어적으로 읽음(`parseManifest`): 모르는 권한, 잘못된 도메인·명령은 문제 줄과 함께
+  버리고, 이름·entry가 없거나 폴더 이름이 잘못되면 쓸 수 없음. 패널이 목록을 요청한 뒤로 최상위 폴더를 감시(디바운스 재스캔).
+- **먼저 확인:** 사용자가 패널에서 켜야만 실행된다. 켜기 전에 권한, 도메인, 명령, 폴더를 보여 줌(`~/.aquila/extensions.json`).
+  "새 확장"으로 만든 것은 켜진 채로 만든다.
+- **격리:** 실행 중인 확장마다 `WebContentsView` 하나: `sandbox`, `contextIsolation`, Node 없음, 고유 파티션
+  `persist:aquila-ext-<id>`와 출처 `aquila-ext://<id>/`(standard + secure로 등록한 스킴, 파티션마다 `protocol.handle`로
+  제공: 폴더 안 파일만, realpath 확인, CSP는 `default-src 'none'`, 스크립트·스타일은 자기 것만, `connect-src`는
+  `network:` 도메인만). 파티션의 `webRequest`가 나머지(http, 다른 호스트·포트, `file:`, 다른 확장)를 모두 취소하므로
+  페이지가 이동해도 유지된다. 새 창, 다른 곳으로 이동, 다운로드, webview, 모든 권한 요청은 거부.
+- **API (postMessage):** 페이지가 `{ aquila: 'request', id, method, params }`를 보내면 preload가 `ext:request`로 넘기고,
+  main은 **보낸 webContents로** 확장을 찾고(페이지가 말하는 id는 믿지 않음) manifest로 메서드를 검사(`methodAllowed`).
+  `system`(main에서 하나만 폴링: `os.cpus()` 표본 사이 CPU 비율, 메모리, 부하, 앱 RSS, `power.ts`의 배터리/절전; 2초,
+  절전 10초; `system` 권한 확장이 떠 있을 때만), `sessions:status`(상태별 개수 + `waiting` 이벤트 — main이 창에 보내는
+  상태 갱신에서 얻음; id·제목·출력 없음), `usage`(계정별 퍼센트, 마지막 사용량 갱신), `storage`
+  (`~/.aquila/extensions-data/<id>.json`, 512 KB), `notify`(10초에 하나, 제목에 확장 이름). 항상 가능: `info`, `power` +
+  `power` 이벤트, `chip.set`(16자, 사이드바 띠에 표시), `visible`·`command` 이벤트. 터미널 출력을 읽거나 세션에 쓰는
+  메서드는 없다. 템플릿의 `aquila.js`가 이를 Promise로 감싼다.
+- **뷰:** 패널 stage가 자기 사각형을 보냄(`extensions:show`, stage와 `.app__main`에 ResizeObserver — 마지막 열이 아님 —
+  그리고 슬라이드 인 `animationend`). `<dialog>`가 열려 있으면 숨김. 다른 확장을 고르거나 패널을 닫으면 숨기고, 숨은 뷰는
+  5분 뒤 닫힘(manifest가 `background`를 요청하고 사용자가 허용하면 예외, 그런 것은 시작할 때 실행). 렌더러를 다시 불러오면 모두 닫힘.
+- **떠 있는 창:** 패널 바의 ⇱(또는 페이지 우클릭 메뉴)로 뷰를 별도 네이티브 창으로 옮긴다. 제목 줄로 이동, 가장자리로
+  크기 조절(최소 160×96), `setOpacity`로 투명도(0–80 %, 완전히 안 보이게는 못 함), 항상 위(`floating` 레벨) — 패널(Range와
+  토글)이나 우클릭 메뉴에서 바꾼다. 뷰는 다시 불러오지 않고 계속 실행되며, 떠 있는 동안(최소화 포함)에는 일시정지하지 않는다.
+  위치·크기·투명도·항상 위는 확장마다 `extensions.json`(`float`)에 저장. 떠 있던 것은 시작할 때 다시 떠 있는 창으로 열리고,
+  저장된 자리가 아직 화면 안이면 거기(`placeFloat`), 아니면 앱 창 오른쪽 위. 창 닫기 버튼은 패널로 되돌리기이고, 앱 창을 닫으면
+  모두 닫힌다(앱을 붙잡지 않음). "패널로 되돌리기"는 같은 뷰를 패널로 돌려준다.
+- **⌘K / 탭 바 / 사이드바:** 탭 바의 ⧉ 확장, ⌘K의 "확장 패널 보기" / "새 확장". manifest 명령마다 ⌘K 항목
+  "<이름>: <제목>"이 생기고, 실행하면 확장을 열고 `command` 이벤트를 보낸다.
+- **새 확장:** 이름 → `<slug>/`에 `manifest.json`(`system`만), `index.html`, `aquila.js`, `AGENTS.md`(에이전트용 API
+  설명), `CLAUDE.md`(`@AGENTS.md`). 폴더를 프로젝트로 추가하고 그 안에서 Claude 탭을 연다.
+- smoke는 임시 폴더에 하나 만들어 확인: 확인 화면 → 켜기 → 실시간 `system` 값, `network` 없이 `fetch` 차단, 선언 안 한
+  메서드 거부, `window.open` 거부, 칩, 실제 셸이 답을 기다리면 `waiting` 수신. 스크린샷 `dist/smoke-extension-review.png`,
+  `dist/smoke-extension.png`(capture의 `withViews`로 네이티브 뷰 합성).
+
 ## 한글 IME
 
 - 한글 조합은 xterm의 `CompositionHelper`가 처리합니다(`.composition-view`에 조합 중 글자를 보여주고 확정 시 전송).
