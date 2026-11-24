@@ -7,6 +7,7 @@
 // Agents use this to verify their change actually runs.
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { app, BrowserWindow, clipboard, ClipboardItem, ipcMain } from 'electron';
 import { showContextMenu } from './menu';
@@ -51,6 +52,26 @@ const TIMEOUT_MS = 40000;
 const MAX_GPU = 12;
 
 export const isSmoke = process.env.AQUILA_SMOKE === '1';
+
+// Chromium's own data (localStorage, extension partitions, caches) in a temp folder: smoke / perf / capture never
+// share the installed app's. Sharing it also made a running Aquila hold the storage lock, so the first localStorage
+// read here waited ~3.9 s for it. Set at import, before app ready.
+if (isSmoke) {
+  // Chromium writes a few files at shutdown, after any exit handler: earlier runs' folders go here (not one that may
+  // still be running alongside).
+  for (const name of fs.readdirSync(os.tmpdir()).filter((n) => n.startsWith('aquila-smoke-chromium-'))) {
+    const dir = path.join(os.tmpdir(), name);
+    try {
+      if (Date.now() - fs.statSync(dir).mtimeMs > 10 * 60_000) fs.rmSync(dir, { recursive: true, force: true });
+    } catch {
+      /* gone */
+    }
+  }
+  const chromiumDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aquila-smoke-chromium-'));
+  app.setPath('userData', chromiumDir);
+  // On process exit: perf ends with app.exit(), which skips the app's quit events.
+  process.on('exit', () => fs.rmSync(chromiumDir, { recursive: true, force: true }));
+}
 
 /** Wrap the session `send` so smoke can watch pty output and status. */
 export function watchOutput(
@@ -2274,7 +2295,12 @@ async function checkGuide(win: BrowserWindow, outDir: string): Promise<string | 
   const items: number = await win.webContents.executeJavaScript(
     `document.querySelectorAll('.c-modal[open] .c-modal__item').length`,
   );
-  if (items < 10) return `guide (⌘/) lists ${items} features, expected at least 10`;
+  if (items < 10) {
+    const open: string = await win.webContents.executeJavaScript(
+      `[...document.querySelectorAll('.c-modal[open]')].map((m) => m.querySelector('.c-modal__title, h2')?.textContent ?? '?').join(' | ')`,
+    );
+    return `guide (⌘/) lists ${items} features, expected at least 10 (open: ${open || 'no modal'})`;
+  }
   const heading: string = await win.webContents.executeJavaScript(
     `document.querySelector('.c-modal[open] .c-modal__heading')?.textContent ?? ''`,
   );
