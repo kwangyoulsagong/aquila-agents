@@ -173,6 +173,8 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `.c-meta` `__label` `__value` (`--mono`) | Label · value rows (folder, branch, id) |
 | `.c-commands`, `.c-command[data-state=ok\|error\|interrupted\|pending]` `__state` `__text` `__time` | Commands an agent ran (T59): how it ended by shape and colour (✓ ✕ ■ …), the command on one mono ellipsised line, marks, time |
 | `.c-runs`, `.c-runs__item[aria-current]` `__name` `__state` | Run slot commands (T60): one row each with its dot (`live` / ring / `!` / idle), mono name, state; the current one is highlighted. `.c-run` (panel), `__state`, `__reason`, `__log` lay out the panel |
+| `.c-ext` `__pick` `__name` `__stage` `__review` `__text[--muted]` `__actions` | Extensions panel (T71): picker bar, then the stage main lays the extension's sandboxed native view over, or the permission review (a `.c-meta` list + Enable) before it's enabled |
+| `.c-ext-chips` | Sidebar band above the footer (T71): labelled ghost buttons with the text extensions set (`chip.set`); glyphs on the 20px content edge |
 | `.c-transcript` `__message[data-role]` `__role` `__text` | Read-only conversation: who, then the text as written (wrapped); the user's messages in primary text |
 | `.c-media` `__frame` `__placeholder` | 16:10 frame for a screenshot or a short loop; placeholder while there is none |
 | `.c-shortcuts` `__group` `__row` `__label` `__keys` | Shortcut sheet: grouped rows, label left, keys right |

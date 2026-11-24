@@ -21,6 +21,8 @@ interface Props {
   /** Linked worktrees of the current project, each listed as Claude / Codex / Shell. */
   worktrees?: Worktree[];
   onOpenWorktree?: (branch: string, kind: SessionKind) => void;
+  /** More commands to list after the actions (extensions' manifest commands, T71). */
+  extra?: { id: string; label: string; run: () => void }[];
 }
 
 /** ⌘K: fuzzy-search open sessions, projects and actions; ↑↓ to pick, Enter to run, Esc to close. */
@@ -36,6 +38,7 @@ export default function CommandPalette({
   actions,
   worktrees,
   onOpenWorktree,
+  extra,
 }: Props) {
   const t = useT();
   const baseId = useId();
@@ -61,9 +64,10 @@ export default function CommandPalette({
         activeSessionId,
         available: new Set(actionKeys.split(',').filter(Boolean) as ActionId[]),
         worktrees: onOpenWorktree ? worktrees : [],
+        extra,
         t,
       }),
-    [config, sessions, activeProjectId, activeSessionId, actionKeys, worktrees, onOpenWorktree, t],
+    [config, sessions, activeProjectId, activeSessionId, actionKeys, worktrees, onOpenWorktree, extra, t],
   );
   const results = useMemo(() => fuzzyRank(commands, query, (c) => c.label, commandDetail), [commands, query]);
   const selected = Math.min(index, results.length - 1);
@@ -75,6 +79,7 @@ export default function CommandPalette({
       if (c.type === 'session') onSelectSession(c.sessionId);
       else if (c.type === 'project') onSelectProject(c.projectId);
       else if (c.type === 'worktree') onOpenWorktree?.(c.branch, c.kind);
+      else if (c.type === 'extra') extra?.find((x) => x.id === c.id)?.run();
       else actions[c.action]?.();
     });
   };
@@ -152,5 +157,7 @@ function itemDecor(c: Command, config: Config) {
       return { hint: c.hint };
     case 'action':
       return { kbd: c.kbd };
+    case 'extra':
+      return {};
   }
 }

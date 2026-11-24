@@ -518,6 +518,30 @@ body {
 .c-run .c-panel__bar .c-btn { flex: none; white-space: nowrap; }
 .c-run__state { display: inline-flex; align-items: center; gap: var(--space-inline-xs); white-space: nowrap; }
 .c-run__reason { color: var(--color-status-error); font-family: var(--font-family-mono); overflow-wrap: anywhere; }
+
+/* Extensions (T71): picker bar, then either the stage a sandboxed native view is laid over, or the permission
+ * review shown before the user enables it. */
+.c-ext { display: flex; flex-direction: column; }
+.c-ext .c-panel__bar { flex-wrap: nowrap; }
+.c-ext .c-panel__bar .c-btn { flex: none; white-space: nowrap; }
+.c-ext__pick { flex: 1; min-width: 0; }
+.c-ext__name {
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: var(--font-size-body); color: var(--color-text-primary);
+}
+.c-ext__stage { flex: 1; min-height: 0; background: var(--color-bg-canvas); }
+.c-ext__review { display: flex; flex-direction: column; gap: var(--space-stack-md); padding: var(--space-inset-md); }
+.c-ext__review > .c-empty__path, .c-ext__review .c-empty__path { white-space: pre-line; text-align: center; }
+.c-ext__text { margin: 0; color: var(--color-text-secondary); overflow-wrap: anywhere; }
+.c-ext__text--muted { font-size: var(--font-size-caption); color: var(--color-text-tertiary); }
+.c-ext__actions { display: flex; gap: var(--space-inline-sm); }
+/* Sidebar band above the footer: chips extensions set (`chip.set`). Glyphs sit on the 20px content edge like the
+ * usage gauge (inset 12 + the labelled button's 8). */
+.c-ext-chips {
+  display: flex; flex-wrap: wrap; gap: var(--space-inline-xs);
+  padding: var(--space-inset-sm) var(--space-inset-md); border-top: 1px solid var(--color-border-subtle);
+}
+.c-ext-chips > .c-btn { flex: none; max-width: 100%; font-variant-numeric: tabular-nums; }
 .c-run__log { flex: 1; min-height: 0; padding: var(--space-inset-sm) 0 0 var(--space-inset-sm); background: var(--color-terminal-bg); }
 .c-run__log .xterm { height: 100%; }
 .c-runs { list-style: none; margin: 0; padding: 0; border-bottom: 1px solid var(--color-border-subtle); }

@@ -10,7 +10,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { app, BrowserWindow, clipboard, ClipboardItem, ipcMain } from 'electron';
 import { showContextMenu } from './menu';
-import { runCapture } from './capture';
+import { runCapture, withViews } from './capture';
+import type { ExtensionHost } from './extensions';
 import type { PreviewViews } from './preview';
 import { runId, type RunManager } from './runs';
 import { runPerf } from './perf';
@@ -73,6 +74,7 @@ export async function runSmoke(
   output: { buffer: string; statuses: string[]; connections: ConnectionUpdate[] },
   previews?: PreviewViews | null,
   runs?: RunManager | null,
+  extensions?: ExtensionHost | null,
 ) {
   if (process.env.AQUILA_PERF === '1') return runPerf(win, sessions);
   if (process.env.AQUILA_CAPTURE) return runCapture(win, sessions, config, previews);
@@ -190,6 +192,10 @@ export async function runSmoke(
     if (runError) return fail(runError);
     const previewError = previews ? await checkPreviewPick(previews) : 'no preview views';
     if (previewError) return fail(previewError);
+    const extError = extensions
+      ? await checkExtensions(win, extensions, sessions, config, outDir)
+      : 'no extension host';
+    if (extError) return fail(extError);
     const remoteError = await checkRemoteSession(sessions, config, output);
     if (remoteError) return fail(remoteError);
     const realHostError = await checkRealHost(sessions, config, output);
@@ -202,6 +208,143 @@ export async function runSmoke(
 }
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** The page of the smoke extension: records what the API gives it and what was refused. */
+const SMOKE_EXT_PAGE = `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      :root { color-scheme: light dark; font: 13px/1.5 -apple-system, system-ui, sans-serif; }
+      body { margin: 0; padding: 16px; }
+      h1 { font-size: 15px; margin: 0 0 8px; }
+      p { margin: 0 0 4px; }
+    </style>
+    <script src="aquila.js"></script>
+  </head>
+  <body>
+    <h1>System meter</h1>
+    <p id="cpu">…</p>
+    <p id="mem">…</p>
+    <p id="state">Running</p>
+    <script>
+      const r = (window.__smoke = { system: null, events: 0, fetch: 'pending', refused: 'pending', popup: null, paused: false });
+      const show = (s) => {
+        document.getElementById('cpu').textContent = 'CPU ' + s.cpu + '% · ' + s.cores + ' cores';
+        document.getElementById('mem').textContent = 'Memory ' + (s.memory.used / 2 ** 30).toFixed(1) + ' / ' + (s.memory.total / 2 ** 30).toFixed(1) + ' GB';
+        aquila.chip(Math.round(s.cpu) + '%');
+      };
+      aquila.system().then((s) => { r.system = s; show(s); });
+      aquila.on('system', (s) => { r.events++; show(s); });
+      aquila.on('waiting', ({ count }) => { r.paused = true; document.getElementById('state').textContent = 'Paused: ' + count + ' waiting'; });
+      fetch('https://example.com/').then(() => (r.fetch = 'reached'), () => (r.fetch = 'blocked'));
+      aquila.usage().then(() => (r.refused = 'allowed'), (e) => (r.refused = e.message));
+      r.popup = window.open('https://example.com/') === null;
+    </script>
+  </body>
+</html>
+`;
+
+/**
+ * Extensions (T71): a user extension (made with "New extension", then edited) is reviewed, enabled and shown in the
+ * panel; its sandboxed page gets live `system` values over postMessage, can't fetch without `network`, is refused a
+ * method it didn't declare, can't open windows, sets a sidebar chip, and hears a session start waiting. Screenshots
+ * dist/smoke-extension-review.png and dist/smoke-extension.png (native view composited).
+ */
+async function checkExtensions(
+  win: BrowserWindow,
+  ext: ExtensionHost,
+  sessions: SessionManager,
+  config: Config,
+  outDir: string,
+): Promise<string | null> {
+  const project = config.projects.find((p) => !p.remote);
+  if (!project) return 'extensions: no local project';
+  const { id, dir } = ext.create('Smoke meter');
+  fs.writeFileSync(
+    path.join(dir, 'manifest.json'),
+    JSON.stringify({
+      name: 'System meter',
+      description: 'CPU and memory, live',
+      glyph: '▥',
+      permissions: ['system', 'sessions:status'],
+      commands: [{ id: 'reset', title: 'Reset' }],
+    }),
+  );
+  fs.writeFileSync(path.join(dir, 'index.html'), SMOKE_EXT_PAGE);
+  ext.setEnabled(id, false);
+  ext.reload(id);
+  const js = <T>(code: string) => win.webContents.executeJavaScript(code) as Promise<T>;
+  const shot = async (name: string) => {
+    const [width, height] = win.getContentSize();
+    const rect = { x: 0, y: 0, width, height };
+    const views = ext.visibleViews().map((v) => ({ bounds: v.bounds, capture: () => v.webContents.capturePage() }));
+    const img = await withViews(await win.webContents.capturePage(rect), rect, views);
+    fs.writeFileSync(path.join(outDir, name), img.toPNG());
+  };
+  // Tab bar ⧉ opens the panel.
+  const opened = await js<boolean>(`(() => {
+    const b = [...document.querySelectorAll('.c-btn')].find((x) => x.querySelector('.c-btn__glyph')?.textContent === '⧉');
+    b?.click();
+    return !!b;
+  })()`);
+  if (!opened) return 'extensions: no ⧉ button in the tab bar';
+  let review = false;
+  for (let i = 0; i < 30 && !review; i++) {
+    await wait(100);
+    review = await js<boolean>(`!!document.querySelector('.c-ext__review .c-meta')`);
+  }
+  if (!review) return 'extensions: the permission review never showed';
+  if (ext.contentsOf(id)) return 'extensions: the page ran before it was enabled';
+  await wait(400);
+  await shot('smoke-extension-review.png');
+  // Enable from the review (the user's click).
+  await js(`document.querySelector('.c-ext__actions .c-btn--primary')?.click()`);
+  let wc = null as Electron.WebContents | null;
+  for (let i = 0; i < 50 && !wc; i++) {
+    await wait(100);
+    wc = ext.contentsOf(id);
+  }
+  if (!wc) return 'extensions: enabling did not start the page';
+  type R = { system: unknown; events: number; fetch: string; refused: string; popup: boolean; paused: boolean };
+  const read = () => wc!.executeJavaScript('window.__smoke ?? null') as Promise<R | null>;
+  let r: R | null = null;
+  for (let i = 0; i < 80; i++) {
+    await wait(100);
+    r = await read().catch(() => null);
+    if (r?.system && r.events >= 1 && r.fetch !== 'pending' && r.refused !== 'pending') break;
+  }
+  if (!r?.system) return 'extensions: no system values reached the page';
+  if (r.events < 1) return 'extensions: no live system event';
+  if (r.fetch !== 'blocked') return `extensions: fetch without network was ${r.fetch}`;
+  if (!r.refused.includes('not allowed')) return `extensions: usage without permission was ${r.refused}`;
+  if (!r.popup) return 'extensions: window.open was not denied';
+  const chip = await js<string>(`document.querySelector('.c-ext-chips')?.textContent ?? ''`);
+  if (!chip.includes('%')) return `extensions: no chip in the sidebar ("${chip}")`;
+  // A session starts waiting: the page hears it.
+  const shellId = sessions.create(config, project.id, 'shell').id;
+  await wait(1200);
+  sessions.write(shellId, SUMMON_WAITING);
+  for (let i = 0; i < 60 && !r?.paused; i++) {
+    await wait(100);
+    r = await read().catch(() => null);
+  }
+  sessions.kill(shellId);
+  if (!r?.paused) return 'extensions: the page did not hear a session start waiting';
+  await wait(300);
+  await shot('smoke-extension.png');
+  console.log(
+    `[smoke] extensions: system ${JSON.stringify(r.system).slice(0, 80)}…, ${r.events} live events, fetch ${r.fetch}, usage refused, popup denied, chip "${chip}", paused on waiting`,
+  );
+  // Close the panel: the view hides (suspended later).
+  await js(`[...document.querySelectorAll('.c-btn')].find((x) => x.querySelector('.c-btn__glyph')?.textContent === '⧉')?.click()`);
+  await wait(300);
+  if (ext.visibleViews().length) return 'extensions: the view stayed on screen after the panel closed';
+  ext.setEnabled(id, false);
+  fs.rmSync(dir, { recursive: true, force: true });
+  ext.scan();
+  return null;
+}
 
 const processAlive = (pid: number) => {
   try {

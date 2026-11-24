@@ -23,6 +23,8 @@ export type ActionId =
   | 'togglePreview'
   | 'toggleRun'
   | 'toggleGraph'
+  | 'toggleExtensions'
+  | 'newExtension'
   | 'quickOpen'
   | 'history'
   | 'nextWaiting'
@@ -73,7 +75,9 @@ export type Command =
       /** "Worktree · <path>"; also searched. */
       hint: string;
     }
-  | { type: 'action'; id: string; action: ActionId; label: string; kbd?: string };
+  | { type: 'action'; id: string; action: ActionId; label: string; kbd?: string }
+  /** Added at run time (an extension's manifest commands, T71); `id` is the key the workspace's handler knows. */
+  | { type: 'extra'; id: string; label: string };
 
 /** Label and shortcut per action, in the order they're listed. */
 const ACTIONS: {
@@ -100,6 +104,8 @@ const ACTIONS: {
   { action: 'togglePreview', label: (t) => t('preview.toggle'), shortcut: 'togglePreview' },
   { action: 'toggleRun', label: (t) => t('run.toggle'), shortcut: 'toggleRun' },
   { action: 'toggleGraph', label: (t) => t('graph.toggle'), shortcut: 'toggleGraph' },
+  { action: 'toggleExtensions', label: (t) => t('ext.toggle') },
+  { action: 'newExtension', label: (t) => t('ext.new') },
   { action: 'quickOpen', label: (t) => t('note.quickOpen'), shortcut: 'quickOpen' },
   { action: 'history', label: (t) => t('history.title'), shortcut: 'history' },
   { action: 'nextWaiting', label: (t) => t('attention.next'), shortcut: 'nextWaiting' },
@@ -146,6 +152,8 @@ interface Input {
   available: ReadonlySet<ActionId>;
   /** Linked worktrees of the current project: Claude / Codex / Shell in each, listed after the actions. */
   worktrees?: Worktree[];
+  /** Listed after the actions, as given. */
+  extra?: { id: string; label: string }[];
   t: Translate;
 }
 
@@ -160,6 +168,7 @@ export function buildCommands({
   activeSessionId,
   available,
   worktrees = [],
+  extra = [],
   t,
 }: Input): Command[] {
   const projectName = new Map(config.projects.map((p) => [p.id, p.name]));
@@ -225,7 +234,9 @@ export function buildCommands({
     })),
   );
 
-  return [...sessionCommands, ...projectCommands, ...actionCommands, ...worktreeCommands];
+  const extraCommands: Command[] = extra.map((x) => ({ type: 'extra', id: x.id, label: x.label }));
+
+  return [...sessionCommands, ...projectCommands, ...actionCommands, ...extraCommands, ...worktreeCommands];
 }
 
 /** Extra text a command is also found by (weaker than its label). */
