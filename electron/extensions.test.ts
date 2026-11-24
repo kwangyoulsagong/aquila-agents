@@ -53,6 +53,15 @@ describe('parseManifest', () => {
     });
   });
 
+  it('reads an icon path inside the folder, and refuses others', () => {
+    expect(parseManifest('{"name":"x","icon":"art/icon.png"}', 'x').manifest?.icon).toBe('art/icon.png');
+    for (const bad of ['"../icon.png"', '"/abs.png"', '"icon.gif"', '7']) {
+      const { manifest, problems } = parseManifest(`{"name":"x","icon":${bad}}`, 'x');
+      expect(manifest?.icon).toBeUndefined();
+      expect(problems.join()).toContain('"icon"');
+    }
+  });
+
   it('defaults: index.html, no permissions, no network', () => {
     const { manifest } = parseManifest('{"name":"x"}', 'x');
     expect(manifest).toMatchObject({ entry: 'index.html', permissions: [], network: [], commands: [] });
