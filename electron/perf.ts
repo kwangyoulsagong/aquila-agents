@@ -8,6 +8,14 @@ import path from 'node:path';
 import { app, type BrowserWindow } from 'electron';
 import type { SessionManager } from './sessions';
 
+// Measure a window that paints, even behind other windows: macOS occlusion stops frames (fps 0, a `yes` flood
+// never drawn), which makes the numbers meaningless. Set here, before app ready (smoke.ts imports this at load).
+if (process.env.AQUILA_PERF === '1') {
+  app.commandLine.appendSwitch('disable-renderer-backgrounding');
+  app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
+  app.commandLine.appendSwitch('disable-features', 'MacWebContentsOcclusion');
+}
+
 const SESSIONS = 15;
 const MEASURE_MS = 10000;
 const FLOOD_MS = 5000;
@@ -21,6 +29,64 @@ const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 function press(win: BrowserWindow, keyCode: string, modifiers: Electron.InputEvent['modifiers']) {
   for (const type of ['keyDown', 'keyUp'] as const)
     win.webContents.sendInputEvent({ type, keyCode, modifiers });
+}
+
+/**
+ * The renderer's JS heap in use (MB), exact through the DevTools protocol (`performance.memory` is bucketed). The
+ * rest of `rendererMB` is native memory: xterm's typed arrays, DOM, GPU buffers, allocator slack.
+ */
+async function jsHeap(win: BrowserWindow): Promise<number> {
+  const d = win.webContents.debugger;
+  try {
+    if (!d.isAttached()) d.attach('1.3');
+    const u = (await d.sendCommand('Runtime.getHeapUsage')) as { usedSize: number };
+    return Math.round(u.usedSize / 1048576);
+  } catch {
+    return -1;
+  }
+}
+
+/** JS heap after a full GC: what is really kept, as opposed to garbage V8 hasn't collected yet. */
+async function liveHeap(win: BrowserWindow): Promise<number> {
+  try {
+    await win.webContents.debugger.sendCommand('HeapProfiler.collectGarbage');
+  } catch {
+    return -1;
+  }
+  return jsHeap(win);
+}
+
+interface SampleNode {
+  callFrame: { functionName: string; url: string; lineNumber: number };
+  selfSize: number;
+  children: SampleNode[];
+}
+
+/**
+ * AQUILA_PERF_HEAP=1: what keeps the flood's heap. V8's sampling heap profiler lists allocation sites of objects
+ * still alive when it stops (after a full GC); the top sites by size, with their callers, go to the log.
+ */
+async function heapSites(win: BrowserWindow, run: () => Promise<void>): Promise<string[]> {
+  const d = win.webContents.debugger;
+  if (!d.isAttached()) d.attach('1.3');
+  await d.sendCommand('HeapProfiler.enable');
+  await d.sendCommand('HeapProfiler.startSampling', { samplingInterval: 32768 });
+  await run();
+  await d.sendCommand('HeapProfiler.collectGarbage');
+  const { profile } = (await d.sendCommand('HeapProfiler.stopSampling')) as { profile: { head: SampleNode } };
+  const sites = new Map<string, number>();
+  const walk = (n: SampleNode, stack: string[]) => {
+    const f = n.callFrame;
+    const here = `${f.functionName || '(anon)'} ${f.url.split('/').pop()}:${f.lineNumber}`;
+    const s = [...stack, here].slice(-4);
+    if (n.selfSize) sites.set(s.join(' < '), (sites.get(s.join(' < ')) ?? 0) + n.selfSize);
+    for (const c of n.children) walk(c, s);
+  };
+  walk(profile.head, []);
+  return [...sites]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 12)
+    .map(([k, v]) => `${Math.round(v / 1048576)} MB  ${k.split(' < ').reverse().join(' < ')}`);
 }
 
 async function measure(win: BrowserWindow, ms = MEASURE_MS) {
@@ -41,8 +107,12 @@ async function measure(win: BrowserWindow, ms = MEASURE_MS) {
   await wait(ms);
   const metrics = app.getAppMetrics();
   const r = await win.webContents.executeJavaScript(
-    `(() => { const p = window.__perf; p.on = false; window.__perfOff(); return p; })()`,
+    `(() => {
+      const p = window.__perf; p.on = false; window.__perfOff();
+      return p;
+    })()`,
   );
+  const heap = await jsHeap(win);
   const cpu: Record<string, number> = {};
   let rendererMB = 0;
   let totalMB = 0;
@@ -58,6 +128,8 @@ async function measure(win: BrowserWindow, ms = MEASURE_MS) {
     cpu,
     cpuTotal: Math.round(Object.values(cpu).reduce((a, b) => a + b, 0) * 10) / 10,
     rendererMB: Math.round(rendererMB),
+    /** Renderer JS heap in use (the rest of rendererMB is native: xterm buffers' typed arrays count here too). */
+    heapMB: heap,
     totalMB: Math.round(totalMB),
     /** Idle wakeups/s summed over all app processes (T9). */
     wakeupsPerSec: Math.round(wakeups),
@@ -94,7 +166,13 @@ export async function runPerf(win: BrowserWindow, sessions: SessionManager) {
     `document.querySelectorAll('.term-host:not([hidden])').length`,
   );
 
+  win.webContents.setBackgroundThrottling(false);
   const idle = await measure(win);
+  if (idle.fps < 30) {
+    console.error(`[perf] FAIL: the window isn't painting (${idle.fps} fps), numbers would be meaningless`);
+    await sessions.killAll();
+    return app.exit(1);
+  }
   for (const id of ids) sessions.write(id, STREAM);
   await wait(2000);
   const streaming = await measure(win);
@@ -103,9 +181,31 @@ export async function runPerf(win: BrowserWindow, sessions: SessionManager) {
 
   // Flood: `yes` in a session on screen. Smooth = frames keep coming; responsive = Ctrl+C answers fast.
   const flooded = ids[ids.length - 1]!;
-  sessions.write(flooded, 'yes\r');
-  await wait(1000);
-  const flood = await measure(win, FLOOD_MS);
+  let flood!: Awaited<ReturnType<typeof measure>>;
+  const floodRun = async () => {
+    sessions.write(flooded, 'yes\r');
+    await wait(1000);
+    flood = await measure(win, FLOOD_MS);
+  };
+  if (process.env.AQUILA_PERF_HEAP === '1') {
+    const sites = await heapSites(win, async () => {
+      await floodRun();
+      sessions.write(flooded, '\x03');
+      await wait(1500);
+    });
+    console.log(`[perf] heap kept after the flood, by allocation site:\n  ${sites.join('\n  ')}`);
+    sessions.write(flooded, 'yes\r');
+    await wait(500);
+  } else await floodRun();
+  // What draws the on-screen terminals (WebGL canvas vs DOM rows), and the page's DOM size: native memory, not JS heap.
+  const drawing = await win.webContents.executeJavaScript(`(() => {
+    const shown = [...document.querySelectorAll('.term-host:not([hidden])')];
+    return {
+      webglOnScreen: shown.filter((h) => h.querySelector('.xterm-screen canvas')).length,
+      domRowsOnScreen: shown.reduce((n, h) => n + h.querySelectorAll('.xterm-rows > div').length, 0),
+      domNodes: document.getElementsByTagName('*').length,
+    };
+  })()`);
   await win.webContents.executeJavaScript(`(() => {
     window.__ctrlc = 0;
     const off = window.aquila.onData(({ data }) => {
@@ -123,10 +223,12 @@ export async function runPerf(win: BrowserWindow, sessions: SessionManager) {
     );
   }
 
+  // After Ctrl+C: was the flood's heap kept (a leak) or garbage? Live heap after a full GC.
+  const floodLiveHeapMB = await liveHeap(win);
   const graph = await measureGraph(win);
 
   console.log(
-    `[perf] ${JSON.stringify({ sessions: ids.length, visible, idle, streaming, flood: { ...flood, ctrlCMs }, graph })}`,
+    `[perf] ${JSON.stringify({ sessions: ids.length, visible, idle, streaming, flood: { ...flood, ctrlCMs, drawing, liveHeapMB: floodLiveHeapMB }, graph })}`,
   );
   void sessions.killAll().finally(() => app.exit(0));
 }
@@ -213,6 +315,8 @@ async function measureGraph(win: BrowserWindow) {
   await wait(2000); // code names, index save
   const mainAfter = browserMB();
   const closedIdle = await measure(win, 5000);
+  // A second window: work left over from indexing (code names) has finished by now; an idle loop would still show.
+  const closedIdleLater = await measure(win, 5000);
 
   // T70: sessions in the graph. Smoke / perf re-read the transcripts on every snapshot (no hooks), so this is the
   // cold load each time; the app reads them once per finished turn.
@@ -276,14 +380,21 @@ async function measureGraph(win: BrowserWindow) {
       cpu: closedIdle.cpu,
       cpuTotal: closedIdle.cpuTotal,
       wakeupsPerSec: closedIdle.wakeupsPerSec,
+      later: { cpuTotal: closedIdleLater.cpuTotal, wakeupsPerSec: closedIdleLater.wakeupsPerSec },
     },
     openIdle: {
       cpu: openIdle.cpu,
       cpuTotal: openIdle.cpuTotal,
       fps: openIdle.fps,
       rendererMB: openIdle.rendererMB,
+      wakeupsPerSec: openIdle.wakeupsPerSec,
     },
     zoom: zoom && { fps: zoom.fps, maxFrameGapMs: zoom.maxFrameGapMs, cpu: zoom.cpu },
-    reclosedIdle: { cpu: reclosedIdle.cpu, cpuTotal: reclosedIdle.cpuTotal, canvasesLeft: canvases },
+    reclosedIdle: {
+      cpu: reclosedIdle.cpu,
+      cpuTotal: reclosedIdle.cpuTotal,
+      wakeupsPerSec: reclosedIdle.wakeupsPerSec,
+      canvasesLeft: canvases,
+    },
   };
 }

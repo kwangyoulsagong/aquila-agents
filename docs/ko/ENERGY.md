@@ -7,6 +7,10 @@
 - **`npm run perf`** — 앱 안에서 측정: 셸 세션 15개(화면 2개, 숨김 13개)로 idle / 에이전트 같은 스트리밍 출력 /
   `yes` 폭주를 잽니다. 프로세스 종류별 CPU %, idle wakeups/s(`app.getAppMetrics`), IPC 메시지/s, fps,
   `yes` → Ctrl-C 응답 시간을 출력합니다. `AQUILA_POWER_SAVER=1`을 붙이면 절전 프로필을 강제로 켭니다.
+  렌더러의 정확한 JS 힙(`heapMB`, DevTools 프로토콜)과 폭주 뒤 전체 GC 후 살아 있는 힙(`liveHeapMB`: 누수는 여기
+  보이고 가비지는 안 보임)도 출력합니다. 창이 다른 창 뒤에 있어도 계속 그리게 하고, 프레임을 하나도 그리지 못한
+  실행은 의미 없는 숫자를 내는 대신 실패합니다. `AQUILA_PERF_HEAP=1`이면 폭주가 남긴 객체의 할당 위치(V8 샘플링 힙
+  프로파일러)도 출력합니다 — 이름을 읽으려면 먼저 `npx vite build --minify false`로 빌드하세요.
 - **`scripts/measure-energy.sh [앱 …]`** — 앱 밖에서 측정: 앱마다 자기 프로세스들의 `top -stats pid,cpu,idlew,power`
   값을 합칩니다(Aquila Agents, Terminal, Ghostty, iTerm2 중 실행 중인 것). `POWERMETRICS=1`이면
   `sudo powermetrics --samplers tasks`로 작업별 wakeups와 에너지도 봅니다.
