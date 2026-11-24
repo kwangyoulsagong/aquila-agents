@@ -162,6 +162,7 @@ export default function NoteEditorPanel({
         {t('note.deleted')}
       </EditorBanner>
     );
+  else if (ed.file?.truncated) banner = <EditorBanner>{t('note.truncated')}</EditorBanner>;
   else if (ed.file?.readOnly) banner = <EditorBanner>{t('note.readOnly')}</EditorBanner>;
   else if (missing)
     banner = (

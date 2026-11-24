@@ -135,3 +135,19 @@ describe('NoteWatcher recheck', () => {
     w.close();
   });
 });
+
+describe('large notes', () => {
+  it('opens only the start of a note over the cap, read-only, cut at a whole line', () => {
+    const f = path.join(tmpDir(), 'log.md');
+    // 한글 lines: a cut mid-character would show up as a replacement character.
+    fs.writeFileSync(f, '로그 한 줄입니다 0123456789\n'.repeat(200));
+    const small = readNote(f);
+    expect(small?.truncated).toBeUndefined();
+    const big = readNote(f, 1000)!;
+    expect(big.truncated).toBe(true);
+    expect(big.readOnly).toBe(true);
+    expect(Buffer.byteLength(big.text)).toBeLessThanOrEqual(1000);
+    expect(big.text.endsWith('\n')).toBe(true);
+    expect(big.text).not.toContain('�');
+  });
+});
