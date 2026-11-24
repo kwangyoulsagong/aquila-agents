@@ -614,7 +614,8 @@ import하지 않음).
 `electron/extensions.ts`(`ExtensionHost`) + `electron/extension-preload.ts` + `widgets/extension-panel`. 사용자가 직접
 만드는 작은 패널. **기본으로 들어 있는 것은 없음** — `~/.aquila/extensions/<id>/`에는 사용자(또는 Claude 탭)가 쓴 것만 있다.
 
-- **폴더:** `manifest.json`(`name`, `description`, `version`, `glyph`, `entry` = 폴더 안의 .html, `permissions`,
+- **폴더:** `manifest.json`(`name`, `description`, `version`, `glyph`, `icon` = 칩과 패널 이름에 글리프 대신 보이는 64KB
+  이하 .png/.svg/.webp, `entry` = 폴더 안의 .html, `permissions`,
   `commands`) + 평범한 HTML/JS. 방어적으로 읽음(`parseManifest`): 모르는 권한, 잘못된 도메인·명령은 문제 줄과 함께
   버리고, 이름·entry가 없거나 폴더 이름이 잘못되면 쓸 수 없음. 패널이 목록을 요청한 뒤로 최상위 폴더를 감시(디바운스 재스캔).
 - **먼저 확인:** 사용자가 패널에서 켜야만 실행된다. 켜기 전에 권한, 도메인, 명령, 폴더를 보여 줌(`~/.aquila/extensions.json`).

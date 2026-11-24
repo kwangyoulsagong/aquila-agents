@@ -104,6 +104,7 @@
 | `--size-focus-line` | 2 | 포커스된 패널 헤더 아래 강조선 (패널의 유일한 포커스 표시) |
 | `--size-split-handle` | 8 | 분할 구분선을 잡는 영역, 1px 선 가운데 |
 | `--size-badge` / `--size-dot` | 16 / 8 | |
+| `--size-ext-icon` | 16 | 확장 자체 그림(매니페스트 `icon`) — 칩과 패널 이름 |
 | `--size-meter` | 4 | 미터 막대 (사용량 게이지) |
 | `--size-ring` | 12 | 탭 안의 링 미터 (컨텍스트 게이지) |
 | `--size-sidebar` / `--size-panel` | 248 / 416 | |
@@ -172,7 +173,7 @@
 | `.c-commands`, `.c-command[data-state=ok\|error\|interrupted\|pending]` `__state` `__text` `__time` | 에이전트가 실행한 명령(T59): 끝난 방식을 모양과 색으로(✓ ✕ ■ …), 명령은 고정폭 한 줄(말줄임), 표시, 시간 |
 | `.c-runs`, `.c-runs__item[aria-current]` `__name` `__state` | Run 슬롯 명령(T60): 한 줄에 하나, 점(`live` / 고리 / `!` / idle), 고정폭 이름, 상태. 현재 것은 강조. `.c-run`(패널), `__state`, `__reason`, `__log`가 패널 배치 |
 | `.c-ext` `__pick` `__name` `__stage` `__review` `__text[--muted]` `__actions` | 확장 패널(T71): 고르기 바, 그 아래 main이 확장의 샌드박스 네이티브 뷰를 올리는 stage, 또는 켜기 전 권한 확인(`.c-meta` 목록 + 켜기). 떠 있는 동안에는 `__review`에 창 투명도 Range(전체 너비)와 토글 |
-| `.c-ext-chips` | 사이드바 푸터 위 띠(T71): 확장이 `chip.set`으로 정한 글자를 보여 주는 라벨 고스트 버튼. 글리프가 20px 콘텐츠 선에 맞음 |
+| `.c-ext-chips` | 사이드바 푸터 위 띠(T71): 확장이 `chip.set`으로 정한 글자를 보여 주는 라벨 고스트 버튼. 글리프(또는 확장의 `icon`, `.c-ext-icon`, 픽셀 그대로)가 20px 콘텐츠 선에 맞음 |
 | `.c-transcript` `__message[data-role]` `__role` `__text` | 읽기 전용 대화: 누가, 그다음 쓴 그대로의 텍스트(줄바꿈); 사용자 메시지는 primary 색 |
 | `.c-modal` `__head` `__title` `__subtitle` `__body` `__aside` `__search` `__list` `__item[aria-selected]` `__item-label` `__empty` `__main` `__heading` `__text` `__keys` `__foot` | 큰 목록 + 상세 모달 (네이티브 `<dialog>`, 떠오름): 머리와 검색칸은 타이틀 바 높이, 왼쪽 검색 목록, 오른쪽 상세 (가이드; 릴리즈 노트·트렌드와 공유) |
 | `.c-media` `__frame` `__placeholder` | 스크린샷이나 짧은 루프용 16:10 틀, 없으면 자리표시 |
