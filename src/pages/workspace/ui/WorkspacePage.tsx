@@ -3,6 +3,7 @@ import { Button } from '@design-system/react';
 import { api, type SessionKind } from '@/shared/api';
 import { I18nContext, translator } from '@/shared/i18n';
 import { withShortcut } from '@/shared/lib/shortcuts';
+import { preloadLazyComponents } from '@/shared/lib/lazyComponent';
 import { AccountSwitch } from '@/features/switch-account';
 import { SetupAccount } from '@/features/setup-account';
 import {
@@ -55,6 +56,12 @@ import { usePanelFit, type PanelId } from '../model/panels';
 
 export default function WorkspacePage() {
   const ws = useWorkspace();
+  // Dialogs and panels are separate chunks (off the startup path); fetch them right after the first frame, so they
+  // are there before anyone opens one (a dialog opened while its chunk loads would miss the first keys typed).
+  useEffect(() => {
+    const id = setTimeout(preloadLazyComponents, 0);
+    return () => clearTimeout(id);
+  }, []);
   const [changesOpen, setChangesOpen] = useState(false);
   const toggleChanges = useCallback(() => setChangesOpen((o) => !o), []);
   const [previewOpen, setPreviewOpen] = useState(false);

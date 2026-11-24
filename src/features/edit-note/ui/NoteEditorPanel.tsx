@@ -247,63 +247,57 @@ export default function NoteEditorPanel({
           </Button>
         </div>
       </div>
-      {ed.unavailable ? (
-        <EmptyState title={t('note.unavailable')} path={path} />
-      ) : (
-        <NoteEditor
-          hostRef={setHost}
-          top={
+      {/* The editor stays mounted while a note can't be opened, so the next note opens in the same view. */}
+      {ed.unavailable && <EmptyState title={t('note.unavailable')} path={path} />}
+      <NoteEditor
+        hostRef={setHost}
+        hidden={ed.unavailable}
+        top={
+          <>
+            {renderTop?.(slot)}
+            {banner}
+            {comparing && conflict?.kind === 'changed' && (
+              <EditorCompare>
+                {diff ? <DiffView files={[diff]} /> : <EmptyState title={t('note.compareTooLarge')} />}
+              </EditorCompare>
+            )}
+          </>
+        }
+        side={
+          side ? (
             <>
-              {renderTop?.(slot)}
-              {banner}
-              {comparing && conflict?.kind === 'changed' && (
-                <EditorCompare>
-                  {diff ? <DiffView files={[diff]} /> : <EmptyState title={t('note.compareTooLarge')} />}
-                </EditorCompare>
-              )}
+              <EditorSection title={t('note.outline')} empty={t('note.outlineEmpty')}>
+                {headings.map((h) => (
+                  <EditorItem
+                    key={`${h.line}`}
+                    label={h.text}
+                    level={h.level - 1}
+                    onClick={() => ed.goToLine(h.line)}
+                  />
+                ))}
+              </EditorSection>
+              <EditorSection title={t('note.backlinks')} empty={t('note.none')}>
+                {backlinks.map((b) => (
+                  <EditorItem
+                    key={b.id}
+                    label={b.label}
+                    detail={b.detail}
+                    title={b.path}
+                    onClick={() => onOpenNote(b.path)}
+                  />
+                ))}
+              </EditorSection>
+              <EditorSection title={t('note.mentions')} empty={t('note.none')}>
+                {mentions.map((m) => (
+                  <EditorItem key={m.id} label={m.label} title={m.path} onClick={() => onOpenNote(m.path)} />
+                ))}
+              </EditorSection>
+              {renderSide?.(slot)}
+              {renderLinks?.({ nodeId: node?.id, snapshot, status })}
             </>
-          }
-          side={
-            side ? (
-              <>
-                <EditorSection title={t('note.outline')} empty={t('note.outlineEmpty')}>
-                  {headings.map((h) => (
-                    <EditorItem
-                      key={`${h.line}`}
-                      label={h.text}
-                      level={h.level - 1}
-                      onClick={() => ed.goToLine(h.line)}
-                    />
-                  ))}
-                </EditorSection>
-                <EditorSection title={t('note.backlinks')} empty={t('note.none')}>
-                  {backlinks.map((b) => (
-                    <EditorItem
-                      key={b.id}
-                      label={b.label}
-                      detail={b.detail}
-                      title={b.path}
-                      onClick={() => onOpenNote(b.path)}
-                    />
-                  ))}
-                </EditorSection>
-                <EditorSection title={t('note.mentions')} empty={t('note.none')}>
-                  {mentions.map((m) => (
-                    <EditorItem
-                      key={m.id}
-                      label={m.label}
-                      title={m.path}
-                      onClick={() => onOpenNote(m.path)}
-                    />
-                  ))}
-                </EditorSection>
-                {renderSide?.(slot)}
-                {renderLinks?.({ nodeId: node?.id, snapshot, status })}
-              </>
-            ) : undefined
-          }
-        />
-      )}
+          ) : undefined
+        }
+      />
     </aside>
   );
 }

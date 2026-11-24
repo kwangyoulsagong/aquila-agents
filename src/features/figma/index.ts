@@ -1,4 +1,5 @@
-export { default as FigmaSettings } from './ui/FigmaSettings';
+import { lazyComponent } from '@/shared/lib/lazyComponent';
+export const FigmaSettings = lazyComponent(() => import('./ui/FigmaSettings'));
 export {
   featureStates,
   planLabel,

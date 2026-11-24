@@ -55,20 +55,30 @@ export function useSplitLayout(
     [],
   );
 
-  /** Before removing a session from the list: collapse its pane, or (single pane) show a sibling session. */
-  const forgetSession = useCallback(
-    (id: string) => {
-      const gone = sessions.find((s) => s.id === id);
+  /**
+   * Before removing sessions from the list: collapse their panes, or (single pane) show a sibling session. Several
+   * at once (a project removed) so none of them is picked as another one's replacement.
+   */
+  const forgetSessions = useCallback(
+    (ids: string[]) => {
+      const goingIds = new Set(ids);
       setLayout((l) => {
-        const shown = new Set(L.leaves(l.root).map((leaf) => leaf.sessionId));
-        const fallback = sessions
-          .filter((s) => s.id !== id && s.projectId === gone?.projectId && !shown.has(s.id))
-          .at(-1);
-        return L.removeSession(l, id, fallback?.id ?? null);
+        let next = l;
+        for (const id of ids) {
+          const gone = sessions.find((s) => s.id === id);
+          const shown = new Set(L.leaves(next.root).map((leaf) => leaf.sessionId));
+          const fallback = sessions
+            .filter((s) => !goingIds.has(s.id) && s.projectId === gone?.projectId && !shown.has(s.id))
+            .at(-1);
+          next = L.removeSession(next, id, fallback?.id ?? null);
+        }
+        return next;
       });
     },
     [sessions],
   );
+
+  const forgetSession = useCallback((id: string) => forgetSessions([id]), [forgetSessions]);
 
   /** The layout saved at the last quit (T21); false when it doesn't fit the restored sessions. */
   const restoreLayout = useCallback((saved: SavedLayout, sessionIds: string[]) => {
@@ -123,6 +133,7 @@ export function useSplitLayout(
     placeInFocused,
     replaceSession,
     forgetSession,
+    forgetSessions,
     restoreLayout,
     focusPane,
     splitFocused,

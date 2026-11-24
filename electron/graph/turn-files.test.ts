@@ -22,6 +22,36 @@ describe('turn files', () => {
     ]);
   });
 
+  it("a prompt sent while the last turn's Stop is still looking keeps its own snapshot", async () => {
+    const dir = tmpDir();
+    let status = ['/r/a.ts'];
+    const mtimes: Record<string, number> = { '/r/a.ts': 1 };
+    let release: () => void = () => {};
+    const slow = new Promise<void>((r) => (release = r));
+    let first = true;
+    const turns = new TurnFiles({
+      file: path.join(dir, 'turns.json'),
+      // The first look (turn 1's start) is slow, like git status on a big repo.
+      status: async () => {
+        const now = [...status];
+        if (first) {
+          first = false;
+          await slow;
+        }
+        return now;
+      },
+      mtime: (f) => mtimes[f] ?? null,
+    });
+    turns.start('s1', '/r');
+    const stop1 = turns.stop('s1');
+    turns.start('s1', '/r'); // the next prompt, before turn 1's snapshot is ready
+    release();
+    await stop1;
+    status = ['/r/a.ts', '/r/b.ts'];
+    mtimes['/r/b.ts'] = 2;
+    expect(await turns.stop('s1')).toEqual(['/r/b.ts']);
+  });
+
   it('a file is changed when it appears, goes or its mtime moves', () => {
     const before = new Map<string, number | null>([
       ['/a', 1],

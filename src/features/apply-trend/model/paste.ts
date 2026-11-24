@@ -1,4 +1,5 @@
 import { api } from '@/shared/api';
+import { safePasteText } from '@/shared/lib/pasteText';
 
 export interface PasteDeps {
   onData: (cb: (p: { id: string; data: string }) => void) => () => void;
@@ -50,7 +51,8 @@ export function pasteWhenReady(
       clearTimeout(quiet);
       clearTimeout(cap);
       clearTimeout(trustCap);
-      if (paste) deps.write(id, `\x1b[200~${text}\x1b[201~`);
+      // Through safe paste (T40): trend text comes from feeds, and an `ESC[201~` in it would end the paste early.
+      if (paste) deps.write(id, `\x1b[200~${safePasteText(text)}\x1b[201~`);
       resolve(paste);
     };
     const settled = () => {

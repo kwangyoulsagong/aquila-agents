@@ -12,6 +12,7 @@ import {
   methodAllowed,
   parseManifest,
   parseFloatPrefs,
+  grantCovers,
   parsePrefs,
   placeFloat,
   OPACITY_MIN,
@@ -210,12 +211,24 @@ describe('feeds', () => {
 
 describe('prefs, slug, template', () => {
   it('reads prefs defensively', () => {
-    expect(parsePrefs('nope')).toEqual({ enabled: {}, background: {}, float: {} });
+    expect(parsePrefs('nope')).toEqual({ enabled: {}, background: {}, float: {}, granted: {} });
     expect(parsePrefs('{"enabled":{"a":true,"b":"yes"}}')).toEqual({
       enabled: { a: true },
       background: {},
       float: {},
+      granted: {},
     });
+    expect(
+      parsePrefs('{"granted":{"a":{"permissions":["system",3],"network":["api.x.com"]},"b":"x"}}').granted,
+    ).toEqual({ a: { permissions: ['system'], network: ['api.x.com'] } });
+  });
+
+  it('a manifest asking for more than was approved is not covered', () => {
+    const g = { permissions: ['system'], network: ['api.x.com'] };
+    expect(grantCovers(g, { permissions: ['system'], network: [] })).toBe(true);
+    expect(grantCovers(g, { permissions: ['system', 'notify'], network: [] })).toBe(false);
+    expect(grantCovers(g, { permissions: ['system'], network: ['evil.com'] })).toBe(false);
+    expect(grantCovers(undefined, { permissions: [], network: [] })).toBe(false);
   });
 
   it('slugs a unique folder name', () => {

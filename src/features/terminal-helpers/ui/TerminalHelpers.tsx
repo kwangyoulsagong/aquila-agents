@@ -33,10 +33,14 @@ function useFollow(term: Terminal | null) {
     if (!term) return;
     let scrolled = false;
     let unread = false;
-    const push = () =>
-      setState((prev) =>
-        prev.scrolled === scrolled && prev.unread === unread ? prev : { scrolled, unread },
-      );
+    // What React has: setState only when it changes. xterm fires onScroll per line fed, so a flood (`yes`) would
+    // queue hundreds of thousands of updates a second — measured ~500 MB of live heap and dropped frames.
+    let shown = { scrolled, unread };
+    const push = () => {
+      if (shown.scrolled === scrolled && shown.unread === unread) return;
+      shown = { scrolled, unread };
+      setState(shown);
+    };
     const sync = () => {
       const b = term.buffer.active;
       scrolled = b.viewportY < b.baseY;

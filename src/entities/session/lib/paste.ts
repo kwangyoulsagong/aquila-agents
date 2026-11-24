@@ -3,15 +3,9 @@
 // (Ctrl+C, Ctrl+D, ESC sequences, CSI 0x9b) can act on the CLI too. Tab and line breaks stay: xterm turns line
 // breaks into Enter (CR) and brackets the paste when the CLI asked for it.
 import type { Terminal } from '@xterm/xterm';
+import { safePasteText } from '@/shared/lib/pasteText';
 
-// C0 except tab (09), LF (0a), CR (0d); DEL; C1.
-// eslint-disable-next-line no-control-regex -- matching control characters is the point
-const UNSAFE = /[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]/g;
-
-/** `text` without the control characters that could act on the terminal; tab and line breaks kept. */
-export function safePasteText(text: string): string {
-  return text.replace(UNSAFE, '');
-}
+export { safePasteText };
 
 /** Pastes like ⌘V (bracketed when the CLI asked for it), after `safePasteText`. */
 export function safePaste(term: Pick<Terminal, 'paste'>, text: string): void {

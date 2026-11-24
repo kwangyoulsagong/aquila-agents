@@ -23,10 +23,12 @@ const readPx = (key: string): number | null => {
 
 // The panel resized last keeps its width; the other open panels give way first when the window runs out.
 const PINNED_KEY = 'aquila.panel.pinned';
-let pinned = read(PINNED_KEY);
+// Read on first use, not at import: the first localStorage access is a synchronous trip to the browser process, and
+// module evaluation is on the startup path.
+let pinned: string | null | undefined;
 const listeners = new Set<() => void>();
 const setPinned = (key: string | null) => {
-  if (pinned === key) return;
+  if (getPinned() === key) return;
   pinned = key;
   write(PINNED_KEY, key);
   listeners.forEach((l) => l());
@@ -35,7 +37,7 @@ const subscribe = (l: () => void) => {
   listeners.add(l);
   return () => listeners.delete(l);
 };
-const getPinned = () => pinned;
+const getPinned = (): string | null => (pinned === undefined ? (pinned = read(PINNED_KEY)) : pinned);
 
 /** Spread on the panel element: its width and whether it's the one that keeps its size. */
 export interface PanelWidthProps {

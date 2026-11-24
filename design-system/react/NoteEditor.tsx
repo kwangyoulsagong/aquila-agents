@@ -7,15 +7,17 @@ interface EditorProps {
   top?: ReactNode;
   /** Outline / links column on the right; omitted = hidden. */
   side?: ReactNode;
+  /** Hidden but kept mounted (the CodeMirror host survives, e.g. while a note can't be opened). */
+  hidden?: boolean;
 }
 
 /**
  * `.c-editor` — the note editor (T67): a CodeMirror host and an optional side column. CodeMirror's own classes
  * (`.cm-*`) and the live-preview marks (`.cm-md-*`) are styled under `.c-editor` in components.css.
  */
-export function NoteEditor({ hostRef, top, side }: EditorProps) {
+export function NoteEditor({ hostRef, top, side, hidden }: EditorProps) {
   return (
-    <div className="c-editor">
+    <div className="c-editor" hidden={hidden}>
       <div className="c-editor__main">
         {top}
         <div className="c-editor__host" ref={hostRef} />

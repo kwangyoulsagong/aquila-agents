@@ -26,6 +26,9 @@ export const tildify = (p: string, home = HOME) =>
   p === home ? '~' : p.startsWith(home + path.sep) ? `~${p.slice(home.length)}` : p;
 export const untildify = (p: string, home = HOME) => (p.startsWith('~') ? path.join(home, p.slice(1)) : p);
 
+/** Worker crashes after which the index stays off until the app restarts. */
+const MAX_CRASHES = 3;
+
 export class SourceError extends Error {
   constructor(readonly code: 'notFolder' | 'overlap' | 'unknown') {
     super(code);
@@ -137,6 +140,8 @@ export class GraphService implements VaultGraph {
   private worker: Worker | null = null;
   private engine: EngineStatus | null = null;
   private started = false;
+  /** Worker exits nobody asked for (an exception in it). Restarted on the next graph call, up to MAX_CRASHES. */
+  private crashes = 0;
   private saver: boolean;
   private req = 0;
   private waiting = new Map<number, (s: GraphSnapshot) => void>();
@@ -368,7 +373,10 @@ export class GraphService implements VaultGraph {
       aiFile: path.join(this.opts.dir, 'ai.json'),
       saver: this.saver,
     };
-    const w = new Worker(this.opts.workerFile, { workerData });
+    // A small young generation: indexing makes short-lived garbage in bursts, and V8's default (16 MB semi-spaces)
+    // keeps that headroom resident for the worker's life. Measured with 2,000 notes: −13 MB, same index time.
+    // No old-generation cap: a big vault must not run the worker out of memory.
+    const w = new Worker(this.opts.workerFile, { workerData, resourceLimits: { maxYoungGenerationSizeMb: 4 } });
     this.worker = w;
     w.on('message', (m: FromWorker) => {
       if (m.type === 'status') {
@@ -384,14 +392,19 @@ export class GraphService implements VaultGraph {
       }
     });
     w.on('error', (e) => console.error('[graph] worker failed:', e));
-    w.on('exit', () => {
-      if (this.worker !== w) return;
+    w.on('exit', (code) => {
+      if (this.worker !== w) return; // stopped on purpose (stopWorker cleared it first)
       this.worker = null;
       this.engine = null;
       for (const resolve of this.waiting.values()) resolve(EMPTY);
       this.waiting.clear();
       for (const resolve of this.waitingNotes.values()) resolve([]);
       this.waitingNotes.clear();
+      // Crashed: the next graph call starts it again (not right away, so a note that crashes it can't loop).
+      this.crashes++;
+      console.error(`[graph] worker exited (${code}), crash ${this.crashes}/${MAX_CRASHES}`);
+      if (this.crashes < MAX_CRASHES) this.started = false;
+      this.opts.onStatus(this.current());
     });
   }
 

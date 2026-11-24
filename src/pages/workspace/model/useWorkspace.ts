@@ -18,7 +18,7 @@ export function useWorkspace() {
   }, []);
 
   const split = useSplitLayout(sessions, activeProjectId, setActiveProjectId);
-  const { showSession, placeInFocused, forgetSession, restoreLayout } = split;
+  const { showSession, placeInFocused, forgetSession, forgetSessions, restoreLayout } = split;
 
   // Bring back the tabs and the split layout from the last launch. Main spawns the tabs on screen (Claude and codex
   // resume, shells start under their last output); the others come back dormant and start when first shown.
@@ -195,10 +195,13 @@ export function useWorkspace() {
   /** A project left the config: close its sessions; if it was selected, select the first one left. */
   const forgetProject = useCallback(
     (projectId: string, next: Config) => {
-      sessions.filter((s) => s.projectId === projectId).forEach((s) => closeSession(s.id));
+      const ids = sessions.filter((s) => s.projectId === projectId).map((s) => s.id);
+      for (const id of ids) api.kill(id);
+      forgetSessions(ids);
+      setSessions((list) => list.filter((s) => !ids.includes(s.id)));
       if (projectId === activeProjectId && next.projects[0]) split.selectProject(next.projects[0].id);
     },
-    [sessions, closeSession, activeProjectId, split],
+    [sessions, forgetSessions, activeProjectId, split],
   );
 
   return {

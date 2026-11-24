@@ -1,1 +1,2 @@
-export { default as SessionCommandsModal } from './ui/SessionCommandsModal';
+import { lazyComponent } from '@/shared/lib/lazyComponent';
+export const SessionCommandsModal = lazyComponent(() => import('./ui/SessionCommandsModal'));

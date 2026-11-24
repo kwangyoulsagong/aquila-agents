@@ -1,4 +1,5 @@
-export { default as GuideModal } from './ui/GuideModal';
+import { lazyComponent } from '@/shared/lib/lazyComponent';
+export const GuideModal = lazyComponent(() => import('./ui/GuideModal'), (p) => p.open);
 export { default as GuideOffer } from './ui/GuideOffer';
 export { default as GuideButton } from './ui/GuideButton';
 export { useGuide, type Guide } from './model/useGuide';

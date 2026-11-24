@@ -2143,9 +2143,20 @@ const DICT: Record<Language, Record<Key, string>> = { ko, en };
 
 export type Translate = (key: Key, vars?: Record<string, string>) => string;
 
+const translators = new Map<Language, Translate>();
+
+/**
+ * The translate function of a language: the same function for the same language, so passing it as a context value
+ * or a prop doesn't re-render everything that reads it.
+ */
 export function translator(lang: Language = 'ko'): Translate {
-  const dict = DICT[lang] ?? ko;
-  return (key, vars) => dict[key].replace(/\{(\w+)\}/g, (_, k: string) => vars?.[k] ?? '');
+  let t = translators.get(lang);
+  if (!t) {
+    const dict = DICT[lang] ?? ko;
+    t = (key, vars) => dict[key].replace(/\{(\w+)\}/g, (_, k: string) => vars?.[k] ?? '');
+    translators.set(lang, t);
+  }
+  return t;
 }
 
 const known = (t: Translate, key: string): string | null => (key in ko ? t(key as Key) : null);

@@ -7,6 +7,15 @@ import os from 'node:os';
 import path from 'node:path';
 import { app, type BrowserWindow } from 'electron';
 import type { SessionManager } from './sessions';
+import { IPC } from '../src/shared/api/types';
+
+// Measure a window that paints, even behind other windows: macOS occlusion stops frames (fps 0, a `yes` flood
+// never drawn), which makes the numbers meaningless. Set here, before app ready (smoke.ts imports this at load).
+if (process.env.AQUILA_PERF === '1' && process.env.AQUILA_PERF_NO_SWITCHES !== '1') {
+  app.commandLine.appendSwitch('disable-renderer-backgrounding');
+  app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
+  app.commandLine.appendSwitch('disable-features', 'MacWebContentsOcclusion');
+}
 
 const SESSIONS = 15;
 const MEASURE_MS = 10000;
@@ -21,6 +30,64 @@ const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 function press(win: BrowserWindow, keyCode: string, modifiers: Electron.InputEvent['modifiers']) {
   for (const type of ['keyDown', 'keyUp'] as const)
     win.webContents.sendInputEvent({ type, keyCode, modifiers });
+}
+
+/**
+ * The renderer's JS heap in use (MB), exact through the DevTools protocol (`performance.memory` is bucketed). The
+ * rest of `rendererMB` is native memory: xterm's typed arrays, DOM, GPU buffers, allocator slack.
+ */
+async function jsHeap(win: BrowserWindow): Promise<number> {
+  const d = win.webContents.debugger;
+  try {
+    if (!d.isAttached()) d.attach('1.3');
+    const u = (await d.sendCommand('Runtime.getHeapUsage')) as { usedSize: number };
+    return Math.round(u.usedSize / 1048576);
+  } catch {
+    return -1;
+  }
+}
+
+/** JS heap after a full GC: what is really kept, as opposed to garbage V8 hasn't collected yet. */
+async function liveHeap(win: BrowserWindow): Promise<number> {
+  try {
+    await win.webContents.debugger.sendCommand('HeapProfiler.collectGarbage');
+  } catch {
+    return -1;
+  }
+  return jsHeap(win);
+}
+
+interface SampleNode {
+  callFrame: { functionName: string; url: string; lineNumber: number };
+  selfSize: number;
+  children: SampleNode[];
+}
+
+/**
+ * AQUILA_PERF_HEAP=1: what keeps the flood's heap. V8's sampling heap profiler lists allocation sites of objects
+ * still alive when it stops (after a full GC); the top sites by size, with their callers, go to the log.
+ */
+async function heapSites(win: BrowserWindow, run: () => Promise<void>): Promise<string[]> {
+  const d = win.webContents.debugger;
+  if (!d.isAttached()) d.attach('1.3');
+  await d.sendCommand('HeapProfiler.enable');
+  await d.sendCommand('HeapProfiler.startSampling', { samplingInterval: 32768 });
+  await run();
+  await d.sendCommand('HeapProfiler.collectGarbage');
+  const { profile } = (await d.sendCommand('HeapProfiler.stopSampling')) as { profile: { head: SampleNode } };
+  const sites = new Map<string, number>();
+  const walk = (n: SampleNode, stack: string[]) => {
+    const f = n.callFrame;
+    const here = `${f.functionName || '(anon)'} ${f.url.split('/').pop()}:${f.lineNumber}`;
+    const s = [...stack, here].slice(-4);
+    if (n.selfSize) sites.set(s.join(' < '), (sites.get(s.join(' < ')) ?? 0) + n.selfSize);
+    for (const c of n.children) walk(c, s);
+  };
+  walk(profile.head, []);
+  return [...sites]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 12)
+    .map(([k, v]) => `${Math.round(v / 1048576)} MB  ${k.split(' < ').reverse().join(' < ')}`);
 }
 
 async function measure(win: BrowserWindow, ms = MEASURE_MS) {
@@ -41,8 +108,12 @@ async function measure(win: BrowserWindow, ms = MEASURE_MS) {
   await wait(ms);
   const metrics = app.getAppMetrics();
   const r = await win.webContents.executeJavaScript(
-    `(() => { const p = window.__perf; p.on = false; window.__perfOff(); return p; })()`,
+    `(() => {
+      const p = window.__perf; p.on = false; window.__perfOff();
+      return p;
+    })()`,
   );
+  const heap = await jsHeap(win);
   const cpu: Record<string, number> = {};
   let rendererMB = 0;
   let totalMB = 0;
@@ -58,6 +129,8 @@ async function measure(win: BrowserWindow, ms = MEASURE_MS) {
     cpu,
     cpuTotal: Math.round(Object.values(cpu).reduce((a, b) => a + b, 0) * 10) / 10,
     rendererMB: Math.round(rendererMB),
+    /** Renderer JS heap in use (the rest of rendererMB is native: xterm buffers' typed arrays count here too). */
+    heapMB: heap,
     totalMB: Math.round(totalMB),
     /** Idle wakeups/s summed over all app processes (T9). */
     wakeupsPerSec: Math.round(wakeups),
@@ -65,6 +138,78 @@ async function measure(win: BrowserWindow, ms = MEASURE_MS) {
     fps: Math.round(r.frames / secs),
     maxFrameGapMs: Math.round(r.maxGap),
   };
+}
+
+/**
+ * Busy agents: status changes (working ↔ idle, no notification) at 100/s across all sessions, nothing else. What
+ * one status event costs the renderer (the whole workspace re-rendering or only the changed dot).
+ */
+async function stormStatus(win: BrowserWindow, ids: string[]) {
+  let flip = 0;
+  const storm = setInterval(() => {
+    const id = ids[flip % ids.length]!;
+    win.webContents.send(IPC.sessionStatus, {
+      id,
+      status: Math.floor(flip / ids.length) % 2 ? 'idle' : 'working',
+      since: Date.now(),
+    });
+    flip++;
+  }, 10);
+  await wait(500);
+  const m = await measure(win, 5000);
+  clearInterval(storm);
+  await wait(500);
+  return m;
+}
+
+interface ProfileNode {
+  id: number;
+  callFrame: { functionName: string; url: string; lineNumber: number; columnNumber: number };
+  children?: number[];
+}
+
+/** AQUILA_PERF_STARTUP_PROFILE=1: reloads the page under the CPU profiler and prints where its startup time goes. */
+async function profileReload(win: BrowserWindow): Promise<void> {
+  const d = win.webContents.debugger;
+  if (!d.isAttached()) d.attach('1.3');
+  // Every request of the reload: when it started and finished (file:// isn't in Resource Timing).
+  const reqs = new Map<string, { url: string; start: number; end?: number }>();
+  const onMsg = (_e: unknown, method: string, p: Record<string, unknown>) => {
+    if (method === 'Network.requestWillBeSent')
+      reqs.set(p.requestId as string, { url: (p.request as { url: string }).url, start: p.timestamp as number });
+    else if (method === 'Network.loadingFinished' || method === 'Network.loadingFailed') {
+      const r = reqs.get(p.requestId as string);
+      if (r) r.end = p.timestamp as number;
+    }
+  };
+  d.on('message', onMsg);
+  await d.sendCommand('Network.enable');
+  await d.sendCommand('Profiler.enable');
+  await d.sendCommand('Profiler.setSamplingInterval', { interval: 500 });
+  await d.sendCommand('Profiler.start');
+  win.webContents.reload();
+  await wait(7000);
+  const { profile } = (await d.sendCommand('Profiler.stop')) as {
+    profile: { nodes: ProfileNode[]; samples: number[]; timeDeltas: number[] };
+  };
+  d.off('message', onMsg);
+  const all = [...reqs.values()];
+  const t0 = Math.min(...all.map((r) => r.start));
+  console.log(
+    `[perf] startup requests (ms from the first):\n  ${all
+      .map((r) => `${Math.round((r.start - t0) * 1000)}→${r.end ? Math.round((r.end - t0) * 1000) : '?'} ${r.url.split('/').pop()?.slice(0, 60)}`)
+      .join('\n  ')}`,
+  );
+  const self = new Map<number, number>();
+  profile.samples.forEach((id, i) => self.set(id, (self.get(id) ?? 0) + (profile.timeDeltas[i] ?? 0)));
+  const byName = new Map<string, number>();
+  for (const n of profile.nodes) {
+    const f = n.callFrame;
+    const key = `${f.functionName || '(anon)'} ${f.url.split('/').pop()}:${f.lineNumber}:${f.columnNumber}`;
+    byName.set(key, (byName.get(key) ?? 0) + (self.get(n.id) ?? 0));
+  }
+  const top = [...byName].sort((a, b) => b[1] - a[1]).slice(0, 15);
+  console.log(`[perf] startup profile (self ms):\n  ${top.map(([k, v]) => `${Math.round(v / 1000)} ${k}`).join('\n  ')}`);
 }
 
 export async function runPerf(win: BrowserWindow, sessions: SessionManager) {
@@ -78,6 +223,28 @@ export async function runPerf(win: BrowserWindow, sessions: SessionManager) {
   };
 
   await wait(1500);
+  // Startup: first paint and DOMContentLoaded of the page (the main chunk parsed and run, the app's first render).
+  const startup = await win.webContents.executeJavaScript(`(() => {
+    const nav = performance.getEntriesByType('navigation')[0];
+    const fcp = performance.getEntriesByName('first-contentful-paint')[0];
+    const res = performance.getEntriesByType('resource');
+    const main = res.find((r) => r.name.includes('/assets/index-') && r.name.endsWith('.js'));
+    const ms = (n) => Math.round(n ?? -1);
+    return {
+      htmlMs: ms(nav?.responseEnd),
+      mainChunk: main && { startMs: ms(main.startTime), endMs: ms(main.responseEnd), kb: Math.round(main.decodedBodySize / 1024) },
+      domContentLoadedMs: ms(nav?.domContentLoadedEventEnd),
+      firstPaintMs: ms(fcp?.startTime),
+      slowest: res.sort((a, b) => b.responseEnd - a.responseEnd).slice(0, 4)
+        .map((r) => r.name.split('/').pop() + ' ' + ms(r.startTime) + '→' + ms(r.responseEnd)),
+    };
+  })()`);
+  // AQUILA_PERF_STARTUP=1: only that (run it a few times: one launch is noisy).
+  if (process.env.AQUILA_PERF_STARTUP === '1') {
+    console.log(`[perf] startup ${JSON.stringify(startup)}`);
+    if (process.env.AQUILA_PERF_STARTUP_PROFILE === '1') await profileReload(win);
+    return app.exit(0);
+  }
   for (let i = 0; i < SESSIONS - 1; i++) {
     press(win, 'T', ['meta', 'alt']);
     await wait(300);
@@ -94,18 +261,48 @@ export async function runPerf(win: BrowserWindow, sessions: SessionManager) {
     `document.querySelectorAll('.term-host:not([hidden])').length`,
   );
 
+  win.webContents.setBackgroundThrottling(false);
   const idle = await measure(win);
+  if (idle.fps < 30) {
+    console.error(`[perf] FAIL: the window isn't painting (${idle.fps} fps), numbers would be meaningless`);
+    await sessions.killAll();
+    return app.exit(1);
+  }
   for (const id of ids) sessions.write(id, STREAM);
   await wait(2000);
   const streaming = await measure(win);
   for (const id of ids) sessions.write(id, '\x03');
   await wait(1000);
 
+  const statusStorm = await stormStatus(win, ids);
+
   // Flood: `yes` in a session on screen. Smooth = frames keep coming; responsive = Ctrl+C answers fast.
   const flooded = ids[ids.length - 1]!;
-  sessions.write(flooded, 'yes\r');
-  await wait(1000);
-  const flood = await measure(win, FLOOD_MS);
+  let flood!: Awaited<ReturnType<typeof measure>>;
+  const floodRun = async () => {
+    sessions.write(flooded, 'yes\r');
+    await wait(1000);
+    flood = await measure(win, FLOOD_MS);
+  };
+  if (process.env.AQUILA_PERF_HEAP === '1') {
+    const sites = await heapSites(win, async () => {
+      await floodRun();
+      sessions.write(flooded, '\x03');
+      await wait(1500);
+    });
+    console.log(`[perf] heap kept after the flood, by allocation site:\n  ${sites.join('\n  ')}`);
+    sessions.write(flooded, 'yes\r');
+    await wait(500);
+  } else await floodRun();
+  // What draws the on-screen terminals (WebGL canvas vs DOM rows), and the page's DOM size: native memory, not JS heap.
+  const drawing = await win.webContents.executeJavaScript(`(() => {
+    const shown = [...document.querySelectorAll('.term-host:not([hidden])')];
+    return {
+      webglOnScreen: shown.filter((h) => h.querySelector('.xterm-screen canvas')).length,
+      domRowsOnScreen: shown.reduce((n, h) => n + h.querySelectorAll('.xterm-rows > div').length, 0),
+      domNodes: document.getElementsByTagName('*').length,
+    };
+  })()`);
   await win.webContents.executeJavaScript(`(() => {
     window.__ctrlc = 0;
     const off = window.aquila.onData(({ data }) => {
@@ -123,10 +320,13 @@ export async function runPerf(win: BrowserWindow, sessions: SessionManager) {
     );
   }
 
-  const graph = await measureGraph(win);
+  // After Ctrl+C: was the flood's heap kept (a leak) or garbage? Live heap after a full GC.
+  const floodLiveHeapMB = await liveHeap(win);
+  // AQUILA_PERF_SKIP_GRAPH=1: terminals only (a quicker run while working on the workspace).
+  const graph = process.env.AQUILA_PERF_SKIP_GRAPH === '1' ? null : await measureGraph(win, ids);
 
   console.log(
-    `[perf] ${JSON.stringify({ sessions: ids.length, visible, idle, streaming, flood: { ...flood, ctrlCMs }, graph })}`,
+    `[perf] ${JSON.stringify({ sessions: ids.length, visible, startup, idle, streaming, statusStorm, flood: { ...flood, ctrlCMs, drawing, liveHeapMB: floodLiveHeapMB }, graph })}`,
   );
   void sessions.killAll().finally(() => app.exit(0));
 }
@@ -195,7 +395,7 @@ const browserMB = () =>
  * Knowledge graph budget (T63–T71): index 2,000 notes, then idle with the graph closed, open (layout until settled,
  * then idle), wheel-zoom it, and closed again. Main memory before / after indexing, layout time, frames while zooming.
  */
-async function measureGraph(win: BrowserWindow) {
+async function measureGraph(win: BrowserWindow, ids: string[]) {
   const js = <T>(code: string) => win.webContents.executeJavaScript(code) as Promise<T>;
   const dir = path.join(os.tmpdir(), `aquila-perf-notes-${process.pid}`);
   writeNotes(dir);
@@ -213,6 +413,8 @@ async function measureGraph(win: BrowserWindow) {
   await wait(2000); // code names, index save
   const mainAfter = browserMB();
   const closedIdle = await measure(win, 5000);
+  // A second window: work left over from indexing (code names) has finished by now; an idle loop would still show.
+  const closedIdleLater = await measure(win, 5000);
 
   // T70: sessions in the graph. Smoke / perf re-read the transcripts on every snapshot (no hooks), so this is the
   // cold load each time; the app reads them once per finished turn.
@@ -241,6 +443,8 @@ async function measureGraph(win: BrowserWindow) {
   }
   await wait(500);
   const openIdle = await measure(win, 5000);
+  // Status changes while the graph is open: the panel must not re-render with every session dot.
+  const openStorm = await stormStatus(win, ids);
   const box = await js<{ x: number; y: number } | null>(`(() => {
     const r = document.querySelector('.c-kgraph')?.getBoundingClientRect();
     return r ? { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) } : null;
@@ -276,14 +480,22 @@ async function measureGraph(win: BrowserWindow) {
       cpu: closedIdle.cpu,
       cpuTotal: closedIdle.cpuTotal,
       wakeupsPerSec: closedIdle.wakeupsPerSec,
+      later: { cpuTotal: closedIdleLater.cpuTotal, wakeupsPerSec: closedIdleLater.wakeupsPerSec },
     },
     openIdle: {
       cpu: openIdle.cpu,
       cpuTotal: openIdle.cpuTotal,
       fps: openIdle.fps,
       rendererMB: openIdle.rendererMB,
+      wakeupsPerSec: openIdle.wakeupsPerSec,
     },
+    openStorm: { cpu: openStorm.cpu, cpuTotal: openStorm.cpuTotal, fps: openStorm.fps, maxFrameGapMs: openStorm.maxFrameGapMs },
     zoom: zoom && { fps: zoom.fps, maxFrameGapMs: zoom.maxFrameGapMs, cpu: zoom.cpu },
-    reclosedIdle: { cpu: reclosedIdle.cpu, cpuTotal: reclosedIdle.cpuTotal, canvasesLeft: canvases },
+    reclosedIdle: {
+      cpu: reclosedIdle.cpu,
+      cpuTotal: reclosedIdle.cpuTotal,
+      wakeupsPerSec: reclosedIdle.wakeupsPerSec,
+      canvasesLeft: canvases,
+    },
   };
 }

@@ -11,11 +11,17 @@ const writers = new Map<string, Writer>();
 /** Output received before the terminal mounted. Acked on arrival, so a session never pauses for lack of a view. */
 const pending = new Map<string, string>();
 const noop = () => {};
+/**
+ * Most a pre-mount buffer keeps (the newest output). Terminals mount right away, so this only bounds output that
+ * arrives for a session whose view is gone (trailing output after a kill), which nobody will ever attach to.
+ */
+const MAX_PENDING = 256 * 1024;
 
 api.onData(({ id, data }) => {
   const w = writers.get(id);
   if (w) return w(data, () => api.ackData(id));
-  pending.set(id, (pending.get(id) ?? '') + data);
+  const next = (pending.get(id) ?? '') + data;
+  pending.set(id, next.length > MAX_PENDING ? next.slice(-MAX_PENDING) : next);
   api.ackData(id);
 });
 
