@@ -168,6 +168,8 @@ const api: AquilaApi = {
   extensionsCreate: (name, group, account) =>
     ipcRenderer.invoke(IPC.extensionsCreate, { name, group, account }),
   extensionsOpenFolder: (id) => ipcRenderer.invoke(IPC.extensionsOpenFolder, id),
+  extensionsFloat: (id, floating) => ipcRenderer.invoke(IPC.extensionsFloat, { id, floating }),
+  extensionsFloatStyle: (id, style) => ipcRenderer.invoke(IPC.extensionsFloatStyle, { id, style }),
 };
 
 contextBridge.exposeInMainWorld('aquila', api);

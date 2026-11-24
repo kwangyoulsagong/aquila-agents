@@ -6,7 +6,15 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import type { BrowserWindow, Session as ElectronSession, WebContents, WebContentsView } from 'electron';
+import type {
+  BrowserWindow,
+  Menu,
+  Rectangle,
+  Session as ElectronSession,
+  WebContents,
+  WebContentsView,
+} from 'electron';
+import type { Translate } from '../src/shared/i18n/dictionary';
 import type {
   AccountUsage,
   ExtensionCommand,
@@ -342,10 +350,51 @@ export function slugFor(name: string, taken: ReadonlySet<string>): string {
 export interface ExtensionPrefs {
   enabled: Record<string, boolean>;
   background: Record<string, boolean>;
+  /** Floating window per extension: open or docked, where, how big, how see-through. */
+  float: Record<string, FloatPrefs>;
+}
+
+export interface FloatPrefs {
+  /** Floating (reopened floating at launch) or in the panel. */
+  on: boolean;
+  /** Screen position; none = next to the app window. */
+  x?: number;
+  y?: number;
+  width: number;
+  height: number;
+  /** Window opacity, OPACITY_MIN–1. */
+  opacity: number;
+  onTop: boolean;
+}
+
+export const FLOAT_DEFAULT: FloatPrefs = { on: false, width: 320, height: 240, opacity: 1, onTop: true };
+export const FLOAT_MIN = { width: 160, height: 96 };
+/** Never fully invisible: a 0% window can't be found again. */
+export const OPACITY_MIN = 0.2;
+
+const clampOpacity = (n: number) => Math.round(Math.min(1, Math.max(OPACITY_MIN, n)) * 100) / 100;
+
+export function parseFloatPrefs(v: unknown): FloatPrefs {
+  const o = v && typeof v === 'object' ? (v as Record<string, unknown>) : {};
+  const num = (k: string) => (typeof o[k] === 'number' && Number.isFinite(o[k]) ? (o[k] as number) : undefined);
+  const f: FloatPrefs = {
+    on: o.on === true,
+    width: Math.max(FLOAT_MIN.width, Math.round(num('width') ?? FLOAT_DEFAULT.width)),
+    height: Math.max(FLOAT_MIN.height, Math.round(num('height') ?? FLOAT_DEFAULT.height)),
+    opacity: clampOpacity(num('opacity') ?? 1),
+    onTop: o.onTop !== false,
+  };
+  const x = num('x');
+  const y = num('y');
+  if (x !== undefined && y !== undefined) {
+    f.x = Math.round(x);
+    f.y = Math.round(y);
+  }
+  return f;
 }
 
 export function parsePrefs(text: string): ExtensionPrefs {
-  const prefs: ExtensionPrefs = { enabled: {}, background: {} };
+  const prefs: ExtensionPrefs = { enabled: {}, background: {}, float: {} };
   try {
     const d = JSON.parse(text) as Partial<ExtensionPrefs>;
     for (const k of ['enabled', 'background'] as const) {
@@ -353,10 +402,30 @@ export function parsePrefs(text: string): ExtensionPrefs {
       if (v && typeof v === 'object')
         for (const [id, on] of Object.entries(v)) if (on === true) prefs[k][id] = true;
     }
+    if (d?.float && typeof d.float === 'object')
+      for (const [id, f] of Object.entries(d.float)) prefs.float[id] = parseFloatPrefs(f);
   } catch {
     /* fresh */
   }
   return prefs;
+}
+
+/**
+ * Where a floating window opens: its saved spot when that still lies on a display (a monitor may be gone), else at
+ * the app window's top-right corner, inside it.
+ */
+export function placeFloat(
+  f: Pick<FloatPrefs, 'x' | 'y' | 'width' | 'height'>,
+  app: Rectangle | null,
+  displays: readonly Rectangle[],
+): Rectangle {
+  const { width, height } = f;
+  const visible = (x: number, y: number) =>
+    displays.some((d) => x + 40 <= d.x + d.width && x + width - 40 >= d.x && y >= d.y && y + 24 <= d.y + d.height);
+  if (f.x !== undefined && f.y !== undefined && visible(f.x, f.y)) return { x: f.x, y: f.y, width, height };
+  if (app) return { x: app.x + app.width - width - 24, y: app.y + 64, width, height };
+  const d = displays[0] ?? { x: 0, y: 0, width: 1280, height: 800 };
+  return { x: d.x + d.width - width - 24, y: d.y + 64, width, height };
 }
 
 // ── Runtime (Electron) ────────────────────────────────────────────────────────────────────────────────────────
@@ -370,8 +439,16 @@ export interface HostDeps {
   getWindow: () => BrowserWindow | null;
   electron: {
     WebContentsView: typeof WebContentsView;
+    BrowserWindow: typeof BrowserWindow;
+    Menu: typeof Menu;
     fromPartition: (partition: string) => ElectronSession;
+    /** Work areas of the displays (a saved floating spot must still be on one). */
+    displays: () => Rectangle[];
   };
+  /** = --color-bg-canvas for the current theme (floating window background). */
+  canvas: () => string;
+  /** Labels of the extension's right-click menu, in the app's language. */
+  translate: () => Translate;
   preload: string;
   power: () => PowerState;
   usage: () => Promise<AccountUsage[]>;
@@ -392,6 +469,10 @@ interface Live {
   visible: boolean;
   hiddenAt: number;
   bounds: ExtensionViewState['bounds'];
+  /** Floating: the view lives in this window instead of the app's. */
+  float?: BrowserWindow;
+  /** Closing the floating window on purpose (dock, reload, quit): it stays `on` in the prefs unless docking. */
+  closingFloat?: boolean;
 }
 
 /** The extensions, their views and the API they call. One per app. */
@@ -496,6 +577,9 @@ export class ExtensionHost {
         background: !!this.prefs.background[id],
         running: this.live.has(id),
         chip: this.chips.get(id),
+        floating: !!this.live.get(id)?.float,
+        opacity: this.prefs.float[id]?.opacity ?? 1,
+        onTop: this.prefs.float[id]?.onTop ?? FLOAT_DEFAULT.onTop,
       };
     });
   }
@@ -524,6 +608,7 @@ export class ExtensionHost {
     else {
       delete this.prefs.enabled[id];
       delete this.prefs.background[id];
+      if (this.prefs.float[id]) this.prefs.float[id].on = false;
       this.close(id);
       this.chips.delete(id);
     }
@@ -542,13 +627,185 @@ export class ExtensionHost {
     return this.list();
   }
 
-  /** Starts the extensions the user allowed to run in the background (at launch). */
-  startBackground(): void {
+  /** At launch (and after a renderer reload): floating windows back where they were, background ones started. */
+  restore(): void {
     for (const id of this.entries.keys()) {
       const m = this.usable(id);
-      if (m?.permissions.includes('background') && this.prefs.background[id] && !this.live.has(id))
+      if (!m) continue;
+      if (this.prefs.float[id]?.on) this.openFloat(id, m);
+      else if (m.permissions.includes('background') && this.prefs.background[id] && !this.live.has(id))
         this.open(id, m, false);
     }
+  }
+
+  // ── Floating ──
+
+  private floatPrefs(id: string): FloatPrefs {
+    return (this.prefs.float[id] ??= { ...FLOAT_DEFAULT });
+  }
+
+  /** Floating window on (opened, or brought forward when it already is) / off (back to the panel). */
+  setFloat(id: string, on: boolean): ExtensionInfo[] {
+    const m = this.usable(id);
+    if (!m) return this.list();
+    this.floatPrefs(id).on = on;
+    this.savePrefs();
+    if (on) this.openFloat(id, m);
+    else this.closeFloat(id, true);
+    this.changed();
+    return this.list();
+  }
+
+  /** Opacity (OPACITY_MIN–1) and always-on-top of the floating window; kept for next time. */
+  setFloatStyle(id: string, style: { opacity?: number; onTop?: boolean }): ExtensionInfo[] {
+    if (!this.usable(id)) return this.list();
+    const f = this.floatPrefs(id);
+    if (typeof style.opacity === 'number' && Number.isFinite(style.opacity)) f.opacity = clampOpacity(style.opacity);
+    if (typeof style.onTop === 'boolean') f.onTop = style.onTop;
+    const w = this.live.get(id)?.float;
+    if (w && !w.isDestroyed()) {
+      w.setOpacity(f.opacity);
+      w.setAlwaysOnTop(f.onTop, 'floating');
+    }
+    this.saveSoon();
+    this.changed();
+    return this.list();
+  }
+
+  private openFloat(id: string, m: Manifest): void {
+    const l = this.live.get(id) ?? this.open(id, m, false);
+    if (!l) return;
+    if (l.float && !l.float.isDestroyed()) {
+      l.float.show();
+      l.float.focus();
+      return;
+    }
+    const f = this.floatPrefs(id);
+    const app = this.deps.getWindow();
+    const at = placeFloat(f, app && !app.isDestroyed() ? app.getBounds() : null, this.deps.electron.displays());
+    const win = new this.deps.electron.BrowserWindow({
+      ...at,
+      minWidth: FLOAT_MIN.width,
+      minHeight: FLOAT_MIN.height,
+      title: m.glyph ? `${m.glyph} ${m.name}` : m.name,
+      show: false,
+      opacity: f.opacity,
+      alwaysOnTop: f.onTop,
+      fullscreenable: false,
+      maximizable: false,
+      backgroundColor: this.deps.canvas(),
+      // Nothing of ours loads in it: the extension's own view fills the content.
+      webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false },
+    });
+    if (f.onTop) win.setAlwaysOnTop(true, 'floating');
+    this.parentOf(l)?.contentView.removeChildView(l.view);
+    win.contentView.addChildView(l.view);
+    l.float = win;
+    const fit = () => {
+      const [width, height] = win.getContentSize();
+      l.bounds = { x: 0, y: 0, width, height };
+      l.view.setBounds(l.bounds);
+    };
+    const remember = () => {
+      if (win.isDestroyed() || win.isMinimized()) return;
+      const b = win.getBounds();
+      Object.assign(f, { x: b.x, y: b.y, width: b.width, height: b.height });
+      this.saveSoon();
+    };
+    fit();
+    win.on('resize', () => {
+      fit();
+      remember();
+    });
+    win.on('move', remember);
+    win.on('minimize', () => this.setVisible(l, false));
+    win.on('restore', () => this.setVisible(l, true));
+    win.on('close', () => {
+      // Hand the view back to the app window (hidden) before this one goes, so the page survives.
+      if (l.float !== win) return;
+      l.float = undefined;
+      try {
+        win.contentView.removeChildView(l.view);
+      } catch {
+        /* gone */
+      }
+      const main = this.deps.getWindow();
+      if (this.live.get(id) === l && main && !main.isDestroyed()) {
+        main.contentView.addChildView(l.view);
+        this.setVisible(l, false);
+      }
+      // Closed with its own close button: back to the panel next time too.
+      if (!l.closingFloat) {
+        f.on = false;
+        this.savePrefs();
+      }
+      l.closingFloat = false;
+      this.changed();
+    });
+    this.setVisible(l, true);
+    win.show();
+    this.changed();
+  }
+
+  /** `dock`: back to the panel (off in the prefs); else it reopens floating next time (reload, quit). */
+  private closeFloat(id: string, dock: boolean): void {
+    const l = this.live.get(id);
+    const w = l?.float;
+    if (!l || !w || w.isDestroyed()) return;
+    l.closingFloat = !dock;
+    w.close();
+  }
+
+  private parentOf(l: Live): BrowserWindow | null {
+    if (l.float && !l.float.isDestroyed()) return l.float;
+    const main = this.deps.getWindow();
+    return main && !main.isDestroyed() ? main : null;
+  }
+
+  private contextMenu(id: string): void {
+    const l = this.live.get(id);
+    if (!l) return;
+    const t = this.deps.translate();
+    const f = this.floatPrefs(id);
+    const floating = !!l.float;
+    const percents = [0, 10, 20, 30, 40, 50, 60, 70, 80];
+    const menu = this.deps.electron.Menu.buildFromTemplate([
+      floating
+        ? { label: t('ext.dock'), click: () => this.setFloat(id, false) }
+        : { label: t('ext.menuFloat'), click: () => this.setFloat(id, true) },
+      ...(floating
+        ? [
+            {
+              label: t('ext.menuTransparency'),
+              submenu: percents.map((p) => ({
+                label: `${p}%`,
+                type: 'radio' as const,
+                checked: Math.round((1 - f.opacity) * 100) === p,
+                click: () => this.setFloatStyle(id, { opacity: 1 - p / 100 }),
+              })),
+            },
+            {
+              label: t('ext.onTop'),
+              type: 'checkbox' as const,
+              checked: f.onTop,
+              click: () => this.setFloatStyle(id, { onTop: !f.onTop }),
+            },
+          ]
+        : []),
+      { type: 'separator' },
+      { label: t('ext.reload'), click: () => this.reload(id) },
+      { type: 'separator' },
+      { role: 'copy' },
+      { role: 'paste' },
+    ]);
+    const win = this.parentOf(l);
+    if (win) menu.popup({ window: win });
+  }
+
+  private saveTimer: NodeJS.Timeout | undefined;
+  private saveSoon(): void {
+    clearTimeout(this.saveTimer);
+    this.saveTimer = setTimeout(() => this.savePrefs(), 400);
   }
 
   // ── Views ──
@@ -558,6 +815,8 @@ export class ExtensionHost {
     const m = this.usable(id);
     if (!m) return;
     let l = this.live.get(id);
+    // Floating: its own window places it; the panel shows the window's controls instead.
+    if (l?.float) return;
     if (!state) {
       if (l?.visible) this.setVisible(l, false);
       return;
@@ -577,7 +836,7 @@ export class ExtensionHost {
 
   /** Every view hidden (the panel closed, another extension picked). */
   hideAll(except?: string): void {
-    for (const l of this.live.values()) if (l.id !== except && l.visible) this.setVisible(l, false);
+    for (const l of this.live.values()) if (l.id !== except && l.visible && !l.float) this.setVisible(l, false);
   }
 
   reload(id: string): void {
@@ -585,11 +844,12 @@ export class ExtensionHost {
     const l = this.live.get(id);
     if (l) {
       // Manifest may have changed (permissions, CSP): a fresh view picks it up.
-      const visible = l.visible;
+      const visible = l.visible && !l.float;
       const bounds = l.bounds;
       this.close(id);
       const m = this.usable(id);
-      if (m && visible) this.show(id, { bounds, hidden: false });
+      if (m && this.prefs.float[id]?.on) this.openFloat(id, m);
+      else if (m && visible) this.show(id, { bounds, hidden: false });
     }
     this.changed();
   }
@@ -607,9 +867,15 @@ export class ExtensionHost {
 
   /** Native views over the page (capture composites them; smoke reads them). */
   visibleViews() {
+    // In the app window only: a floating one is its own window.
     return [...this.live.values()]
-      .filter((l) => l.visible)
+      .filter((l) => l.visible && !l.float)
       .map((l) => ({ id: l.id, bounds: l.bounds, webContents: l.view.webContents }));
+  }
+
+  /** Its floating window, if any (smoke). */
+  floatWindow(id: string): BrowserWindow | null {
+    return this.live.get(id)?.float ?? null;
   }
 
   contentsOf(id: string): WebContents | null {
@@ -626,6 +892,10 @@ export class ExtensionHost {
     clearTimeout(this.suspendTimer);
     clearTimeout(this.countsTimer);
     clearTimeout(this.rescanTimer);
+    if (this.saveTimer) {
+      clearTimeout(this.saveTimer);
+      this.savePrefs();
+    }
     this.watcher?.close();
   }
 
@@ -708,6 +978,8 @@ export class ExtensionHost {
     wc.on('will-attach-webview', (e) => e.preventDefault());
     wc.on('render-process-gone', () => this.close(id));
     wc.on('dom-ready', () => void wc.insertCSS(BASE_CSS, { cssOrigin: 'user' }).catch(() => undefined));
+    // Right-click: float / dock, transparency, always on top, reload (the page has no menu of its own).
+    wc.on('context-menu', () => this.contextMenu(id));
     view.setBackgroundColor('#00000000');
     view.setVisible(false);
     win.contentView.addChildView(view);
@@ -734,11 +1006,16 @@ export class ExtensionHost {
     this.live.delete(id);
     const wc = l.view.webContents;
     this.byContents.delete(wc.id);
-    const win = this.deps.getWindow();
+    const float = l.float;
     try {
-      win?.contentView.removeChildView(l.view);
+      this.parentOf(l)?.contentView.removeChildView(l.view);
     } catch {
       /* window gone */
+    }
+    // Its floating window goes too; it stays `on` in the prefs (reload, quit, suspend reopen it floating).
+    if (float && !float.isDestroyed()) {
+      l.closingFloat = true;
+      float.close();
     }
     if (!wc.isDestroyed()) wc.close();
     this.ensurePoll();
@@ -751,7 +1028,8 @@ export class ExtensionHost {
     const now = Date.now();
     let next = Infinity;
     for (const l of [...this.live.values()]) {
-      if (l.visible || this.prefs.background[l.id]) continue;
+      // A floating window (even minimized) stays: the user put it on screen.
+      if (l.visible || l.float || this.prefs.background[l.id]) continue;
       const due = l.hiddenAt + SUSPEND_AFTER_MS;
       if (due <= now) this.close(l.id);
       else next = Math.min(next, due);

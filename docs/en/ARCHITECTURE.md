@@ -691,6 +691,13 @@ small panels; **nothing is bundled** — `~/.aquila/extensions/<id>/` holds what
   panel isn't the last column — plus the slide-in's `animationend`); hidden while a `<dialog>` is open. Another
   extension picked or the panel closed → hidden; a hidden view is closed after 5 min unless the manifest asks
   `background` and the user allowed it (those start at launch). A renderer reload closes them all.
+- **Floating window:** ⇱ in the panel bar (or the page's right-click menu) moves the view into its own native window:
+  title bar to move it, edges to resize it (min 160×96), `setOpacity` for transparency (0–80 %, never invisible) and
+  always-on-top (`floating` level) — set from the panel (a Range and a toggle) or the right-click menu. The view keeps
+  running (no reload) and is never suspended while floating, even minimized. Position, size, opacity and on-top are kept
+  per extension in `extensions.json` (`float`); a floating one reopens floating at launch, where it was if that spot is
+  still on a display (`placeFloat`), else at the app window's top-right. Its close button docks it; closing the app
+  window closes them all (they don't keep the app alive). "Back to panel" hands the same view back to the panel.
 - **⌘K / tab bar / sidebar:** ⧉ Extensions in the tab bar and "Show extensions panel" / "New extension" in ⌘K; each
   manifest command is a ⌘K item "<name>: <title>" that opens the extension and sends it a `command` event.
 - **New extension:** a name → `<slug>/` with `manifest.json` (`system` only), `index.html`, `aquila.js`, `AGENTS.md`

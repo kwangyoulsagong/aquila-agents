@@ -16,6 +16,8 @@ import {
   shell,
   utilityProcess,
   WebContentsView,
+  Menu,
+  screen,
   session as electronSession,
 } from 'electron';
 import { restoreShellPath } from './env';
@@ -219,7 +221,11 @@ function createWindow(): void {
     previews?.destroyAll();
     extensions?.destroyAll();
   });
-  win.on('closed', () => (win = null));
+  win.on('closed', () => {
+    win = null;
+    // Floating extension windows (T71) must not keep the app alive without its window.
+    extensions?.destroyAll();
+  });
   // Back to the window: the banners of what's on screen have been read (T45).
   win.on('focus', () => sessions?.seen());
 }
@@ -541,7 +547,15 @@ app.whenReady().then(async () => {
     prefsPath: isSmoke ? path.join(extDir, '.prefs.json') : path.join(APP_DIR, 'extensions.json'),
     dataDir: isSmoke ? path.join(extDir, '.data') : path.join(APP_DIR, 'extensions-data'),
     getWindow: () => win,
-    electron: { WebContentsView, fromPartition: (p) => electronSession.fromPartition(p) },
+    electron: {
+      WebContentsView,
+      BrowserWindow,
+      Menu,
+      fromPartition: (p) => electronSession.fromPartition(p),
+      displays: () => screen.getAllDisplays().map((d) => d.workArea),
+    },
+    canvas: windowBackground,
+    translate: () => translator(loadConfig().language),
     preload: path.join(__dirname, 'extension-preload.js'),
     power: powerState,
     usage: () => (lastUsage ? Promise.resolve(lastUsage) : usage.refresh()),
@@ -570,6 +584,17 @@ app.whenReady().then(async () => {
     if (state) ext.hideAll(id);
     ext.show(String(id), state);
   });
+  ipcMain.handle(IPC.extensionsFloat, (_e, { id, floating }: { id: string; floating: boolean }) =>
+    ext.setFloat(String(id), floating === true),
+  );
+  ipcMain.handle(
+    IPC.extensionsFloatStyle,
+    (_e, { id, style }: { id: string; style: { opacity?: unknown; onTop?: unknown } }) =>
+      ext.setFloatStyle(String(id), {
+        opacity: typeof style?.opacity === 'number' ? style.opacity : undefined,
+        onTop: typeof style?.onTop === 'boolean' ? style.onTop : undefined,
+      }),
+  );
   ipcMain.on(IPC.extensionsReload, (_e, id: string) => ext.reload(String(id)));
   ipcMain.on(IPC.extensionsCommand, (_e, { id, commandId }: { id: string; commandId: string }) =>
     ext.command(String(id), String(commandId)),
@@ -1358,8 +1383,9 @@ app.whenReady().then(async () => {
   app.on('will-quit', () => shortcut.dispose());
 
   createWindow();
-  // Extensions the user allowed in the background (T71) start with the page (a reload closed them).
-  win?.webContents.on('did-finish-load', () => extensions?.startBackground());
+  // Extensions (T71): floating windows reopen where they were and background ones start with the page (a reload
+  // closed them).
+  win?.webContents.on('did-finish-load', () => extensions?.restore());
   // T27: notify when a newer release is out (packaged builds only).
   if (app.isPackaged && !isSmoke && !process.env.AQUILA_CAPTURE)
     safe('updater', () => startUpdater(() => translator(loadConfig().language)));

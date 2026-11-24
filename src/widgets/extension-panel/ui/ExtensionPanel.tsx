@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, EmptyState, MetaList, MetaRow, ResizeHandle, Select } from '@design-system/react';
+import { Button, EmptyState, Field, MetaList, MetaRow, Range, ResizeHandle, Select } from '@design-system/react';
 import { api, type ExtensionInfo } from '@/shared/api';
 import { useT } from '@/shared/i18n';
 import { useDialogOpen } from '@/shared/lib/useDialogOpen';
@@ -89,6 +89,17 @@ export default function ExtensionPanel({ list, selected, onSelect, onNew, onClos
                   {t('ext.background')}
                 </Button>
               )}
+              {running && !ext.floating && (
+                <Button
+                  variant="ghost"
+                  icon
+                  onClick={() => void api.extensionsFloat(ext.id, true)}
+                  title={t('ext.floatHint')}
+                  aria-label={t('ext.float')}
+                >
+                  ⇱
+                </Button>
+              )}
               {running && (
                 <Button
                   variant="ghost"
@@ -116,7 +127,13 @@ export default function ExtensionPanel({ list, selected, onSelect, onNew, onClos
               )}
             </div>
           </div>
-          {running ? <Stage key={ext.id} id={ext.id} /> : <Review ext={ext} />}
+          {!running ? (
+            <Review ext={ext} />
+          ) : ext.floating ? (
+            <Floating ext={ext} />
+          ) : (
+            <Stage key={ext.id} id={ext.id} />
+          )}
         </>
       )}
     </aside>
@@ -129,6 +146,42 @@ function Stage({ id }: { id: string }) {
   const covered = useDialogOpen();
   useExtensionView(id, el, covered);
   return <div className="c-ext__stage" ref={setEl} />;
+}
+
+/** While it's in its own window: that window's transparency and always-on-top, and the way back. */
+function Floating({ ext }: { ext: ExtensionInfo }) {
+  const t = useT();
+  const transparency = Math.round((1 - ext.opacity) * 100);
+  return (
+    <div className="c-panel__body c-ext__review">
+      <p className="c-ext__text">{t('ext.floating')}</p>
+      <Field label={t('ext.transparency', { n: String(transparency) })}>
+        <Range
+          label={t('ext.menuTransparency')}
+          value={transparency}
+          min={0}
+          max={80}
+          step={5}
+          onChange={(n) => void api.extensionsFloatStyle(ext.id, { opacity: 1 - n / 100 })}
+        />
+      </Field>
+      <div className="c-ext__actions">
+        <Button
+          variant="ghost"
+          aria-pressed={ext.onTop}
+          onClick={() => void api.extensionsFloatStyle(ext.id, { onTop: !ext.onTop })}
+        >
+          {t('ext.onTop')}
+        </Button>
+      </div>
+      <div className="c-ext__actions">
+        <Button onClick={() => void api.extensionsFloat(ext.id, true)}>{t('ext.showWindow')}</Button>
+        <Button variant="primary" onClick={() => void api.extensionsFloat(ext.id, false)}>
+          {t('ext.dock')}
+        </Button>
+      </div>
+    </div>
+  );
 }
 
 /** Before enabling (or when the manifest can't be used): what it is and what it may do. */

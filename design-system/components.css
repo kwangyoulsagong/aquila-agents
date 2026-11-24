@@ -535,6 +535,7 @@ body {
 .c-ext__text { margin: 0; color: var(--color-text-secondary); overflow-wrap: anywhere; }
 .c-ext__text--muted { font-size: var(--font-size-caption); color: var(--color-text-tertiary); }
 .c-ext__actions { display: flex; gap: var(--space-inline-sm); }
+.c-ext__review .c-range { width: 100%; }
 /* Sidebar band above the footer: chips extensions set (`chip.set`). Glyphs sit on the 20px content edge like the
  * usage gauge (inset 12 + the labelled button's 8). */
 .c-ext-chips {

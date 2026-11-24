@@ -1426,6 +1426,10 @@ export interface AquilaApi {
   extensionsCreate(name: string, group: string, account: string): Promise<ExtensionCreated>;
   /** Reveals the extensions folder (or one extension's) in Finder; creates it first. */
   extensionsOpenFolder(id?: string): Promise<void>;
+  /** Opens the extension in a floating window (or brings it forward) / puts it back in the panel. */
+  extensionsFloat(id: string, floating: boolean): Promise<ExtensionInfo[]>;
+  /** Opacity (0.2–1) and always-on-top of its floating window. */
+  extensionsFloatStyle(id: string, style: { opacity?: number; onTop?: boolean }): Promise<ExtensionInfo[]>;
 }
 
 /** Extensions (T71): what an extension may ask for in its manifest (plus `network:<domain>` entries). */
@@ -1463,6 +1467,12 @@ export interface ExtensionInfo {
   running: boolean;
   /** Text it set with `chip.set`, shown in the sidebar. */
   chip?: string;
+  /** In its own floating window (moved, resized, faded by the user) instead of the panel. */
+  floating: boolean;
+  /** Floating window opacity, 0.2–1. */
+  opacity: number;
+  /** Floating window stays above other apps. */
+  onTop: boolean;
 }
 
 export interface ExtensionViewState {
@@ -1762,6 +1772,8 @@ export const IPC = {
   extensionsCommand: 'extensions:command',
   extensionsCreate: 'extensions:create',
   extensionsOpenFolder: 'extensions:open-folder',
+  extensionsFloat: 'extensions:float',
+  extensionsFloatStyle: 'extensions:float-style',
   /** From an extension's own view (its preload), not the app window. */
   extensionRequest: 'ext:request',
   extensionEvent: 'ext:event',

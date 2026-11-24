@@ -333,8 +333,33 @@ async function checkExtensions(
   if (!r?.paused) return 'extensions: the page did not hear a session start waiting';
   await wait(300);
   await shot('smoke-extension.png');
+  // Floating window: its own window, faded, always on top, resized by the user; then back to the panel.
+  ext.setFloat(id, true);
+  let fw: BrowserWindow | null = null;
+  for (let i = 0; i < 30 && !fw; i++) {
+    await wait(100);
+    fw = ext.floatWindow(id);
+  }
+  if (!fw) return 'extensions: no floating window';
+  ext.setFloatStyle(id, { opacity: 0.7, onTop: true });
+  if (Math.abs(fw.getOpacity() - 0.7) > 0.01) return `extensions: floating opacity ${fw.getOpacity()}`;
+  if (!fw.isAlwaysOnTop()) return 'extensions: floating window not on top';
+  fw.setContentSize(280, 200);
+  await wait(400);
+  const inner = await wc.executeJavaScript('[innerWidth, innerHeight]') as [number, number];
+  if (inner[0] !== 280 || inner[1] !== 200) return `extensions: the page did not follow the window (${inner.join('×')})`;
+  const floatingUi = await js<boolean>(`!!document.querySelector('.c-ext__review .c-range')`);
+  if (!floatingUi) return 'extensions: the panel did not show the floating controls';
+  await shot('smoke-extension-floating.png');
+  fs.writeFileSync(path.join(outDir, 'smoke-extension-window.png'), (await wc.capturePage()).toPNG());
+  ext.setFloat(id, false);
+  for (let i = 0; i < 30 && ext.floatWindow(id); i++) await wait(100);
+  if (ext.floatWindow(id)) return 'extensions: the floating window did not close on dock';
+  await wait(400);
+  if (ext.contentsOf(id) !== wc) return 'extensions: docking reloaded the page';
+  if (!ext.visibleViews().some((v) => v.id === id)) return 'extensions: docked view not back in the panel';
   console.log(
-    `[smoke] extensions: system ${JSON.stringify(r.system).slice(0, 80)}…, ${r.events} live events, fetch ${r.fetch}, usage refused, popup denied, chip "${chip}", paused on waiting`,
+    `[smoke] extensions: system ${JSON.stringify(r.system).slice(0, 80)}…, ${r.events} live events, fetch ${r.fetch}, usage refused, popup denied, chip "${chip}", paused on waiting, floated (70%, on top, 280×200) and docked`,
   );
   // Close the panel: the view hides (suspended later).
   await js(`[...document.querySelectorAll('.c-btn')].find((x) => x.querySelector('.c-btn__glyph')?.textContent === '⧉')?.click()`);

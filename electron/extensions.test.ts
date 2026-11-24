@@ -11,7 +11,11 @@ import {
   fileFor,
   methodAllowed,
   parseManifest,
+  parseFloatPrefs,
   parsePrefs,
+  placeFloat,
+  OPACITY_MIN,
+  FLOAT_MIN,
   requestAllowed,
   safeRelative,
   slugFor,
@@ -206,8 +210,12 @@ describe('feeds', () => {
 
 describe('prefs, slug, template', () => {
   it('reads prefs defensively', () => {
-    expect(parsePrefs('nope')).toEqual({ enabled: {}, background: {} });
-    expect(parsePrefs('{"enabled":{"a":true,"b":"yes"}}')).toEqual({ enabled: { a: true }, background: {} });
+    expect(parsePrefs('nope')).toEqual({ enabled: {}, background: {}, float: {} });
+    expect(parsePrefs('{"enabled":{"a":true,"b":"yes"}}')).toEqual({
+      enabled: { a: true },
+      background: {},
+      float: {},
+    });
   });
 
   it('slugs a unique folder name', () => {
@@ -234,5 +242,50 @@ describe('preload channels', () => {
     const preload = fs.readFileSync(path.join(__dirname, 'extension-preload.ts'), 'utf8');
     expect(preload).toContain(`'${EXT_REQUEST}'`);
     expect(preload).toContain(`'${EXT_EVENT}'`);
+  });
+});
+
+describe('floating window', () => {
+  it('reads saved window prefs, clamped', () => {
+    expect(parseFloatPrefs({ on: true, x: 10, y: 20, width: 50, height: 9999, opacity: 0, onTop: false })).toEqual({
+      on: true,
+      x: 10,
+      y: 20,
+      width: FLOAT_MIN.width,
+      height: 9999,
+      opacity: OPACITY_MIN,
+      onTop: false,
+    });
+    expect(parseFloatPrefs('junk')).toEqual({ on: false, width: 320, height: 240, opacity: 1, onTop: true });
+    expect(parseFloatPrefs({ opacity: 3 }).opacity).toBe(1);
+    // A spot needs both coordinates.
+    expect(parseFloatPrefs({ x: 10 }).x).toBeUndefined();
+  });
+
+  it('keeps float prefs in the prefs file', () => {
+    const p = parsePrefs('{"float":{"meter":{"on":true,"width":400,"height":300,"opacity":0.7}}}');
+    expect(p.float.meter).toMatchObject({ on: true, width: 400, height: 300, opacity: 0.7, onTop: true });
+  });
+
+  it('opens where it was when that is still on a display', () => {
+    const displays = [{ x: 0, y: 0, width: 1440, height: 900 }];
+    const app = { x: 100, y: 50, width: 1200, height: 800 };
+    expect(placeFloat({ x: 900, y: 100, width: 320, height: 240 }, app, displays)).toEqual({
+      x: 900,
+      y: 100,
+      width: 320,
+      height: 240,
+    });
+    // The second monitor is gone: next to the app window's top-right instead.
+    expect(placeFloat({ x: 3000, y: 100, width: 320, height: 240 }, app, displays)).toEqual({
+      x: 100 + 1200 - 320 - 24,
+      y: 50 + 64,
+      width: 320,
+      height: 240,
+    });
+    // Never placed: same.
+    expect(placeFloat({ width: 320, height: 240 }, app, displays).x).toBe(956);
+    // No app window: the first display's top-right.
+    expect(placeFloat({ width: 320, height: 240 }, null, displays)).toEqual({ x: 1096, y: 64, width: 320, height: 240 });
   });
 });
