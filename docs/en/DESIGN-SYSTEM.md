@@ -16,7 +16,8 @@ One window, many agents. The UI disappears behind the terminals and only speaks 
 2. **Status is the only loud color.** Blue = selection/focus. Orange (`--color-status-waiting`) means
    "you need to act" — never decorative.
 3. **One grid.** Everything is a multiple of 4px and edges line up across regions (see Layout).
-4. **Dark and light follow macOS.** `src/shared/lib/theme.ts` sets `<html data-theme>` from `prefers-color-scheme`
+4. **Dark and light follow macOS by default.** ⚙ Appearance (System / Light / Dark, `config.theme`) sets Electron's
+   `nativeTheme.themeSource`. `src/shared/lib/theme.ts` sets `<html data-theme>` from `prefers-color-scheme`
    (Electron maps `nativeTheme` onto it); `tokens.css` remaps **only `--color-*`** under `[data-theme='light']`.
    Components never branch on the theme. A new color token needs a value in both blocks. `AQUILA_THEME=light|dark`
    forces one (smoke, capture, checking).
@@ -138,7 +139,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `.c-risk` | Warning glyph (⚠) in the error color for a possibly destructive command — on the reason line and the tab |
 | `.c-graph`, `__node[data-mark]` `__box` `__label` `__detail` `__mark` `__edge` `__column` | Static SVG node graph (repo skeleton, T64; the knowledge graph uses the same look): boxes placed by the caller, curved edges. Tone-filled boxes with no outline; colour only where something changes: add = green tint + filled dot, change = blue tint + ring dot, unfit = dashed outline + struck label. When any box is marked (`.c-graph[data-marked]`), unmarked labels step back to secondary. `data-dim` / `data-highlight` for a hovered step. No animation loop |
 | `.c-editor`, `__main` `__host` `__side` `__section` `__section-title` `__item` (`--level`) `__empty` `__banner[data-tone]` `__compare` | Note editor (T67): CodeMirror host + outline / links column; a banner across the top (warn = waiting-colour edge). CodeMirror's `.cm-*` and the live-preview marks `.cm-md-*` (headings, emphasis, code, links, `[[links]]`, checkboxes, quotes / callouts, rules, frontmatter, rendered tables) are styled under `.c-editor` with tokens only |
-| `.c-suggest`, `__item` `__line[data-line=dotted|dashed]` `__text` `__label` `__why` `__actions` `__proposal[data-tone=warn]` | Link suggestions (T68): one suggested connection per row (line sample, other end, why, ✓ / [[ / ×), a proposal or warning line on top (accent / waiting-colour edge). `GraphCard` takes `children` as a scrolling `__card-body` |
+| `.c-suggest`, `__item` `__line[data-line=dotted|dashed]` `__text` `__label` `__why` `__actions` `__proposal[data-tone=warn]` | Link suggestions (T68): one suggested connection per row (line sample, other end, why, ✓ / [[ / ×), a proposal or warning line on top (accent / waiting-colour edge). `GraphCard` takes `children` as a scrolling `__card-body` and `close` as a pinned top-right `__card-close` (actions wrap, the close never gets clipped); `GraphHint` (`.c-kgraph__hint`) is the dismissable how-to line in the same spot |
 | `.c-steps`, `__item[data-off]` `__check` `__title` `__meta` | A plan to tick (T64): checkbox · title + badges / mono files line; unticked steps fade |
 | `.c-badge--verdict-apply` `--verdict-partial` `--verdict-skip` | A proposal's verdict (done / waiting / tertiary) |
 | `.c-badge` `--claude` `--codex` `--shell` `--account-shared` `--account-personal` `--risk` | Tags (`--risk`: a changed file worth a second look, waiting colour — T57) |

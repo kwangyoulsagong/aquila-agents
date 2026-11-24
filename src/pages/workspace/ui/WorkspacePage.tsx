@@ -497,6 +497,7 @@ export default function WorkspacePage() {
               activeId={ws.activeSessionId}
               onSelect={ws.selectSession}
               onClose={ws.closeSession}
+              onReorder={ws.reorderSession}
               onNew={ws.openSession}
               defaultKind={project?.defaultAgent}
               worktrees={tabWorktrees}

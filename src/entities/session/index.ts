@@ -8,3 +8,4 @@ export { useTerminal } from './model/useTerminal';
 export { default as ContextGauge } from './ui/ContextGauge';
 export { safePaste } from './lib/paste';
 export { minimumContrast, terminalTheme, token } from './lib/xtermTheme';
+export { dropSide, moveSession, type DropSide } from './model/order';

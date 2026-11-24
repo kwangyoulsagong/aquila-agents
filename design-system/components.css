@@ -354,6 +354,10 @@ body {
 .c-tabbar__trailing { flex: none; position: sticky; right: 0; margin-left: auto; padding: 0 var(--space-inset-sm); background: var(--color-bg-surface); align-self: stretch; display: flex; align-items: center; gap: var(--space-inline-sm); }
 .c-tabbar__add { flex: none; align-self: center; margin-left: var(--space-inline-xs); }
 .c-tab__close:hover { background: var(--color-bg-pressed); color: var(--color-text-primary); }
+/* Drag a tab along the bar to reorder: a line on the edge it lands on (like .c-row), the dragged tab dimmed. */
+.c-tab[data-drop='before'] { box-shadow: inset 2px 0 0 var(--color-border-focus); }
+.c-tab[data-drop='after'] { box-shadow: inset -2px 0 0 var(--color-border-focus); }
+.c-tab[data-dragging='true'] { opacity: 0.4; }
 
 /* ── Title bar ────────────────────────────────────────────── */
 /* A bare title band (full window, T37): same height as the tab bar, room for the traffic lights on the left,
@@ -931,7 +935,7 @@ body {
 .c-kgraph__line { width: var(--space-inset-md); border-top: 1px solid var(--color-text-secondary); }
 .c-kgraph__line[data-line='dashed'] { border-top-style: dashed; }
 .c-kgraph__line[data-line='dotted'] { border-top-style: dotted; }
-.c-kgraph__card {
+.c-kgraph__card, .c-kgraph__hint {
   position: absolute; top: var(--space-inset-md); left: var(--space-inset-md); right: var(--space-inset-md); z-index: 1;
   display: flex; align-items: center; gap: var(--space-inline-sm); padding: var(--space-inset-sm) var(--space-inset-md);
   border: 1px solid var(--color-border-subtle); border-radius: var(--radius-container); background: var(--color-bg-surface);
@@ -942,7 +946,13 @@ body {
   font-family: var(--font-family-mono); font-size: var(--font-size-caption); color: var(--color-text-tertiary);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.c-kgraph__card-actions { flex: none; display: flex; gap: var(--space-inline-xs); }
+.c-kgraph__card-actions {
+  flex: 0 1 auto; min-width: 0; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-inline-xs);
+}
+/* Dismiss: never shrinks or wraps away (a narrow panel used to clip it off the right edge). */
+.c-kgraph__card-close { flex: none; align-self: flex-start; }
+.c-kgraph__hint { color: var(--color-text-secondary); font-size: var(--font-size-label); }
+.c-kgraph__hint-text { flex: 1; min-width: 0; }
 .c-kgraph__card:has(.c-kgraph__card-body:not(:empty)) { flex-wrap: wrap; }
 .c-kgraph__card-body:empty { display: none; }
 .c-kgraph__card-body {

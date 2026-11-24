@@ -396,10 +396,20 @@ import하지 않음).
 - **소스:** claude-code·codex는 GitHub `releases.atom`(최근 10개, 각 약 300KB, API 한도 없음 — asset이 붙은 REST 목록은
   30개에 약 10MB), codex는 REST `/releases/latest` 추가(피드 10개가 전부 alpha일 수 있음). `-접미사` 버전은 제외. Claude
   Code `CHANGELOG.md`는 앞 64KB만(`Range`, 잘린 마지막 섹션은 버림). RSS/Atom: OpenAI News, Cursor changelog,
-  Antigravity blog, Simon Willison, Latent Space. HN Algolia(`points>100`, 최근 7일, AI 관련 제목만). 한 번에 약 3MB
-  (OpenAI·Latent Space는 `Range`를 무시). 국내(T63, 업계 탭의 해외 / 국내, `NEWS_REGION`): GeekNews, AI타임스(오프셋
-  없는 날짜는 KST로), 카카오·토스·우아한형제들·당근·LY 기술 블로그. GeekNews와 블로그는 AI 항목만(`AI_TOPIC`, 한국어·영어
-  단어). 토스는 `Range`를 무시해서 본문을 스트림으로 읽다 64KB에서 끊음(`readHead`). XML 파서는 의존성 없이 정규식으로.
+  GitHub Changelog(Copilot 라벨), Hugging Face 블로그, Antigravity blog, Simon Willison, Latent Space. Hugging Face daily
+  papers(JSON API: GitHub 저장소가 있고 추천 5개 이상, LLM·에이전트·코드·추론 주제, 상위 10개). 새 GitHub 저장소(검색 API,
+  키 없음: 최근 7일 생성, 스타 200 초과, agent / llm / mcp / claude / codex, 스타순 상위 15개). HN Algolia(`points>100`,
+  최근 7일, AI 관련 제목만). 한 번에 약 3MB(OpenAI·Latent Space는 `Range`를 무시). 국내(T63, 업계 탭의 해외 / 국내,
+  `NEWS_REGION`): GeekNews, 네이버 D2(앞 256KB), 카카오·토스·우아한형제들·당근·LY 기술 블로그. GeekNews와 블로그는 AI
+  항목만(`AI_TOPIC`, 한국어·영어 단어). AI타임스는 뺌: 대부분 비즈니스·정책 기사. 토스는 `Range`를 무시해서 본문을
+  스트림으로 읽다 64KB에서 끊음(`readHead`).
+- **기술 필터(`electron/newsFilter.ts`):** 업계 탭은 개발자가 적용할 수 있는 것(릴리스, 라이브러리, API, 기법, 코드가 있는
+  논문)을 위한 곳이고 회사 소식은 뺌. LLM 없이 결정적으로: 제목이 `BUSINESS`(주가, 실적, 투자 유치, 기업가치, 인수합병,
+  제휴, CEO·영입·사임, 소송, 규제, 정치, 데이터센터 계약; 한국어·영어)에 걸리면 모든 소스에서 제외. `techScore`는 제목 +
+  발췌 + 링크의 신호에 가중치를 더함(github.com / arxiv / huggingface 링크, Show HN, release / changelog, 오픈소스,
+  library / SDK / API / CLI / MCP, paper / benchmark / inference, how-to / deep dive / 구축기; 주제 단어는 1점). OpenAI
+  News와 HN은 3점 이상, GeekNews는 1점 이상, 나머지는 0점. 점수는 소스별로 남길 15개를 고를 때도 씀(기술적인 것 먼저,
+  그다음 최신). 목록 자체는 최신순. XML 파서는 의존성 없이 정규식으로.
 - **내 CLI:** `claude --version` / `codex --version`(지정한 바이너리)과 릴리스 비교: 더 새 것(최대 5개), 없으면 최신
   하나. 각각 "Added" 줄 3~5개("Added"로 시작하는 항목 → "New Features" 섹션 → 앞쪽 항목 순).
 - **업계:** 소스당 최대 15개, 링크당 하나. 항목 본문 전체에 정규식 키워드 분류(subagent / multi-agent, hook, agent view

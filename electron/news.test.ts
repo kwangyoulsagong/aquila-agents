@@ -20,6 +20,8 @@ import {
   parseChangelog,
   parseFeed,
   parseHn,
+  parseHfPapers,
+  parseGithubSearch,
   parseReleases,
   plainText,
   FRESH_MS,
@@ -235,6 +237,76 @@ describe('feeds', () => {
   });
 });
 
+describe('technical sources', () => {
+  it('Hugging Face papers: with code, developer topics, most upvoted first, at most 10', () => {
+    const items = parseHfPapers(fixture('hf-papers.json'));
+    expect(items.length).toBe(10);
+    expect(
+      items.every((i) => i.source === 'hf-papers' && i.url.startsWith('https://huggingface.co/papers/')),
+    ).toBe(true);
+    expect(items[0].title).toBe('Jeveration: System One Models Now Generate');
+    expect(items[0].excerpt).toMatch(/^▲ 152 · github\.com\//);
+    // No repo (39 upvotes) or no developer topic: left out.
+    expect(items.some((i) => i.title.startsWith('The Resolution Hypothesis'))).toBe(false);
+    expect(items.some((i) => i.title.startsWith('PROLA'))).toBe(false);
+    expect(parseHfPapers('nope')).toEqual([]);
+    expect(parseHfPapers('{"hits":[]}')).toEqual([]);
+  });
+
+  it('new GitHub repos: name, stars, language and description', () => {
+    const items = parseGithubSearch(fixture('github-new.json'));
+    expect(items).toHaveLength(15);
+    expect(items[0]).toMatchObject({
+      id: 'github-new:erkamyaman/rust-anything',
+      source: 'github-new',
+      title: 'erkamyaman/rust-anything',
+      url: 'https://github.com/erkamyaman/rust-anything',
+      publishedAt: Date.parse('2026-11-16T12:10:36Z'),
+    });
+    expect(items[0].excerpt).toMatch(/^★ 8,898 · /);
+    expect(parseGithubSearch('{"message":"API rate limit exceeded"}')).toEqual([]);
+  });
+
+  it('the GitHub search URL stays the same within a day', () => {
+    const src = SOURCES.find((s) => s.id === 'github-new');
+    expect(src?.url(NOW)).toBe(src?.url(NOW + 60_000));
+    expect(decodeURIComponent(src?.url(NOW) ?? '')).toContain('created:>2026-11-13');
+  });
+
+  it('the industry list drops business news from every source', () => {
+    const base = { url: 'https://x/1', excerpt: '', publishedAt: NOW - 1000, groups: [] };
+    const list = industry(
+      [
+        {
+          ...base,
+          id: 'a',
+          source: 'geeknews',
+          title: '젠슨 황 복귀에 엔비디아 주가 31% 급등',
+          url: 'https://x/a',
+        },
+        {
+          ...base,
+          id: 'b',
+          source: 'cursor',
+          title: 'Anysphere raises $2B at a $30B valuation',
+          url: 'https://x/b',
+        },
+        { ...base, id: 'c', source: 'cursor', title: 'Background agents in the CLI', url: 'https://x/c' },
+        { ...base, id: 'd', source: 'openai', title: 'Our CEO on the future of work', url: 'https://x/d' },
+        {
+          ...base,
+          id: 'e',
+          source: 'openai',
+          title: 'Introducing the Responses API SDK for agents',
+          url: 'https://x/e',
+        },
+      ],
+      NOW,
+    );
+    expect(list.map((i) => i.id).sort()).toEqual(['c', 'e']);
+  });
+});
+
 describe('groups and unread', () => {
   it('matches the keyword groups', () => {
     expect(groupsOf('Parallel subagents and new hooks')).toEqual(['subagent', 'hook']);
@@ -246,7 +318,7 @@ describe('groups and unread', () => {
 
   const item = (over: Partial<NewsItem>): NewsItem => ({
     id: 'x',
-    source: 'openai',
+    source: 'cursor',
     title: 't',
     url: 'https://a/1',
     excerpt: '',
@@ -317,9 +389,15 @@ describe('NewsService', () => {
     if (url.includes('antigravity')) return { status: 200, body: fixture('antigravity.xml') };
     if (url.includes('simonwillison')) return { status: 200, body: fixture('simonw.xml') };
     if (url.includes('latent.space')) return { status: 200, body: fixture('latent-space.xml') };
+    if (url.includes('github.blog/changelog')) return { status: 200, body: fixture('github-changelog.xml') };
+    if (url.includes('huggingface.co/blog')) return { status: 200, body: fixture('huggingface.xml') };
+    if (url.includes('huggingface.co/api/daily_papers'))
+      return { status: 200, body: fixture('hf-papers.json') };
+    if (url.includes('api.github.com/search/repositories'))
+      return { status: 200, body: fixture('github-new.json') };
     const kr: [string, string][] = [
       ['news.hada.io', 'geeknews.xml'],
-      ['aitimes.com', 'aitimes.xml'],
+      ['d2.naver.com', 'naver-d2.atom'],
       ['tech.kakao.com', 'kakao.xml'],
       ['toss.tech', 'toss.xml'],
       ['woowahan.com', 'woowahan.xml'],
@@ -387,11 +465,19 @@ describe('NewsService', () => {
     expect(svc.isKnownUrl(s.industry[0].url)).toBe(true);
     expect(svc.isKnownUrl('https://evil.example/')).toBe(false);
     expect(svc.isKnownUrl('file:///etc/passwd')).toBe(false);
-    // Korea tab (T63): GeekNews, AI타임스 and at least one tech blog.
+    // Technical sources: papers with code and new repos.
+    const sources = new Set(s.industry.map((i) => i.source));
+    for (const id of ['hf-papers', 'github-new', 'huggingface', 'github-changelog'] as const)
+      expect(sources.has(id)).toBe(true);
+    // No business story made it through (the Latent Space fixture holds one).
+    expect(s.industry.some((i) => /\bARR\b|\bCOO\b/.test(i.title))).toBe(false);
+    // Korea tab (T63): GeekNews, Naver D2 and at least one tech blog.
     const krSources = new Set(s.industry.filter((i) => NEWS_REGION[i.source] === 'kr').map((i) => i.source));
     expect(krSources.has('geeknews')).toBe(true);
-    expect(krSources.has('aitimes')).toBe(true);
-    expect(['kakao', 'toss', 'woowahan', 'daangn', 'lycorp'].some((b) => krSources.has(b as never))).toBe(true);
+    expect(krSources.has('naver-d2')).toBe(true);
+    expect(['kakao', 'toss', 'woowahan', 'daangn', 'lycorp'].some((b) => krSources.has(b as never))).toBe(
+      true,
+    );
     expect(calls.find((c) => c.url.includes('toss.tech'))?.headers.Range).toBe('bytes=0-65535');
 
     // Opened (first time): seen, persisted, nothing pruned yet.
@@ -466,12 +552,18 @@ describe('Korea (T63)', () => {
     expect(items.some((i) => i.title.includes('델타항공'))).toBe(false);
   });
 
-  it('AI타임스: dates without an offset are Korean time', () => {
+  it('dates without an offset are read in the given zone', () => {
     expect(parseDate('2026-11-20 09:00:00', '+09:00')).toBe(Date.parse('2026-11-20T00:00:00Z'));
     expect(parseDate('Fri, 20 Nov 2026 02:00:00 GMT', '+09:00')).toBe(Date.parse('2026-11-20T02:00:00Z'));
-    const items = parseFeed(fixture('aitimes.xml'), 'aitimes', { zone: '+09:00' });
-    expect(items).toHaveLength(16);
-    expect(items[0].publishedAt).toBe(Date.parse('2026-11-20T00:00:00Z'));
+  });
+
+  it('Naver D2 (Atom, head only): AI posts kept', () => {
+    const all = parseFeed(fixture('naver-d2.atom'), 'naver-d2');
+    const ai = parseFeed(fixture('naver-d2.atom'), 'naver-d2', { aiOnly: true });
+    expect(all.length).toBe(14);
+    expect(ai.length).toBeGreaterThan(3);
+    expect(ai.length).toBeLessThan(all.length);
+    expect(ai.every((i) => i.url.startsWith('https://d2.naver.com/'))).toBe(true);
   });
 
   it('Toss: a feed cut off mid-item (head only) keeps the whole items', () => {
@@ -511,7 +603,7 @@ describe('Korea (T63)', () => {
     // The fixtures: at least one Korean item lands in a group.
     const kr = [
       ...parseFeed(fixture('geeknews.xml'), 'geeknews', { aiOnly: true }),
-      ...parseFeed(fixture('aitimes.xml'), 'aitimes', { zone: '+09:00' }),
+      ...parseFeed(fixture('naver-d2.atom'), 'naver-d2', { aiOnly: true }),
       ...parseFeed(fixture('toss.xml'), 'toss', { aiOnly: true }),
       ...parseFeed(fixture('daangn.xml'), 'daangn', { aiOnly: true }),
       ...parseFeed(fixture('lycorp.xml'), 'lycorp', { aiOnly: true }),
@@ -523,7 +615,10 @@ describe('Korea (T63)', () => {
     const chunks = [new Uint8Array(40).fill(65), new Uint8Array(40).fill(66), new Uint8Array(40).fill(67)];
     const cancel = vi.fn(async () => {});
     let i = 0;
-    const reader = { read: async () => (i < chunks.length ? { done: false, value: chunks[i++] } : { done: true }), cancel };
+    const reader = {
+      read: async () => (i < chunks.length ? { done: false, value: chunks[i++] } : { done: true }),
+      cancel,
+    };
     const text = await readHead(reader, 50);
     expect(text).toBe('A'.repeat(40) + 'B'.repeat(10));
     expect(i).toBe(2);

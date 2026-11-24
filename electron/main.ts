@@ -35,6 +35,7 @@ import {
   setLanguage,
   setNotifyDone,
   setProjectAccount,
+  setTheme,
 } from './config';
 import fs from 'node:fs';
 import { showContextMenu } from './menu';
@@ -268,6 +269,7 @@ app.whenReady().then(async () => {
   // Force a theme for smoke / capture / checking (AQUILA_THEME=light|dark); otherwise follow macOS.
   const forced = process.env.AQUILA_THEME;
   if (forced === 'light' || forced === 'dark') nativeTheme.themeSource = forced;
+  else nativeTheme.themeSource = loadConfig().theme ?? 'system'; // ⚙ Appearance
   nativeTheme.on('updated', () => {
     win?.setBackgroundColor(windowBackground());
     if (isWindows) win?.setTitleBarOverlay(titleBarOverlay());
@@ -732,6 +734,13 @@ app.whenReady().then(async () => {
   appMenu.refresh(loadConfig());
   ipcMain.handle(IPC.configSetLanguage, (_e, language: Language) => appMenu.refresh(setLanguage(language)));
   ipcMain.handle(IPC.configSetNotifyDone, (_e, on: unknown) => setNotifyDone(on === true));
+  ipcMain.handle(IPC.configSetTheme, (_e, mode: unknown) => {
+    const m = mode === 'light' || mode === 'dark' ? mode : 'system';
+    const c = setTheme(m);
+    // The renderer's prefers-color-scheme follows themeSource, so the tokens switch without a reload.
+    if (!process.env.AQUILA_THEME) nativeTheme.themeSource = m;
+    return c;
+  });
   ipcMain.handle(
     IPC.configSetProjectAccount,
     (_e, { projectId, account }: { projectId: string; account: string }) =>
@@ -1170,6 +1179,9 @@ app.whenReady().then(async () => {
     if (isSmoke) return;
     layoutByKey = mapLayout(layout, (id) => s.keyOf(id) ?? null);
     s.saveTabs();
+  });
+  ipcMain.on(IPC.sessionReorder, (_e, ids: unknown) => {
+    if (Array.isArray(ids)) s.reorder(ids.filter((id): id is string => typeof id === 'string'));
   });
   ipcMain.on(IPC.sessionScrollback, (_e, { id, text }: { id: string; text: string }) =>
     s.saveScrollback(id, text),

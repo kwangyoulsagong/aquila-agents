@@ -15,7 +15,8 @@
    라이트에선 가장 밝은 면이라 터미널이 항상 크롬과 구분돼요.
 2. **크게 말하는 색은 상태뿐.** 파랑 = 선택/포커스. 주황(`--color-status-waiting`)은 "내가 뭔가 해야 함" 전용, 장식 금지.
 3. **하나의 그리드.** 모든 값은 4px 배수, 영역 사이 가장자리 정렬 (아래 레이아웃 참고).
-4. **다크와 라이트는 macOS를 따라감.** `src/shared/lib/theme.ts`가 `prefers-color-scheme`(Electron이 `nativeTheme`을
+4. **다크와 라이트는 기본적으로 macOS를 따라감.** ⚙ 화면 모드(시스템 / 라이트 / 다크, `config.theme`)가 Electron의
+   `nativeTheme.themeSource`를 정해요. `src/shared/lib/theme.ts`가 `prefers-color-scheme`(Electron이 `nativeTheme`을
    연결)로 `<html data-theme>`를 정해요. `tokens.css`는 `[data-theme='light']`에서 **`--color-*`만** 재매핑해요.
    컴포넌트는 테마로 분기하지 않아요. 새 색 토큰은 두 블록 모두에 값이 있어야 해요. `AQUILA_THEME=light|dark`로
    강제할 수 있어요(스모크, 캡처, 확인용).
@@ -137,7 +138,7 @@
 | `.c-risk` | 파괴적일 수 있는 명령의 경고 기호(⚠, 오류 색) — 대기 이유 줄과 탭 |
 | `.c-graph`, `__node[data-mark]` `__box` `__label` `__detail` `__mark` `__edge` `__column` | 정적 SVG 노드 그래프(레포 뼈대, T64; 지식 그래프도 같은 모양): 호출자가 배치한 상자, 곡선 간선. 테두리 없이 면 색으로 채운 상자, 색은 바뀌는 곳에만: add = 초록 면 + 채운 점, change = 파란 면 + 고리 점, unfit = 점선 테두리 + 취소선. 표시된 상자가 있으면(`.c-graph[data-marked]`) 표시 없는 라벨은 secondary로 물러남. 호버한 단계용 `data-dim` / `data-highlight`. 애니메이션 루프 없음 |
 | `.c-editor`, `__main` `__host` `__side` `__section` `__section-title` `__item` (`--level`) `__empty` `__banner[data-tone]` `__compare` | 노트 에디터 (T67): CodeMirror 자리 + 목차·링크 열, 위쪽 배너(warn = 대기 색 테두리). CodeMirror의 `.cm-*`와 라이브 프리뷰 표시 `.cm-md-*`(제목, 강조, 코드, 링크, `[[링크]]`, 체크박스, 인용·콜아웃, 구분선, 프런트매터, 렌더된 표)는 `.c-editor` 아래에서 토큰만으로 꾸밈 |
-| `.c-suggest`, `__item` `__line[data-line=dotted|dashed]` `__text` `__label` `__why` `__actions` `__proposal[data-tone=warn]` | 링크 제안 (T68): 줄마다 제안된 연결 하나(선 견본, 상대 노드, 이유, ✓ / [[ / ×), 위에 제안·경고 줄(강조 / 대기 색 테두리). `GraphCard`는 `children`을 스크롤되는 `__card-body`로 받음 |
+| `.c-suggest`, `__item` `__line[data-line=dotted|dashed]` `__text` `__label` `__why` `__actions` `__proposal[data-tone=warn]` | 링크 제안 (T68): 줄마다 제안된 연결 하나(선 견본, 상대 노드, 이유, ✓ / [[ / ×), 위에 제안·경고 줄(강조 / 대기 색 테두리). `GraphCard`는 `children`을 스크롤되는 `__card-body`로, `close`를 오른쪽 위에 고정된 `__card-close`로 받음(액션은 줄바꿈되고 닫기는 잘리지 않음). `GraphHint`(`.c-kgraph__hint`)는 같은 자리에 뜨는 닫을 수 있는 사용법 안내 |
 | `.c-steps`, `__item[data-off]` `__check` `__title` `__meta` | 체크하는 계획(T64): 체크박스 · 제목 + 배지 / 고정폭 파일 줄. 체크 해제한 단계는 흐려짐 |
 | `.c-badge--verdict-apply` `--verdict-partial` `--verdict-skip` | 제안의 판정(done / waiting / tertiary) |
 | `.c-badge` `--claude` `--codex` `--shell` `--account-shared` `--account-personal` `--risk` | 태그 (`--risk`: 한 번 더 볼 변경 파일, 대기 색 — T57) |

@@ -153,6 +153,13 @@ export function setNotifyDone(on: boolean): Config {
   return saveConfig(on ? { ...c, notifyDone: true } : c);
 }
 
+/** ⚙ Appearance; stored only when forced (absent = follow the OS). */
+export function setTheme(mode: 'system' | 'light' | 'dark'): Config {
+  const { theme: _old, ...c } = loadConfig();
+  void _old;
+  return saveConfig(mode === 'light' || mode === 'dark' ? { ...c, theme: mode } : c);
+}
+
 export function setProjectAccount(projectId: string, account: string): Config {
   const c = loadConfig();
   if (!c.accounts[account]) return c;

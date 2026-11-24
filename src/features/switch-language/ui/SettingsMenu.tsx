@@ -1,5 +1,5 @@
 import { Button } from '@design-system/react';
-import { api, type Config, type Language } from '@/shared/api';
+import { api, type Config, type Language, type ThemeMode } from '@/shared/api';
 import { useT, type Translate } from '@/shared/i18n';
 
 interface SettingsMenuOptions {
@@ -16,7 +16,8 @@ interface SettingsMenuOptions {
 }
 
 /**
- * Pops the ⚙ settings menu at the cursor: Language ▸ 한국어 / English (current one checked), Notify when done,
+ * Pops the ⚙ settings menu at the cursor: Language ▸ 한국어 / English (current one checked), Appearance ▸
+ * System / Light / Dark, Notify when done,
  * Global shortcut…, Note sources… and the settings file. Also what the menu bar's Aquila ▸ Settings… (⌘,) opens (T47).
  */
 export async function openSettingsMenu(
@@ -31,6 +32,14 @@ export async function openSettingsMenu(
         { id: 'lang:en', label: t('language.en'), checked: config.language === 'en' },
       ],
     },
+    {
+      label: t('settings.theme'),
+      submenu: (['system', 'light', 'dark'] as const).map((m) => ({
+        id: `theme:${m}`,
+        label: t(`settings.theme.${m}`),
+        checked: (config.theme ?? 'system') === m,
+      })),
+    },
     { id: 'notifyDone', label: t('settings.notifyDone'), checked: !!config.notifyDone },
     ...(onGlobalShortcut ? [{ id: 'globalShortcut', label: t('globalShortcut.menu') }] : []),
     ...(onSources ? [{ id: 'sources', label: t('sources.menu') }] : []),
@@ -42,7 +51,9 @@ export async function openSettingsMenu(
   if (id === 'lang:ko' || id === 'lang:en') {
     const language = id.slice(5) as Language;
     if (language !== config.language) void api.setLanguage(language).then(onChanged);
-  } else if (id === 'notifyDone') void api.setNotifyDone(!config.notifyDone).then(onChanged);
+  } else if (id === 'theme:system' || id === 'theme:light' || id === 'theme:dark')
+    void api.setTheme(id.slice(6) as ThemeMode).then(onChanged);
+  else if (id === 'notifyDone') void api.setNotifyDone(!config.notifyDone).then(onChanged);
   else if (id === 'globalShortcut') onGlobalShortcut?.();
   else if (id === 'sources') onSources?.();
   else if (id === 'links') onLinks?.();

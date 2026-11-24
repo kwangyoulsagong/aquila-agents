@@ -19,6 +19,7 @@ const api: AquilaApi = {
   openConfig: () => ipcRenderer.invoke(IPC.configOpen),
   setLanguage: (language) => ipcRenderer.invoke(IPC.configSetLanguage, language),
   setNotifyDone: (on) => ipcRenderer.invoke(IPC.configSetNotifyDone, on),
+  setTheme: (mode) => ipcRenderer.invoke(IPC.configSetTheme, mode),
   setProjectAccount: (projectId, account) =>
     ipcRenderer.invoke(IPC.configSetProjectAccount, { projectId, account }),
   editProjects: (edit) => ipcRenderer.invoke(IPC.configEditProjects, edit),
@@ -37,6 +38,7 @@ const api: AquilaApi = {
   startSession: (id) => ipcRenderer.invoke(IPC.sessionStart, id),
   reopenSession: (id) => ipcRenderer.invoke(IPC.sessionReopen, id),
   saveLayout: (layout) => ipcRenderer.send(IPC.layoutSave, layout),
+  reorderSessions: (ids) => ipcRenderer.send(IPC.sessionReorder, ids),
   saveScrollback: (id, text) => ipcRenderer.send(IPC.sessionScrollback, { id, text }),
   accountsStatus: () => ipcRenderer.invoke(IPC.accountsStatus),
   prepareAccount: (account) => ipcRenderer.invoke(IPC.accountsPrepare, account),

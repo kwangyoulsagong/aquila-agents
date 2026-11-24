@@ -8,6 +8,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { APP_DIR } from './config';
 import { binaryFor, parseVersion } from './detect';
+import { isTechnical, itemScore } from './newsFilter';
 import { NEWS_REGION } from '../src/shared/api/types';
 import type {
   CliNews,
@@ -28,8 +29,11 @@ export const FRESH_MS = 30 * 60_000;
 const INDUSTRY_DAYS = 30;
 /** …and ones already seen (published before the last opening) only this long. */
 const SEEN_DAYS = 7;
-/** Per source, so a busy feed (OpenAI, HN) can't crowd out a quiet one (Cursor, Antigravity). */
+/** Per source, so a busy feed (HN, GitHub) can't crowd out a quiet one (Cursor, Antigravity). */
 const MAX_PER_SOURCE = 15;
+/** Hugging Face papers: the most upvoted ones with code. */
+const MAX_PAPERS = 10;
+const MIN_PAPER_UPVOTES = 5;
 const EXCERPT_CHARS = 220;
 /** CLI tab: "Added" lines per release. */
 const MAX_ADDED = 5;
@@ -40,7 +44,10 @@ const FIRST_SEEN_WINDOW_MS = 7 * 24 * 60 * 60_000;
 
 // ── Sources ──────────────────────────────────────────────────────────────────
 
-type SourceKind = 'releases' | 'releases-atom' | 'changelog' | 'feed' | 'hn';
+type SourceKind = 'releases' | 'releases-atom' | 'changelog' | 'feed' | 'hn' | 'hf-papers' | 'github-search';
+
+/** Kinds whose items go to the industry tab. */
+const ITEM_KINDS: ReadonlySet<SourceKind> = new Set<SourceKind>(['feed', 'hn', 'hf-papers', 'github-search']);
 
 interface SourceDef {
   id: NewsSourceId;
@@ -50,7 +57,7 @@ interface SourceDef {
   headers?: Record<string, string>;
   /** General feeds (GeekNews, company blogs): keep only items about AI. */
   aiOnly?: boolean;
-  /** Offset for dates written without one (AI타임스: `2026-11-22 18:30:43`, Korean time). */
+  /** Offset for dates written without one (e.g. `2026-11-22 18:30:43` in Korean time). */
   zone?: string;
   /** Read only this many bytes of the body, even when the server ignores `Range` (Toss: ~700 KB). */
   maxBytes?: number;
@@ -91,8 +98,26 @@ export const SOURCES: readonly SourceDef[] = [
     tool: 'codex',
     url: fixed('https://api.github.com/repos/openai/codex/releases/latest'),
   },
+  // Industry: what a developer can apply (releases, libraries, papers with code, how-tos), not company news. OpenAI
+  // News and HN are general news, so `newsFilter` holds them to a technical score; every source drops business titles.
   { id: 'openai', kind: 'feed', url: fixed('https://openai.com/news/rss.xml') },
   { id: 'cursor', kind: 'feed', url: fixed('https://cursor.com/changelog/rss.xml') },
+  // Copilot's changelog: models, agent features and integrations as they ship.
+  { id: 'github-changelog', kind: 'feed', url: fixed('https://github.blog/changelog/label/copilot/feed/') },
+  { id: 'huggingface', kind: 'feed', url: fixed('https://huggingface.co/blog/feed.xml') },
+  // Papers of the last days with a GitHub repo, ranked by upvotes (no key; checked live 2026-11-24).
+  { id: 'hf-papers', kind: 'hf-papers', url: fixed('https://huggingface.co/api/daily_papers?limit=100') },
+  {
+    // New repos (last 7 days) about agents / LLMs / MCP by stars: the search API needs no key (10 requests a minute).
+    // Rounded to the day like HN.
+    id: 'github-new',
+    kind: 'github-search',
+    url: (now) => {
+      const since = new Date((Math.floor(now / 1000 / DAY_S) - 7) * DAY_S * 1000).toISOString().slice(0, 10);
+      const q = `created:>${since} stars:>200 agent OR llm OR mcp OR claude OR codex`;
+      return `https://api.github.com/search/repositories?q=${encodeURIComponent(q)}&sort=stars&order=desc&per_page=30`;
+    },
+  },
   { id: 'antigravity', kind: 'feed', url: fixed('https://antigravity.google/blog/rss.xml') },
   { id: 'simonw', kind: 'feed', url: fixed('https://simonwillison.net/atom/everything/') },
   { id: 'latent-space', kind: 'feed', url: fixed('https://www.latent.space/feed') },
@@ -105,9 +130,17 @@ export const SOURCES: readonly SourceDef[] = [
       return `https://hn.algolia.com/api/v1/search_by_date?tags=story&numericFilters=points%3E100,created_at_i%3E${since}&hitsPerPage=200`;
     },
   },
-  // Korea (T63), checked live 2026-11-22. Not available: 요즘IT (no RSS), Naver D2 (`d2.atom` 404).
+  // Korea (T63), checked live 2026-11-22. Not available: 요즘IT (no RSS). AI타임스 was dropped (mostly business and
+  // policy news); Naver D2 replaced it (its `d2.atom` answers again, checked 2026-11-24).
   { id: 'geeknews', kind: 'feed', aiOnly: true, url: fixed('https://news.hada.io/rss/news') },
-  { id: 'aitimes', kind: 'feed', zone: '+09:00', url: fixed('https://www.aitimes.com/rss/allArticle.xml') },
+  {
+    // ~580 KB of full posts, `Range` ignored: the head holds the newest ~8.
+    id: 'naver-d2',
+    kind: 'feed',
+    aiOnly: true,
+    url: fixed('https://d2.naver.com/d2.atom'),
+    maxBytes: 262_144,
+  },
   { id: 'kakao', kind: 'feed', aiOnly: true, url: fixed('https://tech.kakao.com/feed/') },
   {
     id: 'toss',
@@ -442,6 +475,88 @@ export function parseHn(text: string): NewsItem[] {
   return out;
 }
 
+/** Papers a developer could build on: about LLMs / agents / code / serving, not robotics or vision alone. */
+const PAPER_DEV =
+  /\b(?:llms?|language models?|agents?|agentic|code|coding|software|programming|tool[- ]use|retrieval|rag|inference|serving|quantiz\w*|moe|tokens?|prompt\w*|context|harness)\b/i;
+
+/** Hugging Face daily papers → the most upvoted ones with a GitHub repo and a developer topic. */
+export function parseHfPapers(text: string): NewsItem[] {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(text);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(raw)) return [];
+  const out: { votes: number; item: NewsItem }[] = [];
+  for (const entry of raw) {
+    if (!entry || typeof entry !== 'object') continue;
+    const p = (entry as Json).paper;
+    if (!p || typeof p !== 'object') continue;
+    const o = p as Json;
+    const id = str(o, 'id');
+    const title = str(o, 'title')?.replace(/\s+/g, ' ').trim();
+    const repo = str(o, 'githubRepo');
+    const votes = typeof o.upvotes === 'number' ? o.upvotes : 0;
+    const summary = (str(o, 'summary') ?? '').replace(/\s+/g, ' ').trim();
+    const at = Date.parse(str(o, 'submittedOnDailyAt') ?? str(entry as Json, 'publishedAt') ?? '');
+    if (!id || !title || !repo || !isHttp(repo) || !Number.isFinite(at)) continue;
+    if (votes < MIN_PAPER_UPVOTES || !PAPER_DEV.test(`${title} ${summary}`)) continue;
+    out.push({
+      votes,
+      item: {
+        id: `hf-papers:${id}`,
+        source: 'hf-papers',
+        title,
+        url: `https://huggingface.co/papers/${encodeURIComponent(id)}`,
+        excerpt: excerpt(`▲ ${votes} · ${repo.replace(/^https?:\/\//, '')} · ${summary}`),
+        publishedAt: at,
+        groups: groupsOf(`${title} ${summary}`),
+      },
+    });
+  }
+  return out
+    .sort((a, b) => b.votes - a.votes)
+    .slice(0, MAX_PAPERS)
+    .map((p) => p.item);
+}
+
+/** GitHub repository search (newest repos by stars) → items: `owner/repo`, stars and description. */
+export function parseGithubSearch(text: string): NewsItem[] {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(text);
+  } catch {
+    return [];
+  }
+  const list = raw && typeof raw === 'object' ? (raw as { items?: unknown }).items : undefined;
+  if (!Array.isArray(list)) return [];
+  const out: NewsItem[] = [];
+  for (const r of list) {
+    if (!r || typeof r !== 'object') continue;
+    const o = r as Json;
+    const name = str(o, 'full_name');
+    const url = str(o, 'html_url');
+    const at = Date.parse(str(o, 'created_at') ?? '');
+    if (!name || !url || !isHttp(url) || !Number.isFinite(at)) continue;
+    const stars = typeof o.stargazers_count === 'number' ? o.stargazers_count : 0;
+    const lang = str(o, 'language');
+    const desc = (str(o, 'description') ?? '').replace(/\s+/g, ' ').trim();
+    const topics = Array.isArray(o.topics) ? o.topics.filter((t): t is string => typeof t === 'string') : [];
+    out.push({
+      id: `github-new:${name}`,
+      source: 'github-new',
+      title: name,
+      url,
+      excerpt: excerpt([`★ ${stars.toLocaleString('en-US')}`, lang, desc].filter(Boolean).join(' · ')),
+      publishedAt: at,
+      groups: groupsOf(`${desc} ${topics.join(' ')}`),
+    });
+    if (out.length >= MAX_PER_SOURCE) break;
+  }
+  return out;
+}
+
 // ── Keyword groups ───────────────────────────────────────────────────────────
 
 export const GROUPS: readonly [NewsGroup, RegExp][] = [
@@ -467,7 +582,10 @@ export function groupsOf(text: string): NewsGroup[] {
   return GROUPS.filter(([, re]) => re.test(text)).map(([g]) => g);
 }
 
-/** Groups set, recent only, one per link (newest kept), at most 15 per source, newest first. */
+/**
+ * Technical items only (`newsFilter`: no business titles; general news needs a technical score), groups set, recent
+ * only, one per link (newest kept), at most 15 per source (the most technical, then the newest), newest first.
+ */
 export function industry(items: NewsItem[], now: number, seenAt = 0): NewsItem[] {
   const day = 24 * 60 * 60_000;
   const since = now - INDUSTRY_DAYS * day;
@@ -477,19 +595,22 @@ export function industry(items: NewsItem[], now: number, seenAt = 0): NewsItem[]
     if (it.publishedAt < since || it.publishedAt > now + day) continue;
     // Seen already and a week old: gone from the list and the cache.
     if (it.publishedAt <= seenAt && it.publishedAt < seenSince) continue;
+    if (!isTechnical(it)) continue;
     const prev = byUrl.get(it.url);
     if (prev && prev.publishedAt >= it.publishedAt) continue;
     const groups = new Set([...it.groups, ...groupsOf(`${it.title} ${it.excerpt}`)]);
     byUrl.set(it.url, { ...it, groups: GROUPS.map(([g]) => g).filter((g) => groups.has(g)) });
   }
   const perSource = new Map<NewsSourceId, number>();
+  const score = new Map([...byUrl.values()].map((it) => [it, itemScore(it)]));
   return [...byUrl.values()]
-    .sort((a, b) => b.publishedAt - a.publishedAt)
+    .sort((a, b) => (score.get(b) ?? 0) - (score.get(a) ?? 0) || b.publishedAt - a.publishedAt)
     .filter((it) => {
       const n = perSource.get(it.source) ?? 0;
       perSource.set(it.source, n + 1);
       return n < MAX_PER_SOURCE;
-    });
+    })
+    .sort((a, b) => b.publishedAt - a.publishedAt);
 }
 
 // ── Cache ────────────────────────────────────────────────────────────────────
@@ -639,7 +760,7 @@ export class NewsService {
       cliNews('codex', this.installed.codex ?? null, codex),
     ];
     const items = industry(
-      SOURCES.filter((s) => s.kind === 'feed' || s.kind === 'hn').flatMap((s) => src[s.id]?.items ?? []),
+      SOURCES.filter((s) => ITEM_KINDS.has(s.kind)).flatMap((s) => src[s.id]?.items ?? []),
       now,
       this.cache.prevSeenAt,
     );
@@ -689,7 +810,7 @@ export class NewsService {
     const url = s.url(now);
     const prev = this.cache.sources[s.id];
     const headers: Record<string, string> = { ...FETCH_HEADERS, ...s.headers };
-    if (s.kind === 'releases') headers.Accept = 'application/vnd.github+json';
+    if (s.kind === 'releases' || s.kind === 'github-search') headers.Accept = 'application/vnd.github+json';
     // Conditional request only for the same URL (HN's changes daily); a 304 keeps what we parsed last time.
     if (prev && prev.url === url) {
       if (prev.etag) headers['If-None-Match'] = prev.etag;
@@ -708,10 +829,15 @@ export class NewsService {
     else if (s.kind === 'releases-atom') next.releases = parseReleasesAtom(text);
     else if (s.kind === 'changelog') next.releases = parseChangelog(text, 20, reply.status === 206);
     else if (s.kind === 'hn') next.items = parseHn(text);
+    else if (s.kind === 'hf-papers') next.items = parseHfPapers(text);
+    else if (s.kind === 'github-search') next.items = parseGithubSearch(text);
     else next.items = parseFeed(text, s.id, { aiOnly: s.aiOnly, zone: s.zone });
-    // The cache keeps what the tab can show (OpenAI's feed holds its whole archive).
+    // HN, papers and new repos can legitimately be empty (filters); a feed or release list can't.
+    const mayBeEmpty = s.kind === 'hn' || s.kind === 'hf-papers' || s.kind === 'github-search';
+    if (!next.releases?.length && !next.items?.length && !mayBeEmpty) throw new Error('nothing parsed');
+    // The cache keeps what the tab can show (OpenAI's feed holds its whole archive). Checked after the parse: a feed
+    // whose items are all old or all business news isn't a failed source.
     if (next.items) next.items = industry(next.items, now, this.cache.prevSeenAt);
-    if (!next.releases?.length && !next.items?.length && s.kind !== 'hn') throw new Error('nothing parsed');
     this.cache.sources[s.id] = next;
   }
 
@@ -747,7 +873,7 @@ export class NewsService {
     this.summarizing = true;
     this.emit();
     try {
-      // Both tabs: newest global and Korean items, so a busy Korean feed can't crowd out the rest (or vice versa).
+      // Both regions: newest global and Korean items, so a busy Korean feed can't crowd out the rest (or vice versa).
       const all = this.state().industry;
       const items = [
         ...all.filter((i) => NEWS_REGION[i.source] === 'global').slice(0, 28),
@@ -786,7 +912,8 @@ export function summaryPrompt(items: NewsItem[], language: Language): string {
   const lang = language === 'ko' ? 'Korean' : 'English';
   const list = items.map((i) => `- [${i.source}] ${i.title}${i.excerpt ? ` — ${i.excerpt}` : ''}`).join('\n');
   return [
-    `Summarize what matters for a developer who uses AI coding agents (Claude Code, Codex, Cursor) in these news items.`,
+    `Summarize what a developer who uses AI coding agents (Claude Code, Codex, Cursor) could apply from these items:`,
+    `new tools, libraries, releases, APIs, techniques and papers with code. Skip business, funding and people news.`,
     `Write 3–6 short bullet points in ${lang}, plain text with "- " bullets, no headings, no preamble.`,
     `Items come from global and Korean sources and may be in either language.`,
     `Use only the items below; don't invent anything, don't use tools.`,
@@ -834,8 +961,10 @@ function runClaude(prompt: string, configDir: string | undefined): Promise<strin
  * parsers and the modal run without touching the user's cache or the internet.
  */
 /**
- * When the fixtures were captured: smoke and capture run the news service at this time. The Korean GeekNews and
- * AI타임스 fixtures were captured on 2026-11-23 and their dates moved back three days to fit it.
+ * When the fixtures were captured: smoke and capture run the news service at this time. The Korean GeekNews fixture
+ * was captured on 2026-11-23 and its dates moved back three days to fit it. The technical sources (GitHub changelog,
+ * Hugging Face blog and papers, new GitHub repos, Naver D2) were captured on 2026-11-24: papers of 2026-11-19, repos
+ * created 2026-11-06..20; items after the fixture date are simply out of range.
  */
 export const FIXTURE_NOW = Date.parse('2026-11-20T09:00:00Z');
 
@@ -847,11 +976,15 @@ export function fixtureFetcher(dir: string): Fetcher {
     [/openai\/codex\/releases\/latest/, 'codex-latest.json'],
     [/openai\.com/, 'openai.xml'],
     [/cursor\.com/, 'cursor.xml'],
+    [/github\.blog\/changelog/, 'github-changelog.xml'],
+    [/huggingface\.co\/blog/, 'huggingface.xml'],
+    [/huggingface\.co\/api\/daily_papers/, 'hf-papers.json'],
+    [/api\.github\.com\/search\/repositories/, 'github-new.json'],
     [/antigravity/, 'antigravity.xml'],
     [/simonwillison/, 'simonw.xml'],
     [/latent\.space/, 'latent-space.xml'],
     [/news\.hada\.io/, 'geeknews.xml'],
-    [/aitimes\.com/, 'aitimes.xml'],
+    [/d2\.naver\.com/, 'naver-d2.atom'],
     [/tech\.kakao\.com/, 'kakao.xml'],
     [/toss\.tech/, 'toss.xml'],
     [/woowahan\.com/, 'woowahan.xml'],
