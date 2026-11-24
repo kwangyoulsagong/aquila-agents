@@ -1,0 +1,38 @@
+{
+  "version": "1.1.0",
+  "date": "2026-11-24",
+  "headlines": [
+    {
+      "guideId": "trends",
+      "title": { "ko": "기술 위주 AI 트렌드", "en": "Technical AI trends" },
+      "body": {
+        "ko": "주가·투자·인사 같은 기업 뉴스는 걸러내고, 새 릴리스·라이브러리·코드가 있는 논문·새 GitHub 저장소처럼 바로 써먹을 소식을 보여 줘요. \"업계\" 탭은 \"기술\"이 됐어요.",
+        "en": "Business news — stocks, funding, executives — is filtered out. You get things you can apply: releases, libraries, papers with code and new GitHub repos. The \"Industry\" tab is now \"Tech\"."
+      }
+    },
+    {
+      "guideId": "graph",
+      "title": { "ko": "더 또렷한 그래프", "en": "A steadier graph" },
+      "body": {
+        "ko": "패널 크기를 바꾸거나 크게 볼 때 그래프가 늘어나거나 잘리지 않고, 이름도 가장자리에서 잘리지 않아요. 처음 열면 사용법이 보이고, ⊡로 전체를 다시 봐요. 좁은 패널에서도 카드의 ×가 항상 보여요.",
+        "en": "Resizing the panel or going full window no longer stretches or clips the graph, and labels stay inside it. A short how-to shows the first time, ⊡ brings the whole picture back, and the card's × stays visible in a narrow panel."
+      }
+    },
+    {
+      "guideId": "language",
+      "title": { "ko": "라이트 / 다크 직접 고르기", "en": "Choose light or dark" },
+      "body": {
+        "ko": "⚙ 설정 → 화면 모드에서 시스템 설정 따르기, 라이트, 다크 중에 골라요. 바로 바뀌고 다음에도 그대로예요.",
+        "en": "⚙ Settings → Appearance: match system, light or dark. It switches right away and stays that way."
+      }
+    },
+    {
+      "guideId": "sessions",
+      "title": { "ko": "탭 순서 바꾸기", "en": "Reorder tabs" },
+      "body": {
+        "ko": "탭을 끌어서 원하는 자리에 놓으면 순서가 바뀌고, 다시 열어도 그 순서로 돌아와요.",
+        "en": "Drag a tab to where you want it; the order is kept the next time you open the app."
+      }
+    }
+  ]
+}
