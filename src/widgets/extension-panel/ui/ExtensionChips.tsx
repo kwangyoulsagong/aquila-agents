@@ -22,7 +22,7 @@ export default function ExtensionChips({
         <Button
           key={e.id}
           variant="ghost"
-          glyph={e.glyph ?? '◇'}
+          glyph={e.icon ? <img className="c-ext-icon" src={e.icon} alt="" /> : (e.glyph ?? '◇')}
           label={e.chip ?? ''}
           title={e.name}
           aria-label={`${e.name}: ${e.chip}`}

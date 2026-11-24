@@ -75,7 +75,13 @@ export default function ExtensionPanel({ list, selected, onSelect, onNew, onClos
               />
             ) : (
               <span className="c-ext__name" title={ext.description}>
-                {glyphed(ext)}
+                {ext.icon ? (
+                  <>
+                    <img className="c-ext-icon" src={ext.icon} alt="" /> {ext.name}
+                  </>
+                ) : (
+                  glyphed(ext)
+                )}
               </span>
             )}
             <div className="c-panel__bar-end">

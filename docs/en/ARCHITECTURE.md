@@ -666,7 +666,8 @@ built from data the app already has:
 `electron/extensions.ts` (`ExtensionHost`) + `electron/extension-preload.ts` + `widgets/extension-panel`. The user's own
 small panels; **nothing is bundled** — `~/.aquila/extensions/<id>/` holds what the user (or a Claude tab) wrote.
 
-- **Folder:** `manifest.json` (`name`, `description`, `version`, `glyph`, `entry` = an .html inside the folder,
+- **Folder:** `manifest.json` (`name`, `description`, `version`, `glyph`, `icon` = a .png/.svg/.webp ≤ 64 KB shown
+  instead of the glyph on the chip and panel name, `entry` = an .html inside the folder,
   `permissions`, `commands`) + plain HTML/JS. Parsed defensively (`parseManifest`): unknown permissions, bad domains and
   commands are dropped with a problem line; a missing name / entry / bad folder name makes it unusable. The top folder
   is watched (debounced rescan) while the panel has asked for the list.

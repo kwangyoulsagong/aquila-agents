@@ -105,6 +105,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `--size-focus-line` | 2 | Accent line under the focused pane's header (the only focus mark on a pane) |
 | `--size-split-handle` | 8 | Grab area of a split divider, centred on the 1px hairline |
 | `--size-badge` / `--size-dot` | 16 / 8 | |
+| `--size-ext-icon` | 16 | An extension's own picture (`icon` in its manifest) on its chip and panel name |
 | `--size-meter` | 4 | Bar of a meter (usage gauge) |
 | `--size-ring` | 12 | Ring meter in a tab (context gauge) |
 | `--size-sidebar` / `--size-panel` | 248 / 416 | |
@@ -174,7 +175,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `.c-commands`, `.c-command[data-state=ok\|error\|interrupted\|pending]` `__state` `__text` `__time` | Commands an agent ran (T59): how it ended by shape and colour (✓ ✕ ■ …), the command on one mono ellipsised line, marks, time |
 | `.c-runs`, `.c-runs__item[aria-current]` `__name` `__state` | Run slot commands (T60): one row each with its dot (`live` / ring / `!` / idle), mono name, state; the current one is highlighted. `.c-run` (panel), `__state`, `__reason`, `__log` lay out the panel |
 | `.c-ext` `__pick` `__name` `__stage` `__review` `__text[--muted]` `__actions` | Extensions panel (T71): picker bar, then the stage main lays the extension's sandboxed native view over, or the permission review (a `.c-meta` list + Enable) before it's enabled; while floating, `__review` holds the window's transparency Range (full width) and toggles |
-| `.c-ext-chips` | Sidebar band above the footer (T71): labelled ghost buttons with the text extensions set (`chip.set`); glyphs on the 20px content edge |
+| `.c-ext-chips` | Sidebar band above the footer (T71): labelled ghost buttons with the text extensions set (`chip.set`); glyphs (or the extension's `icon`, `.c-ext-icon`, pixelated) on the 20px content edge |
 | `.c-transcript` `__message[data-role]` `__role` `__text` | Read-only conversation: who, then the text as written (wrapped); the user's messages in primary text |
 | `.c-media` `__frame` `__placeholder` | 16:10 frame for a screenshot or a short loop; placeholder while there is none |
 | `.c-shortcuts` `__group` `__row` `__label` `__keys` | Shortcut sheet: grouped rows, label left, keys right |

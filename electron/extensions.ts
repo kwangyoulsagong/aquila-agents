@@ -59,6 +59,20 @@ const PERMISSIONS: readonly ExtensionPermission[] = [
 ];
 
 const ID_RE = /^[a-z0-9][a-z0-9-]{0,39}$/;
+/** Pictures an extension may use as its icon, by extension. */
+const ICON_TYPES: Record<string, string> = { '.png': 'image/png', '.svg': 'image/svg+xml', '.webp': 'image/webp' };
+const ICON_MAX_BYTES = 64 * 1024;
+
+/** The icon file as a data URL for the renderer, or a problem line. */
+export function readIcon(dir: string, rel: string): { url?: string; problem?: string } {
+  try {
+    const buf = fs.readFileSync(path.join(dir, rel));
+    if (buf.length > ICON_MAX_BYTES) return { problem: `${rel} is larger than 64 KB` };
+    return { url: `data:${ICON_TYPES[path.posix.extname(rel).toLowerCase()]};base64,${buf.toString('base64')}` };
+  } catch {
+    return { problem: `${rel} is missing` };
+  }
+}
 /** A host name, or `*.` + one (any subdomain). No ports, paths or schemes. */
 const DOMAIN_RE = /^(\*\.)?([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/;
 
@@ -69,6 +83,8 @@ export interface Manifest {
   version?: string;
   /** One or two characters shown on the chip and in the panel picker. */
   glyph?: string;
+  /** Relative path of a small picture (.png, .svg, .webp, at most 64 KB) shown instead of the glyph where it fits. */
+  icon?: string;
   /** Relative path of the page, default `index.html`. */
   entry: string;
   permissions: ExtensionPermission[];
@@ -151,6 +167,12 @@ export function parseManifest(text: string, id: string): ParsedManifest {
   }
 
   const glyph = str(d.glyph, 8);
+  let icon: string | undefined;
+  if (d.icon !== undefined) {
+    const i = typeof d.icon === 'string' ? safeRelative(d.icon) : null;
+    if (i && ICON_TYPES[path.posix.extname(i).toLowerCase()]) icon = i;
+    else problems.push('"icon" must be a .png, .svg or .webp file inside the folder');
+  }
   return {
     manifest: {
       id,
@@ -158,6 +180,7 @@ export function parseManifest(text: string, id: string): ParsedManifest {
       description: str(d.description, 200),
       version: str(d.version, 20),
       glyph: glyph ? [...glyph].slice(0, 2).join('') : undefined,
+      icon,
       entry,
       permissions,
       network,
@@ -494,6 +517,8 @@ interface Entry {
   manifest: Manifest | null;
   problems: string[];
   dir: string;
+  /** The manifest's icon, read once per scan (data URL). */
+  icon?: string;
 }
 
 interface Live {
@@ -578,7 +603,10 @@ export class ExtensionHost {
       const { manifest, problems } = parseManifest(text, id);
       if (manifest && !fs.existsSync(path.join(dir, manifest.entry)))
         next.set(id, { manifest: null, problems: [`${manifest.entry} is missing`, ...problems], dir });
-      else next.set(id, { manifest, problems, dir });
+      else {
+        const icon = manifest?.icon ? readIcon(dir, manifest.icon) : {};
+        next.set(id, { manifest, problems: icon.problem ? [...problems, icon.problem] : problems, dir, icon: icon.url });
+      }
     }
     this.entries = next;
     // A folder that's gone takes its choices with it: another folder of the same name later starts off.
@@ -614,6 +642,7 @@ export class ExtensionHost {
         description: m?.description,
         version: m?.version,
         glyph: m?.glyph,
+        icon: e.icon,
         dir: e.dir,
         valid: !!m,
         problems: e.problems,

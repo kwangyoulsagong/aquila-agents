@@ -1452,6 +1452,8 @@ export interface ExtensionInfo {
   version?: string;
   /** One or two characters for the chip and the picker. */
   glyph?: string;
+  /** The extension's own picture (data URL), shown instead of the glyph where a picture fits. */
+  icon?: string;
   dir: string;
   /** False: the manifest can't be used (`problems` says why). */
   valid: boolean;
