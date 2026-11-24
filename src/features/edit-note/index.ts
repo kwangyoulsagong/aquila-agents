@@ -1,3 +1,4 @@
+import { lazyComponent } from '@/shared/lib/lazyComponent';
 import { Component, createElement, lazy, Suspense, type ReactNode } from 'react';
 import type { NoteEditorPanelProps, NoteSlotProps } from './ui/NoteEditorPanel';
 
@@ -28,6 +29,6 @@ export function NoteEditorPanel(props: NoteEditorPanelProps) {
   );
 }
 export type { NoteEditorPanelProps, NoteSlotProps };
-export { default as QuickOpen } from './ui/QuickOpen';
+export const QuickOpen = lazyComponent(() => import('./ui/QuickOpen'), (p) => p.open);
 export { HandleWithClaude, type HandleWithClaudeProps } from './ui/HandleWithClaude';
 export { handleTarget } from './model/handle';
