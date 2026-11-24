@@ -62,6 +62,9 @@ export default function TerminalView({ id, kind, visible, focused = visible }: P
       scrollback: SCROLLBACK[kind],
       theme: terminalTheme(),
       minimumContrastRatio: minimumContrast(),
+      // OSC 8 links (Claude prints them): straight to the browser like plain URLs, no confirm dialog (main opens
+      // http(s) in the default browser and drops anything else).
+      linkHandler: { activate: (_e, uri) => void window.open(uri) },
       ...windowsPty(),
     });
     const unTheme = onThemeChange(() => {

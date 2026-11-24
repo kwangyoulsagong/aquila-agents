@@ -52,6 +52,8 @@ const TIMEOUT_MS = 40000;
 const MAX_GPU = 12;
 
 export const isSmoke = process.env.AQUILA_SMOKE === '1';
+/** Links the app window sent to the browser during smoke (recorded instead of opening a browser). */
+export const smokeLinks: string[] = [];
 
 // Chromium's own data (localStorage, extension partitions, caches) in a temp folder: smoke / perf / capture never
 // share the installed app's. Sharing it also made a running Aquila hold the storage lock, so the first localStorage
@@ -187,6 +189,8 @@ export async function runSmoke(
     if (summonError) return fail(summonError);
     const guideError = await checkGuide(win, outDir);
     if (guideError) return fail(guideError);
+    const linkOpenError = await checkLinks(win);
+    if (linkOpenError) return fail(linkOpenError);
     const notesError = await checkWhatsNew(win, config, path.join(outDir, 'smoke-whats-new.png'));
     if (notesError) return fail(notesError);
     const trendsError = await checkTrends(win, outDir);
@@ -2306,6 +2310,27 @@ async function checkApplyTrend(win: BrowserWindow, outDir: string): Promise<stri
 }
 
 /**
+ * A link clicked in a terminal (a URL or Claude's OSC 8 link → `window.open`) goes to the default browser and never
+ * becomes a (blank) window of the app; a page navigation away from the app is stopped. Returns an error or null.
+ */
+async function checkLinks(win: BrowserWindow): Promise<string | null> {
+  const windows = BrowserWindow.getAllWindows().length;
+  const page = win.webContents.getURL();
+  smokeLinks.length = 0;
+  await win.webContents.executeJavaScript(`window.open('https://example.com/aquila-smoke-link'); undefined`);
+  await win.webContents.executeJavaScript(`window.open('file:///etc/hosts'); undefined`);
+  await win.webContents.executeJavaScript(`location.href = 'https://example.com/aquila-smoke-nav'; undefined`);
+  await wait(500);
+  if (BrowserWindow.getAllWindows().length !== windows) return 'links: a link opened a window of the app';
+  if (win.webContents.getURL() !== page) return `links: the app page navigated to ${win.webContents.getURL()}`;
+  const want = ['https://example.com/aquila-smoke-link', 'https://example.com/aquila-smoke-nav'];
+  if (smokeLinks.join() !== want.join())
+    return `links: sent to the browser ${JSON.stringify(smokeLinks)}, expected ${JSON.stringify(want)}`;
+  console.log('[smoke] links: window.open and navigation go to the browser (http only), no app window');
+  return null;
+}
+
+/**
  * ⌘/ opens the guide: a list of features, the first one selected with its detail; the last item shows the full
  * shortcut sheet. Saves both screenshots, then Esc closes it. Returns an error or null.
  */
@@ -2335,6 +2360,10 @@ async function checkGuide(win: BrowserWindow, outDir: string): Promise<string | 
     const missing = [];
     for (const item of all) {
       item.click();
+      // Up to 1 s for this item's selection to render (2 frames is too tight while the renderer is busy), then
+      // its media must be there — not the previous item's, which is still up until the selection renders.
+      for (let i = 0; i < 20 && item.getAttribute('aria-selected') !== 'true'; i++)
+        await new Promise((r) => setTimeout(r, 50));
       await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
       if (!document.querySelector('.c-modal[open] .c-media__frame')) missing.push(item.textContent.trim());
     }

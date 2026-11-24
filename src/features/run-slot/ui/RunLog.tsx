@@ -25,6 +25,9 @@ export default function RunLog({ id, label }: { id: string; label: string }) {
       scrollback: 5000,
       theme: terminalTheme(),
       minimumContrastRatio: minimumContrast(),
+      // OSC 8 links (Claude prints them): straight to the browser like plain URLs, no confirm dialog (main opens
+      // http(s) in the default browser and drops anything else).
+      linkHandler: { activate: (_e, uri) => void window.open(uri) },
     });
     const unTheme = onThemeChange(() => {
       term.options.theme = terminalTheme();

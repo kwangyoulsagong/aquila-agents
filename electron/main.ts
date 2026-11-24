@@ -22,6 +22,7 @@ import {
 } from 'electron';
 import { restoreShellPath } from './env';
 import { isWindows, platform } from './platform';
+import { externalTarget, isAppPage } from './links';
 import { accountsStatus, installShellFunction, prepareAccount, shellFunctionPreview } from './accounts';
 import {
   APP_DIR,
@@ -131,7 +132,7 @@ import {
   writeState,
   type SavedTab,
 } from './state';
-import { isSmoke, runSmoke, SMOKE_BUFFER_BYTES, watchOutput } from './smoke';
+import { isSmoke, runSmoke, SMOKE_BUFFER_BYTES, smokeLinks, watchOutput } from './smoke';
 import { openInBrowser } from './browser';
 import { defaultRunCommands, readSavedRuns, RunManager, writeSavedRuns } from './runs';
 import { accountLabel, translator } from '../src/shared/i18n/dictionary';
@@ -213,6 +214,23 @@ function createWindow(): void {
       contextIsolation: true,
       sandbox: false,
     },
+  });
+  // Links (terminal URLs, Claude's OSC 8 links): the default browser, never a window of ours (see links.ts).
+  const wc = win.webContents;
+  const openLink = (url: string) => {
+    const target = externalTarget(url);
+    if (!target) return;
+    if (isSmoke) smokeLinks.push(target); // smoke checks where it went; no browser opens
+    else void shell.openExternal(target);
+  };
+  wc.setWindowOpenHandler(({ url }) => {
+    openLink(url);
+    return { action: 'deny' };
+  });
+  wc.on('will-navigate', (e, url) => {
+    if (isAppPage(url, wc.getURL())) return;
+    e.preventDefault();
+    openLink(url);
   });
   if (isDev) win.loadURL('http://localhost:5199');
   else win.loadFile(path.join(__dirname, '..', '..', 'dist', 'index.html'));
