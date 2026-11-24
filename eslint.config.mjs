@@ -40,7 +40,7 @@ const fsdBoundaries = LAYERS.map((layer, i) => {
 });
 
 export default tseslint.config(
-  { ignores: ['dist', 'dist-electron', 'node_modules'] },
+  { ignores: ['dist', 'dist-electron', 'node_modules', 'release'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
