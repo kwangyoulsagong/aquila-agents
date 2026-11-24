@@ -369,6 +369,17 @@ export function grantCovers(g: Grant | undefined, m: Pick<Manifest, 'permissions
   return !!g && m.permissions.every((p) => g.permissions.includes(p)) && m.network.every((d) => g.network.includes(d));
 }
 
+/** What the manifest asks for beyond the approval. */
+export function addedBeyond(
+  g: Grant | undefined,
+  m: Pick<Manifest, 'permissions' | 'network'>,
+): { permissions: ExtensionPermission[]; network: string[] } {
+  return {
+    permissions: m.permissions.filter((p) => !g?.permissions.includes(p)),
+    network: m.network.filter((d) => !g?.network.includes(d)),
+  };
+}
+
 const strings = (v: unknown): string[] =>
   Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
 
@@ -611,6 +622,9 @@ export class ExtensionHost {
         commands: m?.commands ?? [],
         // Off when its manifest now asks for more than was approved: enabling it again shows the new permissions.
         enabled: !!this.usable(id),
+        ...(m && this.prefs.enabled[id] && !grantCovers(this.prefs.granted[id], m)
+          ? { added: addedBeyond(this.prefs.granted[id], m) }
+          : {}),
         background: !!this.prefs.background[id],
         running: this.live.has(id),
         chip: this.chips.get(id),

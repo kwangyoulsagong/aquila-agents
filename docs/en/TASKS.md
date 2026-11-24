@@ -810,7 +810,7 @@ throttled or hot → `saver`). The rules every task below follows:
   time unchanged within noise (~2–4 ms) — parsing isn't what startup waits on. Not split: the dictionary (89 kB, both
   languages; per-language would need an async load before the first render).
   Left over: graph closed and idle right
-  after indexing is ~1 % CPU for a few seconds (code-name scan), then 0.5 %. Not done from the review: re-approval has no
-  "permissions changed" hint in the extension list (it just shows off); graph and editor each fetch their own snapshot; extension storage
-  is read synchronously on every call; extraction child processes outlive a stopped graph worker; `noteOpen` has no size
-  cap; CodeMirror's own panel text (search) is English only._
+  after indexing is ~1 % CPU for a few seconds (code-name scan), then 0.5 %. Follow-up: an extension switched off by a grown manifest
+  shows what was added in its review (`added` on the extension info; smoke checks it), and a note over 2 MB opens only
+  its start, read-only (`MAX_EDIT_BYTES`, cut at a whole line). Not done from the review: graph and editor each fetch their own snapshot; extension storage
+  is read synchronously on every call; extraction child processes outlive a stopped graph worker; CodeMirror's own panel text (search) is English only._

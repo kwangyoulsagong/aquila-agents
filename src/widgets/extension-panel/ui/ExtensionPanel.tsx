@@ -198,7 +198,15 @@ function Review({ ext }: { ext: ExtensionInfo }) {
       ) : (
         <>
           {ext.description && <p className="c-ext__text">{ext.description}</p>}
-          <p className="c-ext__text c-ext__text--muted">{t('ext.review')}</p>
+          {ext.added ? (
+            <p className="c-ext__text" data-tone="warn" role="status">
+              {t('ext.permissionsChanged', {
+                added: [...ext.added.permissions.map((p) => t(PERMISSION_KEY[p])), ...ext.added.network].join(', '),
+              })}
+            </p>
+          ) : (
+            <p className="c-ext__text c-ext__text--muted">{t('ext.review')}</p>
+          )}
           <MetaList>
             <MetaRow label={t('ext.permissions')}>
               {ext.permissions.length
