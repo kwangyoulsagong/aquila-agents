@@ -1,0 +1,14 @@
+{
+  "version": "1.0.1",
+  "date": "2026-11-24",
+  "headlines": [
+    {
+      "guideId": "palette",
+      "title": { "ko": "확장 아이콘", "en": "Extension icons" },
+      "body": {
+        "ko": "확장이 manifest.json에 \"icon\"으로 그림을 넣으면(.png·.svg·.webp, 64KB 이하) 사이드바 칩과 확장 패널 이름에 글자 대신 그 그림이 보여요. 픽셀 그림은 흐려지지 않게 그대로 그려요.",
+        "en": "An extension that sets \"icon\" in its manifest.json (.png, .svg or .webp, up to 64 KB) now shows that picture instead of its glyph on the sidebar chip and the extension panel's name. Pixel art stays crisp."
+      }
+    }
+  ]
+}
