@@ -778,3 +778,33 @@ throttled or hot → `saver`). The rules every task below follows:
 - **Done:** the system meter shows live values; an extension without `network` can't fetch; the puzzle pauses on a waiting session.
   _Left over: per the owner, **no bundled samples** — extensions are the user's own ("New extension" makes a template folder + AGENTS.md and opens a Claude tab in it, the folder added as a project). Done is checked in smoke with a temp extension: live `system` values, `fetch` blocked without `network`, an undeclared method refused, `window.open` denied, its sidebar chip, and its page pausing on a real waiting session. Battery is `onBattery` + saver (Electron has no battery level). The "status-bar chip" is a sidebar band above the footer (there is no status bar). An extension starts only after the user enables it from the permission review. Floating window (owner's request): ⇱ moves an extension into its own window — move, resize, transparency, always on top, remembered per extension. Not done: a reviewed registry. Touched outside the owned files (small, additive): `main.ts` (`aquila-ext` scheme, host + IPC, `send` tap for statuses/usage), `preload.ts`, `types.ts`, `dictionary.ts`, `components.css` (`.c-ext*`), the command palette (`toggleExtensions`, `newExtension`, `extra` commands), the workspace page and `panels.ts`, `shared/lib/useDialogOpen.ts` (moved from the preview), `capture.ts` (`withViews` exported), `smoke.ts`._
 
+
+### QA · Bug and performance pass (2026-11-24)
+- [x] **Goal:** with T63–T71 in, check the whole app for bugs and measure it against the budget.
+  _Found and fixed. **Flood memory:** `useFollow` (terminal helpers) called `setState` on every xterm scroll event (one per
+  line), so a `yes` flood queued React updates faster than they rendered. Renderer 1,340 → 349 MB, live JS heap after
+  the flood 510 → 15 MB, 88 → 120 fps, longest frame gap 250 → 9 ms, Ctrl+C 50–73 → 17 ms. Now `setState` only on a change.
+  **⌘W in the note editor or an input killed the focused session**, and ⌘D in the editor split the pane instead of
+  CodeMirror's select-next (`yieldsToText`). Note editor: once a note couldn't be opened every later one showed
+  "unavailable" (the host unmounted; now hidden instead); switching notes while a save was writing dropped what was typed
+  meanwhile (a save now always finishes its own note). Removing a project could leave a closed session in a pane.
+  Trend steps pasted into Claude skipped safe paste (feed text with `ESC[201~`). Extensions: a manifest that asks for
+  more permissions / domains after enabling now stays off until enabled again (`granted` in the prefs; existing ones
+  migrate as approved), and prefs of a removed folder are dropped. A crashed graph worker now restarts on the next graph
+  call (up to 3 times). Turn files: a quick next prompt no longer deletes the next turn's snapshot, the newest files are
+  kept at the cap, mtimes are read async. The daily note goes through `readNote`/`writeNote` (non-UTF-8 stays
+  untouched). Note watchers are released on a page reload. The pre-mount output buffer is capped. `translator()` returns
+  one function per language (context consumers stop re-rendering on every workspace render). Quick open sorts in
+  O(n log n) and lets go of the snapshot when closed. `npm run perf` reports the exact JS heap, live heap after GC,
+  keeps painting when occluded and fails a run with no frames; `AQUILA_PERF_HEAP=1` lists allocation sites.
+  **Index memory back in budget:** the graph worker's young generation is capped at 4 MB (V8 kept 16 MB semi-spaces of
+  indexing garbage resident) — main process for the 2,000-note index 69 → 44 MB (budget 50), same index time. The shared
+  `system` poll now runs only for extension views on screen, floating or allowed in the background (hidden ones are
+  suspended within minutes anyway).
+  Left over: graph closed and idle right
+  after indexing is ~1 % CPU for a few seconds (code-name scan), then 0.5 %. Not done from the review: re-approval has no
+  "permissions changed" hint in the extension list (it just shows off); a status event still re-renders the whole
+  workspace (memo per session host); the initial chunk is 1 MB (history / trends / changes / preview panels could be
+  lazy); graph and editor each fetch their own snapshot; extension storage
+  is read synchronously on every call; extraction child processes outlive a stopped graph worker; `noteOpen` has no size
+  cap; CodeMirror's own panel text (search) is English only._

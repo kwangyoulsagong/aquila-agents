@@ -352,7 +352,25 @@ export interface ExtensionPrefs {
   background: Record<string, boolean>;
   /** Floating window per extension: open or docked, where, how big, how see-through. */
   float: Record<string, FloatPrefs>;
+  /**
+   * What the user approved when enabling: the manifest's permissions and network domains then. A manifest that asks
+   * for more later (edited by hand, by Claude, a git pull) keeps the extension off until it's enabled again.
+   */
+  granted: Record<string, Grant>;
 }
+
+export interface Grant {
+  permissions: string[];
+  network: string[];
+}
+
+/** True when everything the manifest asks for was approved. */
+export function grantCovers(g: Grant | undefined, m: Pick<Manifest, 'permissions' | 'network'>): boolean {
+  return !!g && m.permissions.every((p) => g.permissions.includes(p)) && m.network.every((d) => g.network.includes(d));
+}
+
+const strings = (v: unknown): string[] =>
+  Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
 
 export interface FloatPrefs {
   /** Floating (reopened floating at launch) or in the panel. */
@@ -394,7 +412,7 @@ export function parseFloatPrefs(v: unknown): FloatPrefs {
 }
 
 export function parsePrefs(text: string): ExtensionPrefs {
-  const prefs: ExtensionPrefs = { enabled: {}, background: {}, float: {} };
+  const prefs: ExtensionPrefs = { enabled: {}, background: {}, float: {}, granted: {} };
   try {
     const d = JSON.parse(text) as Partial<ExtensionPrefs>;
     for (const k of ['enabled', 'background'] as const) {
@@ -404,6 +422,10 @@ export function parsePrefs(text: string): ExtensionPrefs {
     }
     if (d?.float && typeof d.float === 'object')
       for (const [id, f] of Object.entries(d.float)) prefs.float[id] = parseFloatPrefs(f);
+    if (d?.granted && typeof d.granted === 'object')
+      for (const [id, g] of Object.entries(d.granted as Record<string, Partial<Grant>>))
+        if (g && typeof g === 'object')
+          prefs.granted[id] = { permissions: strings(g.permissions), network: strings(g.network) };
   } catch {
     /* fresh */
   }
@@ -504,6 +526,16 @@ export class ExtensionHost {
     }
     this.prefs = parsePrefs(text);
     this.scan();
+    // Prefs from before grants were kept: what is enabled now counts as approved as it is now.
+    let migrated = false;
+    for (const id of Object.keys(this.prefs.enabled)) {
+      const m = this.entries.get(id)?.manifest;
+      if (m && !this.prefs.granted[id]) {
+        this.prefs.granted[id] = { permissions: [...m.permissions], network: [...m.network] };
+        migrated = true;
+      }
+    }
+    if (migrated) this.savePrefs();
   }
 
   // ── Folder ──
@@ -512,12 +544,14 @@ export class ExtensionHost {
   scan(): void {
     const next = new Map<string, Entry>();
     let names: string[] = [];
+    let listed = false;
     try {
       names = fs
         .readdirSync(this.deps.dir, { withFileTypes: true })
         .filter((d) => d.isDirectory() && !d.name.startsWith('.'))
         .map((d) => d.name)
         .sort();
+      listed = true;
     } catch {
       /* no folder yet */
     }
@@ -536,6 +570,8 @@ export class ExtensionHost {
       else next.set(id, { manifest, problems, dir });
     }
     this.entries = next;
+    // A folder that's gone takes its choices with it: another folder of the same name later starts off.
+    if (listed) this.forgetMissing(new Set(names));
     // Gone or no longer usable: close its view.
     for (const id of [...this.live.keys()]) if (!this.usable(id)) this.close(id);
   }
@@ -573,7 +609,8 @@ export class ExtensionHost {
         permissions: m?.permissions ?? [],
         network: m?.network ?? [],
         commands: m?.commands ?? [],
-        enabled: !!m && !!this.prefs.enabled[id],
+        // Off when its manifest now asks for more than was approved: enabling it again shows the new permissions.
+        enabled: !!this.usable(id),
         background: !!this.prefs.background[id],
         running: this.live.has(id),
         chip: this.chips.get(id),
@@ -586,7 +623,18 @@ export class ExtensionHost {
 
   private usable(id: string): Manifest | null {
     const m = this.entries.get(id)?.manifest;
-    return m && this.prefs.enabled[id] ? m : null;
+    return m && this.prefs.enabled[id] && grantCovers(this.prefs.granted[id], m) ? m : null;
+  }
+
+  private forgetMissing(present: Set<string>): void {
+    let dropped = false;
+    for (const k of ['enabled', 'background', 'float', 'granted'] as const)
+      for (const id of Object.keys(this.prefs[k]))
+        if (!present.has(id)) {
+          delete this.prefs[k][id];
+          dropped = true;
+        }
+    if (dropped) this.savePrefs();
   }
 
   private savePrefs(): void {
@@ -603,10 +651,14 @@ export class ExtensionHost {
   }
 
   setEnabled(id: string, on: boolean): ExtensionInfo[] {
-    if (!this.entries.get(id)?.manifest) return this.list();
-    if (on) this.prefs.enabled[id] = true;
-    else {
+    const m = this.entries.get(id)?.manifest;
+    if (!m) return this.list();
+    if (on) {
+      this.prefs.enabled[id] = true;
+      this.prefs.granted[id] = { permissions: [...m.permissions], network: [...m.network] };
+    } else {
       delete this.prefs.enabled[id];
+      delete this.prefs.granted[id];
       delete this.prefs.background[id];
       if (this.prefs.float[id]) this.prefs.float[id].on = false;
       this.close(id);
@@ -623,6 +675,7 @@ export class ExtensionHost {
     else delete this.prefs.background[id];
     this.savePrefs();
     this.scheduleSuspend();
+    this.ensurePoll();
     this.changed();
     return this.list();
   }
@@ -701,6 +754,7 @@ export class ExtensionHost {
     this.parentOf(l)?.contentView.removeChildView(l.view);
     win.contentView.addChildView(l.view);
     l.float = win;
+    this.ensurePoll();
     const fit = () => {
       const [width, height] = win.getContentSize();
       l.bounds = { x: 0, y: 0, width, height };
@@ -724,6 +778,7 @@ export class ExtensionHost {
       // Hand the view back to the app window (hidden) before this one goes, so the page survives.
       if (l.float !== win) return;
       l.float = undefined;
+      queueMicrotask(() => this.ensurePoll());
       try {
         win.contentView.removeChildView(l.view);
       } catch {
@@ -908,6 +963,7 @@ export class ExtensionHost {
     if (!visible) l.hiddenAt = Date.now();
     this.emitTo(l.id, 'visible', { visible });
     this.scheduleSuspend();
+    this.ensurePoll();
   }
 
   private ensureSession(id: string): ElectronSession {
@@ -1039,8 +1095,17 @@ export class ExtensionHost {
 
   // ── Shared feeds ──
 
+  /**
+   * Gets `system` values: on screen, floating, or allowed in the background. A hidden one (suspended within minutes
+   * anyway) doesn't keep the shared poll and its `os.cpus()` calls running.
+   */
+  private wantsSystem(l: Live): boolean {
+    if (!this.usable(l.id)?.permissions.includes('system')) return false;
+    return l.visible || !!l.float || !!this.prefs.background[l.id];
+  }
+
   private ensurePoll(): void {
-    const wanted = [...this.live.keys()].some((id) => this.usable(id)?.permissions.includes('system'));
+    const wanted = [...this.live.values()].some((l) => this.wantsSystem(l));
     if (!wanted) {
       clearInterval(this.pollTimer);
       this.pollTimer = undefined;
@@ -1059,7 +1124,10 @@ export class ExtensionHost {
   private restartPoll(): void {
     clearInterval(this.pollTimer);
     const ms = this.deps.power().saver ? SYSTEM_POLL_SAVER_MS : SYSTEM_POLL_MS;
-    this.pollTimer = setInterval(() => this.broadcast('system', this.system()), ms);
+    this.pollTimer = setInterval(() => {
+      const data = this.system();
+      for (const l of this.live.values()) if (this.wantsSystem(l)) this.emitTo(l.id, 'system', data);
+    }, ms);
   }
 
   system(): ExtensionSystem {

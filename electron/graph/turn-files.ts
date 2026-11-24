@@ -22,7 +22,7 @@ const SAVE_DELAY_MS = 2000;
 /** Absolute paths `git status` lists under `cwd` (modified, added, deleted, untracked), or null outside a repo. */
 export type StatusOf = (cwd: string) => Promise<string[] | null>;
 /** mtime (ms) of a file, or null when it's gone. */
-export type MtimeOf = (abs: string) => number | null;
+export type MtimeOf = (abs: string) => number | null | Promise<number | null>;
 
 /** `git status --porcelain=v1 -z` → paths (renames: the new one), relative to the repo root. */
 export function parsePorcelainZ(out: string): string[] {
@@ -67,13 +67,12 @@ export const gitStatusOf: StatusOf = (cwd) =>
     );
   });
 
-export const fsMtimeOf: MtimeOf = (abs) => {
-  try {
-    return fs.statSync(abs).mtimeMs;
-  } catch {
-    return null;
-  }
-};
+/** Async: up to MAX_STATUS files per turn edge, which must not block the main process. */
+export const fsMtimeOf: MtimeOf = (abs) =>
+  fs.promises.stat(abs).then(
+    (st) => st.mtimeMs,
+    () => null,
+  );
 
 type Snapshot = Map<string, number | null>;
 
@@ -107,7 +106,9 @@ export class TurnFiles {
 
   private async look(cwd: string): Promise<Snapshot | null> {
     const files = await this.status(cwd);
-    return files && new Map(files.map((f) => [f, this.mtime(f)]));
+    if (!files) return null;
+    const mtimes = await Promise.all(files.map((f) => this.mtime(f)));
+    return new Map(files.map((f, i) => [f, mtimes[i] ?? null]));
   }
 
   /** `UserPromptSubmit`: remember the folder as it is now. */
@@ -120,8 +121,10 @@ export class TurnFiles {
 
   /** `Stop`: what the turn changed is added to the session's files. */
   async stop(sessionId: string): Promise<string[]> {
-    const begun = await this.open.get(sessionId);
-    this.open.delete(sessionId);
+    const pending = this.open.get(sessionId);
+    const begun = await pending;
+    // The next prompt may have started a new turn while this one's snapshot was still being taken: keep that one.
+    if (this.open.get(sessionId) === pending) this.open.delete(sessionId);
     if (!begun) return [];
     const after = await this.look(begun.cwd);
     if (!after) return [];
@@ -145,7 +148,8 @@ export class TurnFiles {
 
   private add(sessionId: string, files: string[]): void {
     const all = this.all();
-    const merged = [...new Set([...(all[sessionId] ?? []), ...files])].slice(0, MAX_TURN_FILES);
+    // At the cap the newest files stay (a long session keeps what it touched last).
+    const merged = [...new Set([...(all[sessionId] ?? []), ...files])].slice(-MAX_TURN_FILES);
     // Most recent last, so the oldest sessions are the first dropped.
     delete all[sessionId];
     all[sessionId] = merged;

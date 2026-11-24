@@ -175,6 +175,8 @@ let win: BrowserWindow | null = null;
 let sessions: SessionManager | null = null;
 let previews: PreviewViews | null = null;
 let extensions: ExtensionHost | null = null;
+/** Notes open in the editor (T67); a reloaded page has none open. */
+let notesWatched: NoteWatcher | null = null;
 let runs: RunManager | null = null;
 /** Runs up at quit start again next launch (T60); written as they change, frozen once quitting starts. */
 const RUNS_PATH = path.join(APP_DIR, 'runs.json');
@@ -220,6 +222,8 @@ function createWindow(): void {
     // The new page has no preview panel yet: don't leave native views over it.
     previews?.destroyAll();
     extensions?.destroyAll();
+    // Nor notes open in its editor: stop their folder watches (the new page opens what it shows).
+    notesWatched?.close();
   });
   win.on('closed', () => {
     win = null;
@@ -1022,9 +1026,12 @@ app.whenReady().then(async () => {
       language: config.language,
       now,
     });
-    const text = fs.readFileSync(file, 'utf8');
-    const next = addToSection(text, dailyHeading(config.language), lines);
-    if (next !== text) fs.writeFileSync(file, next);
+    // Through the note helpers: a note that isn't UTF-8 opens read-only and is left alone (no replacement
+    // characters), the BOM is kept, and a version written meanwhile isn't overwritten.
+    const note = readNote(file);
+    if (!note || note.readOnly) return file;
+    const next = addToSection(note.text, dailyHeading(config.language), lines);
+    if (next !== note.text) writeNote(file, next, note.bom, note.mtime);
     return file;
   });
   // Per-source settings (T69): mine in ~/.aquila/vaults, shared as `.aquila-vault.json` in the folder (only when the
@@ -1047,6 +1054,7 @@ app.whenReady().then(async () => {
   power.onChange(() => graph.setSaver(powerState().saver));
   // Note editor (T67): only notes of enabled sources; watched only while open in the editor.
   const noteWatcher = new NoteWatcher((c) => send(IPC.noteChanged, c));
+  notesWatched = noteWatcher;
   app.on('will-quit', () => {
     noteWatcher.close();
     graph.close();
