@@ -636,6 +636,17 @@ export class SessionManager {
     this.tabsChanged();
   }
 
+  /** The renderer reordered its tabs: known ids take that order, the rest keep theirs after them. */
+  reorder(ids: string[]): void {
+    const known = new Set(this.order);
+    const first = [...new Set(ids)].filter((id) => known.has(id));
+    const taken = new Set(first);
+    const next = [...first, ...this.order.filter((id) => !taken.has(id))];
+    if (next.every((id, i) => id === this.order[i])) return;
+    this.order = next;
+    this.tabsChanged();
+  }
+
   /** Enter in a codex tab that doesn't know its session: codex creates the rollout on the first prompt. */
   private codexSubmitted(s: LiveSession): void {
     s.lastSubmit = Date.now();

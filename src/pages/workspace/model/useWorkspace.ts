@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, type Config, type HistoryResumeResult, type Session, type SessionKind } from '@/shared/api';
 import { toSaved, useSplitLayout } from '@/widgets/split-view';
+import { moveSession, type DropSide } from '@/entities/session';
 
 /** Workspace state: config, sessions, which project is selected and the split layout (what's on screen). */
 export function useWorkspace() {
@@ -170,6 +171,17 @@ export function useWorkspace() {
     [forgetSession],
   );
 
+  /** Drag a tab along the bar: move it next to another one; main saves the new order with the tabs. */
+  const reorderSession = useCallback(
+    (id: string, targetId: string, side: DropSide) => {
+      const next = moveSession(sessions, id, targetId, side);
+      if (next === sessions) return;
+      setSessions((list) => moveSession(list, id, targetId, side));
+      api.reorderSessions(next.map((s) => s.id));
+    },
+    [sessions],
+  );
+
   /**
    * Restart the project's live local Claude/Codex tabs so new spawn options apply (Figma on/off, T54). Each one
    * resumes its conversation and keeps its tab slot and panes.
@@ -219,6 +231,7 @@ export function useWorkspace() {
     openWorktreeSession,
     adoptResumed,
     closeSession,
+    reorderSession,
     reopenAgentTabs,
     forgetProject,
     error,

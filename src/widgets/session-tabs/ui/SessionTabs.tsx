@@ -1,14 +1,22 @@
 import { Button, RiskMark } from '@design-system/react';
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type DragEvent, type ReactNode } from 'react';
 import { api, type Config, type Session, type SessionKind, type Worktree } from '@/shared/api';
 import { kindLabel, sessionTitle, useT } from '@/shared/i18n';
 import { isDestructive } from '@/shared/lib/risk';
-import { endSessionDrag, startSessionDrag } from '@/shared/lib/sessionDrag';
+import { draggedSession, endSessionDrag, startSessionDrag } from '@/shared/lib/sessionDrag';
 import { accelerator, withShortcut } from '@/shared/lib/shortcuts';
 import { parseWorktreeMenuId, worktreeMenuItems } from '@/features/open-in-worktree';
 import { SessionTitle } from '@/features/rename-session';
 import { AccountBadge, HostBadge } from '@/entities/project';
-import { ContextGauge, KindBadge, StatusDot, WaitingTime } from '@/entities/session';
+import {
+  ContextGauge,
+  KindBadge,
+  StatusDot,
+  WaitingTime,
+  dropSide,
+  moveSession,
+  type DropSide,
+} from '@/entities/session';
 
 interface Props {
   config: Config;
@@ -32,6 +40,8 @@ interface Props {
   /** The tab whose title is being edited (T43), and how to start / end that. */
   renamingId?: string | null;
   onRename?: (id: string | null) => void;
+  /** A tab dragged along the bar was dropped before / after another one. */
+  onReorder?: (id: string, targetId: string, side: DropSide) => void;
 }
 
 /** Tooltip of + per default agent. */
@@ -53,10 +63,26 @@ export default function SessionTabs({
   trailing,
   renamingId = null,
   onRename = () => {},
+  onReorder,
 }: Props) {
   const t = useT();
   const newKind = NEW_BUTTON[defaultKind];
   const barRef = useRef<HTMLDivElement>(null);
+  // Drag to reorder: the tab being dragged and where it would land (drawn as a line on that edge of the target tab).
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [drop, setDrop] = useState<{ id: string; side: DropSide } | null>(null);
+  const endDrag = () => {
+    endSessionDrag();
+    setDraggingId(null);
+    setDrop(null);
+  };
+  /** Where a tab dragged over `targetId` would go; null when it's another drag or the drop would change nothing. */
+  const dropAt = (e: DragEvent<HTMLElement>, targetId: string) => {
+    const dragged = onReorder ? draggedSession(e) : null;
+    if (!dragged) return null;
+    const side = dropSide(e.clientX, e.currentTarget.getBoundingClientRect());
+    return moveSession(sessions, dragged, targetId, side) === sessions ? null : { dragged, side };
+  };
   // A full bar scrolls sideways: keep the selected tab in view, clear of the pinned trailing controls.
   useEffect(() => {
     const bar = barRef.current;
@@ -113,10 +139,35 @@ export default function SessionTabs({
             role="tab"
             aria-selected={s.id === activeId}
             data-status={s.status}
+            data-dragging={draggingId === s.id || undefined}
+            data-drop={drop?.id === s.id ? drop.side : undefined}
             title={detail && !renaming ? `${title} — ${detail}` : undefined}
             draggable={!renaming}
-            onDragStart={(e) => startSessionDrag(e, s.id)}
-            onDragEnd={endSessionDrag}
+            onDragStart={(e) => {
+              startSessionDrag(e, s.id);
+              setDraggingId(s.id);
+            }}
+            onDragEnd={endDrag}
+            onDragOver={(e) => {
+              if (!onReorder || !draggedSession(e)) return;
+              // A tab dragged over a tab is a reorder; a spot where it would change nothing shows no line.
+              e.preventDefault();
+              const at = dropAt(e, s.id);
+              e.dataTransfer.dropEffect = at ? 'move' : 'none';
+              if (!at) return setDrop((d) => (d?.id === s.id ? null : d));
+              if (drop?.id !== s.id || drop.side !== at.side) setDrop({ id: s.id, side: at.side });
+            }}
+            onDragLeave={(e) => {
+              if (e.relatedTarget instanceof Node && e.currentTarget.contains(e.relatedTarget)) return;
+              setDrop((d) => (d?.id === s.id ? null : d));
+            }}
+            onDrop={(e) => {
+              const at = dropAt(e, s.id);
+              if (!at) return;
+              e.preventDefault();
+              endDrag();
+              onReorder?.(at.dragged, s.id, at.side);
+            }}
             onClick={() => onSelect(s.id)}
             onAuxClick={(e) => e.button === 1 && onClose(s.id)}
           >

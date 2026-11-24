@@ -3,6 +3,7 @@ import {
   Button,
   EmptyState,
   GraphCard,
+  GraphHint,
   GraphLegend,
   GraphStage,
   Input,
@@ -56,6 +57,15 @@ export interface KnowledgeGraphPanelProps {
   onError: (message: string) => void;
 }
 
+const HINT_KEY = 'aquila.graph.hintSeen';
+const hintSeen = (): boolean => {
+  try {
+    return localStorage.getItem(HINT_KEY) === '1';
+  } catch {
+    return false;
+  }
+};
+
 /** `session:<agent>:<id>` → the history ref it was made from. */
 function sessionRef(n: GraphNode): { agent: 'claude' | 'codex'; id: string } | null {
   const m = /^session:(claude|codex):(.+)$/.exec(n.id);
@@ -104,6 +114,15 @@ export default function KnowledgeGraphPanel({
   const [colors, setColors] = useState(readColors);
   const [host, setHost] = useState<HTMLDivElement | null>(null);
   useEffect(() => onThemeChange(() => setColors(readColors())), []);
+  const [hint, setHint] = useState(() => !hintSeen());
+  const hideHint = () => {
+    setHint(false);
+    try {
+      localStorage.setItem(HINT_KEY, '1');
+    } catch {
+      // not remembered: the hint shows again next time
+    }
+  };
 
   const filtered = useMemo(
     () => (snapshot ? filterSnapshot(snapshot, filter) : { nodes: [], edges: [] }),
@@ -135,7 +154,7 @@ export default function KnowledgeGraphPanel({
         .catch((e: unknown) => onError(e instanceof Error ? e.message : String(e)));
   };
   const handle = selectedNode ? handleTarget(snapshot, selectedNode) : null;
-  useGraphRenderer(host, {
+  const renderer = useGraphRenderer(host, {
     view,
     colors,
     selected,
@@ -150,6 +169,9 @@ export default function KnowledgeGraphPanel({
   });
 
   const notes = view.nodes.filter((n) => n.kind === 'note').length;
+  const links = selected
+    ? view.edges.filter((e) => e.source === selected || e.target === selected).length
+    : 0;
   const sources = status?.sources ?? [];
   const enabled = sources.filter((s) => s.enabled);
   const indexing = enabled.some((s) => s.state === 'indexing');
@@ -208,6 +230,28 @@ export default function KnowledgeGraphPanel({
               title={t('graph.daily.hint')}
             >
               {t('graph.daily')}
+            </Button>
+          )}
+          {!empty && (
+            <Button
+              variant="ghost"
+              icon
+              onClick={renderer.fit}
+              title={t('graph.fit')}
+              aria-label={t('graph.fit')}
+            >
+              ⊡
+            </Button>
+          )}
+          {!hint && !empty && (
+            <Button
+              variant="ghost"
+              icon
+              onClick={() => setHint(true)}
+              title={t('graph.hint.show')}
+              aria-label={t('graph.hint.show')}
+            >
+              ?
             </Button>
           )}
           <Button
@@ -317,7 +361,9 @@ export default function KnowledgeGraphPanel({
           <GraphCard
             kind={swatchOf(selectedNode.kind)}
             title={selectedNode.label}
-            detail={notePlace(selectedNode, sources)}
+            detail={[t('graph.links', { n: String(links) }), notePlace(selectedNode, sources)]
+              .filter(Boolean)
+              .join(' · ')}
             actions={
               <>
                 {selectedNode.kind === 'note' && selectedNode.path && (
@@ -338,19 +384,21 @@ export default function KnowledgeGraphPanel({
                     {t('graph.openLink')}
                   </Button>
                 )}
-                <Button
-                  variant="ghost"
-                  icon
-                  onClick={() => {
-                    setSelected(null);
-                    setLocal(false);
-                  }}
-                  title={t('graph.clear')}
-                  aria-label={t('graph.clear')}
-                >
-                  ×
-                </Button>
               </>
+            }
+            close={
+              <Button
+                variant="ghost"
+                icon
+                onClick={() => {
+                  setSelected(null);
+                  setLocal(false);
+                }}
+                title={t('graph.clear')}
+                aria-label={t('graph.clear')}
+              >
+                ×
+              </Button>
             }
           >
             <LinkSuggestions
@@ -361,6 +409,23 @@ export default function KnowledgeGraphPanel({
               onOpen={(n) => setSelected(n.id)}
             />
           </GraphCard>
+        )}
+        {!selectedNode && hint && !empty && (
+          <GraphHint
+            close={
+              <Button
+                variant="ghost"
+                icon
+                onClick={hideHint}
+                title={t('graph.hint.hide')}
+                aria-label={t('graph.hint.hide')}
+              >
+                ×
+              </Button>
+            }
+          >
+            {t('graph.hint')}
+          </GraphHint>
         )}
         {empty ? (
           <EmptyState

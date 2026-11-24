@@ -2172,7 +2172,7 @@ async function checkTrends(win: BrowserWindow, outDir: string): Promise<string |
     (await win.webContents.capturePage()).toPNG(),
   );
   // T63: the Industry tab's Global / Korea switch (segments: CLI, Industry, Global, Korea). Korea lists the fixture
-  // GeekNews / AI타임스 / blog items; the second row (after the summary) names its Korean source.
+  // GeekNews / Naver D2 / blog items; the second row (after the summary) names its Korean source.
   await js(`document.querySelectorAll('.c-modal[open] .c-segment__item')[3]?.click()`);
   await wait(300);
   await js(`document.querySelectorAll('.c-modal[open] .c-modal__item')[1]?.click()`);
@@ -2181,7 +2181,7 @@ async function checkTrends(win: BrowserWindow, outDir: string): Promise<string |
   const krNote = await js<string>(
     `[...document.querySelectorAll('.c-modal[open] .c-modal__note')].map((n) => n.textContent).join(' ')`,
   );
-  if (krRows < 4 || !/GeekNews|AI타임스|카카오|토스|우아한형제들|당근|LY Corporation/.test(krNote))
+  if (krRows < 4 || !/GeekNews|Naver D2|카카오|토스|우아한형제들|당근|LY Corporation/.test(krNote))
     return `trends: Korea tab shows ${krRows} rows, detail "${krNote}"`;
   fs.writeFileSync(
     path.join(outDir, 'smoke-trends-korea.png'),

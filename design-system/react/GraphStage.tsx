@@ -51,18 +51,37 @@ export function GraphLegend({
   );
 }
 
-/** `.c-kgraph__card` — the selected node, top-left over the canvas: title, a path line, actions. */
+/**
+ * `.c-kgraph__hint` — what the graph is for and how to use it, top-left over the canvas until dismissed.
+ * `close` is the dismiss button (the caller translates it).
+ */
+export function GraphHint({ children, close }: { children: ReactNode; close?: ReactNode }) {
+  return (
+    <div className="c-kgraph__hint" role="note">
+      <div className="c-kgraph__hint-text">{children}</div>
+      {close && <div className="c-kgraph__card-close">{close}</div>}
+    </div>
+  );
+}
+
+/**
+ * `.c-kgraph__card` — the selected node, top-left over the canvas: title, a path line, actions. Actions wrap when
+ * the panel is narrow; `close` stays pinned at the top-right so it never gets pushed out of view.
+ */
 export function GraphCard({
   kind,
   title,
   detail,
   actions,
+  close,
   children,
 }: {
   kind: GraphSwatch;
   title: ReactNode;
   detail?: ReactNode;
   actions?: ReactNode;
+  /** The dismiss button, always visible top-right. */
+  close?: ReactNode;
   /** Below the title row, full width, scrolls when long (the note's suggested links, T68). */
   children?: ReactNode;
 }) {
@@ -74,6 +93,7 @@ export function GraphCard({
         {detail && <div className="c-kgraph__card-detail">{detail}</div>}
       </div>
       {actions && <div className="c-kgraph__card-actions">{actions}</div>}
+      {close && <div className="c-kgraph__card-close">{close}</div>}
       {children && <div className="c-kgraph__card-body">{children}</div>}
     </div>
   );

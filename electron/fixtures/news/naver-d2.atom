@@ -1,0 +1,531 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>D2 Blog</title>
+  <link rel="alternate" href="https://d2.naver.com" />
+  <id>https://d2.naver.com/blog.atom</id>
+  <icon>https://d2.naver.com/favicon.ico</icon>
+  <updated>2026-11-23T07:51:18Z</updated>
+  <entry>
+    <title>AI 신입사원을 뉴스 데이터 시니어로 키우는 레포, news-data</title>
+    <link rel="alternate" href="https://d2.naver.com/helloworld/3284900" />
+    <category term="hello world" />
+    <id>https://d2.naver.com/helloworld/3284900</id>
+    <updated>2026-11-23T07:51:06Z</updated>
+    <content type="html">&lt;div class="se-viewer se-theme-default" lang="ko-KR"&gt;
+    &lt;!-- SE_DOC_HEADER_START --&gt;
+    
+    &lt;!-- SE_DOC_HEADER_END --&gt;
+    &lt;div class="se-main-container"&gt;
+                &lt;div class="se-component se-text se-l-default" id="SE-b3eff678-9d9a-4806-8775-3dfb12cc5b69"&gt;
+                    &lt;div class="se-component-content"&gt;
+                        &lt;div class="se-section se-section-text se-l-default"&gt;
+                            &lt;div class="se-module se-module-text"&gt;
+                                    &lt;!-- SE-TEXT { --&gt;&lt;p class="se-text-paragraph se-text-paragraph-align- " style="" id="SE-22733792-2dcd-43b0-a6c5-5edcbc8094f2"&gt;&lt;span style="color:#000000;" class="se-fs- se-ff-nanumsquare   " id="SE-93ff6f1a-3162-4fd7-a7ce-75df219bdb4a"&gt;&lt;b&gt;네이버 사내 기술 교류 행사인 NAVER Engineering Day 10th 에서 발표되었던 세션을 공개합니다.&lt;/b&gt;&lt;/span&gt;&lt;/p&gt;
+&lt;!-- } SE-TEXT --&gt;&lt;!-- SE-TEXT { --&gt;&lt;p class="se-text-paragraph se-text-paragraph-align- " style="" id="SE-c51f7975-cedc-42d7-9e51-83f0ca4cc8bd"&gt;&lt;span style="color:#000000;" class="se-fs- se-ff-nanumsquare   " id="SE-7cf892a3-5b6f-41f7-9277-58dbed40c88e"&gt;&lt;b&gt;​&lt;/b&gt;&lt;/span&gt;&lt;/p&gt;
+&lt;!-- } SE-TEXT --&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                    &lt;script type="text/data" class="__se_module_data" data-module-v2='{"type": "v2_text", "id": "SE-b3eff678-9d9a-4806-8775-3dfb12cc5b69", "data": {"ctype": "text"  }}'&gt;&lt;/script&gt;
+                &lt;/div&gt;                &lt;div class="se-component se-oembed se-l-default" id="SE-e0b977d5-9f9d-4ce7-b0de-326d34ab2346"&gt;
+                    &lt;div class="se-component-content se-component-content-fit"&gt;
+                        &lt;div class="se-section se-section-oembed se-section-align- se-l-default"&gt;
+                            &lt;div class="se-module se-module-oembed se-is-progress" style="padding-top: 56.2429696287964%;"&gt;&lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                    &lt;script type="text/data" class="__se_module_data" data-module='{"type":"v2_oembed", "id" :&amp;quot;SE-e0b977d5-9f9d-4ce7-b0de-326d34ab2346&amp;quot;, "data" : { "html": &amp;quot;&amp;lt;iframe src&amp;#x3D;\&amp;quot;https://clip-viewer.naver.com/oembed/?mediaId&amp;#x3D;10BC80B2FD47D56A34735D5EA7282E9A1701&amp;amp;mediaType&amp;#x3D;LONG_FORM&amp;amp;serviceType&amp;#x3D;CLIP\&amp;quot; title&amp;#x3D;\&amp;quot;NAVER Clip\&amp;quot; style&amp;#x3D;\&amp;quot;width:100%\&amp;quot; height&amp;#x3D;\&amp;quot;500\&amp;quot; frameborder&amp;#x3D;\&amp;quot;0\&amp;quot; scrolling&amp;#x3D;\&amp;quot;no\&amp;quot; allow&amp;#x3D;\&amp;quot;web-share\&amp;quot;&amp;gt;&amp;lt;/iframe&amp;gt;&amp;quot;, "originalWidth" : "889", "originalHeight" : "500", "contentMode" : &amp;quot;fit&amp;quot;, "description": &amp;quot;NAVER D2 | AI 신입사원을 뉴스 데이터 시니어로 키우는 레포, news-data (네이버 사내 기술 교류 행사인 NAVER Engineering Day 10th 에서 발표되었던 세션을 공개합...&amp;quot;, "inputUrl": &amp;quot;https://m.naver.com/shorts/?seedMediaId&amp;#x3D;10BC80B2FD47D56A34735D5EA7282E9A1701&amp;amp;serviceType&amp;#x3D;CLIP&amp;quot;, "thumbnailUrl" : &amp;quot;https://clip-service-phinf.pstatic.net/MjAyNjExMjNfOTYg/MDAxNzk1Mzk5MzE0NDEx.BKvMO9rrgmBBkDiyRdcFZtGAcCHO63J5rSHi8UfhQ2wg.BCfsxihILeGVVu__a-70oz7_x8pcmUkIF6P5-sIUbg8g.PNG/image.png&amp;quot;, "thumbnailHeight" : "101", "thumbnailWidth" : "180", "title": &amp;quot;AI 신입사원을 뉴스 데이터 시니어로 키우는 레포, news-data\n\n(네이버 사내 기술 교류 행사인 NAVER Engineering Day 10th 에서 발표되었던 세션을 공개합니다.)\n\n[발표 내용]\nAI 에이전트가 뉴스 데이터를 직접 찾고 추출·분석까지 수행하는 하네스 레포 news-data를 소개합니다. 작업마다 배운 것을 회고와 PR로 되돌려 도메인을 모르는 신입사원 같은 에이전트를 시니어로 키우는 과정과 운영하며 부딪힌 한계, 앞으로의 방향을 공유합니다.\n\n[발표 대상]\n- 코딩 에이전트에게 사내 도메인 업무를 맡겨 보고 싶은 개발자\n- 흩어진 데이터 문서와 도메인 지식을 정리하고 싶은 데이터 엔지니어·분석가\n- AGENTS.md, 스킬, 규칙으로 에이전트의 작업 방식을 설계해 보고 싶은 분\n\n[목차]\n1. 왜 만들었나\n- 스키마의 한계, 흩어진 문서, 머릿속 노하우</content>
+  </entry>
+<entry>
+    <title>새벽 3시 54분, Agent가 먼저 분석하고 처리했습니다</title>
+    <link rel="alternate" href="https://d2.naver.com/helloworld/1126768" />
+    <category term="hello world" />
+    <id>https://d2.naver.com/helloworld/1126768</id>
+    <updated>2026-11-23T07:03:24Z</updated>
+    <content type="html">&lt;div class="se-viewer se-theme-default" lang="ko-KR"&gt;
+    &lt;!-- SE_DOC_HEADER_START --&gt;
+    
+    &lt;!-- SE_DOC_HEADER_END --&gt;
+    &lt;div class="se-main-container"&gt;
+                &lt;div class="se-component se-text se-l-default" id="SE-fd3e9328-caa4-47fa-993f-248a62524733"&gt;
+                    &lt;div class="se-component-content"&gt;
+                        &lt;div class="se-section se-section-text se-l-default"&gt;
+                            &lt;div class="se-module se-module-text"&gt;
+                                    &lt;!-- SE-TEXT { --&gt;&lt;p class="se-text-paragraph se-text-paragraph-align- " style="" id="SE-9df2e190-e9d6-4c43-96f6-ece1f72017a8"&gt;&lt;span style="color:#000000;" class="se-fs- se-ff-nanumsquare   " id="SE-2a49be88-0001-486d-8bd1-29d8121d3b03"&gt;&lt;b&gt;네이버 사내 기술 교류 행사인 NAVER Engineering Day 10th 에서 발표되었던 세션을 공개합니다.&lt;/b&gt;&lt;/span&gt;&lt;/p&gt;
+&lt;!-- } SE-TEXT --&gt;&lt;!-- SE-TEXT { --&gt;&lt;p class="se-text-paragraph se-text-paragraph-align- " style="" id="SE-4f46c52a-3de1-4eb4-be44-35303f1e64e1"&gt;&lt;span style="color:#000000;" class="se-fs- se-ff-nanumsquare   " id="SE-1595ac85-3569-4aac-85e8-73873077590d"&gt;&lt;b&gt;​&lt;/b&gt;&lt;/span&gt;&lt;/p&gt;
+&lt;!-- } SE-TEXT --&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                    &lt;script type="text/data" class="__se_module_data" data-module-v2='{"type": "v2_text", "id": "SE-fd3e9328-caa4-47fa-993f-248a62524733", "data": {"ctype": "text"  }}'&gt;&lt;/script&gt;
+                &lt;/div&gt;                &lt;div class="se-component se-oembed se-l-default" id="SE-e56e2716-0024-4949-a7b6-a6a92d7f1d4f"&gt;
+                    &lt;div class="se-component-content se-component-content-fit"&gt;
+                        &lt;div class="se-section se-section-oembed se-section-align- se-l-default"&gt;
+                            &lt;div class="se-module se-module-oembed se-is-progress" style="padding-top: 56.2429696287964%;"&gt;&lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                    &lt;script type="text/data" class="__se_module_data" data-module='{"type":"v2_oembed", "id" :&amp;quot;SE-e56e2716-0024-4949-a7b6-a6a92d7f1d4f&amp;quot;, "data" : { "html": &amp;quot;&amp;lt;iframe src&amp;#x3D;\&amp;quot;https://clip-viewer.naver.com/oembed/?mediaId&amp;#x3D;1B30E4699F7E194FC089B9822D7AE024021C&amp;amp;mediaType&amp;#x3D;LONG_FORM&amp;amp;serviceType&amp;#x3D;CLIP\&amp;quot; title&amp;#x3D;\&amp;quot;NAVER Clip\&amp;quot; style&amp;#x3D;\&amp;quot;width:100%\&amp;quot; height&amp;#x3D;\&amp;quot;500\&amp;quot; frameborder&amp;#x3D;\&amp;quot;0\&amp;quot; scrolling&amp;#x3D;\&amp;quot;no\&amp;quot; allow&amp;#x3D;\&amp;quot;web-share\&amp;quot;&amp;gt;&amp;lt;/iframe&amp;gt;&amp;quot;, "originalWidth" : "889", "originalHeight" : "500", "contentMode" : &amp;quot;fit&amp;quot;, "description": &amp;quot;NAVER D2 | 새벽 3시 54분, Agent가 먼저 분석하고 처리했습니다 (네이버 사내 기술 교류 행사인 NAVER Engineering Day 10th 에서 발표되었던 세션을 공개합니다.) [...&amp;quot;, "inputUrl": &amp;quot;https://m.naver.com/shorts/?seedMediaId&amp;#x3D;1B30E4699F7E194FC089B9822D7AE024021C&amp;amp;serviceType&amp;#x3D;CLIP&amp;quot;, "thumbnailUrl" : &amp;quot;https://clip-service-phinf.pstatic.net/MjAyNjExMjNfOTMg/MDAxNzk1Mzk4OTE1NjUw.-Qqq1ezC4zQzwnDvbJuW5tVDGNu_oXuD2QY_0zTheEsg.jyG2LXUhTMV16etfEktC50EUAiGPlhwtGmFFRwGmalog.PNG/image.png&amp;quot;, "thumbnailHeight" : "101", "thumbnailWidth" : "180", "title": &amp;quot;새벽 3시 54분, Agent가 먼저 분석하고 처리했습니다\n\n(네이버 사내 기술 교류 행사인 NAVER Engineering Day 10th 에서 발표되었던 세션을 공개합니다.)\n\n[발표 내용]\n개발과 운영 당번을 함께 맡으며 새벽 알림에 깨는 일, 언제까지 사람이 해야 할까요? 원인을 찾는 일부터 직접 조치하는 일까지 AI Agent에게 안심하고 맡길 수 있도록 풀어 간 경험을 공유 드립니다.\n\n[발표 대상]\n- 개발과 서비스 운영(온콜)을 함께 맡고 있는 개발자·엔지니어\n- AI Agent에게 조사·조치 같은 실제 운영 업무를 맡기려는 개발자\n- 사내 Agent 도입을 검토하는 팀\n\n[목차]\n- 도입 : 어느 조직에나 있는 문제 \n- 조사하는 Agent : 1단계 \n- 손을 쓰는 Agent : 2단계 \n- 결론&amp;quot;, "providerUrl": &amp;quo</content>
+  </entry>
+<entry>
+    <title>뇌를 닮은 세컨드 브레인: 토큰 낭비 없는 RAG</title>
+    <link rel="alternate" href="https://d2.naver.com/helloworld/5087915" />
+    <category term="hello world" />
+    <id>https://d2.naver.com/helloworld/5087915</id>
+    <updated>2026-11-23T06:19:13Z</updated>
+    <content type="html">&lt;div class="se-viewer se-theme-default" lang="ko-KR"&gt;
+    &lt;!-- SE_DOC_HEADER_START --&gt;
+    
+    &lt;!-- SE_DOC_HEADER_END --&gt;
+    &lt;div class="se-main-container"&gt;
+                &lt;div class="se-component se-text se-l-default" id="SE-1e1e3c1c-85f6-44fc-b0e3-f6495afd1079"&gt;
+                    &lt;div class="se-component-content"&gt;
+                        &lt;div class="se-section se-section-text se-l-default"&gt;
+                            &lt;div class="se-module se-module-text"&gt;
+                                    &lt;!-- SE-TEXT { --&gt;&lt;p class="se-text-paragraph se-text-paragraph-align- " style="" id="SE-22e9c49f-9315-4c79-9ff5-9a66791064f7"&gt;&lt;span style="color:#000000;" class="se-fs- se-ff-nanumsquare   " id="SE-018f81ed-9bdb-48d3-9b46-1448ed21c7e3"&gt;&lt;b&gt;네이버 사내 기술 교류 행사인 NAVER Engineering Day 10th 에서 발표되었던 세션을 공개합니다.&lt;/b&gt;&lt;/span&gt;&lt;/p&gt;
+&lt;!-- } SE-TEXT --&gt;&lt;!-- SE-TEXT { --&gt;&lt;p class="se-text-paragraph se-text-paragraph-align- " style="" id="SE-9dc68a0c-021d-477f-b4d8-615f38b1a00e"&gt;&lt;span style="color:#000000;" class="se-fs- se-ff-nanumsquare   " id="SE-1c595109-5f28-4bfb-8bcf-d74d0452944b"&gt;&lt;b&gt;​&lt;/b&gt;&lt;/span&gt;&lt;/p&gt;
+&lt;!-- } SE-TEXT --&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                    &lt;script type="text/data" class="__se_module_data" data-module-v2='{"type": "v2_text", "id": "SE-1e1e3c1c-85f6-44fc-b0e3-f6495afd1079", "data": {"ctype": "text"  }}'&gt;&lt;/script&gt;
+                &lt;/div&gt;                &lt;div class="se-component se-oembed se-l-default" id="SE-4b48d941-9eab-4d99-bdc2-aeb29268f72f"&gt;
+                    &lt;div class="se-component-content se-component-content-fit"&gt;
+                        &lt;div class="se-section se-section-oembed se-section-align- se-l-default"&gt;
+                            &lt;div class="se-module se-module-oembed se-is-progress" style="padding-top: 56.2429696287964%;"&gt;&lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                    &lt;script type="text/data" class="__se_module_data" data-module='{"type":"v2_oembed", "id" :&amp;quot;SE-4b48d941-9eab-4d99-bdc2-aeb29268f72f&amp;quot;, "data" : { "html": &amp;quot;&amp;lt;iframe src&amp;#x3D;\&amp;quot;https://clip-viewer.naver.com/oembed/?mediaId&amp;#x3D;1C237C349F5614D28BFA5D241B37B14007B5&amp;amp;mediaType&amp;#x3D;LONG_FORM&amp;amp;serviceType&amp;#x3D;CLIP\&amp;quot; title&amp;#x3D;\&amp;quot;NAVER Clip\&amp;quot; style&amp;#x3D;\&amp;quot;width:100%\&amp;quot; height&amp;#x3D;\&amp;quot;500\&amp;quot; frameborder&amp;#x3D;\&amp;quot;0\&amp;quot; scrolling&amp;#x3D;\&amp;quot;no\&amp;quot; allow&amp;#x3D;\&amp;quot;web-share\&amp;quot;&amp;gt;&amp;lt;/iframe&amp;gt;&amp;quot;, "originalWidth" : "889", "originalHeight" : "500", "contentMode" : &amp;quot;fit&amp;quot;, "description": &amp;quot;NAVER D2 | 뇌를 닮은 세컨드 브레인: 토큰 낭비 없는 RAG (네이버 사내 기술 교류 행사인 NAVER Engineering Day 10th 에서 발표되었던 세션을 공개합니다.) [발표 내용...&amp;quot;, "inputUrl": &amp;quot;https://m.naver.com/shorts/?seedMediaId&amp;#x3D;1C237C349F5614D28BFA5D241B37B14007B5&amp;amp;serviceType&amp;#x3D;CLIP&amp;quot;, "thumbnailUrl" : &amp;quot;https://clip-service-phinf.pstatic.net/MjAyNjExMjNfMjE5/MDAxNzk1Mzk4NjA2NzQ1.4HiGYIDkLbH4c7UItkzuStw9sa3ZhKLYuUX3i8rV4JYg.obZll945Zm-Fqi_ZD_JfbAHWuSOvqjlRb8aTKuXkfYUg.PNG/image.png&amp;quot;, "thumbnailHeight" : "101", "thumbnailWidth" : "180", "title": &amp;quot;뇌를 닮은 세컨드 브레인: 토큰 낭비 없는 RAG\n\n(네이버 사내 기술 교류 행사인 NAVER Engineering Day 10th 에서 발표되었던 세션을 공개합니다.)\n\n[발표 내용]\n기존 RAG의 텍스트 덤프 및 토큰 낭비 한계를 극복하고, 최신 인지 메모리 논문 기법을 결합해 지식 자율 진화와 99% 재현율을 달성하는 차세대 AI 메모리 아키텍처를 소개합니다.\n\n[발표 대상]\n- RAG의 검색 효율과 답변 품질 개선에 관심 있는 개발자\n- AI 에이전트의 메모리 관리와 토큰 비용 절감에 관심 있는 개발자\n\n[목차]\n- 요청마다 다시 읽히는 토큰\n- 쓰지도 않는 토큰이 비싼 이유\n- Haema(해마)의 구조\n- 만들고 나서 측정한 결과\n- 우리 팀에 적용하기&amp;quot;, "providerUrl": &amp;quot;https://clip-viewer.naver.co</content>
+  </entry>
+<entry>
+    <title>GPU 노드 검증 자동화: 상시 점검부터 부하 검증까지</title>
+    <link rel="alternate" href="https://d2.naver.com/helloworld/7131556" />
+    <category term="hello world" />
+    <id>https://d2.naver.com/helloworld/7131556</id>
+    <updated>2026-11-23T05:33:36Z</updated>
+    <content type="html">&lt;div class="se-viewer se-theme-default" lang="ko-KR"&gt;
+    &lt;!-- SE_DOC_HEADER_START --&gt;
+    
+    &lt;!-- SE_DOC_HEADER_END --&gt;
+    &lt;div class="se-main-container"&gt;
+                &lt;div class="se-component se-text se-l-default" id="SE-6d487273-3b6b-48aa-a488-7d5387960b4d"&gt;
+                    &lt;div class="se-component-content"&gt;
+                        &lt;div class="se-section se-section-text se-l-default"&gt;
+                            &lt;div class="se-module se-module-text"&gt;
+                                    &lt;!-- SE-TEXT { --&gt;&lt;p class="se-text-paragraph se-text-paragraph-align- " style="" id="SE-737c47d9-703b-462e-8ba0-de7a0c756ed8"&gt;&lt;span style="color:#000000;" class="se-fs- se-ff-nanumsquare   " id="SE-75ab28ae-17b7-4f2a-9b1a-633fecced014"&gt;&lt;b&gt;네이버 사내 기술 교류 행사인 NAVER Engineering Day 10th 에서 발표되었던 세션을 공개합니다.&lt;/b&gt;&lt;/span&gt;&lt;/p&gt;
+&lt;!-- } SE-TEXT --&gt;&lt;!-- SE-TEXT { --&gt;&lt;p class="se-text-paragraph se-text-paragraph-align- " style="" id="SE-1a8330b8-47fd-4d01-8efb-bd7e0d6398df"&gt;&lt;span style="color:#0068c3;" class="se-fs-fs13 se-ff-system  se-style-unset " id="SE-e7bf15bf-17ed-4ed2-acfd-8806a9334b7c"&gt;&lt;b&gt;​&lt;/b&gt;&lt;/span&gt;&lt;/p&gt;
+&lt;!-- } SE-TEXT --&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                    &lt;script type="text/data" class="__se_module_data" data-module-v2='{"type": "v2_text", "id": "SE-6d487273-3b6b-48aa-a488-7d5387960b4d", "data": {"ctype": "text"  }}'&gt;&lt;/script&gt;
+                &lt;/div&gt;                &lt;div class="se-component se-oglink se-l-large_image" id="SE-8ea4945c-e358-455a-890d-ee7010d53520"&gt;
+                    &lt;div class="se-component-content"&gt;
+                        &lt;div class="se-section se-section-oglink se-l-large_image se-section-align-"&gt;
+                            &lt;div class="se-module se-module-oglink"&gt;
+                                &lt;a href="https://naver.me/Gfreou6c" class="se-oglink-thumbnail __se_link" target="_blank" data-linktype="oglink" data-linkdata='{"id": "SE-8ea4945c-e358-455a-890d-ee7010d53520", "link": "https://naver.me/Gfreou6c"}'&gt;
+                                    &lt;img src="https://dthumb-phinf.pstatic.net/?src&amp;#x3D;%22https%3A%2F%2Fs.pstatic.net%2Fdthumb.phinf%2F%3Fsrc%3Dhttps%253A%252F%252Fclip-service-phinf.pstatic.net%252FMjAyNjExMjNfMjU3%252FMDAxNzk1Mzk4MjE0NTcw.Lr1bVuZi8UHQU4ky8vfXKelWDA5A3lzMG5M-WoeQJ5gg.DPpqLdglEvbgZq3ZKtchXuIL0OWAeLnQe_J_6BW_W_gg.PNG%252Fimage.png%26service%3Dnavermain%26type%3Dclip_500_300_blurfill%402x%22&amp;amp;type&amp;#x3D;ff500_300" class="se-oglink-thumbnail-resource" alt="" /&gt;
+                                &lt;/a&gt;
+                                &lt;a href="https://naver.me/Gfreou6c" class="se-oglink-info __se_link" target="_blank" data-linktype="oglink" data-linkdata='{"id": "SE-8ea4945c-e358-455a-890d-ee7010d53520", "link": "https://naver.me/Gfreou6c"}'&gt;
+                                    &lt;div class="se-oglink-info-container"&gt;
+                                        &lt;strong class="se-oglink-title"&gt;GPU 노드 검증 자동화: 상시 점검부터 부하 검증까지 (네이버 사내 기술 교류 행사인 NAVER Engineering Day 10th 에서 발표되었던 세션을 공개합니다.) [발표...&lt;/strong&gt;
+                                        &lt;p class="se-oglink-summary"&gt;NAVER D2 | GPU 노드 검증 자동화: 상시 점검부터 부하 검증까지 (네이버 사내 기술 교류 행사인 NAVER Engineering Day 10th 에서 발표되었던 세션을 공개합니다.) [발표...&lt;/p&gt;
+                                        &lt;p class="se-oglink-url"&gt;naver.me&lt;/p&gt;
+                                    &lt;/div&gt;
+                                &lt;/a&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                    &lt;script type="text/data" class="__se_module_data" data-module='{"type":"v2_oglink", "id" :"SE-8ea4945c-e358-455a-890d-ee7010d53520", "data" : {"link" : "https://naver.me/G</content>
+  </entry>
+<entry>
+    <title>Spark 배치 파이프라인 Distributed Tracing 도입</title>
+    <link rel="alternate" href="https://d2.naver.com/helloworld/2526679" />
+    <category term="hello world" />
+    <id>https://d2.naver.com/helloworld/2526679</id>
+    <updated>2026-11-23T05:02:11Z</updated>
+    <content type="html">&lt;div class="se-viewer se-theme-default" lang="ko-KR"&gt;
+    &lt;!-- SE_DOC_HEADER_START --&gt;
+    
+    &lt;!-- SE_DOC_HEADER_END --&gt;
+    &lt;div class="se-main-container"&gt;
+                &lt;div class="se-component se-text se-l-default" id="SE-924ea64e-a771-4db5-a54c-8e59222535c0"&gt;
+                    &lt;div class="se-component-content"&gt;
+                        &lt;div class="se-section se-section-text se-l-default"&gt;
+                            &lt;div class="se-module se-module-text"&gt;
+                                    &lt;!-- SE-TEXT { --&gt;&lt;p class="se-text-paragraph se-text-paragraph-align- " style="" id="SE-6942cdc8-88da-4c53-bc44-8fea39d97d65"&gt;&lt;span style="color:#000000;background-color:#ffffff;" class="se-fs- se-ff-nanumsquare  se-style-unset " id="SE-7e56694f-a4f5-46b9-b4e2-4a6c274b3a8d"&gt;&lt;b&gt;네이버 사내 기술 교류 행사인 NAVER Engineering Day 10th 에서 발표되었던 세션을 공개합니다.&lt;/b&gt;&lt;/span&gt;&lt;/p&gt;
+&lt;!-- } SE-TEXT --&gt;&lt;!-- SE-TEXT { --&gt;&lt;p class="se-text-paragraph se-text-paragraph-align- " style="" id="SE-580ced17-e2bb-4447-a8b2-7b0c4bb24a94"&gt;&lt;span style="color:#000000;" class="se-fs- se-ff-nanumsquare  se-style-unset " id="SE-8342825f-f73e-44e0-a508-6339e061b4f5"&gt;&lt;b&gt;​&lt;/b&gt;&lt;/span&gt;&lt;/p&gt;
+&lt;!-- } SE-TEXT --&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                    &lt;script type="text/data" class="__se_module_data" data-module-v2='{"type": "v2_text", "id": "SE-924ea64e-a771-4db5-a54c-8e59222535c0", "data": {"ctype": "text"  }}'&gt;&lt;/script&gt;
+                &lt;/div&gt;                &lt;div class="se-component se-oembed se-l-default" id="SE-10f361c8-f09b-4f59-aed2-8c9a0a3d0018"&gt;
+                    &lt;div class="se-component-content se-component-content-fit"&gt;
+                        &lt;div class="se-section se-section-oembed se-section-align- se-l-default"&gt;
+                            &lt;div class="se-module se-module-oembed se-is-progress" style="padding-top: 56.2429696287964%;"&gt;&lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                    &lt;script type="text/data" class="__se_module_data" data-module='{"type":"v2_oembed", "id" :&amp;quot;SE-10f361c8-f09b-4f59-aed2-8c9a0a3d0018&amp;quot;, "data" : { "html": &amp;quot;&amp;lt;iframe src&amp;#x3D;\&amp;quot;https://clip-viewer.naver.com/oembed/?mediaId&amp;#x3D;29CC3293B7D965AB3460141B435665847E88&amp;amp;mediaType&amp;#x3D;LONG_FORM&amp;amp;serviceType&amp;#x3D;CLIP\&amp;quot; title&amp;#x3D;\&amp;quot;NAVER Clip\&amp;quot; style&amp;#x3D;\&amp;quot;width:100%\&amp;quot; height&amp;#x3D;\&amp;quot;500\&amp;quot; frameborder&amp;#x3D;\&amp;quot;0\&amp;quot; scrolling&amp;#x3D;\&amp;quot;no\&amp;quot; allow&amp;#x3D;\&amp;quot;web-share\&amp;quot;&amp;gt;&amp;lt;/iframe&amp;gt;&amp;quot;, "originalWidth" : "889", "originalHeight" : "500", "contentMode" : &amp;quot;fit&amp;quot;, "description": &amp;quot;NAVER D2 | Spark 배치 파이프라인 Distributed Tracing 도입 (네이버 사내 기술 교류 행사인 NAVER Engineering Day 10th 에서 발표되었던 세션을 공개합니...&amp;quot;, "inputUrl": &amp;quot;https://m.naver.com/shorts/?seedMediaId&amp;#x3D;29CC3293B7D965AB3460141B435665847E88&amp;amp;serviceType&amp;#x3D;CLIP&amp;quot;, "thumbnailUrl" : &amp;quot;https://clip-service-phinf.pstatic.net/MjAyNjExMjNfNDgg/MDAxNzk1Mzk3NzQ3NTkz.c0fvgv4hy23G5LxHC3IBXLscrVHOFmgsYaolOa2QhbQg.GgN1VGgEXZYbmN7te9tEzKOg7_KD_ehViZ2MVK5th-cg.PNG/image.png&amp;quot;, "thumbnailHeight" : "101", "thumbnailWidth" : "180", "title": &amp;quot;Spark 배치 파이프라인 Distributed Tracing 도입\n\n(네이버 사내 기술 교류 행사인 NAVER Engineering Day 10th 에서 발표되었던 세션을 공개합니다.)\n\n[발표 내용]\nApache Spark가 지원하지 않는 분산 추적을 비즈니스 로직 수정 없이 플러그인 형태로 제공하여 연관된 애플리케이션들과 한 흐름으로 잇는 방법을 소개하고, 관측 결과를 성능 개선과 AI Agent 진단에 연결한 경험을 공유합니다.\n\n[발표 대상]\nSpark 배치 처리의 관측성 확보와 성능 최적화에 관심 있는 개발자\n\n[목차]\n1. 인트로\n2. Observability\n3. 분산추적과 OpenTelemetry\n4. 배치 파이프라인\n5. Apache Spark와 Distributed</content>
+  </entry>
+<entry>
+    <title>온톨로지, 구축에서 활용까지. 질문이 답을 설계한다.</title>
+    <link rel="alternate" href="https://d2.naver.com/helloworld/5037527" />
+    <category term="hello world" />
+    <id>https://d2.naver.com/helloworld/5037527</id>
+    <updated>2026-11-19T06:57:02Z</updated>
+    <content type="html">&lt;div class="se-viewer se-theme-default" lang="ko-KR"&gt;
+    &lt;!-- SE_DOC_HEADER_START --&gt;
+    
+    &lt;!-- SE_DOC_HEADER_END --&gt;
+    &lt;div class="se-main-container"&gt;
+                &lt;div class="se-component se-text se-l-default" id="SE-6e052322-597e-4516-85b3-ec15c91ebeda"&gt;
+                    &lt;div class="se-component-content"&gt;
+                        &lt;div class="se-section se-section-text se-l-default"&gt;
+                            &lt;div class="se-module se-module-text"&gt;
+                                    &lt;!-- SE-TEXT { --&gt;&lt;p class="se-text-paragraph se-text-paragraph-align- " style="" id="SE-68cd5ca4-140e-4b27-8f6a-f250a7f2e250"&gt;&lt;span style="color:#000000;" class="se-fs- se-ff-nanumsquare   " id="SE-267b3179-eadc-4707-a2c3-7bf374ed1b89"&gt;&lt;b&gt;네이버 사내 기술 교류 행사인 NAVER Engineering Day 10th 에서 발표되었던 세션을 공개합니다.&lt;/b&gt;&lt;/span&gt;&lt;/p&gt;
+&lt;!-- } SE-TEXT --&gt;&lt;!-- SE-TEXT { --&gt;&lt;p class="se-text-paragraph se-text-paragraph-align- " style="" id="SE-8dde8f62-0896-4a30-b29f-f598e1fd32a4"&gt;&lt;span style="color:#000000;" class="se-fs- se-ff-nanumsquare   " id="SE-0313a583-e60d-4a7e-950a-20c560774287"&gt;&lt;b&gt;​&lt;/b&gt;&lt;/span&gt;&lt;/p&gt;
+&lt;!-- } SE-TEXT --&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                    &lt;script type="text/data" class="__se_module_data" data-module-v2='{"type": "v2_text", "id": "SE-6e052322-597e-4516-85b3-ec15c91ebeda", "data": {"ctype": "text"  }}'&gt;&lt;/script&gt;
+                &lt;/div&gt;                &lt;div class="se-component se-oembed se-l-default" id="SE-4f47e950-be1b-4c2a-b9b5-296b2dedc065"&gt;
+                    &lt;div class="se-component-content se-component-content-fit"&gt;
+                        &lt;div class="se-section se-section-oembed se-section-align- se-l-default"&gt;
+                            &lt;div class="se-module se-module-oembed se-is-progress" style="padding-top: 56.2429696287964%;"&gt;&lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                    &lt;script type="text/data" class="__se_module_data" data-module='{"type":"v2_oembed", "id" :&amp;quot;SE-4f47e950-be1b-4c2a-b9b5-296b2dedc065&amp;quot;, "data" : { "html": &amp;quot;&amp;lt;iframe src&amp;#x3D;\&amp;quot;https://clip-viewer.naver.com/oembed/?mediaId&amp;#x3D;285A8898C67A7AA9C1BCA2EA4505A5913E61&amp;amp;mediaType&amp;#x3D;LONG_FORM&amp;amp;serviceType&amp;#x3D;CLIP\&amp;quot; title&amp;#x3D;\&amp;quot;NAVER Clip\&amp;quot; style&amp;#x3D;\&amp;quot;width:100%\&amp;quot; height&amp;#x3D;\&amp;quot;500\&amp;quot; frameborder&amp;#x3D;\&amp;quot;0\&amp;quot; scrolling&amp;#x3D;\&amp;quot;no\&amp;quot; allow&amp;#x3D;\&amp;quot;web-share\&amp;quot;&amp;gt;&amp;lt;/iframe&amp;gt;&amp;quot;, "originalWidth" : "889", "originalHeight" : "500", "contentMode" : &amp;quot;fit&amp;quot;, "description": &amp;quot;NAVER D2 | 온톨로지, 구축에서 활용까지. 질문이 답을 설계한다. (네이버 사내 기술 교류 행사인 NAVER Engineering Day 10th 에서 발표되었던 세션을 공개합니다.) [발표 ...&amp;quot;, "inputUrl": &amp;quot;https://m.naver.com/shorts/?seedMediaId&amp;#x3D;285A8898C67A7AA9C1BCA2EA4505A5913E61&amp;amp;serviceType&amp;#x3D;CLIP&amp;quot;, "thumbnailUrl" : &amp;quot;https://clip-service-phinf.pstatic.net/MjAyNjExMTlfMTc2/MDAxNzk1MDUzMzQwNDcx._ynwH9VkMZUPtC8SyqpPlbVuopu1sOGmYhFdc8m3MKog.haqvgzhulpWBv_p2lPXlWR4qXIySjUzn4g9XJWoBRoQg.PNG/image.png&amp;quot;, "thumbnailHeight" : "101", "thumbnailWidth" : "180", "title": &amp;quot;온톨로지, 구축에서 활용까지. 질문이 답을 설계한다.\n\n(네이버 사내 기술 교류 행사인 NAVER Engineering Day 10th 에서 발표되었던 세션을 공개합니다.)\n\n[발표 내용]\n가상의 물류회사가 매일 받는 \&amp;quot;이 화물 지금 어디 있고, 예외가 있었나?\&amp;quot;라는 질문 하나에서 출발해, 온톨로지를 어떻게 만들고 사람과 AI가 그 위에서 어떻게 찾아보고 일을 처리하는지 실제 화면으로 보여 드리는 발표입니다. 온톨로지 구축 부터 활용까지, 고객의 질문을 답하는 방향성으로 소개합니다.\n\n[발표 대상]\n온톨로지의 개념을 이해하고 실제 업무에 적용해보고 싶은 분\n\n[목차]\n오프닝: 하나의 질문, 세 가지 방식\nEpisode 1: 온톨로지란 무엇인가\nEpisode 2: 어떻게 구축하고, 어떻게 쓰는가\nEpisode 3: 구축된 온톨로지의 모습 (화면 </content>
+  </entry>
+<entry>
+    <title>Devops Agent 리포트 오이데~ 평가 야호~</title>
+    <link rel="alternate" href="https://d2.naver.com/helloworld/0118355" />
+    <category term="hello world" />
+    <id>https://d2.naver.com/helloworld/0118355</id>
+    <updated>2026-11-19T06:47:44Z</updated>
+    <content type="html">&lt;div class="se-viewer se-theme-default" lang="ko-KR"&gt;
+    &lt;!-- SE_DOC_HEADER_START --&gt;
+    
+    &lt;!-- SE_DOC_HEADER_END --&gt;
+    &lt;div class="se-main-container"&gt;
+                &lt;div class="se-component se-text se-l-default" id="SE-28107929-7e5e-4d5f-8934-36577c12463b"&gt;
+                    &lt;div class="se-component-content"&gt;
+                        &lt;div class="se-section se-section-text se-l-default"&gt;
+                            &lt;div class="se-module se-module-text"&gt;
+                                    &lt;!-- SE-TEXT { --&gt;&lt;p class="se-text-paragraph se-text-paragraph-align- " style="" id="SE-c8b30c42-2399-4f9a-8e8c-2ed722945992"&gt;&lt;span style="color:#000000;" class="se-fs- se-ff-nanumsquare   " id="SE-64817a14-187e-44bb-ae71-550eb5f028c0"&gt;&lt;b&gt;네이버 사내 기술 교류 행사인 NAVER Engineering Day 10th 에서 발표되었던 세션을 공개합니다.&lt;/b&gt;&lt;/span&gt;&lt;/p&gt;
+&lt;!-- } SE-TEXT --&gt;&lt;!-- SE-TEXT { --&gt;&lt;p class="se-text-paragraph se-text-paragraph-align- " style="" id="SE-fdc86e6b-afec-4021-a332-cdebc85593df"&gt;&lt;span style="color:#000000;" class="se-fs- se-ff-nanumsquare   " id="SE-ea707e8d-45ae-4ae6-a010-316652b4a7e5"&gt;&lt;b&gt;​&lt;/b&gt;&lt;/span&gt;&lt;/p&gt;
+&lt;!-- } SE-TEXT --&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                    &lt;script type="text/data" class="__se_module_data" data-module-v2='{"type": "v2_text", "id": "SE-28107929-7e5e-4d5f-8934-36577c12463b", "data": {"ctype": "text"  }}'&gt;&lt;/script&gt;
+                &lt;/div&gt;                &lt;div class="se-component se-oembed se-l-default" id="SE-da68410a-f5a5-4510-8cdc-15c95adf267e"&gt;
+                    &lt;div class="se-component-content se-component-content-fit"&gt;
+                        &lt;div class="se-section se-section-oembed se-section-align- se-l-default"&gt;
+                            &lt;div class="se-module se-module-oembed se-is-progress" style="padding-top: 56.2429696287964%;"&gt;&lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                    &lt;script type="text/data" class="__se_module_data" data-module='{"type":"v2_oembed", "id" :&amp;quot;SE-da68410a-f5a5-4510-8cdc-15c95adf267e&amp;quot;, "data" : { "html": &amp;quot;&amp;lt;iframe src&amp;#x3D;\&amp;quot;https://clip-viewer.naver.com/oembed/?mediaId&amp;#x3D;F5606722055A54C20B48B59835D477C6479A&amp;amp;mediaType&amp;#x3D;LONG_FORM&amp;amp;serviceType&amp;#x3D;CLIP\&amp;quot; title&amp;#x3D;\&amp;quot;NAVER Clip\&amp;quot; style&amp;#x3D;\&amp;quot;width:100%\&amp;quot; height&amp;#x3D;\&amp;quot;500\&amp;quot; frameborder&amp;#x3D;\&amp;quot;0\&amp;quot; scrolling&amp;#x3D;\&amp;quot;no\&amp;quot; allow&amp;#x3D;\&amp;quot;web-share\&amp;quot;&amp;gt;&amp;lt;/iframe&amp;gt;&amp;quot;, "originalWidth" : "889", "originalHeight" : "500", "contentMode" : &amp;quot;fit&amp;quot;, "description": &amp;quot;일시적인 오류가 발생하였습니다. 잠시 후 다시 시도해주세요. 공간기록자 최상위 창작자 Follow 실시간 크리스마스 분위기 가득한 문래 와인바 ⠀ 서울 문래창작촌 골목에 자리한 ‘누디(NUDI)’가 크리스마스 시즌을 맞아 특별한 겨울 공간으로 변신했습니다. ⠀ 오래된 건물의 빈티지한 외관을 따라 커다란 빨간 리본과 반짝이는 조명, 크리스마스 장식이 더해져 마치 유럽의 작은 크리스마스 가게를 연상시키는데요. ⠀ 특히 입구에는 빨간 리본으로 가득 장식된 크리스마스 트리가 자리하고 있어 사진을 남기기에도 좋습니다. ⠀ 실내 역시 붉은 커...&amp;quot;, "inputUrl": &amp;quot;https://m.naver.com/shorts/?seedMediaId&amp;#x3D;F5606722055A54C20B48B59835D477C6479A&amp;amp;serviceType&amp;#x3D;CLIP&amp;quot;, "thumbnailUrl" : &amp;quot;https://clip-service-phinf.pstatic.net/MjAyNjExMTlfOTgg/MDAxNzk1MDUyOTkzMTE4.r5k50QqqA78DF7ARBgu3c-F7ccf0V31aYG1A3Q-hnOsg.BcLmhP5q8nYQhNfXHPkB_g4_mN75dhiu9-ecKN7lxJkg.PNG/image.png&amp;quot;, "thumbnailHeight" : "101", "thumbnailWidth" : "180", "title": &amp;quot;Devops Agent 리포트 오이데~ 평가 야호~\n\n(네이버 사내 기술 교류 행사인 NAVER Engineering Day 10th 에서 발표되었던 세션을 공개합니다.)\n\n[발표 내용]\n통합검색 알람 발생 시 1분 내 장애 1차 진단 리포트를 이슈로 남기는 에이전트, 그 결과를 평가해 시스템 정확도를 도출한 이야기\n\n[발표 대상]\n- LLM 기반의 이상 신호 분석 시스템을 운영하고자 하는 독자\n- LLM 기반의 평가 시스템을 운영하고자 하는 독자\n\n[</content>
+  </entry>
+<entry>
+    <title>부족한 건 모델이 아니라 팀 문서였다: 팀 공유 지식층 Third Brain 구축기</title>
+    <link rel="alternate" href="https://d2.naver.com/helloworld/2622882" />
+    <category term="hello world" />
+    <id>https://d2.naver.com/helloworld/2622882</id>
+    <updated>2026-11-19T05:36:19Z</updated>
+    <content type="html">&lt;div class="se-viewer se-theme-default" lang="ko-KR"&gt;
+    &lt;!-- SE_DOC_HEADER_START --&gt;
+    
+    &lt;!-- SE_DOC_HEADER_END --&gt;
+    &lt;div class="se-main-container"&gt;
+                &lt;div class="se-component se-text se-l-default" id="SE-3c488195-c644-4516-9602-31d103830cba"&gt;
+                    &lt;div class="se-component-content"&gt;
+                        &lt;div class="se-section se-section-text se-l-default"&gt;
+                            &lt;div class="se-module se-module-text"&gt;
+                                    &lt;!-- SE-TEXT { --&gt;&lt;p class="se-text-paragraph se-text-paragraph-align- " style="" id="SE-5cca8a16-3c33-4ca5-8ace-e2f6ee0c34a2"&gt;&lt;span style="" class="se-fs- se-ff-   " id="SE-9208faba-41ec-4d92-81d5-e587d38ecb8f"&gt;​&lt;/span&gt;&lt;/p&gt;
+&lt;!-- } SE-TEXT --&gt;&lt;!-- SE-TEXT { --&gt;&lt;p class="se-text-paragraph se-text-paragraph-align- " style="" id="SE-2ecbb419-24ac-44b6-a577-5c01373d29c3"&gt;&lt;span style="color:#000000;" class="se-fs- se-ff-nanumsquare   " id="SE-928302a6-17da-4c78-8e3f-6d55dbbb5183"&gt;&lt;b&gt;네이버 사내 기술 교류 행사인 NAVER Engineering Day 10th 에서 발표되었던 세션을 공개합니다.&lt;/b&gt;&lt;/span&gt;&lt;/p&gt;
+&lt;!-- } SE-TEXT --&gt;&lt;!-- SE-TEXT { --&gt;&lt;p class="se-text-paragraph se-text-paragraph-align- " style="" id="SE-795c2cdd-bc12-44d2-942b-5272b749bea0"&gt;&lt;span style="color:#000000;" class="se-fs- se-ff-nanumsquare   " id="SE-d97b8f35-fabb-49ab-9d31-188d9c2252f9"&gt;&lt;b&gt;​&lt;/b&gt;&lt;/span&gt;&lt;/p&gt;
+&lt;!-- } SE-TEXT --&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                    &lt;script type="text/data" class="__se_module_data" data-module-v2='{"type": "v2_text", "id": "SE-3c488195-c644-4516-9602-31d103830cba", "data": {"ctype": "text"  }}'&gt;&lt;/script&gt;
+                &lt;/div&gt;                &lt;div class="se-component se-oembed se-l-default" id="SE-b835dc33-ae67-4f62-ba5a-b658a4cfb49d"&gt;
+                    &lt;div class="se-component-content se-component-content-fit"&gt;
+                        &lt;div class="se-section se-section-oembed se-section-align- se-l-default"&gt;
+                            &lt;div class="se-module se-module-oembed se-is-progress" style="padding-top: 56.2429696287964%;"&gt;&lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                    &lt;script type="text/data" class="__se_module_data" data-module='{"type":"v2_oembed", "id" :&amp;quot;SE-b835dc33-ae67-4f62-ba5a-b658a4cfb49d&amp;quot;, "data" : { "html": &amp;quot;&amp;lt;iframe src&amp;#x3D;\&amp;quot;https://clip-viewer.naver.com/oembed/?mediaId&amp;#x3D;A8633DA2740860ECA81756E9BE4B1EE33E3D&amp;amp;mediaType&amp;#x3D;LONG_FORM&amp;amp;serviceType&amp;#x3D;CLIP\&amp;quot; title&amp;#x3D;\&amp;quot;NAVER Clip\&amp;quot; style&amp;#x3D;\&amp;quot;width:100%\&amp;quot; height&amp;#x3D;\&amp;quot;500\&amp;quot; frameborder&amp;#x3D;\&amp;quot;0\&amp;quot; scrolling&amp;#x3D;\&amp;quot;no\&amp;quot; allow&amp;#x3D;\&amp;quot;web-share\&amp;quot;&amp;gt;&amp;lt;/iframe&amp;gt;&amp;quot;, "originalWidth" : "889", "originalHeight" : "500", "contentMode" : &amp;quot;fit&amp;quot;, "description": &amp;quot;일시적인 오류가 발생하였습니다. 잠시 후 다시 시도해주세요.&amp;quot;, "inputUrl": &amp;quot;https://m.naver.com/shorts/?seedMediaId&amp;#x3D;A8633DA2740860ECA81756E9BE4B1EE33E3D&amp;amp;serviceType&amp;#x3D;CLIP&amp;quot;, "thumbnailUrl" : &amp;quot;https://clip-service-phinf.pstatic.net/MjAyNjExMTlfMjAx/MDAxNzk1MDUyNjI0NDkw.O9ZDhX4UBKnRWNPxtmtZw7xnEr2TEXaS0KTO2xlmyw8g.hq2bb0NxcVvt2MA8D5nzy0Hr2SGhilQCFoKMBOf89YQg.PNG/image.png&amp;quot;, "thumbnailHeight" : "101", "thumbnailWidth" : "180", "title": &amp;quot;부족한 건 모델이 아니라 팀 문서였다: 팀 공유 지식층 Third Brain 구축기\n\n(네이버 사내 기술 교류 행사인 NAVER Engineering Day 10th 에서 발표되었던 세션을 공개합니다.)\n\n[발표 내용]\nAI가 답을 못 맞히는 이유가 모델이 아니라 팀 문서의 부재라는 것을 확인하고, 팀 위키를 AI가 읽고 쓰는 공유 지식층으로 만들어 운영한 경험을 공유합니다.\n\n[발표 대상]\n팀 지식을 정리하는 방법을 고민중인 개발자 \n\n</content>
+  </entry>
+<entry>
+    <title>Jetpack Compose 기반 커스텀 3D 캐러셀 개발기</title>
+    <link rel="alternate" href="https://d2.naver.com/helloworld/2957037" />
+    <category term="hello world" />
+    <id>https://d2.naver.com/helloworld/2957037</id>
+    <updated>2026-11-19T04:22:58Z</updated>
+    <content type="html">&lt;div class="se-viewer se-theme-default" lang="ko-KR"&gt;
+    &lt;!-- SE_DOC_HEADER_START --&gt;
+    
+    &lt;!-- SE_DOC_HEADER_END --&gt;
+    &lt;div class="se-main-container"&gt;
+                &lt;div class="se-component se-text se-l-default" id="SE-bd44c1e1-bc44-4bf6-8c72-53584393de98"&gt;
+                    &lt;div class="se-component-content"&gt;
+                        &lt;div class="se-section se-section-text se-l-default"&gt;
+                            &lt;div class="se-module se-module-text"&gt;
+                                    &lt;!-- SE-TEXT { --&gt;&lt;p class="se-text-paragraph se-text-paragraph-align- " style="" id="SE-a0de8a9b-0ce6-424e-bf6f-8f378caf3168"&gt;&lt;span style="color:#000000;" class="se-fs- se-ff-nanumsquare   " id="SE-55a45c5b-e230-41dc-9b96-010e9728090c"&gt;&lt;b&gt;네이버 사내 기술 교류 행사인 NAVER Engineering Day 10th 에서 발표되었던 세션을 공개합니다.&lt;/b&gt;&lt;/span&gt;&lt;/p&gt;
+&lt;!-- } SE-TEXT --&gt;&lt;!-- SE-TEXT { --&gt;&lt;p class="se-text-paragraph se-text-paragraph-align- " style="" id="SE-7adf863f-0422-4fcf-8a2b-e65bf637fa2a"&gt;&lt;span style="color:#000000;" class="se-fs- se-ff-nanumsquare   " id="SE-c175c0e7-1033-4c80-8ad7-f9cc5b1a912b"&gt;&lt;b&gt;​&lt;/b&gt;&lt;/span&gt;&lt;/p&gt;
+&lt;!-- } SE-TEXT --&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                    &lt;script type="text/data" class="__se_module_data" data-module-v2='{"type": "v2_text", "id": "SE-bd44c1e1-bc44-4bf6-8c72-53584393de98", "data": {"ctype": "text"  }}'&gt;&lt;/script&gt;
+                &lt;/div&gt;                &lt;div class="se-component se-oembed se-l-default" id="SE-0610efa7-a8dc-4fba-9a54-4af1eeb86102"&gt;
+                    &lt;div class="se-component-content se-component-content-fit"&gt;
+                        &lt;div class="se-section se-section-oembed se-section-align- se-l-default"&gt;
+                            &lt;div class="se-module se-module-oembed se-is-progress" style="padding-top: 56.2429696287964%;"&gt;&lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                    &lt;script type="text/data" class="__se_module_data" data-module='{"type":"v2_oembed", "id" :&amp;quot;SE-0610efa7-a8dc-4fba-9a54-4af1eeb86102&amp;quot;, "data" : { "html": &amp;quot;&amp;lt;iframe src&amp;#x3D;\&amp;quot;https://clip-viewer.naver.com/oembed/?mediaId&amp;#x3D;30E5349BD3FEC907A37D38C7728E255F8ACD&amp;amp;mediaType&amp;#x3D;LONG_FORM&amp;amp;serviceType&amp;#x3D;CLIP\&amp;quot; title&amp;#x3D;\&amp;quot;NAVER Clip\&amp;quot; style&amp;#x3D;\&amp;quot;width:100%\&amp;quot; height&amp;#x3D;\&amp;quot;500\&amp;quot; frameborder&amp;#x3D;\&amp;quot;0\&amp;quot; scrolling&amp;#x3D;\&amp;quot;no\&amp;quot; allow&amp;#x3D;\&amp;quot;web-share\&amp;quot;&amp;gt;&amp;lt;/iframe&amp;gt;&amp;quot;, "originalWidth" : "889", "originalHeight" : "500", "contentMode" : &amp;quot;fit&amp;quot;, "description": &amp;quot;일시적인 오류가 발생하였습니다. 잠시 후 다시 시도해주세요. 먹쑤 음원 Woongsan Sparkling Wine Follow 마트와인 추천 &amp;lt;트레져 팀버레이 크레망 드 보르도 브륏&amp;gt; 이마트 트레이더스에서 1만원대에 구입할 수 있는 스파클링 와인이에요! 스파클링 와인답게 탄산감 좋고 드라이한 맛이 해산물과 정말 잘 어울려요. 부담없는 가격대라 이번 연말에 가볍게 분위기 내기 정말 좋은 와인입니다❤️ # 와인크루 # 마트와인추천 # 샴페인추천 # 화이트와인 # 연말파티 마트와인 추천 &amp;lt;트레져 팀버레이 크레망 드 보르도 브륏&amp;gt; ... ...&amp;quot;, "inputUrl": &amp;quot;https://m.naver.com/shorts/?seedMediaId&amp;#x3D;30E5349BD3FEC907A37D38C7728E255F8ACD&amp;amp;serviceType&amp;#x3D;CLIP&amp;quot;, "thumbnailUrl" : &amp;quot;https://clip-service-phinf.pstatic.net/MjAyNjExMTlfMTYx/MDAxNzk1MDUxMjY2MDk1.D1ZfeE2Zjqdj_kcvvYwE0MPk0Y-5VkaMDUcGvuJEt4Mg.cKzMOerwmsTbg2e5hN1__UvHk6bfrGI8oyKjvWB1O20g.PNG/image.png&amp;quot;, "thumbnailHeight" : "101", "thumbnailWidth" : "180", "title": &amp;quot;Jetpack Compose 기반 커스텀 3D 캐러셀 개발기\n\n(네이버 사내 기술 교류 행사인 NAVER Engineering Day 10th 에서 발표되었던 세션을 공개합니다.)\n\n[발표 내용]\n디자인 스펙인 3D 캐러셀 UI를 LazyRow 없이 Compose로 개발한 실전기입니다.\n\n[발표 대상]\n- Jetpack Compose 기반 복잡한 인터렉션을 포함한 UI 개발에 관심 있는 Android 개발자\</content>
+  </entry>
+<entry>
+    <title>컨테이너처럼 쓰고, VM처럼 격리하기 4편 - IB 네트워크와 로컬 NVMe, vCPU 배치, 베어메탈 대비 성능</title>
+    <link rel="alternate" href="https://d2.naver.com/helloworld/5896967" />
+    <category term="hello world" />
+    <id>https://d2.naver.com/helloworld/5896967</id>
+    <updated>2026-11-18T05:48:06Z</updated>
+    <content type="html">&lt;html&gt;&lt;head&gt;&lt;/head&gt;&lt;body&gt;&lt;p dir="auto"&gt;3편에서는 Fabric Manager가 NVLink로 묶어 주는 GPU 조합인 fabric partition(이하 '파티션')을 DRA(동적 리소스 할당)로 할당하고 VM에 연결했습니다. 학습 작업을 실행하려면 GPU뿐 아니라 다른 서버와 IB(InfiniBand)로 통신할 NIC(network interface card), 모델과 데이터를 읽고 쓸 로컬 스토리지도 필요합니다.&lt;/p&gt;
+&lt;p dir="auto"&gt;이 연재는 다음과 같이 구성됩니다.&lt;/p&gt;
+&lt;ul dir="auto"&gt;
+&lt;li&gt;&lt;a href="https://d2.naver.com/helloworld/8055238" rel="nofollow"&gt;1편&lt;/a&gt;: 컨테이너와 VM의 차이, Kata Containers의 Pod 실행 구조&lt;/li&gt;
+&lt;li&gt;&lt;a href="https://d2.naver.com/helloworld/1376800" rel="nofollow"&gt;2편&lt;/a&gt;: GPU 패스스루 계층과 GPU 8장 VM의 부팅·메모리 구성&lt;/li&gt;
+&lt;li&gt;&lt;a href="https://d2.naver.com/helloworld/6180316" rel="nofollow"&gt;3편&lt;/a&gt;: Fabric Manager 파티션과 DRA를 이용한 GPU 할당&lt;/li&gt;
+&lt;li&gt;4편: IB 네트워크와 로컬 NVMe, vCPU 배치, 베어메탈 대비 성능&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p dir="auto"&gt;먼저 IB NIC와 로컬 NVMe를 VM에 연결하면서 겪은 문제를 살펴보고, 이어서 vCPU를 호스트 CPU에 잘못 배치해 생긴 문제와 해결 방법을 다룹니다. 끝으로 사용자가 작성하는 Pod YAML과 베어메탈 대비 성능을 정리합니다.&lt;/p&gt;
+&lt;h2 dir="auto"&gt;VM 안에서 IB 네트워크 쓰기&lt;/h2&gt;
+&lt;p dir="auto"&gt;VM 안의 GPU가 다른 서버의 GPU와 데이터를 주고받으려면 무엇이 필요할까요? 분산 학습은 스텝마다 수 GB의 그레이디언트(gradient)를 서버 사이에서 주고받습니다. TCP 소켓으로 보내면 요청마다 시스템 콜과 커널 소켓 버퍼 복사를 거치므로 그 처리 시간이 학습 시간에 더해집니다.&lt;/p&gt;
+&lt;h3 dir="auto"&gt;서버 사이의 GPU 통신과 RDMA&lt;/h3&gt;
+&lt;p dir="auto"&gt;RDMA(remote direct memory access)에서는 애플리케이션이 메모리 영역을 미리 등록하고 그 주소와 접근 키를 상대 서버와 교환해 둡니다. 그러면 NIC는 CPU와 커널 네트워크 스택을 거치지 않고, 등록된 메모리에서 데이터를 읽어 상대 서버의 등록된 메모리에 직접 씁니다. 저희 환경에서는 IB 네트워크로 RDMA를 사용합니다.&lt;/p&gt;
+&lt;p dir="auto"&gt;일반 RDMA가 다루는 대상은 호스트 메모리이므로 GPU의 데이터를 보내려면 먼저 호스트 메모리로 복사해야 합니다. GPUDirect RDMA(이하 'GDR')에서는 NIC가 GPU 메모리의 BAR(Base Address Register) 영역을 DMA(direct memory access)로 읽고 쓸 수 있어 이 복사가 필요 없습니다. NCCL(NVIDIA Collective Communications Library)은 GPU와 NIC가 가까이 연결되어 있으면 이 경로를 사용합니다.&lt;/p&gt;
+&lt;h3 dir="auto"&gt;IB NIC를 VM에 연결하기&lt;/h3&gt;
+&lt;p dir="auto"&gt;호스트에서 RDMA를 사용할 때는 &lt;code class="notranslate"&gt;/dev/infiniband&lt;/code&gt; 아래의 장치 파일을 엽니다. 하지만 이 파일은 호스트 커널의 드라이버에 접근하는 인터페이스이므로 VM 안에서는 쓸 수 없습니다. 따라서 VM의 GPU로 RDMA 통신을 하려면 IB NIC 자체를 게스트에 연결해야 했습니다.&lt;/p&gt;
+&lt;p dir="auto"&gt;GPU와 같은 방식으로 NIC를 vfio-pci에 바인딩한 뒤 VFIO(Virtual Function I/O)로 게스트에 연결했습니다. 게스트에서도 NIC를 사용할 수 있도록 커널에 mlx5와 IB 드라이버를 넣어 빌드했습니다.&lt;/p&gt;
+&lt;p dir="auto"&gt;다만 NIC도 GPU처럼 한 번에 VM 하나에만 연결할 수 있습니다. B200 서버에는 GPU마다 짝지어진 컴퓨트 NIC 8개와 스토리지 네트워크용 NIC 2개가 있습니다. 컴퓨트 NIC는 GPU와 1:1로 짝지어 있어 그대로 연결하면 되지만, 스토리지 NIC는 2개뿐이라 VM 8개에 하나씩 연결할 수 없었습니다. 그래서 스토리지 NIC에는 SR-IOV를 적용했습니다.&lt;/p&gt;
+&lt;h3 dir="auto"&gt;NIC 하나를 여러 VM에서 쓰는 SR-IOV&lt;/h3&gt;
+&lt;p dir="auto"&gt;SR-IOV(Single Root I/O Virtualization)를 켜면 물리 기능인 PF(Physical Function)가 가상 기능인 VF(Virtual Function)를 여러 개 만듭니다. VF마다 PCI 주소와 IOMMU(input-output memory management unit) 그룹이 따로 있으므로 각각 vfio-pci에 바인딩해 서로 다른 VM에 연결할 수 있습니다. 다만 같은 PF에서 만든 VF들은 대역폭을 나누어 쓰게 됩니다.&lt;/p&gt;
+&lt;p dir="auto"&gt;NIC 펌웨어에서 SR-IOV를 켠 뒤 sysfs에 필요한 개수를 쓰면 VF가 만들어집니다. 저희는 이 작업을 노드 설정 과정에 넣어 두었습니다. 아래 명령은 root로 실행합니다.&lt;/p&gt;
+&lt;div class="highlight highlight-source-shell" dir="auto"&gt;&lt;pre class="notranslate"&gt;&lt;span class="pl-c"&gt;&lt;span class="pl-c"&gt;#&lt;/span&gt; 스토리지 NIC 하나에 VF 8개 생성&lt;/span&gt;
+$ &lt;span class="pl-c1"&gt;echo&lt;/span&gt; 8 &lt;span class="pl-k"&gt;&amp;gt;&lt;/span&gt; /sys/class/infiniband/mlx5_2/device/sriov_numvfs
+
+$ cat /sys/class/infiniband/mlx5_2/device/sriov_numvfs
+8
+
+$ lspci -d 15b3: &lt;span class="pl-k"&gt;|&lt;/span&gt; grep -c &lt;span class="pl-s"&gt;&lt;span class="pl-pds"&gt;'&lt;/span&gt;Virtual Function&lt;span class="pl-pds"&gt;'&lt;/span&gt;&lt;/span&gt;
+8&lt;/pre&gt;&lt;/div&gt;
+&lt;p dir="auto"&gt;생성한 VF는 &lt;code class="notranslate"&gt;lspci&lt;/code&gt;에서 장치 이름에 &lt;code class="notranslate"&gt;Virtual Function&lt;/code&gt;이 붙은 Mellanox NIC로 나타납니다. 정리하면, 저희 환경에서는 컴퓨트 NIC는 PF를 통째로, 스토리지 NIC는 VF로 나누어 연결합니다.&lt;/p&gt;
+&lt;markdown-accessiblity-table&gt;&lt;table role="table"&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;NIC&lt;/th&gt;
+&lt;th</content>
+  </entry>
+<entry>
+    <title>컨테이너처럼 쓰고, VM처럼 격리하기 3편 - Fabric Manager 파티션과 DRA를 이용한 GPU 할당</title>
+    <link rel="alternate" href="https://d2.naver.com/helloworld/6180316" />
+    <category term="hello world" />
+    <id>https://d2.naver.com/helloworld/6180316</id>
+    <updated>2026-11-18T05:47:12Z</updated>
+    <content type="html">&lt;html&gt;&lt;head&gt;&lt;/head&gt;&lt;body&gt;&lt;p dir="auto"&gt;2편에서는 GPU를 vfio-pci에 바인딩해 VM에 연결하는 구조와 GPU 8장 VM의 부팅·메모리 구성을 살펴봤습니다. 이번 3편에서는 그 VM에 연결할 GPU를 어떻게 고르는지 다룹니다.&lt;/p&gt;
+&lt;p dir="auto"&gt;이 연재는 다음과 같이 구성됩니다.&lt;/p&gt;
+&lt;ul dir="auto"&gt;
+&lt;li&gt;&lt;a href="https://d2.naver.com/helloworld/8055238" rel="nofollow"&gt;1편&lt;/a&gt;: 컨테이너와 VM의 차이, Kata Containers의 Pod 실행 구조&lt;/li&gt;
+&lt;li&gt;&lt;a href="https://d2.naver.com/helloworld/1376800" rel="nofollow"&gt;2편&lt;/a&gt;: GPU 패스스루 계층과 GPU 8장 VM의 부팅·메모리 구성&lt;/li&gt;
+&lt;li&gt;3편: Fabric Manager 파티션과 DRA를 이용한 GPU 할당&lt;/li&gt;
+&lt;li&gt;&lt;a href="https://d2.naver.com/helloworld/5896967" rel="nofollow"&gt;4편&lt;/a&gt;: IB 네트워크와 로컬 NVMe, vCPU 배치, 베어메탈 대비 성능&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p dir="auto"&gt;GPU 8장이 장착된 서버에서 사용자에게 GPU 2장을 제공할 때 아무 2장이나 고를 수는 없습니다. GPU 간 고속 통신에 쓰는 NVLink가 하드웨어에서 허용한 조합끼리만 연결되기 때문입니다. 이 연결 규칙을 Kubernetes의 GPU 할당에 반영하려고 장치 플러그인(device plugin)으로 여러 방법을 시도해 봤지만 원하는 조합을 보장하지 못했고, 결국 DRA(동적 리소스 할당)로 바꿔 자체 드라이버를 만들었습니다. 이번 편에서는 이 과정에 이어 사용자가 GPU를 요청하는 방법과 할당된 GPU를 VM에 연결하는 과정, 할당 결과를 다룹니다.&lt;/p&gt;
+&lt;h2 dir="auto"&gt;아무 GPU나 묶을 수 없는 이유&lt;/h2&gt;
+&lt;p dir="auto"&gt;사용자가 GPU 2장을 요청하면 8장 가운데 어떤 2장을 제공해야 할까요? NVLink로 묶을 수 있는 GPU 조합이 어떻게 정해지는지 살펴보겠습니다.&lt;/p&gt;
+&lt;h3 dir="auto"&gt;GPU 간 통신과 NVLink&lt;/h3&gt;
+&lt;p dir="auto"&gt;모델이 GPU 한 장의 메모리에 들어가지 않거나 학습을 빠르게 하려면 작업을 여러 GPU에 나눠야 합니다. 작업을 나눠 맡은 GPU들은 학습 스텝마다 계산 결과를 주고받는데, 대표적인 연산은 각 GPU의 그레이디언트(gradient)를 모두 더해 나누어 갖는 NCCL(NVIDIA Collective Communications Library)의 all_reduce입니다.&lt;/p&gt;
+&lt;p dir="auto"&gt;이 통신이 느리면 학습도 느려집니다. PCIe만으로는 GPU 8장이 동시에 데이터를 주고받기에 대역폭이 부족하므로 GPU 전용 연결인 NVLink를 씁니다. 네이버 클라우드에서 구성한 B200 서버에서는 보드의 NVSwitch 칩이 GPU 8장을 NVLink로 연결합니다.&lt;/p&gt;
+&lt;h3 dir="auto"&gt;Fabric Manager가 정하는 파티션&lt;/h3&gt;
+&lt;p dir="auto"&gt;NVSwitch가 어떤 GPU끼리 연결할지는 호스트에서 실행되는 NVIDIA Fabric Manager가 정합니다. VM 환경에서는 NVSwitch를 호스트에 남겨 두는 Shared NVSwitch 모드로 Fabric Manager를 실행합니다.&lt;/p&gt;
+&lt;p dir="auto"&gt;Fabric Manager는 NVLink로 함께 묶을 수 있는 GPU 조합을 미리 정해 두는데 이 조합을 fabric partition(이하 '파티션')이라고 합니다. 디스크를 나누는 파티션이나 GPU 한 장을 여러 개로 나누는 MIG(Multi-Instance GPU)와 달리 여러 GPU를 하나로 묶는 단위입니다.&lt;/p&gt;
+&lt;p dir="auto"&gt;VM에 GPU 2장을 연결할 때는 그 2장으로 이루어진 파티션을 활성화합니다. 그러면 두 GPU 사이에만 NVLink 경로가 구성되고 다른 VM의 GPU와는 연결되지 않습니다. 같은 GPU를 포함한 두 파티션은 동시에 활성화할 수 없습니다.&lt;/p&gt;
+&lt;p dir="auto"&gt;B200 서버 한 대에서 Fabric Manager가 보고한 파티션은 GPU 8장짜리 1개, 4장짜리 2개, 2장짜리 4개, 1장짜리 8개였습니다.&lt;/p&gt;
+&lt;markdown-accessiblity-table&gt;&lt;table role="table"&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;이름&lt;/th&gt;
+&lt;th&gt;크기&lt;/th&gt;
+&lt;th&gt;포함하는 물리 GPU&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;id1-8gpu&lt;/td&gt;
+&lt;td&gt;8&lt;/td&gt;
+&lt;td&gt;1 2 3 4 5 6 7 8&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;id2-4gpu-1234&lt;/td&gt;
+&lt;td&gt;4&lt;/td&gt;
+&lt;td&gt;1 2 3 4&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;id3-4gpu-5678&lt;/td&gt;
+&lt;td&gt;4&lt;/td&gt;
+&lt;td&gt;5 6 7 8&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;id4-2gpu-12&lt;/td&gt;
+&lt;td&gt;2&lt;/td&gt;
+&lt;td&gt;1 2&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;id5-2gpu-34&lt;/td&gt;
+&lt;td&gt;2&lt;/td&gt;
+&lt;td&gt;3 4&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;id6-2gpu-56&lt;/td&gt;
+&lt;td&gt;2&lt;/td&gt;
+&lt;td&gt;5 6&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;id7-2gpu-78&lt;/td&gt;
+&lt;td&gt;2&lt;/td&gt;
+&lt;td&gt;7 8&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;id8-1gpu-1 ~ id15-1gpu-8&lt;/td&gt;
+&lt;td&gt;1&lt;/td&gt;
+&lt;td&gt;GPU 하나씩 8개&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;&lt;/markdown-accessiblity-table&gt;
+&lt;p dir="auto"&gt;여기서 GPU 번호는 Fabric Manager의 물리 GPU 번호를 뜻하며 PCI 주소 순서와 일치하지 않습니다. 파티션 목록도 서버마다 Fabric Manager가 보고하는 값이기 때문에 위 표를 다른 보드에 그대로 적용할 수는 없습니다.&lt;/p&gt;
+&lt;p dir="auto"&gt;&lt;a target="_blank" rel="noopener noreferrer" href="https://d2-serving.pstatic.net/v1/images?objectPath=d2%2FEDITOR%2F2026%2Fhelloworld-202611-%EA%B9%80%EB%8F%99%ED%98%84-3%2Ffiles%2F3-01.svg"&gt;&lt;img src="htt</content>
+  </entry>
+<entry>
+    <title>컨테이너처럼 쓰고, VM처럼 격리하기 2편 - GPU 패스스루 계층과 GPU 8장 VM의 부팅·메모리 구성</title>
+    <link rel="alternate" href="https://d2.naver.com/helloworld/1376800" />
+    <category term="hello world" />
+    <id>https://d2.naver.com/helloworld/1376800</id>
+    <updated>2026-11-18T05:46:58Z</updated>
+    <content type="html">&lt;html&gt;&lt;head&gt;&lt;/head&gt;&lt;body&gt;&lt;p dir="auto"&gt;1편에서는 Kata Containers(이하 'kata')가 Pod마다 VM을 만들고 그 안에서 컨테이너를 실행하는 구조를 살펴봤습니다. 2편에서는 이 VM에 GPU를 연결합니다.&lt;/p&gt;
+&lt;p dir="auto"&gt;이 연재는 다음과 같이 구성됩니다.&lt;/p&gt;
+&lt;ul dir="auto"&gt;
+&lt;li&gt;&lt;a href="https://d2.naver.com/helloworld/8055238" rel="nofollow"&gt;1편&lt;/a&gt;: 컨테이너와 VM의 차이, Kata Containers의 Pod 실행 구조&lt;/li&gt;
+&lt;li&gt;2편: GPU 패스스루 계층과 GPU 8장 VM의 부팅·메모리 구성&lt;/li&gt;
+&lt;li&gt;&lt;a href="https://d2.naver.com/helloworld/6180316" rel="nofollow"&gt;3편&lt;/a&gt;: Fabric Manager 파티션과 DRA를 이용한 GPU 할당&lt;/li&gt;
+&lt;li&gt;&lt;a href="https://d2.naver.com/helloworld/5896967" rel="nofollow"&gt;4편&lt;/a&gt;: IB 네트워크와 로컬 NVMe, vCPU 배치, 베어메탈 대비 성능&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p dir="auto"&gt;GPU 한 장을 VM에 연결하는 구성까지는 업스트림 kata와 NVIDIA의 도구로 만들 수 있었습니다. 문제는 GPU 8장을 VM 하나에 연결했을 때 생겼습니다. VM이 제한 시간 안에 부팅하지 못했고, 요청한 것보다 작은 VM이 만들어졌으며, 게스트는 호스트의 소켓 구조를 모른 채 메모리를 할당했습니다.&lt;/p&gt;
+&lt;p dir="auto"&gt;이번 편에서는 GPU가 호스트에서 VM 안의 컨테이너까지 거치는 계층을 따라간 뒤 세 문제를 차례로 다룹니다.&lt;/p&gt;
+&lt;h2 dir="auto"&gt;GPU가 VM 안의 컨테이너까지 가는 경로&lt;/h2&gt;
+&lt;p dir="auto"&gt;먼저 서버의 하드웨어 배치를 보겠습니다. GPU, NIC(network interface card), NVMe가 어느 CPU 소켓과 PCIe 스위치에 연결되어 있는지에 따라 격리 단위와 데이터 경로가 달라지기 때문입니다. 네이버 클라우드에서 구성한 B200 서버 한 대에는 GPU 8장과 컴퓨트 IB(InfiniBand) NIC 8개, 스토리지 IB NIC 2개, 로컬 NVMe 4장이 있습니다. GPU 8장과 컴퓨트 NIC 8개는 PCIe 스위치마다 한 쌍씩 연결되어 있고, 소켓 0의 스위치 4개에는 NVMe가 1장씩 함께 연결되어 있습니다. 스토리지 NIC 2개는 소켓마다 별도 스위치에 있습니다.&lt;/p&gt;
+&lt;p dir="auto"&gt;&lt;a target="_blank" rel="noopener noreferrer" href="https://d2-serving.pstatic.net/v1/images?objectPath=d2%2FEDITOR%2F2026%2Fhelloworld-202611-%EA%B9%80%EB%8F%99%ED%98%84-2%2Ffiles%2F2-01.svg"&gt;&lt;img src="https://d2-serving.pstatic.net/v1/images?objectPath=d2%2FEDITOR%2F2026%2Fhelloworld-202611-%EA%B9%80%EB%8F%99%ED%98%84-2%2Ffiles%2F2-01.svg" alt="B200 서버의 CPU 소켓별 PCIe 스위치와 GPU·NIC·NVMe 연결 구성" style="max-width: 100%;"&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;p dir="auto"&gt;호스트에 장착된 GPU를 VM 안의 컨테이너에서 쓰려면 무엇이 필요할까요? GPU는 다음 세 계층을 거쳐 컨테이너에 도착합니다.&lt;/p&gt;
+&lt;ul dir="auto"&gt;
+&lt;li&gt;IOMMU(input-output memory management unit): GPU가 쓰는 게스트 주소를 호스트 주소로 바꾸고, 게스트 메모리 밖으로의 접근을 막음&lt;/li&gt;
+&lt;li&gt;VFIO(Virtual Function I/O): GPU를 호스트 드라이버에서 떼어 QEMU에 넘김&lt;/li&gt;
+&lt;li&gt;CDI(Container Device Interface): 컨테이너에 연결할 장치를 런타임에 알려 줌&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 dir="auto"&gt;DMA 주소를 바꿔 주는 IOMMU&lt;/h3&gt;
+&lt;p dir="auto"&gt;NVMe, NIC, GPU 같은 PCIe 장치는 DMA(direct memory access)로 메모리를 읽고 씁니다. CPU를 거치지 않고, 드라이버가 알려 준 물리 주소에 장치가 직접 접근하는 방식입니다.&lt;/p&gt;
+&lt;p dir="auto"&gt;그런데 VM 안에서는 이 물리 주소가 실제 물리 주소가 아닙니다. 게스트 커널이 물리 주소로 알고 있는 '게스트 물리 주소'는 QEMU 프로세스가 할당한 메모리를 가리킬 뿐, 호스트의 물리 주소와는 다릅니다. 게스트의 CPU가 메모리에 접근할 때는 하드웨어 가상화가 이 주소를 호스트 물리 주소로 바꿔 주므로 문제가 없습니다.&lt;/p&gt;
+&lt;p dir="auto"&gt;하지만 PCIe 장치의 DMA는 CPU를 거치지 않으므로 주소가 변환되지 않습니다. 게스트의 GPU 드라이버가 "게스트 물리 주소 0x1000에 결과를 써라"라고 지시하면 GPU는 호스트 물리 주소 0x1000에 그대로 씁니다. 그 자리가 호스트 커널이나 다른 VM의 메모리라면 한 VM의 장치가 호스트나 다른 VM의 데이터를 덮어쓸 수도 있습니다.&lt;/p&gt;
+&lt;p dir="auto"&gt;장치 쪽에서 이 변환을 맡는 하드웨어가 IOMMU입니다. CPU의 MMU(memory management unit)가 페이지 테이블로 주소를 바꾸듯, IOMMU는 변환 테이블을 보고 PCIe 장치가 보낸 게스트 물리 주소를 호스트 물리 주소로 바꿉니다. QEMU는 게스트를 시작할 때 게스트 메모리 전체의 주소 대응을 이 테이블에 등록해 둡니다.&lt;/p&gt;
+&lt;p dir="auto"&gt;그래서 게스트 드라이버는 PCIe 장치에 게스트 물리 주소를 그대로 알려 줄 수 있습니다. 게스트 메모리 밖의 주소는 테이블에 없으므로 그곳을 향한 DMA 요청은 IOMMU가 차단해, 장치가 호스트나 다른 VM의 메모리에 접근할 수 없게 됩니다.&lt;/p&gt;
+&lt;p dir="auto"&gt;&lt;a target="_blank" rel="noopener noreferrer" href="https://d2-serving.pstatic.net/v1/images?objectPath=d2%2FEDITOR%2F2026%2Fhelloworld-202611-%EA%B9%80%EB%8F%99%ED%98%84-2%2Ffiles%2F2-02.svg"&gt;&lt;img src="https://d2-serving.pstatic.net/v1/images?objectPath=d2%2FEDITOR%2F2026%2Fhelloworld-202611-%EA%B9%80%EB%8F%99%ED%98%84-2%2Ffiles%2F2-02.svg" alt="IOMMU의 DMA 주소 변환과 접근 차단" style="max-width: 100%;"&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;p dir="auto"&gt;IOMMU를 쓰려면 BIOS에서 이 기능(Intel에서는 VT-d)을 활성화하고 커널 부팅 옵션에도 지정해야 합니다. 저희는 커널 부팅 옵션을 다음과 같이 지정했습니다. 여기에는 IOMMU 옵션 외에 'GPU 8장 VM의 부팅 지연' 절에서 다룰 대용량 페이지(</content>
+  </entry>
+<entry>
+    <title>컨테이너처럼 쓰고, VM처럼 격리하기 1편 - 컨테이너와 VM의 차이, Kata Containers의 Pod 실행 구조</title>
+    <link rel="alternate" href="https://d2.naver.com/helloworld/8055238" />
+    <category term="hello world" />
+    <id>https://d2.naver.com/helloworld/8055238</id>
+    <updated>2026-11-18T05:46:34Z</updated>
+    <content type="html">&lt;html&gt;&lt;head&gt;&lt;/head&gt;&lt;body&gt;&lt;p dir="auto"&gt;GPU 서버 한 대를 여러 사용자가 함께 쓴다면 사용자의 작업을 어디까지 격리해야 할까요? 적어도 한 사용자의 컨테이너 탈출이 같은 서버에 있는 다른 사용자의 작업이나 GPU 접근으로 이어져서는 안 됩니다.&lt;/p&gt;
+&lt;p dir="auto"&gt;Kubernetes 위에서 NVIDIA GPU 환경을 격리하면서 겪은 문제와 해결 방법을 네 편으로 나누어 정리했습니다.&lt;/p&gt;
+&lt;ul dir="auto"&gt;
+&lt;li&gt;1편: 컨테이너와 VM의 차이, Kata Containers의 Pod 실행 구조&lt;/li&gt;
+&lt;li&gt;&lt;a href="https://d2.naver.com/helloworld/1376800" rel="nofollow"&gt;2편&lt;/a&gt;: GPU 패스스루 계층과 GPU 8장 VM의 부팅·메모리 구성&lt;/li&gt;
+&lt;li&gt;&lt;a href="https://d2.naver.com/helloworld/6180316" rel="nofollow"&gt;3편&lt;/a&gt;: Fabric Manager 파티션과 DRA를 이용한 GPU 할당&lt;/li&gt;
+&lt;li&gt;&lt;a href="https://d2.naver.com/helloworld/5896967" rel="nofollow"&gt;4편&lt;/a&gt;: IB 네트워크와 로컬 NVMe, vCPU 배치, 베어메탈 대비 성능&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p dir="auto"&gt;1편에서는 컨테이너와 VM의 차이를 알아보고, Kata Containers(이하 'kata')가 Pod를 VM 안에서 실행하는 과정을 따라가 보겠습니다. GPU, 네트워크, 스토리지를 VM에 연결하고 vCPU를 배치하는 과정은 2편부터 다룹니다.&lt;/p&gt;
+&lt;p dir="auto"&gt;모든 편은 다음 환경을 기준으로 합니다.&lt;/p&gt;
+&lt;ul dir="auto"&gt;
+&lt;li&gt;Kata Containers 4.1.0&lt;/li&gt;
+&lt;li&gt;Kubernetes 1.34 이상&lt;/li&gt;
+&lt;li&gt;NVIDIA HGX B200 8-GPU 베어메탈 서버&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p dir="auto"&gt;본문에서 '내부 수정본'으로 표시한 동작은 업스트림 kata에 없는 변경이고, 표시하지 않은 동작은 업스트림 기능과 설정입니다.&lt;/p&gt;
+&lt;h2 dir="auto"&gt;컨테이너의 호스트 커널 공유&lt;/h2&gt;
+&lt;p dir="auto"&gt;컨테이너와 VM을 구분하는 기준은 커널입니다. 컨테이너는 호스트 커널을 함께 쓰고, VM은 자기 커널을 따로 부팅합니다. 커널이 하는 일부터 짚어 보겠습니다.&lt;/p&gt;
+&lt;p dir="auto"&gt;Linux는 애플리케이션, 셸, 데이터베이스가 실행되는 사용자 공간과 커널이 실행되는 커널 공간을 나누어 둡니다. CPU, 메모리, 디스크, 네트워크 같은 하드웨어는 커널이 직접 제어하고, 사용자 공간의 프로그램은 커널에 작업을 요청합니다. 파일을 열거나 패킷을 보낼 때 쓰는 이 요청을 '시스템 콜'이라고 합니다. 백엔드 코드에서 호출하는 &lt;code class="notranslate"&gt;open()&lt;/code&gt;, &lt;code class="notranslate"&gt;read()&lt;/code&gt;, &lt;code class="notranslate"&gt;send()&lt;/code&gt;도 모두 시스템 콜을 거칩니다.&lt;/p&gt;
+&lt;p dir="auto"&gt;커널 하나가 모든 프로세스의 시스템 콜을 처리하므로 커널에 결함이 생기면 그 커널을 공유하는 프로세스 전체가 영향을 받습니다.&lt;/p&gt;
+&lt;h3 dir="auto"&gt;호스트 커널 위의 프로세스인 컨테이너&lt;/h3&gt;
+&lt;p dir="auto"&gt;컨테이너는 호스트 커널 위에서 격리된 프로세스로 실행됩니다. 별도 커널을 부팅하지 않으므로 VM보다 가볍습니다. 컨테이너가 호스트 커널을 쓴다는 것은 Docker가 설치된 Linux 장비에서 호스트와 두 컨테이너의 커널 버전을 비교해 보면 바로 알 수 있습니다.&lt;/p&gt;
+&lt;div class="highlight highlight-source-shell" dir="auto"&gt;&lt;pre class="notranslate"&gt;$ uname -r
+6.8.0-60-generic
+
+$ docker run --rm ubuntu:24.04 uname -r
+6.8.0-60-generic
+
+$ docker run --rm rockylinux:9 uname -r
+6.8.0-60-generic&lt;/pre&gt;&lt;/div&gt;
+&lt;p dir="auto"&gt;Ubuntu와 Rocky Linux 이미지를 실행했는데도 세 명령의 결과는 같습니다. 이미지에 들어 있는 것은 배포판의 사용자 공간 프로그램(libc, 셸, 패키지)이고, 커널은 호스트의 것을 함께 쓰기 때문입니다.&lt;/p&gt;
+&lt;p dir="auto"&gt;그렇다면 컨테이너끼리는 어떻게 나누어질까요? Linux는 네임스페이스로 프로세스가 보는 범위(PID, 네트워크, 마운트)를 분리하고, cgroup으로 CPU와 메모리 사용량을 제한합니다. 프로세스가 볼 수 있는 것과 쓸 수 있는 양을 나누되, 시스템 콜을 처리하는 커널은 공유하는 구조입니다.&lt;/p&gt;
+&lt;p dir="auto"&gt;&lt;a target="_blank" rel="noopener noreferrer" href="https://d2-serving.pstatic.net/v1/images?objectPath=d2%2FEDITOR%2F2026%2Fhelloworld-202611-%EA%B9%80%EB%8F%99%ED%98%84-1%2Ffiles%2F1-01.svg"&gt;&lt;img src="https://d2-serving.pstatic.net/v1/images?objectPath=d2%2FEDITOR%2F2026%2Fhelloworld-202611-%EA%B9%80%EB%8F%99%ED%98%84-1%2Ffiles%2F1-01.svg" alt="컨테이너끼리 호스트 커널을 공유하는 격리 구조" style="max-width: 100%;"&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;h3 dir="auto"&gt;커널을 공유할 때의 위험&lt;/h3&gt;
+&lt;p dir="auto"&gt;커널을 함께 쓰는 구조에서는 컨테이너 런타임이나 커널의 취약점이 호스트에도 영향을 줄 수 있습니다. 컨테이너 안의 프로세스가 격리를 벗어나 호스트의 파일이나 프로세스에 접근하는 경우를 '컨테이너 탈출'이라고 부릅니다.&lt;/p&gt;
+&lt;p dir="auto"&gt;GPU를 쓰는 컨테이너는 runc와 NVIDIA Container Toolkit을 거쳐 만들어집니다. runc는 Docker와 containerd가 컨테이너를 만들 때 쓰는 저수준 런타임이고, NVIDIA Container Toolkit은 컨테이너에 GPU를 연결하는 도구입니다. 2024년 이후 두 도구에서 공개된 다음 취약점은 호스트 파일 시스템 접근이나 호스트 root 획득으로 이어질 수 있었습니다.&lt;/p&gt;
+&lt;markdown-accessiblity-table&gt;&lt;table role="table"&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;공개&lt;/th&gt;
+&lt;th&gt;대상&lt;/th&gt;
+&lt;th&gt;취약점&lt;/th&gt;
+&lt;th&gt;영향&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;2024년 1월&lt;/td&gt;
+&lt;td&gt;runc</content>
+  </entry>
+<entry>
+    <title>노트북을 닫아도 개발은 계속된다: 자율 그래프 주도 개발</title>
+    <link rel="alternate" href="https://d2.naver.com/helloworld/5976687" />
+    <category term="hello world" />
+    <id>https://d2.naver.com/helloworld/5976687</id>
+    <updated>2026-11-16T09:04:47Z</updated>
+    <content type="html">&lt;div class="se-viewer se-theme-default" lang="ko-KR"&gt;
+    &lt;!-- SE_DOC_HEADER_START --&gt;
+    
+    &lt;!-- SE_DOC_HEADER_END --&gt;
+    &lt;div class="se-main-container"&gt;
+                &lt;div class="se-component se-text se-l-default" id="SE-05d5c5dc-f390-4d0b-8385-b6a5990ffb1d"&gt;
+                    &lt;div class="se-component-content"&gt;
+                        &lt;div class="se-section se-section-text se-l-default"&gt;
+                            &lt;div class="se-module se-module-text"&gt;
+                                    &lt;!-- SE-TEXT { --&gt;&lt;p class="se-text-paragraph se-text-paragraph-align- " style="" id="SE-47914dd3-bd2d-415f-ab8d-282436e5c94c"&gt;&lt;span style="color:#000000;" class="se-fs- se-ff-nanumsquare   " id="SE-98e4b562-893f-4294-a245-ccf6d3def810"&gt;&lt;b&gt;네이버 사내 기술 교류 행사인 NAVER Engineering Day 10th 에서 발표되었던 세션을 공개합니다.&lt;/b&gt;&lt;/span&gt;&lt;/p&gt;
+&lt;!-- } SE-TEXT --&gt;&lt;!-- SE-TEXT { --&gt;&lt;p class="se-text-paragraph se-text-paragraph-align- " style="" id="SE-a6b7ee14-c306-48a9-8245-c162d85001c1"&gt;&lt;span style="color:#000000;" class="se-fs- se-ff-nanumsquare   " id="SE-51ca9cf2-f08b-43d7-bfdd-f71c6de9a6fe"&gt;&lt;b&gt;​&lt;/b&gt;&lt;/span&gt;&lt;/p&gt;
+&lt;!-- } SE-TEXT --&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                    &lt;script type="text/data" class="__se_module_data" data-module-v2='{"type": "v2_text", "id": "SE-05d5c5dc-f390-4d0b-8385-b6a5990ffb1d", "data": {"ctype": "text"  }}'&gt;&lt;/script&gt;
+                &lt;/div&gt;                &lt;div class="se-component se-oembed se-l-default" id="SE-36827c26-943d-49d0-8d1b-ac1768aa55fa"&gt;
+                    &lt;div class="se-component-content se-component-content-fit"&gt;
+                        &lt;div class="se-section se-section-oembed se-section-align- se-l-default"&gt;
+                            &lt;div class="se-module se-module-oembed se-is-progress" style="padding-top: 64.67941507311586%;"&gt;&lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                    &lt;script type="text/data" class="__se_module_data" data-module='{"type":"v2_oembed", "id" :&amp;quot;SE-36827c26-943d-49d0-8d1b-ac1768aa55fa&amp;quot;, "data" : { "html": &amp;quot;&amp;lt;iframe src&amp;#x3D;\&amp;quot;https://clip-viewer.naver.com/oembed/?mediaId&amp;#x3D;76CFB711206BBFAAA7AF693FC12A4E395EB3&amp;amp;mediaType&amp;#x3D;LONG_FORM&amp;amp;serviceType&amp;#x3D;CLIP\&amp;quot; title&amp;#x3D;\&amp;quot;NAVER Clip\&amp;quot; style&amp;#x3D;\&amp;quot;width:100%\&amp;quot; height&amp;#x3D;\&amp;quot;575\&amp;quot; frameborder&amp;#x3D;\&amp;quot;0\&amp;quot; scrolling&amp;#x3D;\&amp;quot;no\&amp;quot; allow&amp;#x3D;\&amp;quot;web-share\&amp;quot;&amp;gt;&amp;lt;/iframe&amp;gt;&amp;quot;, "originalWidth" : "889", "originalHeight" : "575", "contentMode" : &amp;quot;fit&amp;quot;, "description": &amp;quot;NAVER D2 | 노트북을 닫아도 개발은 계속된다: 자율 그래프 주도 개발 (네이버 사내 기술 교류 행사인 NAVER Engineering Day 10th 에서 발표되었던 세션을 공개합니다.) [발...&amp;quot;, "inputUrl": &amp;quot;https://m.naver.com/shorts/?seedMediaId&amp;#x3D;76CFB711206BBFAAA7AF693FC12A4E395EB3&amp;amp;serviceType&amp;#x3D;CLIP&amp;quot;, "thumbnailUrl" : &amp;quot;https://clip-service-phinf.pstatic.net/MjAyNjExMTZfNTAg/MDAxNzk0ODE5MDExNzY0.dOIP1dk82OBLjQAQ5Wf4pXEoMekQc1jrT3v2RVu8gVAg.nmiy_NZsuE3dtT13XOYLJnTBMEvg276FxElzA-L7Ujkg.PNG/image.png&amp;quot;, "thumbnailHeight" : "116", "thumbnailWidth" : "180", "title": &amp;quot;노트북을 닫아도 개발은 계속된다: 자율 그래프 주도 개발\n\n(네이버 사내 기술 교류 행사인 NAVER Engineering Day 10th 에서 발표되었던 세션을 공개합니다.)\n\n[발표 내용]\n&amp;#x27;자율 그래프 주도 개발(Autonomous Graph-Driven Development)&amp;#x27;에서는 사람의 직접적인 지시 없이 그래프가 프로젝트 진행을 주도합니다. 스펙 문서와 코드는 AI Agent 루프가 작성하고, 결정론적 코드가 이를 기계적으로 검사하며, 결함은 피드백 루프를 통해 자동으로 바로잡습니다. 사람이 AI를 호출하던 주도권이 역전되어 이제는 AI가 필요할 때만 사람을 호출합니다.\n\n[발표 대상]\n자율 그래프 주도 개발 방법론에 관심있는 개발자나 기획자\n\n[목차]\n1. AI가 다 해 주는데, 뭐가 문제지? (배경 및 문제 정의)\n2. 어떻게 스스로</content>
+  </entry>
+</feed>

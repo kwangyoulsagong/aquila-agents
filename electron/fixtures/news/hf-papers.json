@@ -1,0 +1,712 @@
+[
+ {
+  "paper": {
+   "id": "2611.24738",
+   "title": "Jeveration: System One Models Now Generate",
+   "summary": "System One models such as Jev return decisions through fast, parallel prediction. In this paper, we introduce Jeveration, showing that the same decision paradigm can also generate high-quality images in a single forward pass. Jeveration builds on a frozen vision-language model, repurposing its visual-semantic knowledge for holistic image generation. The key challenge is to maintain global consiste",
+   "upvotes": 152,
+   "githubRepo": "https://github.com/Carol-lyh/Jeveration",
+   "publishedAt": "2026-11-18T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "Jeveration: System One Models Now Generate",
+  "publishedAt": "2026-11-17T19:00:00.000Z",
+  "numComments": 4
+ },
+ {
+  "paper": {
+   "id": "2611.21366",
+   "title": "ALIVE: Making Streaming Video Models Interactive",
+   "summary": "Streaming video LLMs can continuously observe the world, yet often handle user requests in isolation. We introduce ALIVE, an interactive streaming video model supporting proactive monitoring, streaming task coordination, and feedback-seeking interaction. We construct ALIVE-SFT-288K and ALIVE-RL-3K for two-stage training. Contrastive supervised fine-tuning teaches when and how to respond, while rei",
+   "upvotes": 42,
+   "githubRepo": "https://github.com/lijinzhao30/ALIVE",
+   "publishedAt": "2026-11-16T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "ALIVE: Making Streaming Video Models Interactive",
+  "publishedAt": "2026-11-15T19:00:00.000Z",
+  "numComments": 4
+ },
+ {
+  "paper": {
+   "id": "2611.23068",
+   "title": "The Resolution Hypothesis: Agent Evolution's Key Is Identifying Improvements",
+   "summary": "Agent evolution follows a simple loop: a proposer writes candidate artifacts (prompts, skills, memories) and selection accepts those that score higher. This loop has shown promise, yet practitioners face a puzzle: methods trade wins across papers, and evolution often fails to bootstrap on certain tasks. We trace this puzzle to the Resolution Hypothesis: agent evolution stalls not because methods f",
+   "upvotes": 39,
+   "publishedAt": "2026-11-17T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "The Resolution Hypothesis: Agent Evolution's Key Is Identifying Improvements",
+  "publishedAt": "2026-11-16T19:00:00.000Z",
+  "numComments": 8
+ },
+ {
+  "paper": {
+   "id": "2611.24154",
+   "title": "Game2Player: Scaling Gameplay Experience for Visual Agents through Environment-Player Co-Development",
+   "summary": "Games are a rich testbed for visual agents, demanding perception, long-horizon planning, and precise control. However, collecting human gameplay is costly, and learning from gameplay videos requires inferring missing actions. Existing datasets also cover a limited range of games, often without explicit tasks or verifiable outcomes. To address these gaps, we introduce Game2Player, a framework that ",
+   "upvotes": 29,
+   "githubRepo": "https://github.com/game2player/Game2Player",
+   "publishedAt": "2026-11-18T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "Game2Player: Scaling Gameplay Experience for Visual Agents through Environment-Player Co-Development",
+  "publishedAt": "2026-11-17T19:00:00.000Z",
+  "numComments": 4
+ },
+ {
+  "paper": {
+   "id": "2611.11318",
+   "title": "PROLA: Principal-Orthogonal Low-rank Adaptation for Predictive Spatiotemporal Weather Downscaling",
+   "summary": "High-resolution weather prediction is important for resolving local atmospheric patterns missed by coarse global forecasts. Large pretrained weather backbones have improved global forecasting, but adapting them to produce future high-resolution fields from recent coarse states remains challenging and costly. We formulate this setting as Predictive Spatiotemporal Weather Downscaling (PSWD), a task ",
+   "upvotes": 28,
+   "githubRepo": "https://github.com/yms020615/PROLA",
+   "publishedAt": "2026-11-08T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "PROLA: Principal-Orthogonal Low-rank Adaptation for Predictive Spatiotemporal Weather Downscaling",
+  "publishedAt": "2026-11-07T19:00:00.000Z",
+  "numComments": 2
+ },
+ {
+  "paper": {
+   "id": "2611.24654",
+   "title": "CurvDelta: Low-Curvature Delta Modeling For Surgical Learning and Unlearning",
+   "summary": "A central challenge in adapting large language models (LLMs) is capability preservation: an adaptation can achieve its target while degrading general capabilities. We introduce CurvDelta, a scalable framework that incorporates the preservation constraint into the parameterization of the model update. By analyzing the local geometry of the preservation constraint around the pre-adaptation model, Cu",
+   "upvotes": 24,
+   "publishedAt": "2026-11-18T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "CurvDelta: Low-Curvature Delta Modeling For Surgical Learning and Unlearning",
+  "publishedAt": "2026-11-17T19:00:00.000Z",
+  "numComments": 2
+ },
+ {
+  "paper": {
+   "id": "2611.17600",
+   "title": "LightTAR: Light and Fast Target-Aware Representations for Multimodal Tabular Learning",
+   "summary": "Multimodal tabular learning involves classification and regression on tables combining structured numerical and categorical features with unstructured text and images. These unstructured fields are commonly represented by pretrained encoder embeddings reduced with principal component analysis (PCA). This reduction prioritizes input variance but may overlook information relevant to predicting the t",
+   "upvotes": 22,
+   "githubRepo": "https://github.com/eilamshapira/LightTAR",
+   "publishedAt": "2026-11-12T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "LightTAR: Light and Fast Target-Aware Representations for Multimodal Tabular Learning",
+  "publishedAt": "2026-11-11T19:00:00.000Z",
+  "numComments": 2
+ },
+ {
+  "paper": {
+   "id": "2611.24789",
+   "title": "HINT-WAM: Hindsight-Informed Training for World Action Models",
+   "summary": "World action models (WAMs) have shown promising generalization and data efficiency in robot manipulation by coupling action generation with predictions of future visual dynamics. Translating these capabilities into reliable task execution, however, remains a challenge for existing post-training methods. Offline supervised fine-tuning provides dense supervision on expert trajectories, but its flow-",
+   "upvotes": 22,
+   "githubRepo": "https://github.com/tuandattt/hintwam_code",
+   "publishedAt": "2026-11-18T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "HINT-WAM: Hindsight-Informed Training for World Action Models",
+  "publishedAt": "2026-11-17T19:00:00.000Z",
+  "numComments": 3
+ },
+ {
+  "paper": {
+   "id": "2611.24869",
+   "title": "WorldRuler: Interactive World Modeling under Configurable Rules",
+   "summary": "Rules govern how player actions change interactive worlds. Different rules create distinct gameplay experiences within similar scenes and action spaces. For customizable gameplay, generative world models must follow user-defined rules beyond real-world behaviors. However, realizing user-defined rules presents two challenges: Rule-State Persistence and Rule-to-Visual Realization. The former require",
+   "upvotes": 20,
+   "githubRepo": "https://github.com/AlayaLab/WorldRuler",
+   "publishedAt": "2026-11-18T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "WorldRuler: Interactive World Modeling under Configurable Rules",
+  "publishedAt": "2026-11-17T19:00:00.000Z",
+  "numComments": 3
+ },
+ {
+  "paper": {
+   "id": "2611.22925",
+   "title": "Code World Model 2.0: Towards Infinite Controllable Video Generation",
+   "summary": "Visual proxies decouple explicit world-state simulation from photorealistic video synthesis, offering a controllable interface for both offline clip creation and real-time interactive streaming. Yet a practical renderer must address two challenges. Upstream proxies vary from coarse layouts to fine articulated geometry depending on the interaction, and streaming inference must operate in a few caus",
+   "upvotes": 19,
+   "githubRepo": "https://github.com/inclusionAI/CodeWorldModel",
+   "publishedAt": "2026-11-17T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "Code World Model 2.0: Towards Infinite Controllable Video Generation",
+  "publishedAt": "2026-11-16T19:00:00.000Z",
+  "numComments": 2
+ },
+ {
+  "paper": {
+   "id": "2611.23751",
+   "title": "Thinking Fast, Anywhere: One System-1 for the Decision Points of Any Agent Workflow",
+   "summary": "Autonomous LLM agents incur substantial cost and latency by invoking a large model (System-2) at every step, even when many intermediate actions choose among a small set of known candidates. Existing dual-system agents offload such decisions to a lightweight System-1 model, but rely on workflow-specific hooks authored per environment. We present AnyS1, a framework that turns human-authored procedu",
+   "upvotes": 17,
+   "githubRepo": "https://github.com/middle-chunjie/AnyS1",
+   "publishedAt": "2026-11-18T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "Thinking Fast, Anywhere: One System-1 for the Decision Points of Any Agent Workflow",
+  "publishedAt": "2026-11-17T19:00:00.000Z",
+  "numComments": 6
+ },
+ {
+  "paper": {
+   "id": "2611.19200",
+   "title": "LogT: Logically Think with Images for Visual Search",
+   "summary": "Thinking with images empowers vision-language models (VLMs) to use an external Zoom-in tool for fine-grained visual search. Recent works employ supervised fine-tuning (SFT) and reinforcement learning (RL) with tool-specific designs to enable such capabilities. However, achieving logical reasoning alongside accurate and efficient tool use remains a significant challenge. To address this, we shift t",
+   "upvotes": 15,
+   "publishedAt": "2026-11-14T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "LogT: Logically Think with Images for Visual Search",
+  "publishedAt": "2026-11-13T19:00:00.000Z",
+  "numComments": 2
+ },
+ {
+  "paper": {
+   "id": "2611.24651",
+   "title": "Piccolo: Co-Evolving Decision Models and Data through Recursive Self-Improvement",
+   "summary": "We present Piccolo, a family of multimodal decision models (0.8B to 27B) that coevolves model capabilities and training data via Agentic Data Engineering and recursive self-improvement (RSI). The models predict probabilities over candidate answers for general-purpose text and visual judgments, agent harnesses, data workflows, and interactive games. Piccolo-27B tops the Decision Index Vision Full l",
+   "upvotes": 14,
+   "githubRepo": "https://github.com/agentscope-ai/Piccolo",
+   "publishedAt": "2026-11-18T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "Piccolo: Co-Evolving Decision Models and Data through Recursive Self-Improvement",
+  "publishedAt": "2026-11-17T19:00:00.000Z",
+  "numComments": 2
+ },
+ {
+  "paper": {
+   "id": "2611.23779",
+   "title": "TabBioMed: A Large-Scale Benchmark for Biomedical Tabular Learning",
+   "summary": "Recent advances in machine learning have accelerated biomedical prediction, but evaluation on structured biomedical data remains fragmented, especially for datasets with high dimensionality, large sample size, missingness, and class imbalance. We introduce TabBioMed, a large-scale benchmark of 94 curated public biomedical tabular datasets spanning electronic health records, drug discovery, genomic",
+   "upvotes": 13,
+   "githubRepo": "https://github.com/AI-sandbox/TabBioMed",
+   "publishedAt": "2026-11-18T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "TabBioMed: A Large-Scale Benchmark for Biomedical Tabular Learning",
+  "publishedAt": "2026-11-17T19:00:00.000Z",
+  "numComments": 2
+ },
+ {
+  "paper": {
+   "id": "2611.24408",
+   "title": "StrideWorld: Benchmarking Scene Rigidity and Action Consistency in Interactive Video World Model",
+   "summary": "Interactive video world models turn user commands into the exploration of a generated scene, which requires the scene to keep its 3D structure as the camera moves and each action to keep a stable effect. Existing benchmarks mostly evaluate these properties against references fitted to the video under test, either a scene reconstructed from its own frames or a camera trajectory aligned to the comma",
+   "upvotes": 13,
+   "githubRepo": "https://github.com/chuangwang123/strideworld",
+   "publishedAt": "2026-11-18T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "StrideWorld: Benchmarking Scene Rigidity and Action Consistency in Interactive Video World Model",
+  "publishedAt": "2026-11-17T19:00:00.000Z",
+  "numComments": 2
+ },
+ {
+  "paper": {
+   "id": "2611.23388",
+   "title": "QDA: Closed-Loop LLM Quantization Design with Agents",
+   "summary": "Post-training quantization is the standard way to serve large language models at low cost. However, the best quantization recipe differs across models and precisions. As a result, experts must redesign it for every new model, which is time-consuming and often sub-optimal. Fortunately, an LLM agent can take over this design by refining the recipe over rounds of building and evaluating candidates, s",
+   "upvotes": 13,
+   "publishedAt": "2026-11-17T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "QDA: Closed-Loop LLM Quantization Design with Agents",
+  "publishedAt": "2026-11-16T19:00:00.000Z",
+  "numComments": 2
+ },
+ {
+  "paper": {
+   "id": "2611.14848",
+   "title": "Tideway: Phase-Aware Tiered Memory Management for MoE Inference on Consumer Devices",
+   "summary": "Large language model (LLM) agents are rapidly becoming a dominant paradigm for AI applications. Recently, there is a growing demand to deploy large-scale Mixture-of-Experts (MoE) models locally on consumer PCs to balance data privacy, API costs, and inference efficiency. However, unlike datacenter servers with abundant DRAM, consumer devices are tightly constrained in both GPU VRAM and host RAM, f",
+   "upvotes": 11,
+   "githubRepo": "https://github.com/Afterglow231/Tideway",
+   "publishedAt": "2026-11-10T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "Tideway: Phase-Aware Tiered Memory Management for MoE Inference on Consumer Devices",
+  "publishedAt": "2026-11-09T19:00:00.000Z",
+  "numComments": 3
+ },
+ {
+  "paper": {
+   "id": "2611.22287",
+   "title": "Decoding Without a Decoder: Direct Pixel Prediction from Diffusion Transformers",
+   "summary": "Latent diffusion models rely on a decoder to map denoised latents to pixels, adding complexity and inference cost. We introduce Decoding Without a Decoder (DWD), which lets a finetuned diffusion transformer produce final pixels directly through a linear head. Unlike previous methods, where the denoising output leads to final pixels, DWD separates the two roles: the original denoising head continue",
+   "upvotes": 11,
+   "publishedAt": "2026-11-17T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "Decoding Without a Decoder: Direct Pixel Prediction from Diffusion Transformers",
+  "publishedAt": "2026-11-16T19:00:00.000Z",
+  "numComments": 2
+ },
+ {
+  "paper": {
+   "id": "2611.21553",
+   "title": "BLIP-Live: Balancing Timeliness & Firing Precision in Proactive Streaming Video Agents",
+   "summary": "Streaming video understanding is becoming increasingly important for real-world interactive systems. Such systems must be proactive for natural and useful human interaction: they should respond as soon as sufficient evidence becomes available while avoiding premature, redundant, or incorrect responses. We present BLIP-Live, a framework unifying data, metrics, harness, and training around a shared ",
+   "upvotes": 10,
+   "githubRepo": "https://github.com/SalesforceAIResearch/BLIPLive",
+   "publishedAt": "2026-11-16T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "BLIP-Live: Balancing Timeliness & Firing Precision in Proactive Streaming Video Agents",
+  "publishedAt": "2026-11-15T19:00:00.000Z",
+  "numComments": 4
+ },
+ {
+  "paper": {
+   "id": "2611.17460",
+   "title": "Unfinished-Bench: Measuring Rule Violations by Persistent Agents in Realistic Work Environments",
+   "summary": "AI agents are increasingly equipped with persistence toward task completion to run delegated work autonomously for long periods, under many unstated constraints from internal documents and other people's authority. When completion requires violating a rule, the agent must decide alone, yet benchmarks of instruction-rule conflicts state the rule in the prompt or keep it hidden and do not evaluate p",
+   "upvotes": 9,
+   "githubRepo": "https://github.com/naver-ai/unfinished-bench",
+   "publishedAt": "2026-11-12T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "Unfinished-Bench: Measuring Rule Violations by Persistent Agents in Realistic Work Environments",
+  "publishedAt": "2026-11-11T19:00:00.000Z",
+  "numComments": 4
+ },
+ {
+  "paper": {
+   "id": "2611.23257",
+   "title": "StatePortal: Agentic Checkpoint Synthesis for Testing Deep States in Interactive Software",
+   "summary": "Large language models have reduced the effort to generate code for interactive software with graphical user interfaces (GUIs). For such software, a key testing bottleneck is reaching a deep state, one that requires a long interaction history. The cost of reaching it recurs across commits, and the GUI automation that could amortize it assumes a DOM or accessibility tree that self-rendered engines d",
+   "upvotes": 9,
+   "githubRepo": "https://github.com/pzy2000/State_Portal",
+   "publishedAt": "2026-09-29T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "StatePortal: Agentic Checkpoint Synthesis for Testing Deep States in Interactive Software",
+  "publishedAt": "2026-09-28T20:00:00.000Z",
+  "numComments": 6
+ },
+ {
+  "paper": {
+   "id": "2611.23994",
+   "title": "WaveView: The Novel View Is in the Noise",
+   "summary": "Generative novel view synthesis (NVS) employs a diffusion model to render a static or dynamic scene from a target camera view. Explicit warp methods complete a reprojection of the source with video diffusion models, and implicit methods encode the camera parameters or 3D cues. Both add inference overhead, and the generated layout often drifts from the ground truth. We present WaveView, which injec",
+   "upvotes": 9,
+   "publishedAt": "2026-11-18T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "WaveView: The Novel View Is in the Noise",
+  "publishedAt": "2026-11-17T19:00:00.000Z",
+  "numComments": 2
+ },
+ {
+  "paper": {
+   "id": "2611.24161",
+   "title": "AVTR: Adaptive Multimodal Reasoning with Visual Imagination",
+   "summary": "Vision-Language Models increasingly rely on textual reasoning to solve advanced multimodal tasks. Despite its effectiveness, this paradigm faces two fundamental limitations. First, relying on textual reasoning alone can limit perceptual ability in vision-centric questions, where accurate answers depend on interpreting task-relevant visual evidence. Second, applying textual reasoning uniformly acro",
+   "upvotes": 9,
+   "githubRepo": "https://github.com/xiaoqian-shen/AVTR",
+   "publishedAt": "2026-11-18T10:05:18.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "AVTR: Adaptive Multimodal Reasoning with Visual Imagination",
+  "publishedAt": "2026-11-18T05:05:18.000Z",
+  "numComments": 2
+ },
+ {
+  "paper": {
+   "id": "2611.24576",
+   "title": "Late Entry in Looped Language Models",
+   "summary": "Looped language models deepen reasoning at a compact parameter count by iterating a shared layer stack T times per token, turning recurrence depth directly into sequential decoding latency. Conventional early-exit decoding halts after initial passes without cache completion, truncating cached key-value states of past tokens to shallow depth. We study the opposite strategy, late entry, where new to",
+   "upvotes": 9,
+   "githubRepo": "https://github.com/Xalp/LateComer",
+   "publishedAt": "2026-11-18T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "Late Entry in Looped Language Models",
+  "publishedAt": "2026-11-17T19:00:00.000Z",
+  "numComments": 2
+ },
+ {
+  "paper": {
+   "id": "2611.24098",
+   "title": "RoughCut-Bench: A Benchmark for Automatic Video Rough-Cut with Large Vision-Language Models",
+   "summary": "Video rough-cut is a core stage in media production workflows, organizing raw media materials into an initial video cut. Despite recent advances in large vision-language models (LVLMs) for video-related tasks, automatic rough-cut remains underexplored, without a comprehensive benchmark for evaluation or mature workflows for producing executable cut plans. To address the evaluation gap, we introduc",
+   "upvotes": 9,
+   "githubRepo": "https://github.com/Whalesong-zrs/RoughCut-Bench",
+   "publishedAt": "2026-11-18T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "RoughCut-Bench: A Benchmark for Automatic Video Rough-Cut with Large Vision-Language Models",
+  "publishedAt": "2026-11-17T19:00:00.000Z",
+  "numComments": 3
+ },
+ {
+  "paper": {
+   "id": "2611.23824",
+   "title": "Evidence-Based Credit Assignment for Search-Augmented Language Models",
+   "summary": "Reinforcement learning from terminal answer rewards enables search-augmented language models to interleave reasoning and retrieval without step-level annotations, yet outcome supervision assigns identical credit to every search in a trajectory regardless of whether it retrieved useful information. This limitation is especially severe when all sampled rollouts for a question fail, collapsing group-",
+   "upvotes": 9,
+   "publishedAt": "2026-11-18T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "Evidence-Based Credit Assignment for Search-Augmented Language Models",
+  "publishedAt": "2026-11-17T19:00:00.000Z",
+  "numComments": 4
+ },
+ {
+  "paper": {
+   "id": "2611.24733",
+   "title": "Mechanistic Critics for Sample-Efficient NPU Design-Space Exploration",
+   "summary": "NPU design-space exploration for LLM inference mainly relies on an expensive simulator that often returns only scalar feedback such as latency and power. Such feedback can rank evaluated configurations, but gives little information for deciding why a configuration is slow or which architecture parameter should be changed next. This limitation is especially severe because prefill and decode workloa",
+   "upvotes": 9,
+   "githubRepo": "https://github.com/bruno686/CriticNPU",
+   "publishedAt": "2026-11-18T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "Mechanistic Critics for Sample-Efficient NPU Design-Space Exploration",
+  "publishedAt": "2026-11-17T19:00:00.000Z",
+  "numComments": 3
+ },
+ {
+  "paper": {
+   "id": "2611.24362",
+   "title": "PIPETTE: Prompt Injection Purple-Teaming for Robust LLM Agents",
+   "summary": "Large language model (LLM) agents routinely interact with untrusted external data, exposing them to indirect prompt injection (IPI) attacks that hijack agents into executing attacker-chosen tasks. To uncover these vulnerabilities at scale, automated red-teaming methods often leverage reinforcement learning (RL) to generate attacks that achieve high attack success rates (ASR). Model developers use ",
+   "upvotes": 8,
+   "publishedAt": "2026-11-18T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "PIPETTE: Prompt Injection Purple-Teaming for Robust LLM Agents",
+  "publishedAt": "2026-11-17T19:00:00.000Z",
+  "numComments": 3
+ },
+ {
+  "paper": {
+   "id": "2611.23808",
+   "title": "PReMind: When Personal Memory Meets Visual Hazards",
+   "summary": "Personalized vision-language assistants use visual observations and personal memories to provide advice tailored to the user. When the observed scene contains a physical hazard, personal context, such as allergies, medical conditions, or mobility constraints, can change what help is appropriate. Responding appropriately therefore requires recognizing the visible hazard and applying the relevant pe",
+   "upvotes": 8,
+   "publishedAt": "2026-11-18T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "PReMind: When Personal Memory Meets Visual Hazards",
+  "publishedAt": "2026-11-17T19:00:00.000Z",
+  "numComments": 4
+ },
+ {
+  "paper": {
+   "id": "2611.08136",
+   "title": "How Far Can Untrained Neural Networks Go in Anomaly Detection? From Tables to Pixels",
+   "summary": "Anomaly detection (AD) is often framed as a representation-learning problem, where strong performance is expected to require learned features or AD-specific optimization. However, this view can overlook the intrinsic separability of anomalies from normal references, even in the absence of learned representations. We therefore investigate how far untrained neural networks can go in anomaly detectio",
+   "upvotes": 7,
+   "githubRepo": "https://github.com/ideal-lab-sejong/PRISM_T",
+   "publishedAt": "2026-11-09T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "How Far Can Untrained Neural Networks Go in Anomaly Detection? From Tables to Pixels",
+  "publishedAt": "2026-11-08T19:00:00.000Z",
+  "numComments": 3
+ },
+ {
+  "paper": {
+   "id": "2611.22382",
+   "title": "RICoT: Recurrent Interleaved Chain-of-Thought for Page Stream Segmentation",
+   "summary": "Large language models (LLMs) have renewed interest in Page Stream Segmentation (PSS), splitting a multi-page file into its constituent documents. Yet published LLM methods still frame the task as boundary classification over one or a few neighboring pages, and commercial document-splitting APIs do not disclose their methods. We reimagine PSS for LLMs as a sequential process over the whole stream a",
+   "upvotes": 6,
+   "publishedAt": "2026-11-17T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "RICoT: Recurrent Interleaved Chain-of-Thought for Page Stream Segmentation",
+  "publishedAt": "2026-11-16T19:00:00.000Z",
+  "numComments": 3
+ },
+ {
+  "paper": {
+   "id": "2611.23386",
+   "title": "Chorus: Shared N-gram Embeddings with Layer-wise Adaptation",
+   "summary": "Language models can gain capacity at little computational cost from n-gram embedding tables: large tables of learned vectors for short sequences of consecutive tokens, which are looked up and added to the model's input or to its intermediate layers. Recent designs commonly use a separate n-gram embedding table for each layer, which makes the tables costly in memory and prevents layers from sharing",
+   "upvotes": 6,
+   "githubRepo": "https://github.com/dualverse-ai/chorus",
+   "publishedAt": "2026-11-17T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "Chorus: Shared N-gram Embeddings with Layer-wise Adaptation",
+  "publishedAt": "2026-11-16T19:00:00.000Z",
+  "numComments": 2
+ },
+ {
+  "paper": {
+   "id": "2611.24941",
+   "title": "UltraTex: Aligning Physical Knowledge for High-Fidelity PBR Texture Generation",
+   "summary": "Generating physically based rendering (PBR) texture maps for a 3D mesh from a single reference image is highly ambiguous, as the observed appearance entangles material identity, surface reflectance, and illumination. While current generative methods produce realistic albedo maps, they still struggle to infer accurate metallic and roughness attributes for relighting. We present UltraTex, a cascaded",
+   "upvotes": 6,
+   "publishedAt": "2026-11-18T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "UltraTex: Aligning Physical Knowledge for High-Fidelity PBR Texture Generation",
+  "publishedAt": "2026-11-17T19:00:00.000Z",
+  "numComments": 3
+ },
+ {
+  "paper": {
+   "id": "2611.24681",
+   "title": "DrawScore: Evaluating Generated CAD Models against Engineering Drawings",
+   "summary": "Automatic CAD generation is commonly evaluated with volumetric IoU, Chamfer Distance, and surface F-score, which barely penalize local errors that occupy only a small fraction of a part's volume or surface area, such as a misplaced hole or a slot on the wrong face, even though such errors are critical to manufacturing. We formalize these metrics in a unified integral form and show that the weight ",
+   "upvotes": 6,
+   "githubRepo": "https://github.com/UESTC-Simon/DrawScore",
+   "publishedAt": "2026-11-18T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "DrawScore: Evaluating Generated CAD Models against Engineering Drawings",
+  "publishedAt": "2026-11-17T19:00:00.000Z",
+  "numComments": 3
+ },
+ {
+  "paper": {
+   "id": "2611.22033",
+   "title": "Thinking Harder Doesn't Lead to Better Choices: Reasoning Effort Increases the Confidence but Not the Correctness of LLM Shopping Agents",
+   "summary": "Large language models (LLMs) are increasingly deployed as autonomous shopping agents that process multimodal product listings (consisting of visual and text data) and recommend purchases on behalf of consumers. Naturally, one might assume that models with more thinking power would make higher-quality purchasing decisions. To test this belief, we ask two questions about such agents: does asking a m",
+   "upvotes": 6,
+   "publishedAt": "2026-11-17T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "Thinking Harder Doesn't Lead to Better Choices: Reasoning Effort Increases the Confidence but Not the Correctness of LLM Shopping Agents",
+  "publishedAt": "2026-11-16T19:00:00.000Z",
+  "numComments": 4
+ },
+ {
+  "paper": {
+   "id": "2611.23499",
+   "title": "BiCAT: Bimanual Coordination Action Tokenization",
+   "summary": "Autoregressive vision-language-action (VLA) models predict discrete action tokens with the next-token objective of their vision-language backbone, so the action tokenizer defines the interface between the policy and the robot. In bimanual manipulation, the two arms share a repertoire of movements yet coordinate through complementary roles, and an action representation should capture both. However,",
+   "upvotes": 5,
+   "githubRepo": "https://github.com/MAGICLAB-NUS/BiCAT",
+   "publishedAt": "2026-11-17T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "BiCAT: Bimanual Coordination Action Tokenization",
+  "publishedAt": "2026-11-16T19:00:00.000Z",
+  "numComments": 2
+ },
+ {
+  "paper": {
+   "id": "2611.22673",
+   "title": "FVScore: Specification-Driven Neuro-Symbolic Video Evaluation",
+   "summary": "We introduce Faithfulness Video Score (FVSCORE), a neuro-symbolic framework for specification-driven video generation evaluation. Existing evaluators rely on holistic MLLM judgments or vision-language metrics, yet aligning their scores with human judgments and tracing them to specific temporal violations remain open challenges. FVSCORE addresses these limitations by compiling each video into expli",
+   "upvotes": 5,
+   "publishedAt": "2026-11-17T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "FVScore: Specification-Driven Neuro-Symbolic Video Evaluation",
+  "publishedAt": "2026-11-16T19:00:00.000Z",
+  "numComments": 4
+ },
+ {
+  "paper": {
+   "id": "2611.22790",
+   "title": "NexSight: Verifiable Tasks for Fine-Grained Agentic Long-Video Understanding",
+   "summary": "Fine-grained questions about long videos ask how many times an action occurs, in what order events unfold, or exactly when a state changes. Answering them can require finding brief moments scattered across hours of footage. Agentic models that decide when and where to look promise to find these moments, yet this ability is hard both to measure and to learn. Sparse supporting evidence may establish",
+   "upvotes": 5,
+   "publishedAt": "2026-11-17T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "NexSight: Verifiable Tasks for Fine-Grained Agentic Long-Video Understanding",
+  "publishedAt": "2026-11-16T19:00:00.000Z",
+  "numComments": 2
+ },
+ {
+  "paper": {
+   "id": "2611.24830",
+   "title": "A Foundation Model to Measure and Predict Human Behaviour",
+   "summary": "Large language models (LLMs) are increasingly used to infer psychological attributes, predict individual behaviour, and simulate human populations. However, despite generating plausible responses, they often misrepresent individuals and distort population statistics. Here we introduce Chiron, a foundation model to measure and predict human behaviour. We jointly fine-tune an LLM to represent psycho",
+   "upvotes": 5,
+   "githubRepo": "https://github.com/ValueByte-AI/chiron",
+   "publishedAt": "2026-11-18T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "A Foundation Model to Measure and Predict Human Behaviour",
+  "publishedAt": "2026-11-17T19:00:00.000Z",
+  "numComments": 2
+ },
+ {
+  "paper": {
+   "id": "2611.21114",
+   "title": "VAE Rhythm: Temporal Decoding Traces for AI-Generated Video Detection",
+   "summary": "Visible artifacts are an unreliable cue for detecting generated videos, because newer generators learn to remove them. We instead detect a trace left by the generation pipeline itself. Most video generators decode latents with a 3D causal VAE that groups consecutive frames in time, so the fidelity of generated frames rises and falls periodically with their position in a group. We call this periodi",
+   "upvotes": 5,
+   "githubRepo": "https://github.com/showlab/vae-rhythm",
+   "publishedAt": "2026-11-16T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "VAE Rhythm: Temporal Decoding Traces for AI-Generated Video Detection",
+  "publishedAt": "2026-11-15T19:00:00.000Z",
+  "numComments": 2
+ },
+ {
+  "paper": {
+   "id": "2611.24102",
+   "title": "IDEA: Intent-Dominance Evidence Audit for Inference-Time Backdoor Detection in GUI Agents",
+   "summary": "Organizations increasingly deploy downloaded open-weight GUI agents. A backdoored agent passes acceptance tests on clean data and misbehaves only when a visual trigger appears on screen, turning an unvetted checkpoint into a supply-chain risk. However, existing sample-level detectors target image classifiers and CLIP-style encoders, leaving step-level backdoor detection for GUI agents unaddressed.",
+   "upvotes": 5,
+   "publishedAt": "2026-11-18T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "IDEA: Intent-Dominance Evidence Audit for Inference-Time Backdoor Detection in GUI Agents",
+  "publishedAt": "2026-11-17T19:00:00.000Z",
+  "numComments": 2
+ },
+ {
+  "paper": {
+   "id": "2611.24844",
+   "title": "General progress substitutes for specific training data in language models",
+   "summary": "Language models acquire their capabilities from training data, and developers withhold data during training to keep models from learning capabilities that could be misused. How long this delays a capability, and how much data is needed to acquire it later, is unknown. Here we show that the general progress a model makes on the rest of its training data substitutes for the data that was withheld. W",
+   "upvotes": 4,
+   "githubRepo": "https://github.com/Mapika/progress-substitutes-data",
+   "publishedAt": "2026-11-18T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "General progress substitutes for specific training data in language models",
+  "publishedAt": "2026-11-17T19:00:00.000Z",
+  "numComments": 2
+ },
+ {
+  "paper": {
+   "id": "2611.24059",
+   "title": "Replay, Don't Resample: Off-Policy Consolidation of Long-Horizon RL Experts",
+   "summary": "Frontier post-training follows a common recipe: train one expert per domain with reinforcement learning (RL), then consolidate the experts into one model via multi-teacher on-policy distillation (MOPD). Such consolidation is expensive: the student samples in every environment again, an expert scores every sampled token, and the student inherits the drift of the final experts. Yet we argue that the",
+   "upvotes": 4,
+   "githubRepo": "https://github.com/Yueeeeeeee/MRPD",
+   "publishedAt": "2026-11-18T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "Replay, Don't Resample: Off-Policy Consolidation of Long-Horizon RL Experts",
+  "publishedAt": "2026-11-17T19:00:00.000Z",
+  "numComments": 2
+ },
+ {
+  "paper": {
+   "id": "2611.24917",
+   "title": "Unified Law for Visual Tasks (The Four Laws of Computer Vision)",
+   "summary": "In this paper, we propose a Unified Law for Visual Tasks, which could be further divided into Four Laws of Computer Vision, with the goal of enabling a single framework or method to uniformly train on and perform nearly all visual tasks. Our starting point is an inspiration and hypothesis: if the world information is encoded into image, which we call World Snapshots, then image processing is world",
+   "upvotes": 4,
+   "githubRepo": "https://github.com/World-Snapshot/WSMs",
+   "publishedAt": "2026-11-18T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "Unified Law for Visual Tasks (The Four Laws of Computer Vision)",
+  "publishedAt": "2026-11-17T19:00:00.000Z",
+  "numComments": 2
+ },
+ {
+  "paper": {
+   "id": "2611.16933",
+   "title": "Kezek: Splitting Mono Two-Person Conversations into Per-Speaker Tracks for Full-Duplex Dialogue Data",
+   "summary": "Full-duplex spoken dialogue models learn turn-taking, overlaps and backchannels from conversations recorded with one channel per speaker, but most available conversational audio is a single mono mix. We present Kezek, a model that turns a mono recording of exactly two people into one track per person with the original length and timing; overlaps and short replies (\"yeah\", \"mm-hm\") stay on the trac",
+   "upvotes": 4,
+   "githubRepo": "https://github.com/Manifestro/kezek",
+   "publishedAt": "2026-11-12T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "Kezek: Splitting Mono Two-Person Conversations into Per-Speaker Tracks for Full-Duplex Dialogue Data",
+  "publishedAt": "2026-11-11T19:00:00.000Z",
+  "numComments": 2
+ },
+ {
+  "paper": {
+   "id": "2611.23236",
+   "title": "PGPO: Prototype-Guided Progressive Obfuscation for Privacy-Preserving LLM-Enhanced Recommendation",
+   "summary": "LLM-enhanced recommender systems encode item side information into semantic embeddings, but these embeddings may leak sensitive textual attributes through inversion attacks. Existing input-side defenses rely on trusted collection or local token perturbation, often disrupting the inter-item semantic topology needed for recommendation. To address it, we introduce relational fidelity as the key objec",
+   "upvotes": 4,
+   "githubRepo": "https://github.com/Shengxiang-Lin/PGPO",
+   "publishedAt": "2026-08-26T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "PGPO: Prototype-Guided Progressive Obfuscation for Privacy-Preserving LLM-Enhanced Recommendation",
+  "publishedAt": "2026-08-25T20:00:00.000Z",
+  "numComments": 4
+ },
+ {
+  "paper": {
+   "id": "2607.21179",
+   "title": "Out of Sight, Still in Mind: Token Compression for Omni-LLMs",
+   "summary": "The goal of this paper is to reduce the input token cost of Omni-modal large language models (Omni-LLMs) at inference time. Omni-LLMs reason jointly over audio, video and text, but the cost of the three streams is highly unbalanced: visual tokens account for the vast majority of the input, and are highly redundant. In this paper, we propose ReMo, a training-free framework that compresses visual to",
+   "upvotes": 4,
+   "githubRepo": "https://github.com/suho-yoo/ReMo",
+   "publishedAt": "2026-11-17T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "Out of Sight, Still in Mind: Token Compression for Omni-LLMs",
+  "publishedAt": "2026-11-16T19:00:00.000Z",
+  "numComments": 2
+ },
+ {
+  "paper": {
+   "id": "2611.17767",
+   "title": "Learning Anisotropic Prediction Targets for Flow Models",
+   "summary": "Flow-based generative models are trained on a hand-chosen prediction target, such as the velocity, the noise, or the clean data. This choice strongly affects training and sample quality. We introduce Anisotropic Flow Models (AnisoFlow), which replaces a fixed prediction target with a fully learnable one. AnisoFlow learns to scale the noise component of the target anisotropically, assigning a separ",
+   "upvotes": 4,
+   "publishedAt": "2026-11-13T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "Learning Anisotropic Prediction Targets for Flow Models",
+  "publishedAt": "2026-11-12T19:00:00.000Z",
+  "numComments": 2
+ },
+ {
+  "paper": {
+   "id": "2611.17605",
+   "title": "Choosing Quantized Code LLMs by File Size and Energy per Solved Task",
+   "summary": "A developer running a code assistant on a laptop downloads one model file, and local inference moves the energy of every request onto that machine. A common rule says a larger model at lower precision tends to beat a smaller one at higher precision. We ran 24 GGUF files of Qwen2.5-Coder at four sizes on a fanless MacBook Air M2 and priced each in energy per solved task on 542 EvalPlus tasks. The r",
+   "upvotes": 3,
+   "publishedAt": "2026-11-13T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "Choosing Quantized Code LLMs by File Size and Energy per Solved Task",
+  "publishedAt": "2026-11-12T19:00:00.000Z",
+  "numComments": 2
+ },
+ {
+  "paper": {
+   "id": "2611.24669",
+   "title": "Movie2Game-Bench: Holistic Evaluation of Film-to-Game Adaptation Beyond Playability",
+   "summary": "Adapting a film into a game requires selecting source elements and translating them into player actions, rules, and feedback. We introduce Movie2Game-Bench (M2G-bench), a benchmark for evaluating film-to-game adaptation beyond playability. M2G-bench combines general evaluation, movie-specific evaluation, and playtesting by three GUI model players. The protocol connects source content to gameplay s",
+   "upvotes": 3,
+   "publishedAt": "2026-11-18T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "Movie2Game-Bench: Holistic Evaluation of Film-to-Game Adaptation Beyond Playability",
+  "publishedAt": "2026-11-17T19:00:00.000Z",
+  "numComments": 2
+ },
+ {
+  "paper": {
+   "id": "2611.22668",
+   "title": "Let Samples Sing in Chorus: Mitigating Spurious Correlations via Cross-view Consensus",
+   "summary": "Deep models often rely on spurious correlations that fail on underrepresented groups. Existing methods either correct human-specified bias attributes or infer unknown biases from the learned representation space. However, annotated attributes may differ from the shortcuts actually used by a model, while a single representation provides incomplete and potentially noisy evidence. Our key insight is ",
+   "upvotes": 3,
+   "githubRepo": "https://github.com/davelee-uestc/chord_debiasing_public",
+   "publishedAt": "2026-11-17T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "Let Samples Sing in Chorus: Mitigating Spurious Correlations via Cross-view Consensus",
+  "publishedAt": "2026-11-16T19:00:00.000Z",
+  "numComments": 4
+ },
+ {
+  "paper": {
+   "id": "2611.24075",
+   "title": "Recurrent Domain Incremental Adaptation of Time-Series Foundation Models",
+   "summary": "Pretrained Time-Series Foundation Models (TSFMs) provide strong representations for downstream classification tasks. Yet adapting a TSFM under changing operating conditions remains challenging. A model must improve on each newly observed condition without sacrificing conditions it has already learned, often from only a small labeled calibration set and without knowing the operating condition at in",
+   "upvotes": 3,
+   "githubRepo": "https://github.com/Sachithx/PACT",
+   "publishedAt": "2026-11-18T00:00:00.000Z",
+   "submittedOnDailyAt": "2026-11-19T00:00:00.000Z"
+  },
+  "title": "Recurrent Domain Incremental Adaptation of Time-Series Foundation Models",
+  "publishedAt": "2026-11-17T19:00:00.000Z",
+  "numComments": 3
+ }
+]

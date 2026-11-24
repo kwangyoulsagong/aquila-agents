@@ -42,6 +42,14 @@ export interface GraphRendererProps {
 }
 
 const TRANSPARENT = 'rgba(0,0,0,0)';
+/** Longer labels are cut on the canvas (the card and hover backdrop name the node); long Korean titles overlapped. */
+const LABEL_MAX = 28;
+export const shortLabel = (s: string): string => (s.length > LABEL_MAX ? `${s.slice(0, LABEL_MAX - 1)}…` : s);
+
+export interface GraphRenderer {
+  /** Back to the whole picture (camera reset). */
+  fit(): void;
+}
 /** Dash / gap in px per line style (0 = this layer draws nothing; the plain layer draws solid lines). */
 const DASH: Record<LineStyle, [number, number]> = { solid: [0, 0], dashed: [5, 4], dotted: [1.5, 3.5] };
 
@@ -53,9 +61,9 @@ const DASH: Record<LineStyle, [number, number]> = { solid: [0, 0], dashed: [5, 4
 export function useGraphRenderer(
   el: HTMLDivElement | null,
   { view, colors, selected, matches, saver, onSelect, onOpen, onSettled }: GraphRendererProps,
-): void {
+): GraphRenderer {
   const graphRef = useRef<Graph<NodeAttrs, EdgeAttrs> | null>(null);
-  const sigmaRef = useRef<{ kill(): void } | null>(null);
+  const sigmaRef = useRef<Sigma<NodeAttrs, EdgeAttrs> | null>(null);
   const positions = useRef(new Map<string, { x: number; y: number }>());
   const hovered = useRef<string | null>(null);
   const nodesById = useRef(new Map<string, GraphNode>());
@@ -147,7 +155,7 @@ export function useGraphRenderer(
           size: { whenState: 'isHovered', then: (a: NodeAttrs) => a.size + 2, else: { attribute: 'size' } },
           color: { attribute: 'color' },
           opacity: (a: NodeAttrs) => (a.dim ? 0.18 : 1),
-          label: { attribute: 'label' },
+          label: (a: NodeAttrs, s) => (s.isHovered || a.lit ? a.label : shortLabel(a.label)),
           labelColor: colors.label,
           labelVisibility: (a: NodeAttrs, s) =>
             s.isHovered || a.lit ? 'visible' : a.dim ? 'hidden' : 'auto',
@@ -177,6 +185,13 @@ export function useGraphRenderer(
         inertiaDuration: saver ? 0 : 200,
         doubleClickZoomingDuration: saver ? 0 : 200,
         minCameraRatio: 0.05,
+        // Frame nodes *and* their labels, so nothing is cut at the panel edge.
+        autoRescaleContent: 'labels',
+        // A two-finger twist on the trackpad turned the whole picture sideways.
+        enableCameraRotation: false,
+        enableCameraMouseRotation: false,
+        // The panel can be resized to nothing (or hidden) while sigma is alive.
+        allowInvalidContainer: true,
         maxCameraRatio: 10,
         // Clears the legend and the card over the canvas.
         stagePadding: 48,
@@ -210,7 +225,11 @@ export function useGraphRenderer(
       if (n) cb.current.onOpen(n);
     });
     sigma.on('clickStage', () => cb.current.onSelect(null));
+    // sigma only listens to window resizes: resizing the panel or ⤢ stretched the old canvas (blurry, clipped).
+    const resized = new ResizeObserver(() => sigma.scheduleRefresh());
+    resized.observe(el);
     return () => {
+      resized.disconnect();
       sigma.kill();
       sigmaRef.current = null;
       graphRef.current = null;
@@ -295,4 +314,7 @@ export function useGraphRenderer(
   // Focus / search changes only restyle.
   useEffect(applyFocus, [selected, matches]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  return {
+    fit: () => void sigmaRef.current?.getCamera().reset({ duration: saver ? 0 : 200 }),
+  };
 }

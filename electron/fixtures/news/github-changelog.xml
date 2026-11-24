@@ -1,0 +1,297 @@
+<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"
+	xmlns:content="http://purl.org/rss/1.0/modules/content/"
+	xmlns:wfw="http://wellformedweb.org/CommentAPI/"
+	xmlns:dc="http://purl.org/dc/elements/1.1/"
+	xmlns:atom="http://www.w3.org/2005/Atom"
+	xmlns:sy="http://purl.org/rss/1.0/modules/syndication/"
+	xmlns:slash="http://purl.org/rss/1.0/modules/slash/"
+	>
+
+<channel>
+	<title>Use Case: copilot - GitHub Changelog</title>
+	<atom:link href="https://github.blog/changelog/label/copilot/feed/" rel="self" type="application/rss+xml" />
+	<link>https://github.blog/changelog/label/copilot/</link>
+	<description>Updates, ideas, and inspiration from GitHub to help developers build and design software.</description>
+	<lastBuildDate>Thu, 19 Nov 2026 18:45:04 +0000</lastBuildDate>
+	<language>en-US</language>
+	<sy:updatePeriod>
+	hourly	</sy:updatePeriod>
+	<sy:updateFrequency>
+	1	</sy:updateFrequency>
+	<generator>https://wordpress.org/?v=7.1.5</generator>
+
+<image>
+	<url>https://github.blog/wp-content/uploads/2019/01/cropped-github-favicon-512.png?fit=32%2C32</url>
+	<title>Use Case: copilot - GitHub Changelog</title>
+	<link>https://github.blog/changelog/label/copilot/</link>
+	<width>32</width>
+	<height>32</height>
+</image> 
+<site xmlns="com-wordpress:feed-additions:1">153214340</site>	<item>
+		<title>Connect Supabase, Box, Calendly, and more to Copilot</title>
+		<link>https://github.blog/changelog/2026-11-18-connect-supabase-box-calendly-and-more-to-copilot</link>
+		
+		<dc:creator><![CDATA[Allison]]></dc:creator>
+		<pubDate>Wed, 18 Nov 2026 22:04:50 +0000</pubDate>
+				<guid isPermaLink="false">https://github.blog/changelog/2026-11-18-connect-supabase-clickup-buildkite-and-more-to-copilot</guid>
+
+					<description><![CDATA[<p>You can now connect eight more services to Copilot using GitHub-verified MCP servers, or connectors, available in public preview. They join more than 25 services you can already connect, like&#8230;</p>
+<p>The post <a href="https://github.blog/changelog/2026-11-18-connect-supabase-box-calendly-and-more-to-copilot">Connect Supabase, Box, Calendly, and more to Copilot</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<html><body><p>You can now connect eight more services to Copilot using GitHub-verified MCP servers, or connectors, available in public preview. They join more than 25 services you can already connect, like Slack, Figma, and Sentry. To see the full list, open Customize in the Copilot app or browse the <a href="https://github.com/copilot/customize?utm_source=connectors-changelog-customize-tab&amp;utm_medium=changelog&amp;utm_campaign=connectors-new-services">Copilot customization page</a>.</p>
+<h3 id="new-services-you-can-connect" id="new-services-you-can-connect" ><a class="heading-link" href="#new-services-you-can-connect">New services you can connect<span class="heading-hash pl-2 text-italic text-bold" aria-hidden="true"></span></a></h3>
+<ul>
+<li><strong>Box</strong>: Search and manage content, and use Box AI.</li>
+<li><strong>Buildkite</strong>: Work with pipelines and builds.</li>
+<li><strong>Calendly</strong>: Manage scheduling and meetings.</li>
+<li><strong>ClickUp</strong>: Track tasks and projects.</li>
+<li><strong>Mixpanel</strong>: Explore product analytics.</li>
+<li><strong>Supabase</strong>: Work with projects and databases.</li>
+<li><strong>Webflow</strong>: Manage sites and content.</li>
+<li><strong>Wix</strong>: Manage sites and business tools.</li>
+</ul>
+<p>For example, you can ask Copilot why your latest Buildkite build failed and have it fix the code in]]></content:encoded>
+					
+		
+		
+		<category domain="changelog-type"><![CDATA[Improvement]]></category>
+<category domain="changelog-label"><![CDATA[copilot]]></category>
+<post-id xmlns="com-wordpress:feed-additions:1">100383</post-id>	</item>
+<item>
+		<title>Gemini 4 Neon in GitHub Copilot</title>
+		<link>https://github.blog/changelog/2026-11-18-gemini-4-neon-in-github-copilot</link>
+		
+		<dc:creator><![CDATA[Allison]]></dc:creator>
+		<pubDate>Wed, 18 Nov 2026 21:49:21 +0000</pubDate>
+				<guid isPermaLink="false">https://github.blog/changelog/2026-11-18-gemini-4-neon-in-github-copilot</guid>
+
+					<description><![CDATA[<p>Gemini 4 Neon is now generally available in GitHub Copilot. It is designed for agentic coding, multistep tool use, and knowledge work. According to Google, Gemini 4 Neon delivers quality&#8230;</p>
+<p>The post <a href="https://github.blog/changelog/2026-11-18-gemini-4-neon-in-github-copilot">Gemini 4 Neon in GitHub Copilot</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<html><body><p>Gemini 4 Neon is now generally available in GitHub Copilot. It is designed for agentic coding, multistep tool use, and knowledge work. According to Google, Gemini 4 Neon delivers quality close to Gemini 4 Carbon at a lower token cost per task. Google also reports that, compared with Gemini 4 Carbon, it starts responding faster and makes fewer unrequested changes on coding tasks. It is also less likely to make unsupported claims about code, tool, or test results.</p>
+<p>This model is billed at provider list pricing under usage-based billing. See <a href="https://docs.github.com/copilot/reference/copilot-billing/models-and-pricing">Models and pricing for GitHub Copilot</a> for details.</p>
+<h3 id="availability-in-github-copilot" id="availability-in-github-copilot" ><a class="heading-link" href="#availability-in-github-copilot">Availability in GitHub Copilot<span class="heading-hash pl-2 text-italic text-bold" aria-hidden="true"></span></a></h3>
+<p>Gemini 4 Neon is available to Copilot Pro+, Max, Business, and Enterprise users. You can select the model in the model picker in:</p>
+<ul>
+<li>Visual Studio Code</li>
+<li>Visual Studio</li>
+<li>Copilot CLI</li>
+<li>GitHub Copilot coding agent</li>
+<li>GitHub Copilot app</li>
+<li>github.com</li>
+<li>GitHub Mobile on iOS and Android</li>
+<li>JetBrains IDEs</li>
+<li>Xcode</li>
+<li>Eclipse</li>
+</ul>
+<p>Rollout will be]]></content:encoded>
+					
+		
+		
+		<category domain="changelog-type"><![CDATA[Release]]></category>
+<category domain="changelog-label"><![CDATA[copilot]]></category>
+<post-id xmlns="com-wordpress:feed-additions:1">100379</post-id>	</item>
+<item>
+		<title>Customize GitHub Copilot for your team</title>
+		<link>https://github.blog/changelog/2026-11-18-customize-github-copilot-for-your-team</link>
+		
+		<dc:creator><![CDATA[Allison]]></dc:creator>
+		<pubDate>Wed, 18 Nov 2026 16:00:13 +0000</pubDate>
+				<guid isPermaLink="false">https://github.blog/changelog/2026-11-18-customize-github-copilot-for-your-team</guid>
+
+					<description><![CDATA[<p>You can now share the GitHub Copilot plugins your team relies on without asking every member to repeat the same setup. Team customizations are generally available for organization teams. Team&#8230;</p>
+<p>The post <a href="https://github.blog/changelog/2026-11-18-customize-github-copilot-for-your-team">Customize GitHub Copilot for your team</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<html><body><p>You can now share the GitHub Copilot plugins your team relies on without asking every member to repeat the same setup. Team customizations are generally available for organization teams.</p>
+<p>Team maintainers and organization owners can select approved Agent Plugins as team defaults. This gives your team a shared starting point between individual customization and organization-wide policy.</p>
+<h3 id="set-up-plugins-for-a-team" id="set-up-plugins-for-a-team" ><a class="heading-link" href="#set-up-plugins-for-a-team">Set up plugins for a team<span class="heading-hash pl-2 text-italic text-bold" aria-hidden="true"></span></a></h3>
+<p>If you&rsquo;re a team maintainer or organization owner, open your organization team on github.com and select the <strong>Customize Copilot</strong> tab. From there, you can:</p>
+<ul>
+<li><strong>Browse plugins</strong> from the marketplaces built into Copilot, your enterprise&rsquo;s marketplaces, and any marketplaces the team adds. You can then add individual plugins to the team.</li>
+<li><strong>Add a marketplace</strong> from a GitHub repository that contains a plugin marketplace. This makes its plugins available to browse. You can add individual plugins to the team to enable them.</li>
+</ul>
+<p>Selected plugins are enabled by default for the team&rsquo;s direct members in VS Code, the GitHub Copilot app, and Copilot CLI. ]]></content:encoded>
+					
+		
+		
+		<category domain="changelog-type"><![CDATA[Release]]></category>
+<category domain="changelog-label"><![CDATA[copilot]]></category>
+<post-id xmlns="com-wordpress:feed-additions:1">100365</post-id>	</item>
+<item>
+		<title>OpenAI&#8217;s GPT-6.2 Astra and GPT-6.2 Sol now available</title>
+		<link>https://github.blog/changelog/2026-11-17-openais-gpt-6-2-astra-and-gpt-6-2-sol-now-available</link>
+		
+		<dc:creator><![CDATA[Allison]]></dc:creator>
+		<pubDate>Tue, 17 Nov 2026 20:20:29 +0000</pubDate>
+				<guid isPermaLink="false">https://github.blog/changelog/2026-11-17-openais-gpt-6-2-astra-and-gpt-6-2-sol-now-available</guid>
+
+					<description><![CDATA[<p>OpenAI&#8217;s GPT-6.2 Astra and GPT-6.2 Sol are now generally available in GitHub Copilot. Both models are designed for agentic coding and code review, with stronger coding judgment than earlier GPT-6&#8230;</p>
+<p>The post <a href="https://github.blog/changelog/2026-11-17-openais-gpt-6-2-astra-and-gpt-6-2-sol-now-available">OpenAI&#8217;s GPT-6.2 Astra and GPT-6.2 Sol now available</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<html><body><p>OpenAI&rsquo;s GPT-6.2 Astra and GPT-6.2 Sol are now generally available in GitHub Copilot. Both models are designed for agentic coding and code review, with stronger coding judgment than earlier GPT-6 models. In early testing, both caught significantly more real issues in code review than earlier GPT-6 models while using fewer tokens.</p>
+<ul>
+<li><strong>GPT-6.2 Astra:</strong> OpenAI&rsquo;s latest Astra model for agentic coding and terminal work. In early testing, it caught significantly more issues in code review than GPT-6 Astra and completed agentic coding tasks using noticeably fewer tokens.</li>
+<li><strong>GPT-6.2 Sol:</strong> OpenAI&rsquo;s latest Sol model for complex agentic coding and in-depth code review. In early testing, it caught nearly twice as many real issues in code review as GPT-6.1 Sol while keeping its findings accurate.</li>
+</ul>
+<p>These models are billed at provider list pricing under usage-based billing. See <a href="https://docs.github.com/copilot/reference/copilot-billing/models-and-pricing">Models and pricing for GitHub Copilot</a> for details.</p>
+<h3 id="availability-in-github-copilot" id="availability-in-github-copilot" ><a class="heading-link" href="#availability-in-github-copilot">Availability in GitHub Copilot<span class="heading-hash pl-2 text-italic text-bold" aria-hidden="true"></span></a></h3>
+<p>GPT-6.2 Astra an]]></content:encoded>
+					
+		
+		
+		<category domain="changelog-type"><![CDATA[Release]]></category>
+<category domain="changelog-label"><![CDATA[copilot]]></category>
+<post-id xmlns="com-wordpress:feed-additions:1">100354</post-id>	</item>
+<item>
+		<title>GitHub Copilot Fusion updates: more availability, benchmarks, and models</title>
+		<link>https://github.blog/changelog/2026-11-17-github-copilot-fusion-updates-more-availability-benchmarks-and-models</link>
+		
+		<dc:creator><![CDATA[Allison]]></dc:creator>
+		<pubDate>Tue, 17 Nov 2026 18:04:48 +0000</pubDate>
+				<guid isPermaLink="false">https://github.blog/changelog/2026-11-16-github-copilot-fusion-updates-more-availability-benchmarks-and-models</guid>
+
+					<description><![CDATA[<p>Today, we&#8217;re expanding GitHub Copilot Fusion with new models, available on more Copilot surfaces, and results on two public Terminal-Bench leaderboards, giving you more ways to use Fusion and compare&#8230;</p>
+<p>The post <a href="https://github.blog/changelog/2026-11-17-github-copilot-fusion-updates-more-availability-benchmarks-and-models">GitHub Copilot Fusion updates: more availability, benchmarks, and models</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<html><body><p>Today, we&rsquo;re expanding <a href="https://docs.github.com/copilot/concepts/models/copilot-fusion?utm_source=fusion-changelog-fusion-docs&amp;utm_medium=changelog&amp;utm_campaign=ignite-nov-2026">GitHub Copilot Fusion</a> with new models, available on more Copilot surfaces, and results on two public Terminal-Bench leaderboards, giving you more ways to use Fusion and compare its performance.</p>
+<h2 id="github-copilot-fusion-joins-public-terminal-bench-4-1-leaderboard" id="github-copilot-fusion-joins-public-terminal-bench-4-1-leaderboard" ><a class="heading-link" href="#github-copilot-fusion-joins-public-terminal-bench-4-1-leaderboard">GitHub Copilot Fusion joins public Terminal-Bench 4.1 leaderboard<span class="heading-hash pl-2 text-italic text-bold" aria-hidden="true"></span></a></h2>
+<p>Copilot Fusion is now listed on Terminal-Bench 4.1 public leaderboards hosted by Stanford, Harbor, and the Laude Institute: <a href="https://www.tbench.ai/">Terminal-Bench 4.1</a> measures how well AI agents complete hard, realistic tasks in a terminal.</p>
+<p>On Terminal-Bench 4.1, Copilot Fusion Max achieved a <strong>71.2% resolution rate,</strong> 5.4 percentage points ahead of leading frontier models Opus 5.5 and Fable 5.2, while costing <strong>88% less than Fable 5.2</strong> and <strong>57% less than Opus 5.5.</strong></p>
+<p><img decoding="async" src="https:]]></content:encoded>
+					
+		
+		
+		<category domain="changelog-type"><![CDATA[Improvement]]></category>
+<category domain="changelog-label"><![CDATA[copilot]]></category>
+<post-id xmlns="com-wordpress:feed-additions:1">100258</post-id>	</item>
+<item>
+		<title>GitHub Copilot app, Microsoft Ignite releases</title>
+		<link>https://github.blog/changelog/2026-11-17-github-copilot-app-microsoft-ignite-releases</link>
+		
+		<dc:creator><![CDATA[Allison]]></dc:creator>
+		<pubDate>Tue, 17 Nov 2026 18:03:42 +0000</pubDate>
+				<guid isPermaLink="false">https://github.blog/changelog/2026-11-16-github-copilot-app-microsoft-ignite-releases</guid>
+
+					<description><![CDATA[<p>Copilot is most useful when it can work where you do. The GitHub Copilot app now supports your Azure DevOps repositories, your GitHub Enterprise Server instance, and the browser you&#8217;re&#8230;</p>
+<p>The post <a href="https://github.blog/changelog/2026-11-17-github-copilot-app-microsoft-ignite-releases">GitHub Copilot app, Microsoft Ignite releases</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<html><body><p>Copilot is most useful when it can work where you do. The GitHub Copilot app now supports your Azure DevOps repositories, your GitHub Enterprise Server instance, and the browser you&rsquo;re already signed in to.</p>
+<h3 id="work-with-azure-devops-repositories-in-the-github-copilot-app" id="work-with-azure-devops-repositories-in-the-github-copilot-app" ><a class="heading-link" href="#work-with-azure-devops-repositories-in-the-github-copilot-app">Work with Azure DevOps repositories in the GitHub Copilot app<span class="heading-hash pl-2 text-italic text-bold" aria-hidden="true"></span></a></h3>
+<p>Clone an Azure DevOps repository, ask an agent to create a branch, make code changes, and open a pull request, then see it through to completion without leaving the GitHub Copilot app. Track its status in the sidebar, click <strong>Fix</strong> on a review comment to have an agent address it, or turn on agent merge to let an agent fix CI failures and complete the pull request once your Azure DevOps checks and policies pass.</p>
+<p>Azure DevOps integration is now in public preview. To get started, open <strong>Settings</strong> &gt; <strong>Experimental</strong> and turn on <strong>Azure DevOps integration</strong>, then go to <strong>Accounts</strong> &gt; <strong>Add account</strong> and sign in with the Microsoft account you use for Azure DevOps. Cloud sessions ]]></content:encoded>
+					
+		
+		
+		<category domain="changelog-type"><![CDATA[Release]]></category>
+<category domain="changelog-label"><![CDATA[copilot]]></category>
+<post-id xmlns="com-wordpress:feed-additions:1">100213</post-id>	</item>
+<item>
+		<title>Copilot code review: Adaptive effort, secret detection, and more</title>
+		<link>https://github.blog/changelog/2026-11-17-copilot-code-review-adaptive-effort-secret-detection-and-more</link>
+		
+		<dc:creator><![CDATA[Allison]]></dc:creator>
+		<pubDate>Tue, 17 Nov 2026 18:02:05 +0000</pubDate>
+				<guid isPermaLink="false">https://github.blog/changelog/2026-11-16-copilot-code-review-adaptive-effort-secret-detection-and-more</guid>
+
+					<description><![CDATA[<p>GitHub Copilot code review now helps you catch more issues earlier, with less effort. Adaptive matches review depth to each pull request, so routine changes get a quick pass and&#8230;</p>
+<p>The post <a href="https://github.blog/changelog/2026-11-17-copilot-code-review-adaptive-effort-secret-detection-and-more">Copilot code review: Adaptive effort, secret detection, and more</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<html><body><p>GitHub Copilot code review now helps you catch more issues earlier, with less effort. <strong>Adaptive</strong> matches review depth to each pull request, so routine changes get a quick pass and risky changes get a deeper look. Reviews can also draw on related repositories and flag exposed secrets before they reach your main branch. Features in public preview are subject to change.</p>
+<p>Adaptive, cross-repository context, and secret detection are available to Copilot Pro, Pro+, Max, Business, and Enterprise plans.</p>
+<h2 id="%f0%9f%8e%af-adaptive-the-right-review-effort-for-each-pull-request" id="%f0%9f%8e%af-adaptive-the-right-review-effort-for-each-pull-request" ><a class="heading-link" href="#%f0%9f%8e%af-adaptive-the-right-review-effort-for-each-pull-request">&#127919; Adaptive: The right review effort for each pull request<span class="heading-hash pl-2 text-italic text-bold" aria-hidden="true"></span></a></h2>
+<p>Today, someone has to decide in settings or when requesting a review, what review effort level each pull request needs. A documentation update may only need <strong>Lite</strong>, while a change to authentication logic benefits from <strong>Max</strong>. <strong>Adaptive</strong> makes that choice for you. Copilot looks at each pull request&rsquo;s complexity and risk, then reviews it with <strong>Lite</strong>, <strong>Balanced</strong>, ]]></content:encoded>
+					
+		
+		
+		<category domain="changelog-type"><![CDATA[Release]]></category>
+<category domain="changelog-label"><![CDATA[copilot]]></category>
+<post-id xmlns="com-wordpress:feed-additions:1">100224</post-id>	</item>
+<item>
+		<title>MAI Code 2 and MAI Code 2 Flash in GitHub Copilot</title>
+		<link>https://github.blog/changelog/2026-11-17-mai-code-2-and-mai-code-2-flash-in-github-copilot</link>
+		
+		<dc:creator><![CDATA[Allison]]></dc:creator>
+		<pubDate>Tue, 17 Nov 2026 18:01:45 +0000</pubDate>
+				<guid isPermaLink="false">https://github.blog/changelog/2026-11-17-mai-code-2-and-mai-code-2-flash-in-github-copilot</guid>
+
+					<description><![CDATA[<p>The next generation of Microsoft AI (MAI) coding models has arrived in GitHub Copilot. Introducing MAI Code 2 and MAI Code 2 Flash, two new models that represent a major&#8230;</p>
+<p>The post <a href="https://github.blog/changelog/2026-11-17-mai-code-2-and-mai-code-2-flash-in-github-copilot">MAI Code 2 and MAI Code 2 Flash in GitHub Copilot</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<html><body><p>The next generation of Microsoft AI (MAI) coding models has arrived in GitHub Copilot. Introducing <strong>MAI Code 2</strong> and <strong>MAI Code 2 Flash</strong>, two new models that represent a major step forward for the MAI-Code family, expanding from lightweight coding assistance to complex, agentic software engineering.</p>
+<ul>
+<li><strong>MAI Code 2:</strong> A powerful, general purpose coding model built to help developers get from request to result with focused responses, practical code changes, and less unnecessary back and forth. Ideal for complex tasks like deep debugging, multi-file implementation, refactoring, and repository-wide reasoning.</li>
+<li><strong>MAI Code 2 Flash:</strong> A lightweight, cost-efficient coding model optimized for everyday development workflows. Well suited for code explanations, targeted edits, routine fixes, and rapid iteration.</li>
+</ul>
+<p>Both models are designed for agentic coding workflows, giving developers more flexibility to choose the model that best fits their task.</p>
+<p>Read the <a href="https://microsoft.ai/news/introducing-mai-code-2-and-mai-code-2-flash/">MAI Code 2 and MAI Code 2 Flash announcement</a> for a deeper look at the model&rsquo;s vision support, coding performance improvements, and efficiency gains.</p>
+<p>These models are billed under usage-based billing. For more details, see <a hre]]></content:encoded>
+					
+		
+		
+		<category domain="changelog-type"><![CDATA[Release]]></category>
+<category domain="changelog-label"><![CDATA[copilot]]></category>
+<post-id xmlns="com-wordpress:feed-additions:1">100302</post-id>	</item>
+<item>
+		<title>GitHub Copilot in JetBrains, Ignite releases</title>
+		<link>https://github.blog/changelog/2026-11-17-github-copilot-in-jetbrains-ignite-releases</link>
+		
+		<dc:creator><![CDATA[Allison]]></dc:creator>
+		<pubDate>Tue, 17 Nov 2026 18:00:59 +0000</pubDate>
+				<guid isPermaLink="false">https://github.blog/changelog/2026-11-13-github-copilot-in-jetbrains-ignite-releases</guid>
+
+					<description><![CDATA[<p>This update brings remote access, on-device voice dictation, and browser use controls to GitHub Copilot for JetBrains. Copilot users in JetBrains IDEs also get context usage shortcuts, historical diffs, simpler&#8230;</p>
+<p>The post <a href="https://github.blog/changelog/2026-11-17-github-copilot-in-jetbrains-ignite-releases">GitHub Copilot in JetBrains, Ignite releases</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<html><body><p>This update brings remote access, on-device voice dictation, and browser use controls to GitHub Copilot for JetBrains. Copilot users in JetBrains IDEs also get context usage shortcuts, historical diffs, simpler follow-up controls, and improvements to chat reliability.</p>
+<h2 id="whats-new" id="whats-new" ><a class="heading-link" href="#whats-new">What&rsquo;s new<span class="heading-hash pl-2 text-italic text-bold" aria-hidden="true"></span></a></h2>
+<h3 id="cloud-sandbox-public-preview" id="cloud-sandbox-public-preview" ><a class="heading-link" href="#cloud-sandbox-public-preview">Cloud sandbox (public preview)<span class="heading-hash pl-2 text-italic text-bold" aria-hidden="true"></span></a></h3>
+<p>Cloud sandbox runs Copilot sessions in an isolated, GitHub-hosted environment instead of on your computer. Copilot can make code changes and run commands and tests there, freeing local resources and allowing parallel sessions. We&rsquo;re rolling this out in phases.</p>
+<p><img decoding="async" alt="User chooses cloud sandbox from the dropdown and works in the cloud sandbox with Copilot" src="https://github.com/user-attachments/assets/1bb83780-126a-4969-aa54-6470837f06bb"></p>
+<h3 id="remote-access-public-preview" id="remote-access-public-preview" ><a class="heading-link" href="#remote-access-public-preview">Remote access (public preview)<span class="headin]]></content:encoded>
+					
+		
+		
+		<category domain="changelog-type"><![CDATA[Release]]></category>
+<category domain="changelog-label"><![CDATA[client apps]]></category>
+<category domain="changelog-label"><![CDATA[copilot]]></category>
+<post-id xmlns="com-wordpress:feed-additions:1">100144</post-id>	</item>
+<item>
+		<title>Monitor GitHub Copilot activity through Microsoft Agent 365</title>
+		<link>https://github.blog/changelog/2026-11-17-monitor-github-copilot-activity-through-microsoft-agent-365</link>
+		
+		<dc:creator><![CDATA[Allison]]></dc:creator>
+		<pubDate>Tue, 17 Nov 2026 18:00:59 +0000</pubDate>
+				<guid isPermaLink="false">https://github.blog/changelog/2026-11-16-monitor-github-copilot-activity-through-microsoft-agent-365</guid>
+
+					<description><![CDATA[<p>Enterprises can now stream GitHub Copilot agent activity directly into Microsoft Agent 365. This lets you bring audit data from across GitHub Copilot clients into Microsoft&#8217;s agent control plane, where&#8230;</p>
+<p>The post <a href="https://github.blog/changelog/2026-11-17-monitor-github-copilot-activity-through-microsoft-agent-365">Monitor GitHub Copilot activity through Microsoft Agent 365</a> appeared first on <a href="https://github.blog">The GitHub Blog</a>.</p>
+]]></description>
+										<content:encoded><![CDATA[<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<html><body><p>Enterprises can now stream GitHub Copilot agent activity directly into<br>
+<a href="https://learn.microsoft.com/microsoft-agent-365/overview">Microsoft Agent 365</a>. This lets you bring audit data from across GitHub Copilot clients into Microsoft&rsquo;s agent control plane, where you can review Copilot activity alongside other AI workloads.</p>
+<p>With this release, administrators can:</p>
+<ul>
+<li>See activity across Copilot clients, including cloud agents on GitHub.com, Copilot CLI, Visual Studio Code, Visual Studio, and partner IDEs such as JetBrains and Eclipse.</li>
+<li>Review user sessions, including prompts, responses, and tool calls, and view usage trends in Agent 365.</li>
+<li>Access additional risk information in Microsoft Purview and Defender to investigate and mitigate risk.</li>
+</ul>
+<p>This is available for GitHub Enterprise Cloud customers with Enterprise Managed Users. To get started, see <a href="https://docs.github.com/enterprise-cloud@latest/admin/monitoring-activity-in-your-enterprise/reviewing-audit-logs-for-your-enterprise/streaming-the-audit-log-for-your-enterprise?utm_source=agent-visibility-changelog-stream-audit-log-docs&amp;utm_medium=changelog&amp;utm_campaign=ignite-nov-2026">Streaming the audit log for your enterprise</a> on GitHub Docs.</p>
+</body></html>
+<p>The post <a href="https://github.blog/changelog/2026-11-17-monito]]></content:encoded>
+					
+		
+		
+		<category domain="changelog-type"><![CDATA[Release]]></category>
+<category domain="changelog-label"><![CDATA[copilot]]></category>
+<post-id xmlns="com-wordpress:feed-additions:1">100182</post-id>	</item>
+</channel>
+</rss>

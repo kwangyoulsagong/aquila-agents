@@ -172,8 +172,13 @@ export interface Config {
   projects: Project[];
   /** ⚙ Notify when done: a banner when a session finishes (off by default, T45). */
   notifyDone?: boolean;
+  /** ⚙ Appearance: forced light / dark; absent = follow macOS. */
+  theme?: 'light' | 'dark';
   error?: string;
 }
+
+/** ⚙ Appearance choice; `system` follows the OS. */
+export type ThemeMode = 'system' | 'light' | 'dark';
 
 /** One change to the project list, made from the sidebar. Main applies it to ~/.aquila/config.json. */
 export type ProjectEdit =
@@ -576,9 +581,13 @@ export type NewsSourceId =
   | 'simonw'
   | 'latent-space'
   | 'hn'
+  | 'github-changelog'
+  | 'huggingface'
+  | 'hf-papers'
+  | 'github-new'
   // Korea (T63)
   | 'geeknews'
-  | 'aitimes'
+  | 'naver-d2'
   | 'kakao'
   | 'toss'
   | 'woowahan'
@@ -600,8 +609,12 @@ export const NEWS_REGION: Record<NewsSourceId, NewsRegion> = {
   simonw: 'global',
   'latent-space': 'global',
   hn: 'global',
+  'github-changelog': 'global',
+  huggingface: 'global',
+  'hf-papers': 'global',
+  'github-new': 'global',
   geeknews: 'kr',
-  aitimes: 'kr',
+  'naver-d2': 'kr',
   kakao: 'kr',
   toss: 'kr',
   woowahan: 'kr',
@@ -1152,6 +1165,8 @@ export interface AquilaApi {
   setLanguage(language: Language): Promise<Config>;
   /** ⚙ Notify when done (T45). */
   setNotifyDone(on: boolean): Promise<Config>;
+  /** ⚙ Appearance: system / light / dark (sets Electron's nativeTheme.themeSource). */
+  setTheme(mode: ThemeMode): Promise<Config>;
   setProjectAccount(projectId: string, account: string): Promise<Config>;
   /** Add/rename/move/remove projects and groups; returns the saved config. */
   editProjects(edit: ProjectEdit): Promise<Config>;
@@ -1190,6 +1205,8 @@ export interface AquilaApi {
   reopenSession(id: string): Promise<SessionInfo>;
   /** The split layout changed (saved with the tabs). */
   saveLayout(layout: SavedLayout): void;
+  /** The tab order changed (ids in their new order; saved with the tabs). Ids main doesn't know are ignored. */
+  reorderSessions(ids: string[]): void;
   /** Plain-text snapshot of a terminal's output, shown read-only if the tab can't resume after a relaunch. */
   saveScrollback(id: string, text: string): void;
   accountsStatus(): Promise<Record<string, AccountStatus>>;
@@ -1641,6 +1658,7 @@ export const IPC = {
   configOpen: 'config:open',
   configSetLanguage: 'config:set-language',
   configSetNotifyDone: 'config:set-notify-done',
+  configSetTheme: 'config:set-theme',
   configSetProjectAccount: 'config:set-project-account',
   configEditProjects: 'config:edit-projects',
   dialogPickFolder: 'dialog:pick-folder',
@@ -1655,6 +1673,7 @@ export const IPC = {
   sessionRestore: 'session:restore',
   sessionStart: 'session:start',
   layoutSave: 'layout:save',
+  sessionReorder: 'session:reorder',
   sessionScrollback: 'session:scrollback',
   sessionCreateWorktree: 'session:create-worktree',
   sessionReopen: 'session:reopen',

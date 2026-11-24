@@ -421,11 +421,23 @@ own title.
 - **Sources:** GitHub's `releases.atom` for claude-code and codex (last 10, ~300 KB each, no API rate limit — the REST
   list with assets was ~10 MB for 30), plus REST `/releases/latest` for codex (its 10 feed entries can all be alphas);
   versions with a `-suffix` are skipped. Claude Code `CHANGELOG.md`, first 64 KB only (`Range`; the cut-off last section
-  is dropped). RSS/Atom: OpenAI News, Cursor changelog, Antigravity blog, Simon Willison, Latent Space; HN Algolia
-  (`points>100`, last 7 days, AI-looking titles only). ~3 MB per fetch (OpenAI and Latent Space ignore `Range`).
-  Korea (T63, the Industry tab's Global / Korea switch, `NEWS_REGION`): GeekNews, AI타임스 (offset-less dates read as
-  KST), and the Kakao, Toss, Woowahan, Daangn and LY tech blogs. GeekNews and the blogs keep AI items only (`AI_TOPIC`,
-  Korean and English words). Toss ignores `Range`, so its body is read as a stream and cut at 64 KB (`readHead`).
+  is dropped). RSS/Atom: OpenAI News, Cursor changelog, GitHub Changelog (Copilot label), Hugging Face blog,
+  Antigravity blog, Simon Willison, Latent Space; Hugging Face daily papers (JSON API: papers with a GitHub repo, ≥5
+  upvotes, an LLM / agent / code / inference topic, top 10); new GitHub repos (search API, no key: created in the last 7
+  days, >200 stars, agent / llm / mcp / claude / codex, top 15 by stars); HN Algolia (`points>100`, last 7 days,
+  AI-looking titles only). ~3 MB per fetch (OpenAI and Latent Space ignore `Range`).
+  Korea (T63, the Industry tab's Global / Korea switch, `NEWS_REGION`): GeekNews, Naver D2 (first 256 KB), and the
+  Kakao, Toss, Woowahan, Daangn and LY tech blogs. GeekNews and the blogs keep AI items only (`AI_TOPIC`, Korean and
+  English words). AI타임스 was dropped: mostly business and policy news. Toss ignores `Range`, so its body is read as a
+  stream and cut at 64 KB (`readHead`).
+- **Technical filter (`electron/newsFilter.ts`):** the Industry tab is for things a developer can apply — releases,
+  libraries, APIs, techniques, papers with code — not company news. Deterministic, no LLM: a title matching `BUSINESS`
+  (stocks, earnings, funding, valuation, M&A, partnerships, CEOs / hires / resignations, lawsuits, regulation, politics,
+  data-center deals; Korean and English) is dropped from every source. `techScore` sums weighted signals over title +
+  excerpt + link (github.com / arxiv / huggingface links, Show HN, release / changelog, open source, library / SDK / API
+  / CLI / MCP, paper / benchmark / inference, how-to / deep dive / 구축기; topic words count 1). OpenAI News and HN need
+  a score ≥3, GeekNews ≥1, the rest 0. The score also picks which 15 a source keeps (most technical, then newest); the
+  list itself stays newest first.
   The XML parser is regex-based on purpose (no dependency).
 - **My CLIs:** `claude --version` / `codex --version` (the picked binary) vs. the releases: the newer ones (≤5), else
   the latest; 3–5 "Added" lines each (bullets starting with "Added", else the "New Features" section, else the first bullets).

@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+ <channel>
+  <atom:link href="https://huggingface.co/blog/feed.xml" rel="self" type="application/rss+xml"/>
+  <title>Hugging Face - Blog</title>
+  <link>https://huggingface.co/blog</link>
+  <description>The Hugging Face blog</description>
+  <language>en-US</language>
+  <item>
+   <title>RoboTrack: Point tracking for real-world robotic manipulation</title>
+   <pubDate>Mon, 23 Nov 2026 17:20:37 GMT</pubDate>
+   <link>https://huggingface.co/blog/allenai/robotrack</link>
+   <guid isPermaLink="false">https://huggingface.co/blog/allenai/robotrack</guid>
+  </item>
+<item>
+   <title>How to build and maintain an agentic evaluation</title>
+   <pubDate>Mon, 23 Nov 2026 00:00:00 GMT</pubDate>
+   <link>https://huggingface.co/blog/agentic-evals</link>
+   <guid isPermaLink="true">https://huggingface.co/blog/agentic-evals</guid>
+  </item>
+<item>
+   <title>Welcome Inkling 2 Mini, Cutting-edge Performance for your Local Setup</title>
+   <pubDate>Fri, 20 Nov 2026 00:00:00 GMT</pubDate>
+   <link>https://huggingface.co/blog/inkling2mini</link>
+   <guid isPermaLink="true">https://huggingface.co/blog/inkling2mini</guid>
+  </item>
+<item>
+   <title>Introducing harness adapters: adapt your favorite model to your harness to improve performance and cost</title>
+   <pubDate>Fri, 20 Nov 2026 00:00:00 GMT</pubDate>
+   <link>https://huggingface.co/blog/harness-adapters-at-scale</link>
+   <guid isPermaLink="true">https://huggingface.co/blog/harness-adapters-at-scale</guid>
+  </item>
+<item>
+   <title>DaisyRose-27B: Pushing the Frontier of Post-Training Efficiency</title>
+   <pubDate>Wed, 18 Nov 2026 19:54:56 GMT</pubDate>
+   <link>https://huggingface.co/blog/RadixArk/daisyrose-27b-pushing-the-frontier-of-post-trainin</link>
+   <guid isPermaLink="false">https://huggingface.co/blog/RadixArk/daisyrose-27b-pushing-the-frontier-of-post-trainin</guid>
+  </item>
+<item>
+   <title>Why your fine-tuning job takes longer than the FLOPs say</title>
+   <pubDate>Wed, 18 Nov 2026 18:53:43 GMT</pubDate>
+   <link>https://huggingface.co/blog/Dharma-AI/predicting-fine-tuning-time</link>
+   <guid isPermaLink="false">https://huggingface.co/blog/Dharma-AI/predicting-fine-tuning-time</guid>
+  </item>
+<item>
+   <title>Time-Series Models in the Streamhouse: A New Frontier and Use Cases</title>
+   <pubDate>Wed, 18 Nov 2026 15:00:23 GMT</pubDate>
+   <link>https://huggingface.co/blog/ibm-research/time-series-powered-streamhouse</link>
+   <guid isPermaLink="false">https://huggingface.co/blog/ibm-research/time-series-powered-streamhouse</guid>
+  </item>
+<item>
+   <title>180B Parameters, 32GB of RAM: Pushing MoE Inference to the Limit with Transformers</title>
+   <pubDate>Wed, 18 Nov 2026 00:00:00 GMT</pubDate>
+   <link>https://huggingface.co/blog/moe-expert-streaming</link>
+   <guid isPermaLink="true">https://huggingface.co/blog/moe-expert-streaming</guid>
+  </item>
+<item>
+   <title>Rumble-2-Flash: an open 0.5B speech model for 40+ languages</title>
+   <pubDate>Wed, 18 Nov 2026 00:00:00 GMT</pubDate>
+   <link>https://huggingface.co/blog/rumble-2-flash</link>
+   <guid isPermaLink="true">https://huggingface.co/blog/rumble-2-flash</guid>
+  </item>
+<item>
+   <title>Hugging Face and OpenRouter join forces to make open-weight models easy to run</title>
+   <pubDate>Mon, 16 Nov 2026 00:00:00 GMT</pubDate>
+   <link>https://huggingface.co/blog/openrouter</link>
+   <guid isPermaLink="true">https://huggingface.co/blog/openrouter</guid>
+  </item>
+<item>
+   <title>Build a Robot Pick-and-Place Simulation with SimReady Assets</title>
+   <pubDate>Fri, 13 Nov 2026 18:00:39 GMT</pubDate>
+   <link>https://huggingface.co/blog/nvidia/simready-assets-robot-pick-and-place</link>
+   <guid isPermaLink="false">https://huggingface.co/blog/nvidia/simready-assets-robot-pick-and-place</guid>
+  </item>
+<item>
+   <title>llama.cpp v1.0.0 : A stronger foundation for the local AI ecosystem</title>
+   <pubDate>Fri, 13 Nov 2026 14:05:22 GMT</pubDate>
+   <link>https://huggingface.co/blog/ggml-org/llama-cpp-v1</link>
+   <guid isPermaLink="false">https://huggingface.co/blog/ggml-org/llama-cpp-v1</guid>
+  </item>
+</channel>
+</rss>
