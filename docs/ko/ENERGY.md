@@ -11,6 +11,10 @@
   보이고 가비지는 안 보임)도 출력합니다. 창이 다른 창 뒤에 있어도 계속 그리게 하고, 프레임을 하나도 그리지 못한
   실행은 의미 없는 숫자를 내는 대신 실패합니다. `AQUILA_PERF_HEAP=1`이면 폭주가 남긴 객체의 할당 위치(V8 샘플링 힙
   프로파일러)도 출력합니다 — 이름을 읽으려면 먼저 `npx vite build --minify false`로 빌드하세요.
+  `statusStorm` / `graph.openStorm`: 초당 100번 상태 변경(그래프 닫힘 / 열림) — 세션 점 하나가 워크스페이스에 주는 비용.
+  `startup`: DOMContentLoaded와 첫 페인트; `AQUILA_PERF_STARTUP=1`은 그것만 재고 끝냄(여러 번 돌리세요),
+  `AQUILA_PERF_STARTUP_PROFILE=1`은 다시 불러오기의 CPU 프로파일과 요청 시간도 출력. `AQUILA_PERF_SKIP_GRAPH=1`은
+  그래프 부분을 건너뜀. smoke / perf / capture는 Chromium 데이터(localStorage, 파티션)를 설치된 앱 것이 아닌 임시 폴더에 둡니다.
 - **`scripts/measure-energy.sh [앱 …]`** — 앱 밖에서 측정: 앱마다 자기 프로세스들의 `top -stats pid,cpu,idlew,power`
   값을 합칩니다(Aquila Agents, Terminal, Ghostty, iTerm2 중 실행 중인 것). `POWERMETRICS=1`이면
   `sudo powermetrics --samplers tasks`로 작업별 wakeups와 에너지도 봅니다.

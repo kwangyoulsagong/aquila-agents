@@ -801,10 +801,16 @@ throttled or hot → `saver`). The rules every task below follows:
   indexing garbage resident) — main process for the 2,000-note index 69 → 44 MB (budget 50), same index time. The shared
   `system` poll now runs only for extension views on screen, floating or allowed in the background (hidden ones are
   suspended within minutes anyway).
+  **Re-render and startup (follow-up):** measured before changing anything. A status event re-rendering the workspace
+  costs ~nothing: 100 status changes a second → renderer 1.3–1.6 % of a core, 120 fps, with the graph closed or open —
+  so no memo refactor (perf keeps the scenario). Startup: smoke / perf shared the installed app's Chromium folder, and a
+  running Aquila held its storage lock, so the first `localStorage` read (at module load, the panel-width pin) waited
+  3.85 s — first paint 4,040 → ~175 ms after giving smoke its own temp folder and reading the pin on first use. Closed
+  dialogs / panels / modals are lazy chunks (`lazyComponent`, fetched right after the first frame): main chunk 1,044 → 902 kB; startup
+  time unchanged within noise (~2–4 ms) — parsing isn't what startup waits on. Not split: the dictionary (89 kB, both
+  languages; per-language would need an async load before the first render).
   Left over: graph closed and idle right
   after indexing is ~1 % CPU for a few seconds (code-name scan), then 0.5 %. Not done from the review: re-approval has no
-  "permissions changed" hint in the extension list (it just shows off); a status event still re-renders the whole
-  workspace (memo per session host); the initial chunk is 1 MB (history / trends / changes / preview panels could be
-  lazy); graph and editor each fetch their own snapshot; extension storage
+  "permissions changed" hint in the extension list (it just shows off); graph and editor each fetch their own snapshot; extension storage
   is read synchronously on every call; extraction child processes outlive a stopped graph worker; `noteOpen` has no size
   cap; CodeMirror's own panel text (search) is English only._

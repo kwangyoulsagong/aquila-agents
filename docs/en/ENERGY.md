@@ -11,7 +11,11 @@ Numbers, not guesses (T9). Two tools:
   full GC (`liveHeapMB`: a leak shows here, garbage doesn't). The window keeps painting behind other windows; a run
   where it draws no frames fails instead of printing meaningless numbers. `AQUILA_PERF_HEAP=1` adds the allocation
   sites of what the flood left alive (V8's sampling heap profiler) — build with `npx vite build --minify false` first
-  for readable names.
+  for readable names. `statusStorm` / `graph.openStorm`: 100 status changes a second (graph closed / open), what a
+  session dot costs the workspace. `startup`: DOMContentLoaded and first paint; `AQUILA_PERF_STARTUP=1` measures only
+  that and exits (run it a few times), `AQUILA_PERF_STARTUP_PROFILE=1` adds a CPU profile and request timings of a
+  reload. `AQUILA_PERF_SKIP_GRAPH=1` skips the graph part.
+  Smoke / perf / capture keep Chromium's data (localStorage, partitions) in a temp folder, never the installed app's.
 - **`scripts/measure-energy.sh [app …]`** — outside the app: `top -stats pid,cpu,idlew,power` summed over each app's own
   processes (Aquila Agents, Terminal, Ghostty, iTerm2 — whichever run). `POWERMETRICS=1` also runs
   `sudo powermetrics --samplers tasks` for per-task wakeups and energy.
