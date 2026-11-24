@@ -544,6 +544,7 @@ body {
   padding: var(--space-inset-sm) var(--space-inset-md); border-top: 1px solid var(--color-border-subtle);
 }
 .c-ext-chips > .c-btn { flex: none; max-width: 100%; font-variant-numeric: tabular-nums; }
+.c-ext-icon { display: inline-block; width: var(--size-ext-icon); height: var(--size-ext-icon); vertical-align: middle; image-rendering: pixelated; border-radius: var(--radius-badge); }
 .c-run__log { flex: 1; min-height: 0; padding: var(--space-inset-sm) 0 0 var(--space-inset-sm); background: var(--color-terminal-bg); }
 .c-run__log .xterm { height: 100%; }
 .c-runs { list-style: none; margin: 0; padding: 0; border-bottom: 1px solid var(--color-border-subtle); }
