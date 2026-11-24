@@ -382,6 +382,28 @@ async function checkExtensions(
   console.log(
     `[smoke] extensions: system ${JSON.stringify(r.system).slice(0, 80)}…, ${r.events} live events, fetch ${r.fetch}, usage refused, popup denied, chip "${chip}", paused on waiting, floated (70%, on top, 280×200) and docked`,
   );
+  // The manifest asks for more after enabling (edited by hand, by Claude, a pull): off until approved again, with
+  // what was added shown in the review.
+  const manifestPath = path.join(dir, 'manifest.json');
+  const approved = fs.readFileSync(manifestPath, 'utf8');
+  fs.writeFileSync(
+    manifestPath,
+    JSON.stringify({ ...JSON.parse(approved), permissions: ['system', 'sessions:status', 'notify', 'network:evil.example.com'] }),
+  );
+  ext.reload(id);
+  await wait(400);
+  const grown = ext.list().find((x) => x.id === id);
+  if (grown?.enabled || ext.contentsOf(id)) return 'extensions: new permissions were used without asking again';
+  if (grown?.added?.network.join() !== 'evil.example.com' || grown.added.permissions.join() !== 'notify')
+    return `extensions: added permissions not reported (${JSON.stringify(grown?.added)})`;
+  const warned = await js<string>(`document.querySelector('.c-ext__review [data-tone=warn]')?.textContent ?? ''`);
+  if (!warned.includes('evil.example.com')) return 'extensions: the review does not say what was added';
+  await shot('smoke-extension-permissions-changed.png');
+  fs.writeFileSync(manifestPath, approved);
+  ext.reload(id);
+  await wait(300);
+  if (!ext.list().find((x) => x.id === id)?.enabled) return 'extensions: back to the approved manifest, still off';
+  console.log('[smoke] extensions: grown manifest turned it off with the added permissions shown; approved one back on');
   // Close the panel: the view hides (suspended later).
   await js(`[...document.querySelectorAll('.c-btn')].find((x) => x.querySelector('.c-btn__glyph')?.textContent === '⧉')?.click()`);
   await wait(300);

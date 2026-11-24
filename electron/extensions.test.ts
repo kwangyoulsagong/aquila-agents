@@ -12,6 +12,7 @@ import {
   methodAllowed,
   parseManifest,
   parseFloatPrefs,
+  addedBeyond,
   grantCovers,
   parsePrefs,
   placeFloat,
@@ -229,6 +230,14 @@ describe('prefs, slug, template', () => {
     expect(grantCovers(g, { permissions: ['system', 'notify'], network: [] })).toBe(false);
     expect(grantCovers(g, { permissions: ['system'], network: ['evil.com'] })).toBe(false);
     expect(grantCovers(undefined, { permissions: [], network: [] })).toBe(false);
+  });
+
+  it('names what a manifest added beyond the approval', () => {
+    const g = { permissions: ['system'], network: ['api.x.com'] };
+    expect(addedBeyond(g, { permissions: ['system', 'notify'], network: ['api.x.com', 'evil.com'] })).toEqual({
+      permissions: ['notify'],
+      network: ['evil.com'],
+    });
   });
 
   it('slugs a unique folder name', () => {

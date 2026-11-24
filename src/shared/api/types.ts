@@ -882,6 +882,8 @@ export interface NoteFile {
   mtime: number;
   /** The file isn't valid UTF-8: shown, never saved (saving would change bytes nobody touched). */
   readOnly?: boolean;
+  /** Too big to edit (a log dump): only its start is shown, read-only. */
+  truncated?: boolean;
 }
 
 /** An open note changed on disk (an agent, another editor): its new contents, or that it's gone. */
@@ -1461,6 +1463,11 @@ export interface ExtensionInfo {
   commands: ExtensionCommand[];
   /** The user enabled it after seeing the permissions. */
   enabled: boolean;
+  /**
+   * It was enabled, but its manifest now asks for more than the user approved (`added`), so it's off until enabled
+   * again.
+   */
+  added?: { permissions: ExtensionPermission[]; network: string[] };
   /** The user allowed it to run while hidden (only with the `background` permission). */
   background: boolean;
   /** Its page is loaded (shown, or hidden and not yet suspended). */

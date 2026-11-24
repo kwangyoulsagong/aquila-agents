@@ -22,10 +22,29 @@ export function encodeNote(text: string, bom: boolean): Buffer {
   return bom ? Buffer.concat([BOM, body]) : body;
 }
 
-export function readNote(file: string): NoteFile | null {
+/**
+ * Biggest note the editor opens whole. A bigger `.md` (a log dump) is read up to here and opened read-only, so
+ * opening it never blocks the main process on a huge read or sends it whole over IPC.
+ */
+export const MAX_EDIT_BYTES = 2 * 1024 * 1024;
+
+export function readNote(file: string, maxBytes = MAX_EDIT_BYTES): NoteFile | null {
   try {
     const st = fs.statSync(file);
-    return decodeNote(file, fs.readFileSync(file), st.mtimeMs);
+    if (st.size <= maxBytes) return decodeNote(file, fs.readFileSync(file), st.mtimeMs);
+    const buf = Buffer.alloc(maxBytes);
+    const fd = fs.openSync(file, 'r');
+    let n: number;
+    try {
+      n = fs.readSync(fd, buf, 0, maxBytes, 0);
+    } finally {
+      fs.closeSync(fd);
+    }
+    // Up to the last whole line, so no character is cut in half.
+    const head = buf.subarray(0, n);
+    const nl = head.lastIndexOf(0x0a);
+    const note = decodeNote(file, nl > 0 ? head.subarray(0, nl + 1) : head, st.mtimeMs);
+    return { ...note, readOnly: true, truncated: true };
   } catch {
     return null;
   }
