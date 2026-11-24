@@ -31,6 +31,14 @@ describe('pasteWhenReady', () => {
     expect(tab.listening()).toBe(false);
   });
 
+  it('strips control characters, so text from a feed cannot end the bracketed paste early', async () => {
+    const tab = fakeTab();
+    const p = pasteWhenReady('t1', 'a\x1b[201~rm -rf ~\r\x03b', tab.deps, T);
+    await vi.advanceTimersByTimeAsync(1000);
+    await expect(p).resolves.toBe(true);
+    expect(tab.writes).toEqual(['\x1b[200~a[201~rm -rf ~\rb\x1b[201~']);
+  });
+
   it('pastes after the cap when the CLI stays silent', async () => {
     const tab = fakeTab();
     const p = pasteWhenReady('t1', 'steps', tab.deps, T);

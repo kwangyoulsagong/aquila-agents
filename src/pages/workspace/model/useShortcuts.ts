@@ -1,7 +1,16 @@
 import { useEffect } from 'react';
 import { api, type Config, type MenuCommand, type SessionKind } from '@/shared/api';
-import { matchShortcut, projectIndex, type ShortcutId } from '@/shared/lib/shortcuts';
+import { matchShortcut, projectIndex, yieldsToText, type KeyTarget, type ShortcutId } from '@/shared/lib/shortcuts';
 import type { Edge, SplitDir } from '@/widgets/split-view';
+
+/** xterm's own input is a textarea too: it counts as the terminal, not a text field. */
+function keyTarget(t: EventTarget | null): KeyTarget {
+  if (!(t instanceof Element)) return 'other';
+  if (t.closest('.xterm')) return 'terminal';
+  if (t.closest('.cm-editor')) return 'noteEditor';
+  if (t.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])')) return 'textField';
+  return 'other';
+}
 
 interface Deps {
   config: Config | null;
@@ -140,8 +149,8 @@ export function useShortcuts({
     const onKey = (e: KeyboardEvent) => {
       const id = matchShortcut(e);
       if (!id) return;
-      // In the note editor (T67), ⌘F is its own find.
-      if (id === 'find' && e.target instanceof Element && e.target.closest('.cm-editor')) return;
+      // In the note editor (T67) and inputs some keys edit text instead (⌘W never closes a session from there).
+      if (yieldsToText(id, keyTarget(e.target))) return;
       // A project key with no project there stays the terminal's.
       const project = projectIndex(id);
       if (project !== null && !config?.projects[project]) return;

@@ -8,6 +8,7 @@ import {
   projectIndex,
   shortcutLabel,
   withShortcut,
+  yieldsToText,
 } from './shortcuts';
 
 const key = (
@@ -103,5 +104,20 @@ describe('projectIndex', () => {
     expect(projectIndex('project1')).toBe(0);
     expect(projectIndex('project9')).toBe(8);
     expect(projectIndex('palette')).toBeNull();
+  });
+});
+
+describe('yieldsToText', () => {
+  it('never closes a session from the note editor or an input', () => {
+    expect(yieldsToText('closeSession', 'noteEditor')).toBe(true);
+    expect(yieldsToText('closeSession', 'textField')).toBe(true);
+    expect(yieldsToText('closeSession', 'terminal')).toBe(false);
+  });
+  it("leaves the note editor its own find and select-next (⌘D), but not app-wide keys", () => {
+    expect(yieldsToText('find', 'noteEditor')).toBe(true);
+    expect(yieldsToText('splitRight', 'noteEditor')).toBe(true);
+    expect(yieldsToText('palette', 'noteEditor')).toBe(false);
+    expect(yieldsToText('splitRight', 'terminal')).toBe(false);
+    expect(yieldsToText('find', 'textField')).toBe(false);
   });
 });

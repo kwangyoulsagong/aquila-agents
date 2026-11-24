@@ -66,42 +66,52 @@ export function useNoteEditor(host: HTMLElement | null, path: string, cb: Callba
 
   const patch = useCallback((p: Partial<NoteEditorState>) => setState((st) => ({ ...st, ...p })), []);
 
-  const save = useCallback(async (): Promise<void> => {
-    const ss = s.current;
-    if (ss.timer) clearTimeout(ss.timer);
-    ss.timer = null;
-    if (ss.saving) {
+  type Session = typeof s.current;
+
+  /**
+   * Saves one note's edits to its own path. A note being left (switched away from, panel closed) still saves: its
+   * session keeps its path, file and edits, and only the screen state is left alone once another note is shown.
+   */
+  const saveSession = useCallback(
+    async (ss: Session): Promise<void> => {
+      const ui = (p: Partial<NoteEditorState>) => {
+        if (s.current === ss) patch(p);
+      };
+      if (ss.timer) clearTimeout(ss.timer);
+      ss.timer = null;
+      // A write in flight: wait for it (it updates `file`), then save what was typed meanwhile.
+      while (ss.saving) await ss.saving;
+      const file = ss.file;
+      if (!file || file.readOnly || ss.conflict) return;
+      const text = textOf(ss);
+      if (text === file.text) {
+        ui({ saveState: 'saved' });
+        return;
+      }
+      const edits = ss.edits;
+      const path = ss.path;
+      ui({ saveState: 'saving' });
+      ss.saving = (async () => {
+        const res = await api.noteWrite(path, text, file.bom, file.mtime);
+        if (res.ok) {
+          ss.file = { ...file, text, mtime: res.mtime };
+          ui({ file: ss.file, saveState: ss.edits === edits || isClean(ss) ? 'saved' : 'unsaved' });
+        } else if (res.reason === 'changed') {
+          // Someone wrote first: show what's there now.
+          const disk = await api.noteOpen(path);
+          api.noteClose(path);
+          ss.conflict = disk ? { kind: 'changed', disk } : { kind: 'deleted' };
+          ui({ conflict: ss.conflict, saveState: 'unsaved' });
+        } else ui({ saveState: 'failed' });
+      })().finally(() => {
+        ss.saving = null;
+      });
       await ss.saving;
-      if (s.current !== ss) return;
-    }
-    const file = ss.file;
-    if (!file || file.readOnly || ss.conflict) return;
-    const text = textOf(ss);
-    if (text === file.text) {
-      patch({ saveState: 'saved' });
-      return;
-    }
-    const edits = ss.edits;
-    const path = ss.path;
-    patch({ saveState: 'saving' });
-    ss.saving = (async () => {
-      const res = await api.noteWrite(path, text, file.bom, file.mtime);
-      if (ss.path !== path) return;
-      if (res.ok) {
-        ss.file = { ...file, text, mtime: res.mtime };
-        patch({ file: ss.file, saveState: ss.edits === edits || isClean(ss) ? 'saved' : 'unsaved' });
-      } else if (res.reason === 'changed') {
-        // Someone wrote first: show what's there now.
-        const disk = await api.noteOpen(path);
-        api.noteClose(path);
-        ss.conflict = disk ? { kind: 'changed', disk } : { kind: 'deleted' };
-        patch({ conflict: ss.conflict, saveState: 'unsaved' });
-      } else patch({ saveState: 'failed' });
-    })().finally(() => {
-      ss.saving = null;
-    });
-    await ss.saving;
-  }, [patch]);
+    },
+    [patch],
+  );
+
+  const save = useCallback(() => saveSession(s.current), [saveSession]);
 
   const saveRef = useRef(save);
   saveRef.current = save;
@@ -233,12 +243,11 @@ export function useNoteEditor(host: HTMLElement | null, path: string, cb: Callba
       alive = false;
       off();
       if (session.textTimer) clearTimeout(session.textTimer);
-      // Save what's left, then stop watching (IPC keeps the order: the write lands first).
-      if (session.file) void save().finally(() => api.noteClose(path));
-      session.path = '';
+      // Save what's left of this note (even mid-write), then stop watching (IPC keeps the order: the write lands first).
+      if (session.file) void saveSession(session).finally(() => api.noteClose(path));
     };
     // `host` is in the deps so a re-created view gets the note again.
-  }, [path, host, patch, loadText, save]);
+  }, [path, host, patch, loadText, saveSession]);
 
   const resolve = useCallback(
     (choice: 'reload' | 'keepMine') => {

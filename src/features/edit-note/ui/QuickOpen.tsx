@@ -28,7 +28,8 @@ export default function QuickOpen({ open, onClose, onPick }: Props) {
   const [snap, setSnap] = useState<GraphSnapshot | null>(null);
 
   useEffect(() => {
-    if (!open) return;
+    // Closed: let go of the snapshot (every node of the graph); it's read again on the next open.
+    if (!open) return setSnap(null);
     setQuery('');
     setIndex(0);
     let alive = true;
@@ -42,22 +43,24 @@ export default function QuickOpen({ open, onClose, onPick }: Props) {
     () =>
       (snap?.nodes ?? [])
         .filter((n) => n.kind === 'note' && n.path)
+        // Most recently changed first when nothing is typed (sorted on the node's own mtime: O(n log n)).
+        .sort((a, b) => (b.mtime ?? 0) - (a.mtime ?? 0))
         .map((n) => ({
           id: n.id,
           label: n.label,
           path: n.path!,
           place: n.id.replace(/^note:/, '').replace(':', '/'),
-        }))
-        // Most recently changed first when nothing is typed.
-        .sort((a, b) => {
-          const ma = snap!.nodes.find((x) => x.id === a.id)?.mtime ?? 0;
-          const mb = snap!.nodes.find((x) => x.id === b.id)?.mtime ?? 0;
-          return mb - ma;
-        }),
+        })),
     [snap],
   );
   const results = useMemo(
-    () => fuzzyRank(items, query, (i) => i.label, (i) => i.place).slice(0, 200),
+    () =>
+      fuzzyRank(
+        items,
+        query,
+        (i) => i.label,
+        (i) => i.place,
+      ).slice(0, 200),
     [items, query],
   );
   const selected = Math.min(index, results.length - 1);

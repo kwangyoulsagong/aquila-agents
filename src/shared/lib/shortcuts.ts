@@ -205,6 +205,19 @@ export function matchShortcut(e: KeyEventLike, platform: Platform = PLATFORM): S
   return null;
 }
 
+/** Where a key event was typed, for shortcuts that mean something else while editing text. */
+export type KeyTarget = 'terminal' | 'noteEditor' | 'textField' | 'other';
+
+/**
+ * True when the shortcut should be left to the text being edited: ⌘W must never kill a session from the note
+ * editor or an input, and the note editor keeps its own ⌘F (find) and ⌘D (select next match).
+ */
+export function yieldsToText(id: ShortcutId, target: KeyTarget): boolean {
+  if (target === 'noteEditor') return id === 'closeSession' || id === 'find' || id === 'splitRight' || id === 'splitDown';
+  if (target === 'textField') return id === 'closeSession';
+  return false;
+}
+
 const MAC_KEYS: Record<string, string> = {
   Left: '←',
   Right: '→',
