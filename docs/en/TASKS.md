@@ -841,3 +841,24 @@ throttled or hot → `saver`). The rules every task below follows:
   their input the way that holds (smoke and capture each passed twice in a row). The stale-note lens compares session time with the note's mtime only. `smoke` fails before the graph on this machine at the Preview panel drag (also on `main`), and
   the guide shortcut sheet / vault preview checks fail intermittently there too; the graph, links, vault and app-graph
   checks pass with the panel drag skipped locally._
+
+### T73 · Graph 8: one project at a time, the Map as named groups
+- [x] **Goal:** the graph shows the project you're in, and the Map opens as a handful of named groups instead of
+  hundreds of dots.
+- **Why:** with every project mixed in and Louvain groups named after their busiest note, nobody could tell what a
+  group was. Obsidian's answer is folder/query scoping and user "Groups" (a query + a colour); people abandon global
+  graphs that start as a hairball (forum.obsidian.md, Kumu's "prompted focus" guidance).
+- **Spec:** project select in the bar: "Current project" (the tab in front; falls back to all when that project has
+  no note folder), All, or one project. A project = note sources inside its folder (the most specific project wins)
+  + its sessions / files / code / applies. **Map** = bubbles: note folders, node kinds (code and files by folder
+  inside their project), and the user's query groups (`path:` `tag:` `kind:` words; first match wins), sized by
+  √members, line width by links between groups, "+N this week" under each, lens hits as a badge. Click opens a group
+  (its sub-folders; a single-group level is skipped); ≤ 60 members or nothing left to split → its dots (non-note
+  groups with their neighbours). Crumbs + Back. "Colour: Group" (Louvain) removed.
+- **Owns:** `src/widgets/knowledge-graph/` (`model/groups.ts`, `ui/GroupsView.tsx`, `ui/GroupRulesDialog.tsx`),
+  `design-system/react/GraphGroups.tsx` (+ `.c-kgroups` in `components.css`, `--size-bubble-min/max`).
+- **Done:** unit tests for scope, group paths, levels, layout; smoke (small fixture → dots, no bubbles); checked on
+  a 568-note vault in an isolated HOME (top: code 639 / reports 371 / specs 182 / decisions 12; reports →
+  checklists / retrospects / research; code → salt-server / salt-microFe / …; specs → in-progress → 46 dots).
+  _Left over: user groups live in localStorage (per machine); labels on a dense 40–60-dot group still crowd; the
+  guide media still shows the old Map._

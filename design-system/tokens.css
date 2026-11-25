@@ -157,7 +157,7 @@
   --color-graph-other: var(--p-violet-300);    /* AI / app nodes (T68, T70) */
   --color-graph-edge: var(--p-slate-700);
   --color-graph-focus: var(--p-blue-400);
-  /* Map coloured by group (T72): eight groups, biggest first; the rest use --color-graph-missing */
+  /* Map groups (T73): bubble colours, biggest group first; the rest use --color-graph-missing */
   --color-graph-group-1: var(--p-blue-300);
   --color-graph-group-2: var(--p-peach-300);
   --color-graph-group-3: var(--p-teal-300);
@@ -257,6 +257,8 @@
   --size-focus-row: 40px;           /* focus view (T72): one item, label + meta line */
   --size-focus-center: 208px;       /* focus view: the card in the middle */
   --size-focus-gap: 48px;           /* focus view: room for the links between two columns */
+  --size-bubble-min: 24px;          /* Map groups (T73): radius of the smallest group's bubble */
+  --size-bubble-max: 64px;          /* Map groups: radius of the biggest group's bubble */
   --size-code-input: var(--p-size-224); /* a settings file edited as text (T69) */
 
   /* Motion */

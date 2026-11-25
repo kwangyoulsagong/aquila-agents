@@ -125,6 +125,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `--size-card-list` | 224 | Graph card: suggested links before they scroll (T68) |
 | `--size-board-column` / `--size-code-input` | 256 / 224 | A board view's column / the height of settings edited as text (T69) |
 | `--size-focus-row` / `--size-focus-center` / `--size-focus-gap` | 40 / 208 / 48 | Graph focus view (T72): one item (label + meta line) / the centre card / room for links between two columns |
+| `--size-bubble-min` / `--size-bubble-max` | 24 / 64 | Graph Map groups (T73): bubble radius of the smallest / biggest group (by √members) |
 
 ## Components (`components.css`)
 

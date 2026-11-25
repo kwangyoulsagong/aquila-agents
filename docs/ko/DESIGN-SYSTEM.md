@@ -124,6 +124,7 @@
 | `--size-card-list` | 224 | 그래프 카드: 제안된 연결 목록이 스크롤되기 전 높이 (T68) |
 | `--size-board-column` / `--size-code-input` | 256 / 224 | 보드 보기의 열 너비 / 텍스트로 고치는 설정의 높이 (T69) |
 | `--size-focus-row` / `--size-focus-center` / `--size-focus-gap` | 40 / 208 / 48 | 그래프 주변 보기 (T72): 항목 하나(라벨 + 메타 줄) / 가운데 카드 / 두 열 사이 선이 지나갈 자리 |
+| `--size-bubble-min` / `--size-bubble-max` | 24 / 64 | 그래프 지도 묶음 (T73): 가장 작은 / 큰 묶음의 원 반지름 (√개수 비례) |
 
 ## 컴포넌트 (`components.css`)
 

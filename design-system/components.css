@@ -969,6 +969,51 @@ body {
 }
 .c-kgraph > .c-empty { position: absolute; inset: 0; z-index: 1; }
 
+/* ── Knowledge graph Map groups (T73): bubbles placed by the caller, lines as thick as the links between ─── */
+.c-kgroups { position: absolute; inset: 0; overflow: hidden; }
+.c-kgroups__svg { display: block; overflow: visible; }
+.c-kgroups__link {
+  stroke: var(--color-graph-edge); stroke-linecap: round;
+  transition: stroke var(--motion-fast) var(--motion-ease), opacity var(--motion-fast) var(--motion-ease);
+}
+.c-kgroups__link[data-lit] { stroke: var(--color-graph-focus); }
+.c-kgroups__link[data-dim] { opacity: 0.25; }
+.c-kgroups__link-count {
+  fill: var(--color-text-secondary); font-size: var(--font-size-caption); text-anchor: middle;
+  paint-order: stroke; stroke: var(--color-bg-canvas); stroke-width: 4; pointer-events: none;
+}
+.c-kgroups__bubble {
+  --kg: var(--color-graph-missing);
+  cursor: pointer; outline: none; transition: opacity var(--motion-fast) var(--motion-ease);
+}
+.c-kgroups__bubble[data-group='1'] { --kg: var(--color-graph-group-1); }
+.c-kgroups__bubble[data-group='2'] { --kg: var(--color-graph-group-2); }
+.c-kgroups__bubble[data-group='3'] { --kg: var(--color-graph-group-3); }
+.c-kgroups__bubble[data-group='4'] { --kg: var(--color-graph-group-4); }
+.c-kgroups__bubble[data-group='5'] { --kg: var(--color-graph-group-5); }
+.c-kgroups__bubble[data-group='6'] { --kg: var(--color-graph-group-6); }
+.c-kgroups__bubble[data-group='7'] { --kg: var(--color-graph-group-7); }
+.c-kgroups__bubble[data-group='8'] { --kg: var(--color-graph-group-8); }
+.c-kgroups__bubble[data-dim] { opacity: 0.3; }
+.c-kgroups__disc {
+  fill: var(--kg); fill-opacity: 0.16; stroke: var(--kg); stroke-width: 1.5;
+  transition: fill-opacity var(--motion-fast) var(--motion-ease);
+}
+.c-kgroups__bubble:hover .c-kgroups__disc { fill-opacity: 0.3; }
+.c-kgroups__bubble:focus-visible .c-kgroups__disc { stroke: var(--color-graph-focus); stroke-width: 2.5; }
+.c-kgroups__count { fill: var(--color-text-primary); font-size: var(--font-size-label); font-weight: 600; text-anchor: middle; }
+.c-kgroups__label {
+  fill: var(--color-text-secondary); font-size: var(--font-size-label); text-anchor: middle;
+  paint-order: stroke; stroke: var(--color-bg-canvas); stroke-width: 4;
+}
+.c-kgroups__bubble:hover .c-kgroups__label { fill: var(--color-text-primary); }
+.c-kgroups__detail {
+  fill: var(--color-text-tertiary); font-size: var(--font-size-caption); text-anchor: middle;
+  paint-order: stroke; stroke: var(--color-bg-canvas); stroke-width: 4;
+}
+.c-kgroups__hits circle { fill: var(--color-graph-focus); }
+.c-kgroups__hits text { fill: var(--color-bg-canvas); font-size: var(--font-size-caption); font-weight: 600; text-anchor: middle; }
+
 /* ── Knowledge graph focus view (T72): centre + columns, links underneath; positions come from the caller ─── */
 .c-kfocus { position: absolute; inset: 0; overflow: auto; outline: none; }
 .c-kfocus__plane { position: relative; margin: 0 auto; }
