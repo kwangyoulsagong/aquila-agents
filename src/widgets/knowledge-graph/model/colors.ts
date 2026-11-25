@@ -12,9 +12,14 @@ export interface GraphColors {
   label: string;
   surface: string;
   font: string;
+  /** Map coloured by group (T72): biggest group first. */
+  groups: string[];
 }
 
-const TOKENS: Record<keyof GraphColors, string> = {
+/** Groups with a colour of their own; the rest share `missing`. */
+export const GROUP_COLORS = 8;
+
+const TOKENS: Record<Exclude<keyof GraphColors, 'groups'>, string> = {
   note: '--color-graph-note',
   tag: '--color-graph-tag',
   code: '--color-graph-code',
@@ -31,8 +36,10 @@ const TOKENS: Record<keyof GraphColors, string> = {
 export function readColors(el: Element = document.documentElement): GraphColors {
   const css = getComputedStyle(el);
   const out = {} as GraphColors;
-  for (const k of Object.keys(TOKENS) as (keyof GraphColors)[])
-    out[k] = css.getPropertyValue(TOKENS[k]).trim();
+  for (const k of Object.keys(TOKENS) as (keyof typeof TOKENS)[]) out[k] = css.getPropertyValue(TOKENS[k]).trim();
+  out.groups = Array.from({ length: GROUP_COLORS }, (_, i) =>
+    css.getPropertyValue(`--color-graph-group-${i + 1}`).trim(),
+  );
   return out;
 }
 

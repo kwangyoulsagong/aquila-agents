@@ -66,6 +66,8 @@ interface NodeProps {
   state?: 'hot' | 'dim';
   /** The keyboard cursor: the one item in the tab order (roving tabindex). */
   current?: boolean;
+  /** Open in a tab right now: its status rings the dot (`--color-status-*`). */
+  live?: 'working' | 'waiting' | 'done' | 'error' | 'stopped' | 'idle';
   title?: string;
   onClick?: (e: MouseEvent<HTMLButtonElement>) => void;
   onDoubleClick?: () => void;
@@ -87,6 +89,7 @@ export function FocusNode({
   depth,
   state,
   current,
+  live,
   title,
   onClick,
   onDoubleClick,
@@ -101,6 +104,7 @@ export function FocusNode({
       data-align={align}
       data-depth={depth}
       data-state={state}
+      data-live={live}
       aria-current={align === 'center' ? 'true' : undefined}
       tabIndex={current ? 0 : -1}
       title={title}

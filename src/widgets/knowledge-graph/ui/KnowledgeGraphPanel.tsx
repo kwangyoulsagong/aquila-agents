@@ -22,6 +22,7 @@ import {
   type GraphNodeKind,
   type GraphSourceStatus,
   type HistoryResumeResult,
+  type Session,
 } from '@/shared/api';
 import { useT } from '@/shared/i18n';
 import { usePanelWidth } from '@/shared/lib/usePanelWidth';
@@ -46,6 +47,10 @@ import { COLUMN_STEP, defaultCenter, focusLayout, type FocusColumnKey } from '..
 import { LENSES, lensHits, type LensId } from '../model/lenses';
 import { useGraphRenderer } from './useGraphRenderer';
 import { FocusView, nodeLabel, swatchOf } from './FocusView';
+import { useLiveSessions } from './useLiveSessions';
+import { clustersOf } from '../model/clusters';
+import { GROUP_COLORS } from '../model/colors';
+import { shortLabel } from './useGraphRenderer';
 
 export interface KnowledgeGraphPanelProps {
   full: boolean;
@@ -62,12 +67,17 @@ export interface KnowledgeGraphPanelProps {
   /** T70: a session node resumed in a new tab. */
   onResumed: (r: HistoryResumeResult) => void;
   onError: (message: string) => void;
+  /** Open tabs: their Claude / Codex conversations show as live session nodes (T72). */
+  sessions?: readonly Session[];
+  /** Brings a tab to the front (a live session node's "Go to tab"). */
+  onShowSession?: (tabId: string) => void;
 }
 
 type Mode = 'focus' | 'map';
 const HINT_KEY = 'aquila.graph.hintSeen.v2';
 const MODE_KEY = 'aquila.graph.mode';
 const FOLLOW_KEY = 'aquila.graph.follow';
+const PAINT_KEY = 'aquila.graph.paint';
 /** Centres remembered for Back. */
 const TRAIL_MAX = 30;
 /** Crumbs shown (the rest is still reachable with Back). */
@@ -120,6 +130,8 @@ export default function KnowledgeGraphPanel({
   onClaude,
   onResumed,
   onError,
+  sessions,
+  onShowSession,
 }: KnowledgeGraphPanelProps) {
   const t = useT();
   const width = usePanelWidth('aquila.panel.graph');
@@ -162,7 +174,30 @@ export default function KnowledgeGraphPanel({
   const allNodes = snapshot?.nodes;
   const tags = useMemo(() => tagsOf(allNodes ?? []), [allNodes]);
   const kinds = useMemo(() => kindsOf(allNodes ?? []), [allNodes]);
-  const lenses = useMemo(() => lensHits(view), [view]);
+  const live = useLiveSessions(sessions);
+  const liveIds = useMemo(() => new Set(live.keys()), [live]);
+  const lenses = useMemo(() => lensHits(view, Date.now(), liveIds), [view, liveIds]);
+  const [paintBy, setPaintByState] = useState<'kind' | 'group'>(() =>
+    stored(PAINT_KEY) === 'group' ? 'group' : 'kind',
+  );
+  const setPaintBy = (v: 'kind' | 'group') => {
+    setPaintByState(v);
+    store(PAINT_KEY, v);
+  };
+  const groups = useMemo(
+    () => (mode === 'map' && paintBy === 'group' ? clustersOf(view) : null),
+    [mode, paintBy, view],
+  );
+  const nodeColor = useMemo(
+    () =>
+      groups
+        ? (n: GraphNode) => {
+            const g = groups.of.get(n.id);
+            return g !== undefined && g < GROUP_COLORS ? colors.groups[g]! : colors.missing;
+          }
+        : null,
+    [groups, colors],
+  );
 
   // The centre: the end of the trail. Moving pushes; Back pops.
   const center = trail[trail.length - 1] ?? null;
@@ -230,6 +265,7 @@ export default function KnowledgeGraphPanel({
 
   const open = (n: GraphNode) => {
     if (n.kind === 'note' && n.path) onOpenNote(n.path);
+    else if (n.kind === 'session' && live.get(n.id) && onShowSession) onShowSession(live.get(n.id)!.tabId);
     else if (n.kind === 'session') resume(n);
     else if (n.kind === 'trend' && n.url) void api.noteOpenUrl(n.url);
     else recentre(n.id);
@@ -250,6 +286,7 @@ export default function KnowledgeGraphPanel({
     selected: null,
     matches: mapMatches,
     saver,
+    nodeColor,
     onSelect: (id) => id && recentre(id),
     onOpen: open,
     onSettled: (info) => {
@@ -518,6 +555,17 @@ export default function KnowledgeGraphPanel({
               {t(`graph.lens.${id}`)}
             </GraphLens>
           ))}
+          <span className="c-panel__bar-end">
+            <Segment
+              label={t('graph.paint.label')}
+              value={paintBy}
+              onChange={setPaintBy}
+              options={[
+                { value: 'kind', label: t('graph.paint.kind') },
+                { value: 'group', label: t('graph.paint.group') },
+              ]}
+            />
+          </span>
         </div>
       )}
       <GraphStage canvasRef={setHost}>
@@ -541,6 +589,7 @@ export default function KnowledgeGraphPanel({
         )}
         {!empty && mode === 'focus' && layout && (
           <FocusView
+            live={live}
             layout={layout}
             onRecentre={recentre}
             onOpen={open}
@@ -599,7 +648,18 @@ export default function KnowledgeGraphPanel({
         ) : (
           mode === 'map' && (
             <GraphLegend
-              swatches={swatches}
+              swatches={
+                groups
+                  ? groups.list
+                      .filter((g) => g.size > 1)
+                      .slice(0, GROUP_COLORS)
+                      .map((g) => ({
+                        kind: 'note' as const,
+                        group: g.index + 1,
+                        label: `${shortLabel(g.name)} ${g.size}`,
+                      }))
+                  : swatches
+              }
               lines={[
                 { line: 'solid', label: t('graph.line.explicit') },
                 { line: 'dashed', label: t('graph.line.mention') },
@@ -625,7 +685,12 @@ export default function KnowledgeGraphPanel({
               {handle && (
                 <HandleWithClaude notePath={handle.notePath} todo={handle.todo} onClaude={onClaude} />
               )}
-              {centerNode.kind === 'session' && sessionRef(centerNode) && (
+              {centerNode.kind === 'session' && live.get(centerNode.id) && onShowSession && (
+                <Button variant="ghost" onClick={() => onShowSession(live.get(centerNode.id)!.tabId)}>
+                  {t('graph.live.show')}
+                </Button>
+              )}
+              {centerNode.kind === 'session' && !live.get(centerNode.id) && sessionRef(centerNode) && (
                 <Button variant="ghost" onClick={() => resume(centerNode)}>
                   {t('graph.resume')}
                 </Button>

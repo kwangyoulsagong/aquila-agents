@@ -932,6 +932,14 @@ body {
 .c-kgraph__swatch[data-kind='code'] { background: var(--color-graph-code); }
 .c-kgraph__swatch[data-kind='missing'] { background: transparent; box-shadow: inset 0 0 0 1px var(--color-graph-missing); }
 .c-kgraph__swatch[data-kind='other'] { background: var(--color-graph-other); }
+.c-kgraph__swatch[data-group='1'] { background: var(--color-graph-group-1); box-shadow: none; }
+.c-kgraph__swatch[data-group='2'] { background: var(--color-graph-group-2); box-shadow: none; }
+.c-kgraph__swatch[data-group='3'] { background: var(--color-graph-group-3); box-shadow: none; }
+.c-kgraph__swatch[data-group='4'] { background: var(--color-graph-group-4); box-shadow: none; }
+.c-kgraph__swatch[data-group='5'] { background: var(--color-graph-group-5); box-shadow: none; }
+.c-kgraph__swatch[data-group='6'] { background: var(--color-graph-group-6); box-shadow: none; }
+.c-kgraph__swatch[data-group='7'] { background: var(--color-graph-group-7); box-shadow: none; }
+.c-kgraph__swatch[data-group='8'] { background: var(--color-graph-group-8); box-shadow: none; }
 .c-kgraph__line { width: var(--space-inset-md); border-top: 1px solid var(--color-text-secondary); }
 .c-kgraph__line[data-line='dashed'] { border-top-style: dashed; }
 .c-kgraph__line[data-line='dotted'] { border-top-style: dotted; }
@@ -1016,6 +1024,15 @@ body {
 }
 .c-kfocus__more[data-align='end'] { text-align: right; }
 .c-kfocus__more:hover { text-decoration: underline; }
+/* A session open in a tab: its status rings the dot */
+.c-kfocus__node[data-live] .c-kgraph__swatch { box-shadow: 0 0 0 var(--size-focus-line) var(--color-bg-canvas), 0 0 0 calc(var(--size-focus-line) * 2) var(--live, var(--color-status-idle)); }
+.c-kfocus__node[data-live='working'] { --live: var(--color-status-working); }
+.c-kfocus__node[data-live='waiting'] { --live: var(--color-status-waiting); }
+.c-kfocus__node[data-live='done'] { --live: var(--color-status-done); }
+.c-kfocus__node[data-live='error'] { --live: var(--color-status-error); }
+.c-kfocus__node[data-live='stopped'] { --live: var(--color-status-stopped); }
+.c-kfocus__node[data-live='working'] .c-kgraph__swatch { animation: c-kfocus-live var(--motion-pulse) var(--motion-ease) infinite; }
+@keyframes c-kfocus-live { 50% { opacity: 0.55; } }
 @keyframes c-kfocus-in { from { opacity: 0; } }
 
 /* Trail, lenses, search results, foot card around the stage */

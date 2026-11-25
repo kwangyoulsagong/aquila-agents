@@ -39,6 +39,8 @@ export interface GraphRendererProps {
   matches: ReadonlySet<string>;
   /** Power saver: no layout animation, only the settled picture. */
   saver: boolean;
+  /** Colour per node (the Map's "by group", T72); none = by kind. Changing it only repaints. */
+  nodeColor?: ((n: GraphNode) => string) | null;
   onSelect: (id: string | null) => void;
   onOpen: (node: GraphNode) => void;
   /** Test hook: the layout run finished. */
@@ -69,7 +71,7 @@ const DASH: Record<LineStyle, [number, number]> = { solid: [0, 0], dashed: [5, 4
  */
 export function useGraphRenderer(
   el: HTMLDivElement | null,
-  { view, colors, selected, matches, saver, onSelect, onOpen, onSettled }: GraphRendererProps,
+  { view, colors, selected, matches, saver, nodeColor, onSelect, onOpen, onSettled }: GraphRendererProps,
 ): GraphRenderer {
   const graphRef = useRef<Graph<NodeAttrs, EdgeAttrs> | null>(null);
   const sigmaRef = useRef<Sigma<NodeAttrs, EdgeAttrs> | null>(null);
@@ -83,7 +85,10 @@ export function useGraphRenderer(
   focus.current = { selected, matches, view, colors };
   // Sigma refuses attribute updates for items it hasn't drawn yet: after a rebuild, updates wait for the first frame.
   const painted = useRef(false);
-  const pending = useRef<{ xy: Float32Array | null; focus: boolean }>({ xy: null, focus: false });
+  const pending = useRef<{ xy: Float32Array | null; focus: boolean; paint?: boolean }>({ xy: null, focus: false });
+  const paint = useRef(nodeColor);
+  paint.current = nodeColor;
+  const colorOf = (n: GraphNode) => paint.current?.(n) ?? kindColor(focus.current.colors, n.kind);
   const index = useRef(new Map<string, number>());
 
   /** What's lit: the hovered/selected node's neighbours, or the search hits; everything else fades. */
@@ -116,6 +121,19 @@ export function useGraphRenderer(
     const f = focusOf();
     g.updateEachNodeAttributes((id, a) => ({ ...a, ...f.node(id) }));
     g.updateEachEdgeAttributes((_e, a, s, t) => ({ ...a, ...f.edge(s, t) }));
+  };
+
+  const applyPaint = () => {
+    const g = graphRef.current;
+    if (!g) return;
+    if (!painted.current) {
+      pending.current.paint = true;
+      return;
+    }
+    g.updateEachNodeAttributes((id, a) => {
+      const n = nodesById.current.get(id);
+      return n ? { ...a, color: colorOf(n) } : a;
+    });
   };
 
   const applyPositions = (p: Float32Array) => {
@@ -220,10 +238,11 @@ export function useGraphRenderer(
     sigma.on('afterRender', () => {
       if (painted.current) return;
       painted.current = true;
-      const { xy, focus: f } = pending.current;
+      const { xy, focus: f, paint: p } = pending.current;
       pending.current = { xy: null, focus: false };
       if (xy) applyPositions(xy);
       if (f) applyFocus();
+      if (p) applyPaint();
     });
     let hoverTimer = 0;
     const hoverTo = (node: string | null) => {
@@ -287,7 +306,7 @@ export function useGraphRenderer(
         y: xy[i * 2 + 1]!,
         size: sizes.get(n.id) ?? 4,
         label: n.label,
-        color: kindColor(colors, n.kind),
+        color: colorOf(n),
         ...f.node(n.id),
       }),
     );
@@ -330,6 +349,9 @@ export function useGraphRenderer(
     // applyFocus reads refs and the current view; it doesn't need to restart the layout.
      
   }, [el, view, colors, saver]);
+
+  // Colour by group / kind: repaint only, the layout stays.
+  useEffect(applyPaint, [nodeColor]);  
 
   // Focus / search changes only restyle.
   useEffect(applyFocus, [selected, matches]);  

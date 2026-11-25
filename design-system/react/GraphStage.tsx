@@ -30,14 +30,15 @@ export function GraphLegend({
   swatches,
   lines,
 }: {
-  swatches: { kind: GraphSwatch; label: string }[];
+  /** `group`: a numbered group colour (`--color-graph-group-<n>`, 1–8) instead of the kind's. */
+  swatches: { kind: GraphSwatch; label: string; group?: number }[];
   lines: { line: GraphLine; label: string }[];
 }) {
   return (
     <div className="c-kgraph__legend" aria-hidden>
       {swatches.map((s) => (
-        <span key={s.kind} className="c-kgraph__key">
-          <span className="c-kgraph__swatch" data-kind={s.kind} />
+        <span key={s.group ? `g${s.group}` : s.kind} className="c-kgraph__key">
+          <span className="c-kgraph__swatch" data-kind={s.kind} data-group={s.group} />
           {s.label}
         </span>
       ))}

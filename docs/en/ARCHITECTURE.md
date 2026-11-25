@@ -514,7 +514,13 @@ The panel has two views; the choice is remembered (`aquila.graph.mode`). Sigma (
   no links); labels are measured on a canvas so a link meets a label where its text starts or ends.
 - **Map**: the force layout above plus lenses (`model/lenses.ts`): notes a session worked on after their last edit,
   to-dos, unlinked notes, sessions of the last 7 days. A lens is `matches` for the renderer (its answers lit, the rest
-  faded). Only hubs (4+ links) carry a label. Clicking a node goes to it in Around.
+  faded). Only hubs (4+ links) carry a label. Clicking a node goes to it in Around. "Colour: Kind | Group" —
+  Group runs Louvain (`model/clusters.ts`, deterministic, few ms at 2,000 nodes) and paints the 8 biggest groups
+  `--color-graph-group-1…8`, each named in the legend after its best-connected note; switching only repaints.
+- **Live sessions:** `session:agent-ids` (main's `agentIds()`, from each tab's `replySource`) maps open local tabs to
+  their Claude / Codex conversation; `ui/useLiveSessions.ts` asks again when a tab or a status changes (400 ms
+  settle). A matching session node shows the tab's status (dot ring, meta line), "Go to tab" replaces Resume, and
+  the Map has an "Open sessions" lens.
 - The centre's card is a one-line foot (`GraphFoot`): place, Open / Handle with Claude / Resume / Open link, and
   "Suggested links" (T68) folded away. Filters sit behind one "Filters" toggle (count of active ones on it).
 - `window.__graphSettled` is set by both views (`via: 'focus'` for Around) for smoke / capture; perf opens the Map.

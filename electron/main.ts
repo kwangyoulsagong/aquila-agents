@@ -786,6 +786,7 @@ app.whenReady().then(async () => {
         : findRollout(CODEX_SESSIONS_DIR, src.sessionId);
     return file ? lastReply(readTail(file), src.agent) : null;
   });
+  ipcMain.handle(IPC.sessionAgentIds, () => s.agentIds());
   // T59: a live Claude tab's Bash commands, read whole from its transcript (output is never read).
   ipcMain.handle(IPC.sessionCommands, async (_e, id: string) => {
     const src = s.replySource(id);

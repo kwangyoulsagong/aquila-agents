@@ -13,6 +13,7 @@ import { lineStyle } from '../model/view';
 import { pathTo, type FocusColumnKey, type FocusLayout } from '../model/focus';
 import { focusGeometry, type FocusMetrics, type Measure } from '../model/geometry';
 import { ago } from '../model/lenses';
+import type { LiveSession } from './useLiveSessions';
 
 export const swatchOf = (kind: GraphNodeKind): GraphSwatch =>
   kind === 'note' || kind === 'tag' || kind === 'missing'
@@ -59,6 +60,8 @@ function textMeasure(el: Element): Measure {
 
 export interface FocusViewProps {
   layout: FocusLayout;
+  /** Session nodes open in a tab, with the tab's status. */
+  live?: ReadonlyMap<string, LiveSession>;
   onRecentre: (id: string) => void;
   onOpen: (node: GraphNode) => void;
   onMore: (column: FocusColumnKey) => void;
@@ -72,7 +75,7 @@ export interface FocusViewProps {
  * centre (slides there); ⌘-click or double-click the centre → open it. Hover lights the path from the centre.
  * Keys: ↑↓ within a column, ←→ between columns, Enter → recentre (on the centre: open), ⌘Enter → open, ⌫ → back.
  */
-export function FocusView({ layout, onRecentre, onOpen, onMore, onBack, onShown }: FocusViewProps) {
+export function FocusView({ layout, live, onRecentre, onOpen, onMore, onBack, onShown }: FocusViewProps) {
   const t = useT();
   const [host, setHost] = useState<HTMLDivElement | null>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
@@ -107,7 +110,8 @@ export function FocusView({ layout, onRecentre, onOpen, onMore, onBack, onShown 
         return when;
       case 'session': {
         const agent = /^session:(claude|codex):/.exec(n.id)?.[1];
-        return [agent === 'codex' ? 'Codex' : agent === 'claude' ? 'Claude' : '', when]
+        const tab = live?.get(n.id);
+        return [agent === 'codex' ? 'Codex' : agent === 'claude' ? 'Claude' : '', tab ? t(`graph.live.${tab.status}`) : when]
           .filter(Boolean)
           .join(' · ');
       }
@@ -127,7 +131,7 @@ export function FocusView({ layout, onRecentre, onOpen, onMore, onBack, onShown 
         : null,
     // metaOf / t change with the language; layout and size are what move things.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [layout, size.width, size.height, metrics, measure, t],
+    [layout, size.width, size.height, metrics, measure, t, live],
   );
 
   useEffect(() => {
@@ -239,6 +243,7 @@ export function FocusView({ layout, onRecentre, onOpen, onMore, onBack, onShown 
                   {...(p.depth === 2 ? { depth: 2 as const } : {})}
                   {...(lit ? { state: lit.has(p.node.id) ? ('hot' as const) : ('dim' as const) } : {})}
                   current={p.node.id === current}
+                  {...(live?.get(p.node.id) ? { live: live.get(p.node.id)!.status } : {})}
                   title={center ? t('graph.focus.openHint') : t('graph.focus.goHint', { name: p.node.label })}
                   onClick={(e) => {
                     setCursor(p.node.id);

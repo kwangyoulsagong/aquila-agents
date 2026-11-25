@@ -71,6 +71,7 @@ const api: AquilaApi = {
   clipboardPaths: () => ipcRenderer.invoke(IPC.clipboardPaths),
   clipboardText: () => ipcRenderer.invoke(IPC.clipboardText),
   lastReply: (sessionId) => ipcRenderer.invoke(IPC.sessionLastReply, sessionId),
+  sessionAgentIds: () => ipcRenderer.invoke(IPC.sessionAgentIds),
   write: (id, data) => ipcRenderer.send(IPC.sessionWrite, { id, data }),
   resize: (id, cols, rows) => ipcRenderer.send(IPC.sessionResize, { id, cols, rows }),
   kill: (id) => ipcRenderer.send(IPC.sessionKill, { id }),

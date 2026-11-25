@@ -4,15 +4,19 @@ import type { GraphView } from './view';
 // use the graph view for": stragglers with no links, what's unfinished, what changed lately). Each lights the
 // nodes that answer it on the map; everything else fades.
 
-export type LensId = 'orphans' | 'todos' | 'recent' | 'untouched';
-export const LENSES: readonly LensId[] = ['untouched', 'todos', 'orphans', 'recent'];
+export type LensId = 'live' | 'orphans' | 'todos' | 'recent' | 'untouched';
+export const LENSES: readonly LensId[] = ['live', 'untouched', 'todos', 'orphans', 'recent'];
 
 const DAY = 86_400_000;
 /** "Recent" sessions: this far back. */
 export const RECENT_DAYS = 7;
 
-/** Node ids per lens, over the filtered view. */
-export function lensHits(view: GraphView, now = Date.now()): Record<LensId, Set<string>> {
+/** Node ids per lens, over the filtered view. `live`: session nodes open in a tab right now. */
+export function lensHits(
+  view: GraphView,
+  now = Date.now(),
+  live: ReadonlySet<string> = new Set(),
+): Record<LensId, Set<string>> {
   const byId = new Map(view.nodes.map((n) => [n.id, n]));
   const linked = new Set<string>();
   for (const e of view.edges) {
@@ -20,6 +24,7 @@ export function lensHits(view: GraphView, now = Date.now()): Record<LensId, Set<
     linked.add(e.target);
   }
   const out: Record<LensId, Set<string>> = {
+    live: new Set(),
     orphans: new Set(),
     todos: new Set(),
     recent: new Set(),
@@ -29,6 +34,7 @@ export function lensHits(view: GraphView, now = Date.now()): Record<LensId, Set<
     if (n.kind === 'note' && !linked.has(n.id)) out.orphans.add(n.id);
     if (n.kind === 'todo') out.todos.add(n.id);
     if (n.kind === 'session' && (n.mtime ?? 0) >= now - RECENT_DAYS * DAY) out.recent.add(n.id);
+    if (n.kind === 'session' && live.has(n.id)) out.live.add(n.id);
   }
   // A note a session worked from (or changed) after the note itself was last edited: the work moved on, the note
   // may not say so yet.

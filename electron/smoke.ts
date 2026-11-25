@@ -1500,16 +1500,21 @@ async function checkGraphView(win: BrowserWindow, config: Config, outDir: string
     await new Promise((r) => setTimeout(r, 300));
     return { chips: chips.length, on: b.getAttribute('aria-pressed') === 'true' };
   })()`);
-  if (lensState.chips !== 4) return `graph: ${lensState.chips} lens chips on the map, expected 4`;
+  if (lensState.chips !== 5) return `graph: ${lensState.chips} lens chips on the map, expected 5`;
   if (lensState.on === false) return 'graph: a lens did not switch on';
+  // Colour by group: the legend lists the groups (Louvain) instead of the kinds.
+  await js(`[...document.querySelectorAll('aside .c-segment__item')].find((e) => e.textContent.trim() === ${JSON.stringify(t('graph.paint.group'))})?.click()`);
+  await wait(300);
+  const groups = await js<number>(`document.querySelectorAll('aside .c-kgraph__legend [data-group]').length`);
+  if (!groups) return 'graph: colour by group shows no groups in the legend';
   fs.writeFileSync(path.join(outDir, 'smoke-graph-map.png'), (await win.webContents.capturePage()).toPNG());
-  await js(`localStorage.removeItem('aquila.graph.mode')`);
+  await js(`(() => { localStorage.removeItem('aquila.graph.mode'); localStorage.removeItem('aquila.graph.paint'); })()`);
   press(win, 'N', ['meta', 'shift']);
   await wait(400);
   const left = await js<number>(`document.querySelectorAll('.c-kgraph').length`);
   if (left) return 'graph: ⌘⇧N did not close the panel';
   console.log(
-    `[smoke] graph: focus ${focus.nodes} nodes in ${focus.ms} ms; "${target.label}" → "${moved}" → back; map ${whole.nodes} nodes settled in ${whole.ms} ms (${whole.iterations} iterations)`,
+    `[smoke] graph: focus ${focus.nodes} nodes in ${focus.ms} ms; "${target.label}" → "${moved}" → back; map ${whole.nodes} nodes settled in ${whole.ms} ms (${whole.iterations} iterations), ${groups} groups`,
   );
   return null;
 }

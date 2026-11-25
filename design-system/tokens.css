@@ -34,6 +34,8 @@
   --p-peach-300: #e8a87c;
   --p-teal-300: #9fd3c7;
   --p-violet-300: #b8a4f4;
+  --p-pink-300: #e8a3c8; /* graph groups (T72) */
+  --p-yellow-300: #e3cf7d; /* graph groups (T72) */
   /* Search matches in the terminal (T40): opaque (xterm decorations need #RRGGBB), amber over the dark canvas */
   --p-amber-900: #3d3220;
   --p-amber-800: #6e4c1c;
@@ -63,6 +65,8 @@
   --p-peach-600: #b8653a;
   --p-teal-600: #2a8577;
   --p-violet-600: #6d55c4;
+  --p-pink-600: #b4467e; /* graph groups (T72) */
+  --p-yellow-700: #8a7214; /* graph groups (T72) */
   --p-amber-100: #f7e6c8;
   --p-amber-200: #efc98f;
   --p-blue-600-a12: rgba(47, 99, 204, 0.12);
@@ -153,6 +157,15 @@
   --color-graph-other: var(--p-violet-300);    /* AI / app nodes (T68, T70) */
   --color-graph-edge: var(--p-slate-700);
   --color-graph-focus: var(--p-blue-400);
+  /* Map coloured by group (T72): eight groups, biggest first; the rest use --color-graph-missing */
+  --color-graph-group-1: var(--p-blue-300);
+  --color-graph-group-2: var(--p-peach-300);
+  --color-graph-group-3: var(--p-teal-300);
+  --color-graph-group-4: var(--p-violet-300);
+  --color-graph-group-5: var(--p-green-300);
+  --color-graph-group-6: var(--p-pink-300);
+  --color-graph-group-7: var(--p-yellow-300);
+  --color-graph-group-8: var(--p-red-300);
 
   /* Diff */
   --color-diff-add-bg: var(--p-green-400-a12);
@@ -312,6 +325,14 @@
   --color-graph-other: var(--p-violet-600);
   --color-graph-edge: var(--p-paper-300);
   --color-graph-focus: var(--p-blue-600);
+  --color-graph-group-1: var(--p-blue-600);
+  --color-graph-group-2: var(--p-peach-600);
+  --color-graph-group-3: var(--p-teal-600);
+  --color-graph-group-4: var(--p-violet-600);
+  --color-graph-group-5: var(--p-green-600);
+  --color-graph-group-6: var(--p-pink-600);
+  --color-graph-group-7: var(--p-yellow-700);
+  --color-graph-group-8: var(--p-red-600);
 
   --color-diff-add-bg: var(--p-green-600-a12);
   --color-diff-add-text: var(--p-green-700);

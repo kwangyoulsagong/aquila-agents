@@ -1275,6 +1275,8 @@ export interface AquilaApi {
   clipboardText(): Promise<string>;
   /** Text of the last agent reply in a Claude/Codex tab, from its transcript (read-only). null when there is none. */
   lastReply(sessionId: string): Promise<string | null>;
+  /** T72: the Claude / Codex conversation each open local tab is running (the graph marks those session nodes live). */
+  sessionAgentIds(): Promise<{ tabId: string; agent: 'claude' | 'codex'; sessionId: string }[]>;
   write(id: string, data: string): void;
   resize(id: string, cols: number, rows: number): void;
   kill(id: string): void;
@@ -1669,6 +1671,7 @@ export const IPC = {
   clipboardWrite: 'clipboard:write',
   clipboardText: 'clipboard:text',
   sessionLastReply: 'session:last-reply',
+  sessionAgentIds: 'session:agent-ids',
   sessionCreate: 'session:create',
   sessionRestore: 'session:restore',
   sessionStart: 'session:start',

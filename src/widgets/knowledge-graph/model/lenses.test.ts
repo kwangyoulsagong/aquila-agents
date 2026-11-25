@@ -32,7 +32,8 @@ describe('lensHits', () => {
       ],
       edges: [e('spec', 's-new'), e('fresh', 's-old'), e('spec', 'todo')],
     };
-    const h = lensHits(view, now);
+    const h = lensHits(view, now, new Set(['s-old', 'gone']));
+    expect([...h.live]).toEqual(['s-old']);
     expect([...h.orphans]).toEqual(['lonely']);
     expect([...h.todos]).toEqual(['todo']);
     expect([...h.recent]).toEqual(['s-new']);
