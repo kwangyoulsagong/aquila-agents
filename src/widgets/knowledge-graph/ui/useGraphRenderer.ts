@@ -192,7 +192,8 @@ export function useGraphRenderer(
         renderEdgeLabels: false,
         hideEdgesOnMove: false,
         labelDensity: 0.6,
-        labelRenderedSizeThreshold: 4,
+        // Only hubs (4+ links) carry a label on the map; lens hits and the hovered node always do (labelVisibility).
+        labelRenderedSizeThreshold: 8,
         zoomDuration: saver ? 0 : 200,
         inertiaDuration: saver ? 0 : 200,
         doubleClickZoomingDuration: saver ? 0 : 200,
@@ -327,11 +328,11 @@ export function useGraphRenderer(
       run?.stop();
     };
     // applyFocus reads refs and the current view; it doesn't need to restart the layout.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [el, view, colors, saver]);
 
   // Focus / search changes only restyle.
-  useEffect(applyFocus, [selected, matches]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(applyFocus, [selected, matches]);  
 
   return {
     fit: () => void sigmaRef.current?.getCamera().reset({ duration: saver ? 0 : 200 }),

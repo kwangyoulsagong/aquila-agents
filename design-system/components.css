@@ -961,6 +961,110 @@ body {
 }
 .c-kgraph > .c-empty { position: absolute; inset: 0; z-index: 1; }
 
+/* ── Knowledge graph focus view (T72): centre + columns, links underneath; positions come from the caller ─── */
+.c-kfocus { position: absolute; inset: 0; overflow: auto; outline: none; }
+.c-kfocus__plane { position: relative; margin: 0 auto; }
+.c-kfocus__links { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
+.c-kfocus__link {
+  fill: none; stroke: var(--color-graph-edge); stroke-width: 1.5; stroke-linecap: round;
+  transition: stroke var(--motion-fast) var(--motion-ease), opacity var(--motion-fast) var(--motion-ease);
+  animation: c-kfocus-in var(--motion-medium) var(--motion-ease);
+}
+.c-kfocus__link[data-line='dashed'] { stroke-dasharray: 5 4; }
+.c-kfocus__link[data-line='dotted'] { stroke-dasharray: 1.5 3.5; }
+.c-kfocus__link[data-state='hot'] { stroke: var(--color-graph-focus); stroke-width: 2; }
+.c-kfocus__link[data-state='dim'] { opacity: 0.35; }
+.c-kfocus__node, .c-kfocus__head, .c-kfocus__more {
+  position: absolute; top: 0; left: 0;
+  transition: transform var(--motion-medium) var(--motion-ease), width var(--motion-medium) var(--motion-ease),
+    opacity var(--motion-fast) var(--motion-ease);
+}
+.c-kfocus__node {
+  height: var(--size-focus-row); display: flex; align-items: center; gap: var(--space-inline-sm); padding: 0;
+  border: 0; background: none; color: var(--color-text-primary); font: inherit; text-align: left; cursor: pointer;
+  animation: c-kfocus-in var(--motion-medium) var(--motion-ease);
+}
+.c-kfocus__node[data-align='end'] { flex-direction: row-reverse; text-align: right; }
+.c-kfocus__node[data-depth='2'] { color: var(--color-text-secondary); }
+.c-kfocus__node[data-state='dim'] { opacity: 0.4; }
+.c-kfocus__node:hover .c-kfocus__label, .c-kfocus__node[data-state='hot'] .c-kfocus__label { color: var(--color-text-primary); text-decoration: underline; text-underline-offset: var(--space-inline-xs); text-decoration-color: var(--color-graph-focus); }
+.c-kfocus__node:focus-visible { outline: none; }
+.c-kfocus__node:focus-visible .c-kfocus__text { box-shadow: 0 0 0 var(--size-focus-line) var(--color-border-focus); border-radius: var(--radius-badge); }
+.c-kfocus__node[data-align='center'] {
+  align-items: flex-start; padding: var(--space-inset-sm) var(--space-inset-md); cursor: default;
+  border: 1px solid var(--color-graph-focus); border-radius: var(--radius-container); background: var(--color-bg-surface);
+}
+.c-kfocus__node[data-align='center'] .c-kgraph__swatch { margin-top: var(--space-inline-xs); }
+.c-kfocus__node[data-align='center'] .c-kfocus__label {
+  white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; font-weight: 600;
+}
+.c-kfocus__node[data-align='center']:hover .c-kfocus__label { text-decoration: none; }
+.c-kfocus__node .c-kgraph__swatch { width: var(--space-inline-sm); height: var(--space-inline-sm); }
+.c-kfocus__text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.c-kfocus__label, .c-kfocus__meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.c-kfocus__label { font-size: var(--font-size-body); line-height: 1.35; }
+.c-kfocus__meta { font-size: var(--font-size-caption); color: var(--color-text-tertiary); font-variant-numeric: tabular-nums; }
+.c-kfocus__head {
+  font-size: var(--font-size-caption); color: var(--color-text-tertiary); letter-spacing: 0.04em; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.c-kfocus__head[data-align='end'] { text-align: right; }
+.c-kfocus__head[data-align='center'] { text-align: center; }
+.c-kfocus__more {
+  height: var(--space-stack-lg); padding: 0; border: 0; background: none; color: var(--color-action-primary);
+  font: inherit; font-size: var(--font-size-label); text-align: left; cursor: pointer;
+}
+.c-kfocus__more[data-align='end'] { text-align: right; }
+.c-kfocus__more:hover { text-decoration: underline; }
+@keyframes c-kfocus-in { from { opacity: 0; } }
+
+/* Trail, lenses, search results, foot card around the stage */
+.c-kgraph__trail { display: flex; align-items: center; gap: var(--space-inline-xs); min-width: 0; flex: 1; }
+.c-kgraph__trail-list { flex: 1; display: flex; align-items: center; min-width: 0; margin: 0; padding: 0; list-style: none; font-size: var(--font-size-label); color: var(--color-text-tertiary); }
+.c-kgraph__trail-item { flex: 0 1 auto; display: flex; align-items: center; min-width: 0; }
+.c-kgraph__trail-item + .c-kgraph__trail-item::before { content: '›'; padding: 0 var(--space-inline-xs); }
+.c-kgraph__trail-item:last-child { flex: 0 0 auto; max-width: 70%; }
+.c-kgraph__trail-item button, .c-kgraph__trail-item span {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0; border: 0; background: none; font: inherit; color: inherit;
+}
+.c-kgraph__trail-item button { cursor: pointer; }
+.c-kgraph__trail-item button:hover { color: var(--color-text-primary); }
+.c-kgraph__trail-item [aria-current] { color: var(--color-text-primary); }
+.c-kgraph__lens {
+  display: inline-flex; align-items: center; gap: var(--space-inline-xs); height: var(--size-badge); box-sizing: content-box;
+  padding: var(--space-inline-xs) var(--space-inset-sm); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-control);
+  background: none; color: var(--color-text-secondary); font: inherit; font-size: var(--font-size-label); white-space: nowrap; cursor: pointer;
+}
+.c-kgraph__lens:hover:enabled { background: var(--color-bg-hover); color: var(--color-text-primary); }
+.c-kgraph__lens:disabled { cursor: default; color: var(--color-text-tertiary); }
+.c-kgraph__lens[aria-pressed='true'] { background: var(--color-bg-selected); border-color: transparent; color: var(--color-text-primary); }
+.c-kgraph__lens-count { color: var(--color-text-tertiary); font-variant-numeric: tabular-nums; }
+.c-kgraph__results {
+  position: absolute; top: var(--space-inline-xs); left: var(--space-inset-md); right: var(--space-inset-md); z-index: 2;
+  max-height: var(--size-pick-list); overflow-y: auto; margin: 0; padding: var(--space-inline-xs); list-style: none;
+  border: 1px solid var(--color-border-default); border-radius: var(--radius-control); background: var(--color-bg-surface);
+}
+.c-kgraph__result {
+  display: flex; align-items: center; gap: var(--space-inline-sm); padding: var(--space-inline-xs) var(--space-inset-sm);
+  border-radius: var(--radius-badge); font-size: var(--font-size-body); cursor: pointer;
+}
+.c-kgraph__result:hover { background: var(--color-bg-hover); }
+.c-kgraph__result[aria-selected='true'] { background: var(--color-bg-selected); }
+.c-kgraph__result-label { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.c-kgraph__result-detail {
+  flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right;
+  font-family: var(--font-family-mono); font-size: var(--font-size-caption); color: var(--color-text-tertiary);
+}
+.c-kgraph__foot { flex: none; border-top: 1px solid var(--color-border-subtle); background: var(--color-bg-surface); }
+.c-kgraph__foot-body { max-height: var(--size-card-list); overflow: auto; border-bottom: 1px solid var(--color-border-subtle); }
+.c-kgraph__foot-line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-inline-xs) var(--space-inline-sm); padding: var(--space-inline-xs) var(--space-inset-md); min-height: var(--size-row); box-sizing: border-box; }
+.c-kgraph__foot-title { flex: 0 1 auto; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.c-kgraph__foot-detail {
+  flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-family: var(--font-family-mono); font-size: var(--font-size-caption); color: var(--color-text-tertiary);
+}
+.c-kgraph__foot-actions { flex: none; display: flex; flex-wrap: wrap; gap: var(--space-inline-xs); margin-left: auto; }
+
 /* ── Link suggestions (T68): suggested connections with Link / [[ ]] / Not related ─── */
 .c-suggest { margin: 0; padding: 0; list-style: none; }
 .c-suggest__item, .c-suggest__proposal {

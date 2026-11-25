@@ -122,6 +122,7 @@
 | `--size-editor-measure` / `--size-editor-side` | 720 / 240 | 노트 에디터 (T67): 전체 창에서 본문 한 줄 최대 너비 / 목차·링크 열 너비 |
 | `--size-card-list` | 224 | 그래프 카드: 제안된 연결 목록이 스크롤되기 전 높이 (T68) |
 | `--size-board-column` / `--size-code-input` | 256 / 224 | 보드 보기의 열 너비 / 텍스트로 고치는 설정의 높이 (T69) |
+| `--size-focus-row` / `--size-focus-center` / `--size-focus-gap` | 40 / 208 / 48 | 그래프 주변 보기 (T72): 항목 하나(라벨 + 메타 줄) / 가운데 카드 / 두 열 사이 선이 지나갈 자리 |
 
 ## 컴포넌트 (`components.css`)
 
@@ -139,6 +140,8 @@
 | `.c-graph`, `__node[data-mark]` `__box` `__label` `__detail` `__mark` `__edge` `__column` | 정적 SVG 노드 그래프(레포 뼈대, T64; 지식 그래프도 같은 모양): 호출자가 배치한 상자, 곡선 간선. 테두리 없이 면 색으로 채운 상자, 색은 바뀌는 곳에만: add = 초록 면 + 채운 점, change = 파란 면 + 고리 점, unfit = 점선 테두리 + 취소선. 표시된 상자가 있으면(`.c-graph[data-marked]`) 표시 없는 라벨은 secondary로 물러남. 호버한 단계용 `data-dim` / `data-highlight`. 애니메이션 루프 없음 |
 | `.c-editor`, `__main` `__host` `__side` `__section` `__section-title` `__item` (`--level`) `__empty` `__banner[data-tone]` `__compare` | 노트 에디터 (T67): CodeMirror 자리 + 목차·링크 열, 위쪽 배너(warn = 대기 색 테두리). CodeMirror의 `.cm-*`와 라이브 프리뷰 표시 `.cm-md-*`(제목, 강조, 코드, 링크, `[[링크]]`, 체크박스, 인용·콜아웃, 구분선, 프런트매터, 렌더된 표)는 `.c-editor` 아래에서 토큰만으로 꾸밈 |
 | `.c-suggest`, `__item` `__line[data-line=dotted|dashed]` `__text` `__label` `__why` `__actions` `__proposal[data-tone=warn]` | 링크 제안 (T68): 줄마다 제안된 연결 하나(선 견본, 상대 노드, 이유, ✓ / [[ / ×), 위에 제안·경고 줄(강조 / 대기 색 테두리). `GraphCard`는 `children`을 스크롤되는 `__card-body`로, `close`를 오른쪽 위에 고정된 `__card-close`로 받음(액션은 줄바꿈되고 닫기는 잘리지 않음). `GraphHint`(`.c-kgraph__hint`)는 같은 자리에 뜨는 닫을 수 있는 사용법 안내 |
+| `.c-kfocus`, `__plane` `__links` `__link[data-line][data-state=hot|dim]` `__node[data-align=start|end|center][data-depth][data-state]` `__text` `__label` `__meta` `__head` `__more` | 그래프 주변 보기 (T72): `FocusStage`(스크롤되는 판, 아래에 SVG 선), `FocusNode`(열 가장자리의 점 + 한 줄 라벨과 메타. `end` = 점이 오른쪽, 왼쪽 열용 오른쪽 정렬. `center` = 테두리 있는 가운데 카드), `FocusHead`, `FocusMore`. 모든 상자 위치(`x`, `y`, `width`)는 호출하는 쪽이 정하고, 이동은 `--motion-medium`으로 움직인다. roving tabindex: `current`만 탭으로 간다 |
+| `.c-kgraph__trail`, `__lens`, `__results` / `__result`, `__foot` (`__foot-line` `__foot-title` `__foot-detail` `__foot-actions` `__foot-body`) | 그래프 스테이지 주변 (T72): `GraphTrail`(뒤로 + 경로, 마지막이 가운데), `GraphLens`(개수가 붙은 질문 칩. 눌림 = 밝힘, 0개 = 비활성), `GraphResults` / `GraphResult`(스테이지 위 검색 결과. mousedown으로 골라 입력창이 포커스를 유지), `GraphFoot`(스테이지 아래 가운데 노드의 한 줄 카드, 위로 펼쳐지는 영역) |
 | `.c-steps`, `__item[data-off]` `__check` `__title` `__meta` | 체크하는 계획(T64): 체크박스 · 제목 + 배지 / 고정폭 파일 줄. 체크 해제한 단계는 흐려짐 |
 | `.c-badge--verdict-apply` `--verdict-partial` `--verdict-skip` | 제안의 판정(done / waiting / tertiary) |
 | `.c-badge` `--claude` `--codex` `--shell` `--account-shared` `--account-personal` `--risk` | 태그 (`--risk`: 한 번 더 볼 변경 파일, 대기 색 — T57) |

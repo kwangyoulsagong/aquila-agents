@@ -814,3 +814,26 @@ throttled or hot → `saver`). The rules every task below follows:
   shows what was added in its review (`added` on the extension info; smoke checks it), and a note over 2 MB opens only
   its start, read-only (`MAX_EDIT_BYTES`, cut at a whole line). Not done from the review: graph and editor each fetch their own snapshot; extension storage
   is read synchronously on every call; extraction child processes outlive a stopped graph worker; CodeMirror's own panel text (search) is English only._
+
+### T72 · Graph 7: around this note, and a map with questions
+- [x] **Goal:** the graph answers "what's around what I'm working on" instead of showing a 2,000-node hairball.
+- **Why:** PKM users who keep using a graph use a local one beside the editor at depth 1–3; the global one gets
+  dropped as "pretty but nothing to act on" (forum.obsidian.md threads). People stop reading node-link drawings
+  correctly past ~50 nodes (Yoghourdjian et al. 2020). Research summary + mockups: the T72 design page.
+- **Spec:** default view **Around**: the note open in the editor (follows it; can be unpinned) or the latest note in
+  the middle, knowledge left / work right, depth 1 inner and 2 outer, 7 / 5 per column by interest + "+N more",
+  layered layout with crossing minimisation (deterministic), labels never overlap, click moves the centre, Back /
+  crumbs, ⌘-click / double-click opens, arrow keys. **Map**: the WebGL graph with lenses (to-dos, unlinked notes,
+  recent sessions, notes the work moved past) and labels on hubs only. Search lists results to jump to; filters
+  behind one toggle; the selected node is a one-line foot card with Suggested links folded.
+- **Owns:** `src/widgets/knowledge-graph/`, `design-system/react/GraphFocus.tsx` (+ `.c-kfocus` / `.c-kgraph__*` in
+  `components.css`, three `--size-focus-*` tokens).
+- **Done:** smoke: ⌘⇧N opens Around with no canvas; search + Enter centres the meeting note; a column click moves,
+  Back returns; Map settles within budget; a lens switches on.
+  _Left over: the hover fix that came first (sigma re-framed the camera to label boxes on every hover:
+  `autoRescaleContent: 'positions'` now, 90 ms hover delay) is in the same branch. Guide media not re-captured
+  (text updated). Not done: cluster colours on the Map (needs community detection), "running" state for live
+  sessions in the meta line (the graph only knows `mtime`), the stale-note lens compares session time with the
+  note's mtime only. `smoke` fails before the graph on this machine at the Preview panel drag (also on `main`), and
+  the guide shortcut sheet / vault preview checks fail intermittently there too; the graph, links, vault and app-graph
+  checks pass with the panel drag skipped locally._

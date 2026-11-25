@@ -481,7 +481,7 @@ own title.
   graphology and the layout load on first open. `useGraphData` asks for the status (which starts the T65 index) and
   refetches the snapshot only when its version moves (coalesced to one fetch per 800 ms while indexing).
 - **View:** `model/view.ts` filters the snapshot (source, kind, tag, time, min strength; non-notes stay only while a
-  kept note links them), the local view keeps the selected note's depth 1–2 neighbourhood, search matches labels.
+  kept note links them), search matches labels (the bar lists the top 8 to jump to).
 - **Layout:** ForceAtlas2 (`graphology-layout-forceatlas2/iterate.js` over packed arrays, `model/layout.ts`) in a
   fresh module worker per data change (`layout.worker.ts`, `runLayout.ts`); it stops when the picture settles or after
   3 s and is terminated — no worker between runs. Ticks every 100 ms (none in power saver: only the final picture).
@@ -493,6 +493,31 @@ own title.
   refuses to repaint items it hasn't drawn). Closing the panel kills sigma, which releases the WebGL context.
 - Open (or double-click) on a note → the note editor (T67). `graphOpenNote` (default app, only a `.md` inside an
   enabled source) stays as the editor's ↗ button.
+
+### Around and Map (T72)
+
+The panel has two views; the choice is remembered (`aquila.graph.mode`). Sigma (above) only runs on the **Map**.
+
+- **Around** (default, `ui/FocusView.tsx`): one node in the middle — the note open in the editor while "Follow
+  editor" is on (`activeNotePath` from the workspace), else the latest note — and what it links to in columns:
+  knowledge (notes, tags, people, decisions) left, work (sessions, to-dos, files, code, trends) right; inner column
+  one link away, outer two. Click → that node becomes the centre (a trail with Back / crumbs, ≤ 30 kept);
+  ⌘-click / double-click / ⌘↵ opens it; ↑↓←→ move, Enter recentres, ⌫ goes back. Drawn as DOM + one SVG (≤ ~30
+  nodes, no WebGL), positions animate with `--motion-medium`.
+- **Model** (pure, tested): `model/focus.ts` ranks each column by degree of interest (link strength and count,
+  recency, a little degree; Furnas 1986 / van Ham & Perer 2009) and shows 7 (outer: 5) with "+N more"; the outer
+  column only pulls from *shown* inner items. `model/ordering.ts` orders the two layers per side to cross as little as
+  possible: Barth–Jünger–Mutzel cross count, barycenter sweeps with 15 seeded restarts (exhaustive when the inner
+  column has ≤ 7), adjacent swaps (dot's transpose); ties keep the rank order. Rows: each outer item at the median of
+  its parents, ≥ 1 row apart (L1 isotonic regression). Seeded by the centre id → same picture every time.
+  `model/geometry.ts` turns rows into pixels for three widths (wide: 4 columns; medium: inner 2; narrow: one list,
+  no links); labels are measured on a canvas so a link meets a label where its text starts or ends.
+- **Map**: the force layout above plus lenses (`model/lenses.ts`): notes a session worked on after their last edit,
+  to-dos, unlinked notes, sessions of the last 7 days. A lens is `matches` for the renderer (its answers lit, the rest
+  faded). Only hubs (4+ links) carry a label. Clicking a node goes to it in Around.
+- The centre's card is a one-line foot (`GraphFoot`): place, Open / Handle with Claude / Resume / Open link, and
+  "Suggested links" (T68) folded away. Filters sit behind one "Filters" toggle (count of active ones on it).
+- `window.__graphSettled` is set by both views (`via: 'focus'` for Around) for smoke / capture; perf opens the Map.
 
 ## Note editor (T67)
 

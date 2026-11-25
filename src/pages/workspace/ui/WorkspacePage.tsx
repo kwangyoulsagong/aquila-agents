@@ -742,6 +742,7 @@ export default function WorkspacePage() {
         {graphOpen && !fullscreen.on && !previewFull && !noteFull && (
           <KnowledgeGraphPanel
             full={graphFull}
+            activeNotePath={notePath}
             onClaude={sendNoteToClaude}
             onResumed={ws.adoptResumed}
             onError={ws.showError}

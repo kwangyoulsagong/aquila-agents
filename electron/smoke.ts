@@ -1408,32 +1408,37 @@ async function checkGraphSources(win: BrowserWindow, config: Config, out: string
 }
 
 /**
- * Notes graph (T66), over the three sources `checkGraphSources` added: ⌘⇧N lazy-loads the panel, the WebGL canvas
- * draws and the layout worker settles; search + Enter selects the meeting note, "Around this note" keeps its depth-2
- * neighbourhood (fewer nodes, the spec still in it via DB-12). ⌘⇧N again removes the panel and its canvas.
+ * Notes graph (T66 / T72), over the three sources `checkGraphSources` added. ⌘⇧N lazy-loads the panel on the focus
+ * view ("Around"): the latest note in the middle, its links in columns. Search + Enter moves the centre to the
+ * meeting note; clicking a column item moves there, Back returns. Then the Map: the WebGL canvas draws, the layout
+ * worker settles within budget, a lens lights its answers. ⌘⇧N again removes the panel and its canvas.
  */
 async function checkGraphView(win: BrowserWindow, config: Config, outDir: string): Promise<string | null> {
   const t = translator(config.language);
   const js = <T>(code: string) => win.webContents.executeJavaScript(code) as Promise<T>;
-  const settled = async (ms = 15_000) => {
+  type Settled = { nodes: number; iterations: number; ms: number; via: string };
+  const settled = async (via?: string, ms = 15_000) => {
     for (let i = 0; i < ms / 100; i++) {
-      const s = await js<{ nodes: number; iterations: number; ms: number } | null>(
-        'window.__graphSettled ?? null',
-      );
-      if (s) return s;
+      const s = await js<Settled | null>('window.__graphSettled ?? null');
+      if (s && (!via || s.via === via || (via === 'layout' && s.via !== 'focus'))) return s;
       await wait(100);
     }
     return null;
   };
-  await js('window.__graphSettled = null');
+  const centerLabel = () =>
+    js<string>(`document.querySelector('aside .c-kfocus__node[data-align=center] .c-kfocus__label')?.textContent ?? ''`);
+  await js(`(() => { localStorage.removeItem('aquila.graph.mode'); window.__graphSettled = null; })()`);
   press(win, 'N', ['meta', 'shift']);
-  const whole = await settled();
-  if (!whole) return 'graph: the layout never settled after ⌘⇧N';
-  const canvases = await js<number>(`document.querySelectorAll('aside .c-kgraph canvas').length`);
-  if (!canvases) return 'graph: no canvas in the panel';
-  if (whole.ms > 3500) return `graph: layout ran ${whole.ms} ms (budget 3 s)`;
+  const focus = await settled('focus');
+  if (!focus) return 'graph: the focus view never showed after ⌘⇧N';
+  const items = await js<number>(`document.querySelectorAll('aside .c-kfocus__node').length`);
+  if (items < 2) return `graph: focus view shows ${items} node(s)`;
+  if (await js<number>(`document.querySelectorAll('aside .c-kgraph canvas').length`))
+    return 'graph: the focus view started a WebGL canvas';
+  await wait(400); // the fade-in
   fs.writeFileSync(path.join(outDir, 'smoke-graph.png'), (await win.webContents.capturePage()).toPNG());
-  // Select the meeting note through search (its file name is Korean in both languages).
+
+  // Search → Enter puts the meeting note in the middle (its file name is Korean in both languages).
   const meeting = '주간';
   const snap = await js<{ nodes: { id: string; kind: string; label: string }[] }>(
     'window.aquila.graphSnapshot()',
@@ -1441,7 +1446,6 @@ async function checkGraphView(win: BrowserWindow, config: Config, outDir: string
   const notes = snap.nodes.filter((n) => n.kind === 'note');
   const target = notes.find((n) => n.label.includes(meeting)) ?? notes[0];
   if (!target) return 'graph: no notes in the snapshot';
-  // Search narrows by label; type the target's title so Enter selects exactly it.
   await js(`(() => {
     const input = document.querySelector('aside .c-panel__bar input[type=search]');
     const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
@@ -1450,28 +1454,62 @@ async function checkGraphView(win: BrowserWindow, config: Config, outDir: string
     input.dispatchEvent(new Event('input', { bubbles: true }));
   })()`);
   await wait(300);
+  const listed = await js<number>(`document.querySelectorAll('aside .c-kgraph__result').length`);
+  if (!listed) return 'graph: search listed no results';
   press(win, 'Enter', []);
-  await wait(300);
-  const card = await js<string>(`document.querySelector('aside .c-kgraph__card-title')?.textContent ?? ''`);
-  if (card !== target.label) return `graph: search + Enter selected "${card}", wanted "${target.label}"`;
+  await wait(500);
+  if ((await centerLabel()) !== target.label)
+    return `graph: search + Enter centred "${await centerLabel()}", wanted "${target.label}"`;
+
+  // Click an item in a column → it becomes the centre; Back → the meeting note again.
+  const next = await js<string | null>(`(() => {
+    const b = document.querySelector('aside .c-kfocus__node:not([data-align=center])');
+    if (!b) return null;
+    const label = b.querySelector('.c-kfocus__label')?.textContent ?? '';
+    b.click();
+    return label;
+  })()`);
+  if (!next) return `graph: "${target.label}" has nothing around it`;
+  await wait(500);
+  const moved = await centerLabel();
+  await js(`document.querySelector('aside .c-kgraph__trail button')?.click()`);
+  await wait(500);
+  const backTo = await centerLabel();
+  if (backTo !== target.label) return `graph: Back went to "${backTo}", wanted "${target.label}"`;
+
+  // The Map: WebGL graph + layout worker, then a lens.
   await js('window.__graphSettled = null');
-  const local = await js<boolean>(`(() => {
-    const b = [...document.querySelectorAll('aside .c-segment__item')].find((e) => e.textContent.trim() === ${JSON.stringify(t('graph.local'))});
+  const toMap = await js<boolean>(`(() => {
+    const b = [...document.querySelectorAll('aside .c-segment__item')].find((e) => e.textContent.trim() === ${JSON.stringify(t('graph.mode.map'))});
     b?.click();
     return !!b;
   })()`);
-  if (!local) return 'graph: no "Around this note" switch after selecting';
-  const around = await settled();
-  if (!around) return 'graph: the local view never settled';
-  if (around.nodes < 2 || around.nodes > whole.nodes)
-    return `graph: local view has ${around.nodes} nodes (whole graph ${whole.nodes})`;
-  fs.writeFileSync(path.join(outDir, 'smoke-graph-local.png'), (await win.webContents.capturePage()).toPNG());
+  if (!toMap) return 'graph: no Map switch';
+  const whole = await settled('layout');
+  if (!whole) return 'graph: the map layout never settled';
+  if (!(await js<number>(`document.querySelectorAll('aside .c-kgraph canvas').length`)))
+    return 'graph: no canvas on the map';
+  if (whole.ms > 3500) return `graph: layout ran ${whole.ms} ms (budget 3 s)`;
+  if (focus.nodes > whole.nodes) return `graph: focus view has ${focus.nodes} nodes, the map ${whole.nodes}`;
+  // A lens with answers switches on; one with none can't be pressed.
+  const lensState = await js<{ chips: number; on: boolean | null }>(`(async () => {
+    const chips = [...document.querySelectorAll('aside .c-kgraph__lens')];
+    const b = chips.find((c) => !c.disabled);
+    if (!b) return { chips: chips.length, on: null };
+    b.click();
+    await new Promise((r) => setTimeout(r, 300));
+    return { chips: chips.length, on: b.getAttribute('aria-pressed') === 'true' };
+  })()`);
+  if (lensState.chips !== 4) return `graph: ${lensState.chips} lens chips on the map, expected 4`;
+  if (lensState.on === false) return 'graph: a lens did not switch on';
+  fs.writeFileSync(path.join(outDir, 'smoke-graph-map.png'), (await win.webContents.capturePage()).toPNG());
+  await js(`localStorage.removeItem('aquila.graph.mode')`);
   press(win, 'N', ['meta', 'shift']);
   await wait(400);
   const left = await js<number>(`document.querySelectorAll('.c-kgraph').length`);
   if (left) return 'graph: ⌘⇧N did not close the panel';
   console.log(
-    `[smoke] graph: ${whole.nodes} nodes settled in ${whole.ms} ms (${whole.iterations} iterations); around "${target.label}": ${around.nodes} nodes`,
+    `[smoke] graph: focus ${focus.nodes} nodes in ${focus.ms} ms; "${target.label}" → "${moved}" → back; map ${whole.nodes} nodes settled in ${whole.ms} ms (${whole.iterations} iterations)`,
   );
   return null;
 }
@@ -1690,10 +1728,10 @@ async function checkLinkSuggestions(
     )
       return 'links: no suggested (similar) edge between the meeting note and the spec';
 
-    // Graph card: select the meeting note, the spec is listed with a dotted line; "[[" accepts and writes the link.
+    // Graph foot card: centre the meeting note, open "Suggested links": the spec is listed with a dotted line;
+    // "[[" accepts and writes the link.
     press(win, 'N', ['meta', 'shift']);
-    if (!(await until(`!!document.querySelector('aside .c-kgraph canvas')`)))
-      return 'links: graph panel did not open';
+    if (!(await until(`!!document.querySelector('aside .c-kgraph')`))) return 'links: graph panel did not open';
     await js(`(() => {
       const input = document.querySelector('aside .c-panel__bar input[type=search]');
       const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
@@ -1703,9 +1741,12 @@ async function checkLinkSuggestions(
     })()`);
     await wait(300);
     press(win, 'Enter', []);
-    const row = `[...document.querySelectorAll('.c-kgraph__card .c-suggest__item')].find((r) => r.textContent.includes('Printable reports'))`;
+    if (!(await until(`document.querySelector('aside .c-kgraph__foot-title')?.textContent === '2026-11-18 Planning'`)))
+      return 'links: search + Enter did not centre the meeting note';
+    await js(`document.querySelector('aside .c-kgraph__foot button[aria-expanded=false]')?.click()`);
+    const row = `[...document.querySelectorAll('.c-kgraph__foot .c-suggest__item')].find((r) => r.textContent.includes('Printable reports'))`;
     if (!(await until(`!!${row}?.querySelector('.c-suggest__line[data-line=dotted]')`)))
-      return 'links: the graph card does not list the spec as a dotted suggestion';
+      return 'links: the foot card does not list the spec as a dotted suggestion';
     await wait(500);
     fs.writeFileSync(
       path.join(outDir, 'smoke-links-card.png'),
@@ -1726,7 +1767,7 @@ async function checkLinkSuggestions(
       [id('bugs/login-loop.md'), id('memos/auth-memo.md')],
     ])
       await js(`window.aquila.graphDecide({ source: ${a}, target: ${b}, accept: true })`);
-    const proposal = `[...document.querySelectorAll('.c-kgraph__card .c-suggest__proposal')].find((r) => r.textContent.includes('DB-<n>'))`;
+    const proposal = `[...document.querySelectorAll('.c-kgraph__foot .c-suggest__proposal')].find((r) => r.textContent.includes('DB-<n>'))`;
     if (!(await until(`!!${proposal}`))) return 'links: three DB- accepts did not propose a rule';
     await js(
       `[...${proposal}.querySelectorAll('button')].find((b) => b.textContent === ${JSON.stringify(t('links.makeRule'))}).click()`,
@@ -1972,13 +2013,13 @@ async function checkAppGraph(win: BrowserWindow, config: Config, outDir: string)
     await wait(300);
     press(win, 'Enter', []);
     return until(
-      `document.querySelector('aside .c-kgraph__card-title')?.textContent === ${JSON.stringify(label)}`,
+      `document.querySelector('aside .c-kgraph__foot-title')?.textContent === ${JSON.stringify(label)}`,
       3000,
     );
   };
   const cardHas = (text: string) =>
     until(
-      `[...document.querySelectorAll('aside .c-kgraph__card button')].some((b) => b.textContent.trim() === ${JSON.stringify(text)})`,
+      `[...document.querySelectorAll('aside .c-kgraph__foot button')].some((b) => b.textContent.trim() === ${JSON.stringify(text)})`,
       3000,
     );
   const root = fs.mkdtempSync(path.join(app.getPath('temp'), 'aquila-smoke-app-'));

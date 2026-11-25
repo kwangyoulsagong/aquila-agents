@@ -434,12 +434,13 @@ async function measureGraph(win: BrowserWindow, ids: string[]) {
   await wait(1500); // the scan workers exit
   const mainWithApp = browserMB();
 
-  await js('window.__graphSettled = null');
+  // The map (the whole graph, WebGL + layout worker) is what has a budget; the focus view is a few dozen DOM nodes.
+  await js(`(() => { localStorage.setItem('aquila.graph.mode', 'map'); window.__graphSettled = null; })()`);
   press(win, 'N', ['meta', 'shift']);
   let settled: { nodes: number; ms: number; iterations: number; via: string } | null = null;
   for (let i = 0; i < 200 && !settled; i++) {
     await wait(100);
-    settled = await js('window.__graphSettled ?? null');
+    settled = await js(`(() => { const s = window.__graphSettled; return s && s.via !== 'focus' ? s : null; })()`);
   }
   await wait(500);
   const openIdle = await measure(win, 5000);
