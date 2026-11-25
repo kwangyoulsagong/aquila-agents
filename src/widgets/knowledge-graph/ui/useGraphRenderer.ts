@@ -16,8 +16,12 @@ interface NodeAttrs {
   color: string;
   /** Faded: something else is focused / searched. */
   dim: boolean;
-  /** Searched or focused: label always shown. */
+  /** A neighbour of the focused node, or a search hit. */
   lit: boolean;
+  /** The focused node or a search hit: label always shown. */
+  pin: boolean;
+  /** The focused node: label shown uncut. */
+  full: boolean;
 }
 interface EdgeAttrs {
   size: number;
@@ -42,6 +46,11 @@ export interface GraphRendererProps {
 }
 
 const TRANSPARENT = 'rgba(0,0,0,0)';
+/**
+ * Hover restyles the whole graph (neighbours lit, the rest faded). Sweeping the pointer over a dense cluster fired
+ * enter/leave on every node it crossed and strobed the picture; the hover only counts once the pointer rests.
+ */
+const HOVER_MS = 90;
 /** Longer labels are cut on the canvas (the card and hover backdrop name the node); long Korean titles overlapped. */
 const LABEL_MAX = 28;
 export const shortLabel = (s: string): string => (s.length > LABEL_MAX ? `${s.slice(0, LABEL_MAX - 1)}…` : s);
@@ -87,10 +96,11 @@ export function useGraphRenderer(
     return {
       node: (id: string) => {
         const lit = (near?.has(id) ?? false) || ms.has(id);
-        return { lit, dim: any && !lit };
+        const full = !!near && id === center;
+        return { lit, dim: any && !lit, full, pin: full || ms.has(id) };
       },
       edge: (s: string, t: string) => {
-        const on = near ? (s === center || t === center) : ms.has(s) && ms.has(t);
+        const on = near ? s === center || t === center : ms.has(s) && ms.has(t);
         return { dim: any && !on, color: any && on ? c.focus : c.edge };
       },
     };
@@ -154,11 +164,13 @@ export function useGraphRenderer(
           y: { attribute: 'y' },
           size: { whenState: 'isHovered', then: (a: NodeAttrs) => a.size + 2, else: { attribute: 'size' } },
           color: { attribute: 'color' },
-          opacity: (a: NodeAttrs) => (a.dim ? 0.18 : 1),
-          label: (a: NodeAttrs, s) => (s.isHovered || a.lit ? a.label : shortLabel(a.label)),
+          opacity: (a: NodeAttrs) => (a.dim ? 0.2 : 1),
+          // Only the focused node's label is uncut; neighbours keep short labels and the label grid decides which
+          // fit — forcing every neighbour's full title on screen piled them into one unreadable block.
+          label: (a: NodeAttrs, s) => (s.isHovered || a.full ? a.label : shortLabel(a.label)),
           labelColor: colors.label,
           labelVisibility: (a: NodeAttrs, s) =>
-            s.isHovered || a.lit ? 'visible' : a.dim ? 'hidden' : 'auto',
+            s.isHovered || a.pin ? 'visible' : a.dim ? 'hidden' : 'auto',
           backdropVisibility: { whenState: 'isHovered', then: 'visible', else: 'hidden' },
           backdropColor: colors.surface,
           backdropShadowColor: TRANSPARENT,
@@ -185,8 +197,10 @@ export function useGraphRenderer(
         inertiaDuration: saver ? 0 : 200,
         doubleClickZoomingDuration: saver ? 0 : 200,
         minCameraRatio: 0.05,
-        // Frame nodes *and* their labels, so nothing is cut at the panel edge.
-        autoRescaleContent: 'labels',
+        // Frame node positions only. 'labels' re-fitted the camera to every label box on each restyle: a hover
+        // (which uncuts a label) zoomed the whole picture in and out, and long titles squeezed the nodes into a dot.
+        // stagePadding leaves room for node radii; a label at the edge may be cut, the hover backdrop shows it whole.
+        autoRescaleContent: 'positions',
         // A two-finger twist on the trackpad turned the whole picture sideways.
         enableCameraRotation: false,
         enableCameraMouseRotation: false,
@@ -210,14 +224,17 @@ export function useGraphRenderer(
       if (xy) applyPositions(xy);
       if (f) applyFocus();
     });
-    sigma.on('enterNode', ({ node }) => {
-      hovered.current = node;
-      applyFocus();
-    });
-    sigma.on('leaveNode', () => {
-      hovered.current = null;
-      applyFocus();
-    });
+    let hoverTimer = 0;
+    const hoverTo = (node: string | null) => {
+      window.clearTimeout(hoverTimer);
+      hoverTimer = window.setTimeout(() => {
+        if (hovered.current === node) return;
+        hovered.current = node;
+        applyFocus();
+      }, HOVER_MS);
+    };
+    sigma.on('enterNode', ({ node }) => hoverTo(node));
+    sigma.on('leaveNode', () => hoverTo(null));
     sigma.on('clickNode', ({ node }) => cb.current.onSelect(node));
     sigma.on('doubleClickNode', (e) => {
       e.preventSigmaDefault?.();
@@ -229,6 +246,8 @@ export function useGraphRenderer(
     const resized = new ResizeObserver(() => sigma.scheduleRefresh());
     resized.observe(el);
     return () => {
+      window.clearTimeout(hoverTimer);
+      hovered.current = null;
       resized.disconnect();
       sigma.kill();
       sigmaRef.current = null;
