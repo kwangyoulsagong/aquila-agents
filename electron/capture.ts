@@ -60,7 +60,15 @@ const TIMEOUT_MS = 240_000;
 
 // Capture runs under the fixture HOME: keep Chromium's profile (local storage, caches) there too, never in the
 // real app's Application Support folder. Must happen before `ready`, so at import time.
-if (process.env.AQUILA_CAPTURE) app.setPath('userData', path.join(app.getPath('home'), '.capture-profile'));
+if (process.env.AQUILA_CAPTURE) {
+  app.setPath('userData', path.join(app.getPath('home'), '.capture-profile'));
+  // Keep painting behind other windows: macOS occlusion stops requestAnimationFrame, and the palette runs its
+  // command in one — a capture window covered by a terminal never opened the dialog it was waiting for, and every
+  // scenario after it failed. Same switches as perf.
+  app.commandLine.appendSwitch('disable-renderer-backgrounding');
+  app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
+  app.commandLine.appendSwitch('disable-features', 'MacWebContentsOcclusion');
+}
 
 export async function runCapture(
   win: BrowserWindow,
@@ -137,6 +145,12 @@ export async function runCapture(
       if (await js<boolean>(condition)) return;
       await wait(100);
     }
+    const state = await js<string>(`JSON.stringify({
+      dialogs: [...document.querySelectorAll('dialog')].map((d) => d.className + (d.open ? ' OPEN' : '') + ' inputs=' + d.querySelectorAll('input').length + ' text=' + (d.textContent || '').slice(0, 60)),
+      active: document.activeElement?.className + ' ' + document.activeElement?.tagName,
+      palette: [...document.querySelectorAll('.c-palette__item')].slice(0, 5).map((e) => e.textContent),
+    })`).catch(() => '?');
+    console.log(`[capture] state at the timeout: ${state}`);
     throw new Error(`timed out waiting for ${condition}`);
   };
 
@@ -341,6 +355,10 @@ export async function runCapture(
         await press('E', ['meta', 'shift'], 1900);
         await press('A', [], 1700); // the "Copied" note (shown 1.6 s)
         await press('F', ['meta'], 500);
+        // Leaving quick select hands focus back to the terminal a beat late, which could take it from the find field:
+        // type only once the field has it.
+        await waitFor(`!!document.querySelector('.c-term-find input')`);
+        await js(`document.querySelector('.c-term-find input')?.focus()`);
         await type('src', 200);
         await press('Enter', [], 600);
         await press('Enter', [], 800);
@@ -348,6 +366,7 @@ export async function runCapture(
       // Escape goes to the find bar (it has focus), which closes and hands the terminal back. Never send Escape
       // while the terminal has focus: it would reach the CLI and leave `^[` on screen for every later scene.
       after: async () => {
+        await js(`document.querySelector('.c-term-find input')?.focus()`);
         await press('Escape', [], 400);
         await waitFor(`!document.querySelector('.c-term-find')`);
       },

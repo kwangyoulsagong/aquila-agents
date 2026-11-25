@@ -117,10 +117,10 @@ export function FocusView({ layout, live, onRecentre, onOpen, onMore, onBack, on
       }
       case 'file': {
         const dir = n.label.split('/').slice(0, -1).join('/');
-        return dir || t('graph.kind.file');
+        return dir || t('graph.one.file');
       }
       default:
-        return t(`graph.kind.${n.kind}`);
+        return t(`graph.one.${n.kind}`);
     }
   };
 
