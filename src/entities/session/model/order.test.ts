@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dropSide, moveSession } from './order';
+import { dropSide, moveSession, tabAt } from './order';
 
 const tabs = (...ids: string[]) => ids.map((id) => ({ id }));
 const ids = (list: { id: string }[]) => list.map((s) => s.id);
@@ -41,5 +41,22 @@ describe('dropSide', () => {
     expect(dropSide(139, rect)).toBe('before');
     expect(dropSide(140, rect)).toBe('after');
     expect(dropSide(179, rect)).toBe('after');
+  });
+});
+
+describe('tabAt', () => {
+  const boxes = [
+    { id: 'a', left: 0, width: 100 },
+    { id: 'b', left: 100, width: 80 },
+  ];
+  it('is the tab under the pointer and the half it is on', () => {
+    expect(tabAt(10, boxes)).toEqual({ id: 'a', side: 'before' });
+    expect(tabAt(60, boxes)).toEqual({ id: 'a', side: 'after' });
+    expect(tabAt(170, boxes)).toEqual({ id: 'b', side: 'after' });
+  });
+  it('clamps past either end', () => {
+    expect(tabAt(-30, boxes)).toEqual({ id: 'a', side: 'before' });
+    expect(tabAt(400, boxes)).toEqual({ id: 'b', side: 'after' });
+    expect(tabAt(5, [])).toBeNull();
   });
 });
