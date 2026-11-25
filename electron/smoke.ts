@@ -64,7 +64,8 @@ if (isSmoke) {
   for (const name of fs.readdirSync(os.tmpdir()).filter((n) => n.startsWith('aquila-smoke-chromium-'))) {
     const dir = path.join(os.tmpdir(), name);
     try {
-      if (Date.now() - fs.statSync(dir).mtimeMs > 10 * 60_000) fs.rmSync(dir, { recursive: true, force: true });
+      if (Date.now() - fs.statSync(dir).mtimeMs > 10 * 60_000)
+        fs.rmSync(dir, { recursive: true, force: true });
     } catch {
       /* gone */
     }
@@ -166,6 +167,8 @@ export async function runSmoke(
     if (menuPasteError) return fail(menuPasteError);
     const renameError = await checkRename(win, sessions, outDir);
     if (renameError) return fail(renameError);
+    const reorderError = await checkTabReorder(win);
+    if (reorderError) return fail(reorderError);
     const promptError = await checkPromptTitle(win, sessions);
     if (promptError) return fail(promptError);
     const reasonError = await checkWaitingReason(win, sessions, outDir);
@@ -303,7 +306,9 @@ async function checkExtensions(
   const shot = async (name: string) => {
     const [width, height] = win.getContentSize();
     const rect = { x: 0, y: 0, width, height };
-    const views = ext.visibleViews().map((v) => ({ bounds: v.bounds, capture: () => v.webContents.capturePage() }));
+    const views = ext
+      .visibleViews()
+      .map((v) => ({ bounds: v.bounds, capture: () => v.webContents.capturePage() }));
     const img = await withViews(await win.webContents.capturePage(rect), rect, views);
     fs.writeFileSync(path.join(outDir, name), img.toPNG());
   };
@@ -331,7 +336,14 @@ async function checkExtensions(
     wc = ext.contentsOf(id);
   }
   if (!wc) return 'extensions: enabling did not start the page';
-  type R = { system: unknown; events: number; fetch: string; refused: string; popup: boolean; paused: boolean };
+  type R = {
+    system: unknown;
+    events: number;
+    fetch: string;
+    refused: string;
+    popup: boolean;
+    paused: boolean;
+  };
   const read = () => wc!.executeJavaScript('window.__smoke ?? null') as Promise<R | null>;
   let r: R | null = null;
   for (let i = 0; i < 80; i++) {
@@ -371,8 +383,9 @@ async function checkExtensions(
   if (!fw.isAlwaysOnTop()) return 'extensions: floating window not on top';
   fw.setContentSize(280, 200);
   await wait(400);
-  const inner = await wc.executeJavaScript('[innerWidth, innerHeight]') as [number, number];
-  if (inner[0] !== 280 || inner[1] !== 200) return `extensions: the page did not follow the window (${inner.join('×')})`;
+  const inner = (await wc.executeJavaScript('[innerWidth, innerHeight]')) as [number, number];
+  if (inner[0] !== 280 || inner[1] !== 200)
+    return `extensions: the page did not follow the window (${inner.join('×')})`;
   const floatingUi = await js<boolean>(`!!document.querySelector('.c-ext__review .c-range')`);
   if (!floatingUi) return 'extensions: the panel did not show the floating controls';
   await shot('smoke-extension-floating.png');
@@ -392,24 +405,35 @@ async function checkExtensions(
   const approved = fs.readFileSync(manifestPath, 'utf8');
   fs.writeFileSync(
     manifestPath,
-    JSON.stringify({ ...JSON.parse(approved), permissions: ['system', 'sessions:status', 'notify', 'network:evil.example.com'] }),
+    JSON.stringify({
+      ...JSON.parse(approved),
+      permissions: ['system', 'sessions:status', 'notify', 'network:evil.example.com'],
+    }),
   );
   ext.reload(id);
   await wait(400);
   const grown = ext.list().find((x) => x.id === id);
-  if (grown?.enabled || ext.contentsOf(id)) return 'extensions: new permissions were used without asking again';
+  if (grown?.enabled || ext.contentsOf(id))
+    return 'extensions: new permissions were used without asking again';
   if (grown?.added?.network.join() !== 'evil.example.com' || grown.added.permissions.join() !== 'notify')
     return `extensions: added permissions not reported (${JSON.stringify(grown?.added)})`;
-  const warned = await js<string>(`document.querySelector('.c-ext__review [data-tone=warn]')?.textContent ?? ''`);
+  const warned = await js<string>(
+    `document.querySelector('.c-ext__review [data-tone=warn]')?.textContent ?? ''`,
+  );
   if (!warned.includes('evil.example.com')) return 'extensions: the review does not say what was added';
   await shot('smoke-extension-permissions-changed.png');
   fs.writeFileSync(manifestPath, approved);
   ext.reload(id);
   await wait(300);
-  if (!ext.list().find((x) => x.id === id)?.enabled) return 'extensions: back to the approved manifest, still off';
-  console.log('[smoke] extensions: grown manifest turned it off with the added permissions shown; approved one back on');
+  if (!ext.list().find((x) => x.id === id)?.enabled)
+    return 'extensions: back to the approved manifest, still off';
+  console.log(
+    '[smoke] extensions: grown manifest turned it off with the added permissions shown; approved one back on',
+  );
   // Close the panel: the view hides (suspended later).
-  await js(`[...document.querySelectorAll('.c-btn')].find((x) => x.querySelector('.c-btn__glyph')?.textContent === '⧉')?.click()`);
+  await js(
+    `[...document.querySelectorAll('.c-btn')].find((x) => x.querySelector('.c-btn__glyph')?.textContent === '⧉')?.click()`,
+  );
   await wait(300);
   if (ext.visibleViews().length) return 'extensions: the view stayed on screen after the panel closed';
   ext.setEnabled(id, false);
@@ -1408,6 +1432,47 @@ async function checkGraphSources(win: BrowserWindow, config: Config, out: string
 }
 
 /**
+ * Drag a tab along the bar to reorder it. Driven by the dragged tab's own drag / dragend (the bar is in the macOS
+ * title-bar band, where drops don't reach the page): first tab onto the right half of the last → it becomes last;
+ * then back, so later checks see the original order.
+ */
+async function checkTabReorder(win: BrowserWindow): Promise<string | null> {
+  const js = <T>(code: string) => win.webContents.executeJavaScript(code) as Promise<T>;
+  const order = () =>
+    js<string[]>(`[...document.querySelectorAll('.c-tabbar [role=tab][data-id]')].map((e) => e.dataset.id)`);
+  const drag = (from: 'first' | 'last', to: 'first' | 'last', side: 'before' | 'after') =>
+    js<void>(`(async () => {
+      const tabs = [...document.querySelectorAll('.c-tabbar [role=tab][data-id]')];
+      const pick = (w) => (w === 'first' ? tabs[0] : tabs[tabs.length - 1]);
+      const src = pick(${JSON.stringify(from)});
+      const r = pick(${JSON.stringify(to)}).getBoundingClientRect();
+      const y = r.top + r.height / 2;
+      const dt = new DataTransfer();
+      const fire = (type, x, yy) =>
+        src.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, dataTransfer: dt, clientX: x, clientY: yy }));
+      const sleep = (ms) => new Promise((ok) => setTimeout(ok, ms));
+      fire('dragstart', src.getBoundingClientRect().left + 6, y);
+      await sleep(60);
+      fire('drag', ${JSON.stringify(side)} === 'after' ? r.right - 4 : r.left + 4, y);
+      await sleep(60);
+      fire('drag', 0, 0); // the last drag event of a real drag
+      fire('dragend', 0, 0);
+      await sleep(300);
+    })()`);
+  const before = await order();
+  if (before.length < 2) return `tab reorder: ${before.length} tab(s) in the bar, need 2`;
+  await drag('first', 'last', 'after');
+  const moved = await order();
+  const want = [...before.slice(1), before[0]];
+  if (moved.join() !== want.join()) return `tab reorder: got ${moved.join()}, wanted ${want.join()}`;
+  await drag('last', 'first', 'before');
+  const back = await order();
+  if (back.join() !== before.join()) return `tab reorder: moving back gave ${back.join()}`;
+  console.log(`[smoke] tab reorder: first → last and back (${before.length} tabs)`);
+  return null;
+}
+
+/**
  * Notes graph (T66 / T72), over the three sources `checkGraphSources` added. ⌘⇧N lazy-loads the panel on the focus
  * view ("Around"): the latest note in the middle, its links in columns. Search + Enter moves the centre to the
  * meeting note; clicking a column item moves there, Back returns. Then the Map: the WebGL canvas draws, the layout
@@ -2365,10 +2430,13 @@ async function checkLinks(win: BrowserWindow): Promise<string | null> {
   smokeLinks.length = 0;
   await win.webContents.executeJavaScript(`window.open('https://example.com/aquila-smoke-link'); undefined`);
   await win.webContents.executeJavaScript(`window.open('file:///etc/hosts'); undefined`);
-  await win.webContents.executeJavaScript(`location.href = 'https://example.com/aquila-smoke-nav'; undefined`);
+  await win.webContents.executeJavaScript(
+    `location.href = 'https://example.com/aquila-smoke-nav'; undefined`,
+  );
   await wait(500);
   if (BrowserWindow.getAllWindows().length !== windows) return 'links: a link opened a window of the app';
-  if (win.webContents.getURL() !== page) return `links: the app page navigated to ${win.webContents.getURL()}`;
+  if (win.webContents.getURL() !== page)
+    return `links: the app page navigated to ${win.webContents.getURL()}`;
   const want = ['https://example.com/aquila-smoke-link', 'https://example.com/aquila-smoke-nav'];
   if (smokeLinks.join() !== want.join())
     return `links: sent to the browser ${JSON.stringify(smokeLinks)}, expected ${JSON.stringify(want)}`;
