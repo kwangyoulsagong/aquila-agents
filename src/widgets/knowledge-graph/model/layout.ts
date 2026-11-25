@@ -22,14 +22,15 @@ export interface Layout {
   positions(): Float32Array;
 }
 
-/** Settings ForceAtlas2's authors infer for a graph of this size (`inferSettings`), with LinLog for tighter clusters. */
+/** Settings ForceAtlas2's authors infer for a graph of this size (`inferSettings`), with more repulsion for big ones. */
 export function settingsFor(order: number): Fa2Options {
   return {
     linLogMode: false,
     outboundAttractionDistribution: false,
     adjustSizes: false,
     edgeWeightInfluence: 1,
-    scalingRatio: order > 100 ? 2 : 10,
+    // 2 (the inferred value) packed a vault of 1,000+ notes into one overlapping blob.
+    scalingRatio: order > 100 ? 6 : 10,
     strongGravityMode: true,
     // Small graphs: pull separate clusters in so they don't sit in far corners.
     gravity: order < 200 ? 1 : 0.05,

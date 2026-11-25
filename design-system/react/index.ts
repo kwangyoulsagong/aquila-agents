@@ -55,6 +55,18 @@ export { TitleBar } from './TitleBar';
 export { Graph, type GraphNodeBox, type GraphEdgeLine, type GraphColumnLabel } from './Graph';
 export { StepList, StepItem } from './StepList';
 export { GraphStage, GraphLegend, GraphCard, GraphHint, type GraphSwatch, type GraphLine } from './GraphStage';
+export {
+  FocusStage,
+  FocusNode,
+  FocusHead,
+  FocusMore,
+  GraphTrail,
+  GraphLens,
+  GraphResults,
+  GraphResult,
+  GraphFoot,
+  type FocusLink,
+} from './GraphFocus';
 export { SuggestionList, SuggestionItem, SuggestionProposal } from './Suggestion';
 export {
   NoteEditor,

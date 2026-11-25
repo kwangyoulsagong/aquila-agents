@@ -826,6 +826,16 @@ export class SessionManager {
     return undefined;
   }
 
+  /** T72: the agent conversation of every live local tab that has one yet. */
+  agentIds(): { tabId: string; agent: 'claude' | 'codex'; sessionId: string }[] {
+    const out: { tabId: string; agent: 'claude' | 'codex'; sessionId: string }[] = [];
+    for (const tabId of this.sessions.keys()) {
+      const src = this.replySource(tabId);
+      if (src) out.push({ tabId, agent: src.agent, sessionId: src.sessionId });
+    }
+    return out;
+  }
+
   has(id: string): boolean {
     return this.sessions.has(id) || this.dormant.has(id);
   }

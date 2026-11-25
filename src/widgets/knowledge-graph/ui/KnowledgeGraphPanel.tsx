@@ -2,16 +2,19 @@ import { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import {
   Button,
   EmptyState,
-  GraphCard,
+  GraphFoot,
   GraphHint,
   GraphLegend,
+  GraphLens,
+  GraphResult,
+  GraphResults,
   GraphStage,
+  GraphTrail,
   Input,
   Range,
   ResizeHandle,
   Segment,
   Select,
-  type GraphSwatch,
 } from '@design-system/react';
 import {
   api,
@@ -19,6 +22,7 @@ import {
   type GraphNodeKind,
   type GraphSourceStatus,
   type HistoryResumeResult,
+  type Session,
 } from '@/shared/api';
 import { useT } from '@/shared/i18n';
 import { usePanelWidth } from '@/shared/lib/usePanelWidth';
@@ -34,16 +38,24 @@ import {
   TIME_WINDOWS,
   filterSnapshot,
   kindsOf,
-  localView,
   searchMatches,
   tagsOf,
   type GraphFilter,
   type TimeWindow,
 } from '../model/view';
+import { COLUMN_STEP, defaultCenter, focusLayout, type FocusColumnKey } from '../model/focus';
+import { LENSES, lensHits, type LensId } from '../model/lenses';
 import { useGraphRenderer } from './useGraphRenderer';
+import { FocusView, nodeLabel, swatchOf } from './FocusView';
+import { useLiveSessions } from './useLiveSessions';
+import { clustersOf } from '../model/clusters';
+import { GROUP_COLORS } from '../model/colors';
+import { shortLabel } from './useGraphRenderer';
 
 export interface KnowledgeGraphPanelProps {
   full: boolean;
+  /** The note open in the editor: the focus view starts there and follows it (unless unpinned). */
+  activeNotePath?: string | null;
   onToggleFull: () => void;
   onClose: () => void;
   /** Opens Settings ▸ Note sources (empty state). */
@@ -55,14 +67,35 @@ export interface KnowledgeGraphPanelProps {
   /** T70: a session node resumed in a new tab. */
   onResumed: (r: HistoryResumeResult) => void;
   onError: (message: string) => void;
+  /** Open tabs: their Claude / Codex conversations show as live session nodes (T72). */
+  sessions?: readonly Session[];
+  /** Brings a tab to the front (a live session node's "Go to tab"). */
+  onShowSession?: (tabId: string) => void;
 }
 
-const HINT_KEY = 'aquila.graph.hintSeen';
-const hintSeen = (): boolean => {
+type Mode = 'focus' | 'map';
+const HINT_KEY = 'aquila.graph.hintSeen.v2';
+const MODE_KEY = 'aquila.graph.mode';
+const FOLLOW_KEY = 'aquila.graph.follow';
+const PAINT_KEY = 'aquila.graph.paint';
+/** Centres remembered for Back. */
+const TRAIL_MAX = 30;
+/** Crumbs shown (the rest is still reachable with Back). */
+const CRUMBS = 4;
+const RESULTS = 8;
+
+const stored = (key: string): string | null => {
   try {
-    return localStorage.getItem(HINT_KEY) === '1';
+    return localStorage.getItem(key);
   } catch {
-    return false;
+    return null;
+  }
+};
+const store = (key: string, value: string) => {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // not remembered: the default comes back next time
   }
 };
 
@@ -79,20 +112,17 @@ function notePlace(n: GraphNode, sources: readonly GraphSourceStatus[]): string 
   return src && m ? `${sourceName(src.path)}/${m[2]}` : (n.path ?? n.url);
 }
 
-const swatchOf = (kind: GraphNodeKind): GraphSwatch =>
-  kind === 'note' || kind === 'tag' || kind === 'missing'
-    ? kind
-    : kind === 'code' || kind === 'file'
-      ? 'code'
-      : 'other';
-
 /**
- * Right panel (⌘⇧N) and full window: every note source as one WebGL graph (T66). Filters by source, kind, tag, time
- * and link strength; search lights matches; a click selects a note, "Around this note" shows its depth-1/2
- * neighbours; Open (or double-click) opens the note in the editor (T67).
+ * Right panel (⌘⇧N) and full window: every note source as one graph (T66), shown two ways (T72).
+ * - **Around** (default): the note open in the editor — or the latest one — in the middle, what it links to in
+ *   columns (knowledge left, work right). Click to move there, Back to return, ⌘-click / double-click to open.
+ * - **Map**: the whole graph (WebGL), with question lenses (to-dos, unlinked notes, recent sessions, notes the
+ *   work moved past). Clicking a node goes to it in Around.
+ * Search lists matches to jump to; filters (source, kind, tag, time, strength) apply to both.
  */
 export default function KnowledgeGraphPanel({
   full,
+  activeNotePath,
   onToggleFull,
   onClose,
   onSources,
@@ -100,50 +130,145 @@ export default function KnowledgeGraphPanel({
   onClaude,
   onResumed,
   onError,
+  sessions,
+  onShowSession,
 }: KnowledgeGraphPanelProps) {
   const t = useT();
   const width = usePanelWidth('aquila.panel.graph');
   const saver = usePowerSaver();
   const { status, snapshot } = useGraphData();
   const [filter, setFilter] = useState<GraphFilter>(DEFAULT_FILTER);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [query, setQuery] = useState('');
   const deferredQuery = useDeferredValue(query);
-  const [selected, setSelected] = useState<string | null>(null);
-  const [local, setLocal] = useState(false);
-  const [depth, setDepth] = useState<'1' | '2'>('2');
+  const [searching, setSearching] = useState(false);
+  const [resultAt, setResultAt] = useState(0);
+  const [mode, setModeState] = useState<Mode>(() => (stored(MODE_KEY) === 'map' ? 'map' : 'focus'));
+  const [follow, setFollowState] = useState(() => stored(FOLLOW_KEY) !== '0');
+  const [trail, setTrail] = useState<string[]>([]);
+  const [shown, setShown] = useState<Partial<Record<FocusColumnKey, number>>>({});
+  const [lens, setLens] = useState<LensId | null>(null);
+  const [suggestOpen, setSuggestOpen] = useState(false);
   const [colors, setColors] = useState(readColors);
   const [host, setHost] = useState<HTMLDivElement | null>(null);
   useEffect(() => onThemeChange(() => setColors(readColors())), []);
-  const [hint, setHint] = useState(() => !hintSeen());
+  const [hint, setHint] = useState(() => stored(HINT_KEY) !== '1');
   const hideHint = () => {
     setHint(false);
-    try {
-      localStorage.setItem(HINT_KEY, '1');
-    } catch {
-      // not remembered: the hint shows again next time
-    }
+    store(HINT_KEY, '1');
+  };
+  const setMode = (m: Mode) => {
+    setModeState(m);
+    store(MODE_KEY, m);
+  };
+  const setFollow = (on: boolean) => {
+    setFollowState(on);
+    store(FOLLOW_KEY, on ? '1' : '0');
   };
 
-  const filtered = useMemo(
+  const view = useMemo(
     () => (snapshot ? filterSnapshot(snapshot, filter) : { nodes: [], edges: [] }),
     [snapshot, filter],
   );
-  const view = useMemo(
-    () => (local ? localView(filtered, selected, Number(depth)) : filtered),
-    [filtered, local, selected, depth],
-  );
-  const matches = useMemo(() => searchMatches(view.nodes, deferredQuery), [view.nodes, deferredQuery]);
+  const byId = useMemo(() => new Map(view.nodes.map((n) => [n.id, n])), [view.nodes]);
   const allNodes = snapshot?.nodes;
   const tags = useMemo(() => tagsOf(allNodes ?? []), [allNodes]);
   const kinds = useMemo(() => kindsOf(allNodes ?? []), [allNodes]);
-  const selectedNode = selected ? snapshot?.nodes.find((n) => n.id === selected) : undefined;
-  // A selection the index dropped (file deleted) clears itself.
+  const live = useLiveSessions(sessions);
+  const liveIds = useMemo(() => new Set(live.keys()), [live]);
+  const lenses = useMemo(() => lensHits(view, Date.now(), liveIds), [view, liveIds]);
+  const [paintBy, setPaintByState] = useState<'kind' | 'group'>(() =>
+    stored(PAINT_KEY) === 'group' ? 'group' : 'kind',
+  );
+  const setPaintBy = (v: 'kind' | 'group') => {
+    setPaintByState(v);
+    store(PAINT_KEY, v);
+  };
+  const groups = useMemo(
+    () => (mode === 'map' && paintBy === 'group' ? clustersOf(view) : null),
+    [mode, paintBy, view],
+  );
+  const nodeColor = useMemo(
+    () =>
+      groups
+        ? (n: GraphNode) => {
+            const g = groups.of.get(n.id);
+            return g !== undefined && g < GROUP_COLORS ? colors.groups[g]! : colors.missing;
+          }
+        : null,
+    [groups, colors],
+  );
+
+  // The centre: the end of the trail. Moving pushes; Back pops.
+  const center = trail[trail.length - 1] ?? null;
+  const recentre = (id: string) => {
+    setTrail((tr) => (tr[tr.length - 1] === id ? tr : [...tr.slice(-(TRAIL_MAX - 1)), id]));
+    setShown({});
+    setSuggestOpen(false);
+    setMode('focus');
+  };
+  const back = () => {
+    if (trail.length > 1) {
+      setTrail((tr) => tr.slice(0, -1));
+      setShown({});
+    } else setMode('map');
+  };
+  const activeId = useMemo(() => {
+    if (!activeNotePath || !snapshot) return null;
+    return snapshot.nodes.find((n) => n.kind === 'note' && n.path === activeNotePath)?.id ?? null;
+  }, [activeNotePath, snapshot]);
+  // Start at the open note (or the latest one); follow the editor while pinned to it.
   useEffect(() => {
-    if (selected && snapshot && !selectedNode) setSelected(null);
-  }, [selected, snapshot, selectedNode]);
+    if (!snapshot) return;
+    if (follow && activeId && activeId !== center) {
+      recentreQuietly(activeId);
+      return;
+    }
+    if (!center) {
+      const first = activeId ?? defaultCenter(view);
+      if (first) recentreQuietly(first);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeId, follow, snapshot, center === null]);
+  /** Like `recentre`, without switching the mode (opening on the map stays on the map). */
+  const recentreQuietly = (id: string) => {
+    setTrail((tr) => (tr[tr.length - 1] === id ? tr : [...tr.slice(-(TRAIL_MAX - 1)), id]));
+    setShown({});
+  };
+  // A centre the index dropped (file deleted) leaves the trail.
+  useEffect(() => {
+    if (!snapshot || !center) return;
+    if (!snapshot.nodes.some((n) => n.id === center)) setTrail((tr) => tr.filter((id) => id !== center));
+  }, [snapshot, center]);
+
+  const layout = useMemo(
+    () => (center && mode === 'focus' ? focusLayout(view, center, { shown }) : null),
+    [view, center, shown, mode],
+  );
+  const centerNode = center ? (byId.get(center) ?? snapshot?.nodes.find((n) => n.id === center)) : undefined;
+
+  const matches = useMemo(() => searchMatches(view.nodes, deferredQuery), [view.nodes, deferredQuery]);
+  const results = useMemo(() => {
+    const q = deferredQuery.trim().toLowerCase();
+    return [...matches]
+      .map((id) => byId.get(id)!)
+      .sort(
+        (a, b) =>
+          Number(b.label.toLowerCase().startsWith(q)) - Number(a.label.toLowerCase().startsWith(q)) ||
+          Number(b.kind === 'note') - Number(a.kind === 'note') ||
+          (b.mtime ?? 0) - (a.mtime ?? 0) ||
+          a.label.localeCompare(b.label),
+      )
+      .slice(0, RESULTS);
+  }, [matches, byId, deferredQuery]);
+  useEffect(() => setResultAt(0), [deferredQuery]);
 
   const open = (n: GraphNode) => {
     if (n.kind === 'note' && n.path) onOpenNote(n.path);
+    else if (n.kind === 'session' && live.get(n.id) && onShowSession) onShowSession(live.get(n.id)!.tabId);
+    else if (n.kind === 'session') resume(n);
+    else if (n.kind === 'trend' && n.url) void api.noteOpenUrl(n.url);
+    else recentre(n.id);
   };
   const resume = (n: GraphNode) => {
     const ref = sessionRef(n);
@@ -153,14 +278,16 @@ export default function KnowledgeGraphPanel({
         .then(onResumed)
         .catch((e: unknown) => onError(e instanceof Error ? e.message : String(e)));
   };
-  const handle = selectedNode ? handleTarget(snapshot, selectedNode) : null;
-  const renderer = useGraphRenderer(host, {
+  const handle = centerNode ? handleTarget(snapshot, centerNode) : null;
+  const mapMatches = lens ? lenses[lens] : matches;
+  const renderer = useGraphRenderer(mode === 'map' ? host : null, {
     view,
     colors,
-    selected,
-    matches,
+    selected: null,
+    matches: mapMatches,
     saver,
-    onSelect: setSelected,
+    nodeColor,
+    onSelect: (id) => id && recentre(id),
     onOpen: open,
     onSettled: (info) => {
       // Read by the smoke / perf runs.
@@ -169,13 +296,16 @@ export default function KnowledgeGraphPanel({
   });
 
   const notes = view.nodes.filter((n) => n.kind === 'note').length;
-  const links = selected
-    ? view.edges.filter((e) => e.source === selected || e.target === selected).length
-    : 0;
   const sources = status?.sources ?? [];
   const enabled = sources.filter((s) => s.enabled);
   const indexing = enabled.some((s) => s.state === 'indexing');
   const set = (patch: Partial<GraphFilter>) => setFilter((f) => ({ ...f, ...patch }));
+  const activeFilters =
+    filter.sources.length +
+    filter.hiddenKinds.length +
+    (filter.tag ? 1 : 0) +
+    (filter.time !== 'any' ? 1 : 0) +
+    (filter.minStrength > 0 ? 1 : 0);
   const toggleKind = (k: GraphNodeKind) =>
     set({
       hiddenKinds: filter.hiddenKinds.includes(k)
@@ -200,6 +330,12 @@ export default function KnowledgeGraphPanel({
     empty = { title: t('graph.empty.title'), body: t('graph.empty.body'), action: 'sources' };
   else if (!snapshot || (!snapshot.nodes.length && indexing)) empty = { title: t('graph.empty.indexing') };
   else if (!view.nodes.length) empty = { title: t('graph.empty.filtered'), action: 'reset' };
+  else if (mode === 'focus' && center && !layout) empty = { title: t('graph.focus.hidden'), action: 'reset' };
+
+  const crumbs = trail
+    .slice(-CRUMBS)
+    .map((id) => ({ id, label: nodeLabel(byId.get(id) ?? { id, kind: 'note', label: id }) }));
+  const showResults = searching && deferredQuery.trim().length > 0 && results.length > 0;
 
   return (
     <aside
@@ -232,7 +368,7 @@ export default function KnowledgeGraphPanel({
               {t('graph.daily')}
             </Button>
           )}
-          {!empty && (
+          {mode === 'map' && !empty && (
             <Button
               variant="ghost"
               icon
@@ -276,141 +412,203 @@ export default function KnowledgeGraphPanel({
         </div>
       </div>
       <div className="c-panel__bar">
+        <Segment
+          label={t('graph.mode.label')}
+          value={mode}
+          onChange={(v) => setMode(v)}
+          options={[
+            { value: 'focus', label: t('graph.mode.focus') },
+            { value: 'map', label: t('graph.mode.map') },
+          ]}
+        />
         <Input
           type="search"
           value={query}
           placeholder={t('graph.search')}
           aria-label={t('graph.search')}
-          onChange={(e) => setQuery(e.currentTarget.value)}
+          aria-expanded={showResults}
+          onFocus={() => setSearching(true)}
+          onBlur={() => setSearching(false)}
+          onChange={(e) => {
+            setQuery(e.currentTarget.value);
+            setSearching(true);
+          }}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && matches.size) setSelected([...matches][0]!);
-            if (e.key === 'Escape') setQuery('');
+            if (e.key === 'ArrowDown' && results.length) {
+              e.preventDefault();
+              setResultAt((i) => Math.min(results.length - 1, i + 1));
+            } else if (e.key === 'ArrowUp' && results.length) {
+              e.preventDefault();
+              setResultAt((i) => Math.max(0, i - 1));
+            } else if (e.key === 'Enter' && results.length) {
+              recentre(results[Math.min(resultAt, results.length - 1)]!.id);
+              setQuery('');
+              setSearching(false);
+            } else if (e.key === 'Escape') {
+              setQuery('');
+              setSearching(false);
+            }
           }}
         />
-        {sources.length > 1 && (
-          <Select
-            aria-label={t('graph.source.all')}
-            value={filter.sources[0] ?? ''}
-            onChange={(v) => set({ sources: v ? [v] : [] })}
-            options={[
-              { value: '', label: t('graph.source.all') },
-              ...enabled.map((s) => ({ value: s.id, label: sourceName(s.path) })),
-            ]}
-          />
-        )}
-        {tags.length > 0 && (
-          <Select
-            aria-label={t('graph.tag.all')}
-            value={filter.tag}
-            onChange={(v) => set({ tag: v })}
-            options={[
-              { value: '', label: t('graph.tag.all') },
-              ...tags.map((x) => ({ value: x, label: `#${x}` })),
-            ]}
-          />
-        )}
-        <Select
-          aria-label={t('graph.time.any')}
-          value={filter.time}
-          onChange={(v) => set({ time: v as TimeWindow })}
-          options={TIME_WINDOWS.map((w) => ({ value: w, label: t(`graph.time.${w}`) }))}
-        />
+        <Button
+          variant="ghost"
+          aria-pressed={filtersOpen}
+          aria-expanded={filtersOpen}
+          onClick={() => setFiltersOpen((o) => !o)}
+        >
+          {activeFilters ? t('graph.filtersN', { n: String(activeFilters) }) : t('graph.filters')}
+        </Button>
       </div>
-      <div className="c-panel__bar">
-        {kinds.map((k) => (
-          <Button
-            key={k}
-            variant="ghost"
-            aria-pressed={!filter.hiddenKinds.includes(k)}
-            onClick={() => toggleKind(k)}
-          >
-            {t(`graph.kind.${k}`)}
-          </Button>
-        ))}
-        <Range
-          label={t('graph.strength', { n: String(Math.round(filter.minStrength * 100)) })}
-          value={Math.round(filter.minStrength * 100)}
-          step={10}
-          onChange={(v) => set({ minStrength: v / 100 })}
-        />
-        {selected && (
-          <Segment
-            label={t('graph.scope')}
-            value={local ? 'local' : 'whole'}
-            onChange={(v) => setLocal(v === 'local')}
-            options={[
-              { value: 'whole', label: t('graph.whole') },
-              { value: 'local', label: t('graph.local') },
-            ]}
+      {filtersOpen && (
+        <div className="c-panel__bar">
+          {sources.length > 1 && (
+            <Select
+              aria-label={t('graph.source.all')}
+              value={filter.sources[0] ?? ''}
+              onChange={(v) => set({ sources: v ? [v] : [] })}
+              options={[
+                { value: '', label: t('graph.source.all') },
+                ...enabled.map((s) => ({ value: s.id, label: sourceName(s.path) })),
+              ]}
+            />
+          )}
+          {tags.length > 0 && (
+            <Select
+              aria-label={t('graph.tag.all')}
+              value={filter.tag}
+              onChange={(v) => set({ tag: v })}
+              options={[
+                { value: '', label: t('graph.tag.all') },
+                ...tags.map((x) => ({ value: x, label: `#${x}` })),
+              ]}
+            />
+          )}
+          <Select
+            aria-label={t('graph.time.any')}
+            value={filter.time}
+            onChange={(v) => set({ time: v as TimeWindow })}
+            options={TIME_WINDOWS.map((w) => ({ value: w, label: t(`graph.time.${w}`) }))}
           />
-        )}
-        {selected && local && (
-          <Segment
-            label={t('graph.depth')}
-            value={depth}
-            onChange={setDepth}
-            options={[
-              { value: '1', label: t('graph.depthN', { n: '1' }) },
-              { value: '2', label: t('graph.depthN', { n: '2' }) },
-            ]}
+          {kinds.map((k) => (
+            <Button
+              key={k}
+              variant="ghost"
+              aria-pressed={!filter.hiddenKinds.includes(k)}
+              onClick={() => toggleKind(k)}
+            >
+              {t(`graph.kind.${k}`)}
+            </Button>
+          ))}
+          <Range
+            label={t('graph.strength', { n: String(Math.round(filter.minStrength * 100)) })}
+            value={Math.round(filter.minStrength * 100)}
+            step={10}
+            onChange={(v) => set({ minStrength: v / 100 })}
           />
-        )}
-      </div>
-      <GraphStage canvasRef={setHost}>
-        {selectedNode && (
-          <GraphCard
-            kind={swatchOf(selectedNode.kind)}
-            title={selectedNode.label}
-            detail={[t('graph.links', { n: String(links) }), notePlace(selectedNode, sources)]
-              .filter(Boolean)
-              .join(' · ')}
-            actions={
-              <>
-                {selectedNode.kind === 'note' && selectedNode.path && (
-                  <Button variant="ghost" onClick={() => open(selectedNode)} title={t('graph.openHint')}>
-                    {t('graph.open')}
-                  </Button>
-                )}
-                {handle && (
-                  <HandleWithClaude notePath={handle.notePath} todo={handle.todo} onClaude={onClaude} />
-                )}
-                {selectedNode.kind === 'session' && sessionRef(selectedNode) && (
-                  <Button variant="ghost" onClick={() => resume(selectedNode)}>
-                    {t('graph.resume')}
-                  </Button>
-                )}
-                {selectedNode.kind === 'trend' && selectedNode.url && (
-                  <Button variant="ghost" onClick={() => void api.noteOpenUrl(selectedNode.url!)}>
-                    {t('graph.openLink')}
-                  </Button>
-                )}
-              </>
-            }
-            close={
+          {activeFilters > 0 && (
+            <Button variant="ghost" onClick={() => setFilter(DEFAULT_FILTER)}>
+              {t('graph.resetFilters')}
+            </Button>
+          )}
+        </div>
+      )}
+      {!empty && mode === 'focus' && crumbs.length > 0 && (
+        <div className="c-panel__bar">
+          <GraphTrail
+            back={
               <Button
                 variant="ghost"
                 icon
-                onClick={() => {
-                  setSelected(null);
-                  setLocal(false);
-                }}
-                title={t('graph.clear')}
-                aria-label={t('graph.clear')}
+                onClick={back}
+                title={t('graph.back')}
+                aria-label={t('graph.back')}
               >
-                ×
+                ←
               </Button>
             }
+            items={crumbs}
+            onPick={(id) => {
+              setTrail((tr) => tr.slice(0, tr.lastIndexOf(id) + 1));
+              setShown({});
+            }}
+          />
+          <Button
+            variant="ghost"
+            aria-pressed={follow}
+            onClick={() => setFollow(!follow)}
+            title={t('graph.follow.hint')}
           >
-            <LinkSuggestions
-              variant="card"
-              nodeId={selectedNode.id}
-              snapshot={snapshot}
-              status={status}
-              onOpen={(n) => setSelected(n.id)}
+            {t('graph.follow')}
+          </Button>
+        </div>
+      )}
+      {!empty && mode === 'map' && (
+        <div className="c-panel__bar" role="group" aria-label={t('graph.lens.label')}>
+          {LENSES.map((id) => (
+            <GraphLens
+              key={id}
+              pressed={lens === id}
+              count={lenses[id].size}
+              {...(id === 'untouched' ? { title: t('graph.lens.untouched.hint') } : {})}
+              onClick={() => setLens((l) => (l === id ? null : id))}
+            >
+              {t(`graph.lens.${id}`)}
+            </GraphLens>
+          ))}
+          <span className="c-panel__bar-end">
+            <Segment
+              label={t('graph.paint.label')}
+              value={paintBy}
+              onChange={setPaintBy}
+              options={[
+                { value: 'kind', label: t('graph.paint.kind') },
+                { value: 'group', label: t('graph.paint.group') },
+              ]}
             />
-          </GraphCard>
+          </span>
+        </div>
+      )}
+      <GraphStage canvasRef={setHost}>
+        {showResults && (
+          <GraphResults label={t('graph.results')}>
+            {results.map((n, i) => (
+              <GraphResult
+                key={n.id}
+                kind={swatchOf(n.kind)}
+                label={nodeLabel(n)}
+                {...(notePlace(n, sources) ? { detail: notePlace(n, sources)! } : {})}
+                selected={i === resultAt}
+                onPick={() => {
+                  recentre(n.id);
+                  setQuery('');
+                  setSearching(false);
+                }}
+              />
+            ))}
+          </GraphResults>
         )}
-        {!selectedNode && hint && !empty && (
+        {!empty && mode === 'focus' && layout && (
+          <FocusView
+            live={live}
+            layout={layout}
+            onRecentre={recentre}
+            onOpen={open}
+            onBack={back}
+            onMore={(col) => {
+              const step = COLUMN_STEP[col.endsWith('1') ? 1 : 2];
+              setShown((s) => ({ ...s, [col]: (s[col] ?? step) + step }));
+            }}
+            onShown={(info) => {
+              (window as unknown as { __graphSettled?: unknown }).__graphSettled = {
+                nodes: info.nodes,
+                iterations: 0,
+                ms: info.ms,
+                via: 'focus',
+              };
+            }}
+          />
+        )}
+        {hint && !empty && !showResults && (
           <GraphHint
             close={
               <Button
@@ -437,7 +635,7 @@ export default function KnowledgeGraphPanel({
                 <Button
                   onClick={() => {
                     setFilter(DEFAULT_FILTER);
-                    setLocal(false);
+                    if (mode === 'focus' && center && !layout) setTrail([]);
                   }}
                 >
                   {t('graph.resetFilters')}
@@ -448,16 +646,75 @@ export default function KnowledgeGraphPanel({
             {empty.body}
           </EmptyState>
         ) : (
-          <GraphLegend
-            swatches={swatches}
-            lines={[
-              { line: 'solid', label: t('graph.line.explicit') },
-              { line: 'dashed', label: t('graph.line.mention') },
-              { line: 'dotted', label: t('graph.line.suggested') },
-            ]}
-          />
+          mode === 'map' && (
+            <GraphLegend
+              swatches={
+                groups
+                  ? groups.list
+                      .filter((g) => g.size > 1)
+                      .slice(0, GROUP_COLORS)
+                      .map((g) => ({
+                        kind: 'note' as const,
+                        group: g.index + 1,
+                        label: `${shortLabel(g.name)} ${g.size}`,
+                      }))
+                  : swatches
+              }
+              lines={[
+                { line: 'solid', label: t('graph.line.explicit') },
+                { line: 'dashed', label: t('graph.line.mention') },
+                { line: 'dotted', label: t('graph.line.suggested') },
+              ]}
+            />
+          )
         )}
       </GraphStage>
+      {!empty && mode === 'focus' && centerNode && (
+        <GraphFoot
+          kind={swatchOf(centerNode.kind)}
+          title={centerNode.label}
+          {...(notePlace(centerNode, sources) ? { detail: notePlace(centerNode, sources)! } : {})}
+          open={suggestOpen}
+          actions={
+            <>
+              {centerNode.kind === 'note' && centerNode.path && (
+                <Button variant="ghost" onClick={() => open(centerNode)} title={t('graph.openHint')}>
+                  {t('graph.open')}
+                </Button>
+              )}
+              {handle && (
+                <HandleWithClaude notePath={handle.notePath} todo={handle.todo} onClaude={onClaude} />
+              )}
+              {centerNode.kind === 'session' && live.get(centerNode.id) && onShowSession && (
+                <Button variant="ghost" onClick={() => onShowSession(live.get(centerNode.id)!.tabId)}>
+                  {t('graph.live.show')}
+                </Button>
+              )}
+              {centerNode.kind === 'session' && !live.get(centerNode.id) && sessionRef(centerNode) && (
+                <Button variant="ghost" onClick={() => resume(centerNode)}>
+                  {t('graph.resume')}
+                </Button>
+              )}
+              {centerNode.kind === 'trend' && centerNode.url && (
+                <Button variant="ghost" onClick={() => void api.noteOpenUrl(centerNode.url!)}>
+                  {t('graph.openLink')}
+                </Button>
+              )}
+              <Button variant="ghost" aria-expanded={suggestOpen} onClick={() => setSuggestOpen((o) => !o)}>
+                {t('graph.suggest')} {suggestOpen ? '▴' : '▾'}
+              </Button>
+            </>
+          }
+        >
+          <LinkSuggestions
+            variant="card"
+            nodeId={centerNode.id}
+            snapshot={snapshot}
+            status={status}
+            onOpen={(n) => recentre(n.id)}
+          />
+        </GraphFoot>
+      )}
     </aside>
   );
 }

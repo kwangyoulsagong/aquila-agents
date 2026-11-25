@@ -16,8 +16,12 @@ interface NodeAttrs {
   color: string;
   /** Faded: something else is focused / searched. */
   dim: boolean;
-  /** Searched or focused: label always shown. */
+  /** A neighbour of the focused node, or a search hit. */
   lit: boolean;
+  /** The focused node or a search hit: label always shown. */
+  pin: boolean;
+  /** The focused node: label shown uncut. */
+  full: boolean;
 }
 interface EdgeAttrs {
   size: number;
@@ -35,6 +39,8 @@ export interface GraphRendererProps {
   matches: ReadonlySet<string>;
   /** Power saver: no layout animation, only the settled picture. */
   saver: boolean;
+  /** Colour per node (the Map's "by group", T72); none = by kind. Changing it only repaints. */
+  nodeColor?: ((n: GraphNode) => string) | null;
   onSelect: (id: string | null) => void;
   onOpen: (node: GraphNode) => void;
   /** Test hook: the layout run finished. */
@@ -42,6 +48,11 @@ export interface GraphRendererProps {
 }
 
 const TRANSPARENT = 'rgba(0,0,0,0)';
+/**
+ * Hover restyles the whole graph (neighbours lit, the rest faded). Sweeping the pointer over a dense cluster fired
+ * enter/leave on every node it crossed and strobed the picture; the hover only counts once the pointer rests.
+ */
+const HOVER_MS = 90;
 /** Longer labels are cut on the canvas (the card and hover backdrop name the node); long Korean titles overlapped. */
 const LABEL_MAX = 28;
 export const shortLabel = (s: string): string => (s.length > LABEL_MAX ? `${s.slice(0, LABEL_MAX - 1)}…` : s);
@@ -60,7 +71,7 @@ const DASH: Record<LineStyle, [number, number]> = { solid: [0, 0], dashed: [5, 4
  */
 export function useGraphRenderer(
   el: HTMLDivElement | null,
-  { view, colors, selected, matches, saver, onSelect, onOpen, onSettled }: GraphRendererProps,
+  { view, colors, selected, matches, saver, nodeColor, onSelect, onOpen, onSettled }: GraphRendererProps,
 ): GraphRenderer {
   const graphRef = useRef<Graph<NodeAttrs, EdgeAttrs> | null>(null);
   const sigmaRef = useRef<Sigma<NodeAttrs, EdgeAttrs> | null>(null);
@@ -74,7 +85,10 @@ export function useGraphRenderer(
   focus.current = { selected, matches, view, colors };
   // Sigma refuses attribute updates for items it hasn't drawn yet: after a rebuild, updates wait for the first frame.
   const painted = useRef(false);
-  const pending = useRef<{ xy: Float32Array | null; focus: boolean }>({ xy: null, focus: false });
+  const pending = useRef<{ xy: Float32Array | null; focus: boolean; paint?: boolean }>({ xy: null, focus: false });
+  const paint = useRef(nodeColor);
+  paint.current = nodeColor;
+  const colorOf = (n: GraphNode) => paint.current?.(n) ?? kindColor(focus.current.colors, n.kind);
   const index = useRef(new Map<string, number>());
 
   /** What's lit: the hovered/selected node's neighbours, or the search hits; everything else fades. */
@@ -87,10 +101,11 @@ export function useGraphRenderer(
     return {
       node: (id: string) => {
         const lit = (near?.has(id) ?? false) || ms.has(id);
-        return { lit, dim: any && !lit };
+        const full = !!near && id === center;
+        return { lit, dim: any && !lit, full, pin: full || ms.has(id) };
       },
       edge: (s: string, t: string) => {
-        const on = near ? (s === center || t === center) : ms.has(s) && ms.has(t);
+        const on = near ? s === center || t === center : ms.has(s) && ms.has(t);
         return { dim: any && !on, color: any && on ? c.focus : c.edge };
       },
     };
@@ -106,6 +121,19 @@ export function useGraphRenderer(
     const f = focusOf();
     g.updateEachNodeAttributes((id, a) => ({ ...a, ...f.node(id) }));
     g.updateEachEdgeAttributes((_e, a, s, t) => ({ ...a, ...f.edge(s, t) }));
+  };
+
+  const applyPaint = () => {
+    const g = graphRef.current;
+    if (!g) return;
+    if (!painted.current) {
+      pending.current.paint = true;
+      return;
+    }
+    g.updateEachNodeAttributes((id, a) => {
+      const n = nodesById.current.get(id);
+      return n ? { ...a, color: colorOf(n) } : a;
+    });
   };
 
   const applyPositions = (p: Float32Array) => {
@@ -154,11 +182,13 @@ export function useGraphRenderer(
           y: { attribute: 'y' },
           size: { whenState: 'isHovered', then: (a: NodeAttrs) => a.size + 2, else: { attribute: 'size' } },
           color: { attribute: 'color' },
-          opacity: (a: NodeAttrs) => (a.dim ? 0.18 : 1),
-          label: (a: NodeAttrs, s) => (s.isHovered || a.lit ? a.label : shortLabel(a.label)),
+          opacity: (a: NodeAttrs) => (a.dim ? 0.2 : 1),
+          // Only the focused node's label is uncut; neighbours keep short labels and the label grid decides which
+          // fit — forcing every neighbour's full title on screen piled them into one unreadable block.
+          label: (a: NodeAttrs, s) => (s.isHovered || a.full ? a.label : shortLabel(a.label)),
           labelColor: colors.label,
           labelVisibility: (a: NodeAttrs, s) =>
-            s.isHovered || a.lit ? 'visible' : a.dim ? 'hidden' : 'auto',
+            s.isHovered || a.pin ? 'visible' : a.dim ? 'hidden' : 'auto',
           backdropVisibility: { whenState: 'isHovered', then: 'visible', else: 'hidden' },
           backdropColor: colors.surface,
           backdropShadowColor: TRANSPARENT,
@@ -180,13 +210,16 @@ export function useGraphRenderer(
         renderEdgeLabels: false,
         hideEdgesOnMove: false,
         labelDensity: 0.6,
-        labelRenderedSizeThreshold: 4,
+        // Only hubs (4+ links) carry a label on the map; lens hits and the hovered node always do (labelVisibility).
+        labelRenderedSizeThreshold: 8,
         zoomDuration: saver ? 0 : 200,
         inertiaDuration: saver ? 0 : 200,
         doubleClickZoomingDuration: saver ? 0 : 200,
         minCameraRatio: 0.05,
-        // Frame nodes *and* their labels, so nothing is cut at the panel edge.
-        autoRescaleContent: 'labels',
+        // Frame node positions only. 'labels' re-fitted the camera to every label box on each restyle: a hover
+        // (which uncuts a label) zoomed the whole picture in and out, and long titles squeezed the nodes into a dot.
+        // stagePadding leaves room for node radii; a label at the edge may be cut, the hover backdrop shows it whole.
+        autoRescaleContent: 'positions',
         // A two-finger twist on the trackpad turned the whole picture sideways.
         enableCameraRotation: false,
         enableCameraMouseRotation: false,
@@ -205,19 +238,23 @@ export function useGraphRenderer(
     sigma.on('afterRender', () => {
       if (painted.current) return;
       painted.current = true;
-      const { xy, focus: f } = pending.current;
+      const { xy, focus: f, paint: p } = pending.current;
       pending.current = { xy: null, focus: false };
       if (xy) applyPositions(xy);
       if (f) applyFocus();
+      if (p) applyPaint();
     });
-    sigma.on('enterNode', ({ node }) => {
-      hovered.current = node;
-      applyFocus();
-    });
-    sigma.on('leaveNode', () => {
-      hovered.current = null;
-      applyFocus();
-    });
+    let hoverTimer = 0;
+    const hoverTo = (node: string | null) => {
+      window.clearTimeout(hoverTimer);
+      hoverTimer = window.setTimeout(() => {
+        if (hovered.current === node) return;
+        hovered.current = node;
+        applyFocus();
+      }, HOVER_MS);
+    };
+    sigma.on('enterNode', ({ node }) => hoverTo(node));
+    sigma.on('leaveNode', () => hoverTo(null));
     sigma.on('clickNode', ({ node }) => cb.current.onSelect(node));
     sigma.on('doubleClickNode', (e) => {
       e.preventSigmaDefault?.();
@@ -229,6 +266,8 @@ export function useGraphRenderer(
     const resized = new ResizeObserver(() => sigma.scheduleRefresh());
     resized.observe(el);
     return () => {
+      window.clearTimeout(hoverTimer);
+      hovered.current = null;
       resized.disconnect();
       sigma.kill();
       sigmaRef.current = null;
@@ -267,7 +306,7 @@ export function useGraphRenderer(
         y: xy[i * 2 + 1]!,
         size: sizes.get(n.id) ?? 4,
         label: n.label,
-        color: kindColor(colors, n.kind),
+        color: colorOf(n),
         ...f.node(n.id),
       }),
     );
@@ -308,11 +347,14 @@ export function useGraphRenderer(
       run?.stop();
     };
     // applyFocus reads refs and the current view; it doesn't need to restart the layout.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [el, view, colors, saver]);
 
+  // Colour by group / kind: repaint only, the layout stays.
+  useEffect(applyPaint, [nodeColor]);  
+
   // Focus / search changes only restyle.
-  useEffect(applyFocus, [selected, matches]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(applyFocus, [selected, matches]);  
 
   return {
     fit: () => void sigmaRef.current?.getCamera().reset({ duration: saver ? 0 : 200 }),
