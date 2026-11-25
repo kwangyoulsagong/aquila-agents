@@ -13,8 +13,8 @@ import {
   KindBadge,
   StatusDot,
   WaitingTime,
-  dropSide,
   moveSession,
+  tabAt,
   type DropSide,
 } from '@/entities/session';
 
@@ -69,19 +69,33 @@ export default function SessionTabs({
   const newKind = NEW_BUTTON[defaultKind];
   const barRef = useRef<HTMLDivElement>(null);
   // Drag to reorder: the tab being dragged and where it would land (drawn as a line on that edge of the target tab).
+  // Tracked from the dragged tab's own `drag` / `dragend` events, not the target's `dragover` / `drop`: the tab bar
+  // sits in the macOS title-bar band (`hiddenInset`), and AppKit's title bar takes drops there before the page sees
+  // them — so a reorder built on `drop` never happened. The source always gets `drag` (with the pointer) and `dragend`.
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [drop, setDrop] = useState<{ id: string; side: DropSide } | null>(null);
+  const landing = useRef<{ dragged: string; id: string; side: DropSide } | null>(null);
   const endDrag = () => {
     endSessionDrag();
     setDraggingId(null);
     setDrop(null);
+    landing.current = null;
   };
-  /** Where a tab dragged over `targetId` would go; null when it's another drag or the drop would change nothing. */
-  const dropAt = (e: DragEvent<HTMLElement>, targetId: string) => {
-    const dragged = onReorder ? draggedSession(e) : null;
-    if (!dragged) return null;
-    const side = dropSide(e.clientX, e.currentTarget.getBoundingClientRect());
-    return moveSession(sessions, dragged, targetId, side) === sessions ? null : { dragged, side };
+  /** Follows a dragged tab along the bar: where it would land, or nothing when it's off the bar or wouldn't move. */
+  const track = (e: DragEvent<HTMLElement>, dragged: string) => {
+    const bar = barRef.current;
+    // The last `drag` event of a drag reports (0, 0) on some platforms: keep the previous spot.
+    if (!onReorder || !bar || (e.clientX === 0 && e.clientY === 0)) return;
+    const box = bar.getBoundingClientRect();
+    const tabs = [...bar.querySelectorAll<HTMLElement>('[role="tab"][data-id]')].map((el) => {
+      const r = el.getBoundingClientRect();
+      return { id: el.dataset.id!, left: r.left, width: r.width };
+    });
+    const at = e.clientY >= box.top && e.clientY <= box.bottom ? tabAt(e.clientX, tabs) : null;
+    const moves = at && moveSession(sessions, dragged, at.id, at.side) !== sessions;
+    landing.current = moves ? { dragged, ...at } : null;
+    const next = moves ? at : null;
+    setDrop((d) => (d?.id === next?.id && d?.side === next?.side ? d : next));
   };
   // A full bar scrolls sideways: keep the selected tab in view, clear of the pinned trailing controls.
   useEffect(() => {
@@ -139,6 +153,7 @@ export default function SessionTabs({
             role="tab"
             aria-selected={s.id === activeId}
             data-status={s.status}
+            data-id={s.id}
             data-dragging={draggingId === s.id || undefined}
             data-drop={drop?.id === s.id ? drop.side : undefined}
             title={detail && !renaming ? `${title} — ${detail}` : undefined}
@@ -147,26 +162,19 @@ export default function SessionTabs({
               startSessionDrag(e, s.id);
               setDraggingId(s.id);
             }}
-            onDragEnd={endDrag}
-            onDragOver={(e) => {
-              if (!onReorder || !draggedSession(e)) return;
-              // A tab dragged over a tab is a reorder; a spot where it would change nothing shows no line.
-              e.preventDefault();
-              const at = dropAt(e, s.id);
-              e.dataTransfer.dropEffect = at ? 'move' : 'none';
-              if (!at) return setDrop((d) => (d?.id === s.id ? null : d));
-              if (drop?.id !== s.id || drop.side !== at.side) setDrop({ id: s.id, side: at.side });
+            onDrag={(e) => track(e, s.id)}
+            onDragEnd={() => {
+              const at = landing.current;
+              endDrag();
+              if (at) onReorder?.(at.dragged, at.id, at.side);
             }}
-            onDragLeave={(e) => {
-              if (e.relatedTarget instanceof Node && e.currentTarget.contains(e.relatedTarget)) return;
-              setDrop((d) => (d?.id === s.id ? null : d));
+            // Where the page does get the drop (below the title-bar band), accept it so the tab doesn't fly back;
+            // `dragend` does the move either way.
+            onDragOver={(e) => {
+              if (onReorder && draggedSession(e)) e.preventDefault();
             }}
             onDrop={(e) => {
-              const at = dropAt(e, s.id);
-              if (!at) return;
-              e.preventDefault();
-              endDrag();
-              onReorder?.(at.dragged, s.id, at.side);
+              if (onReorder && draggedSession(e)) e.preventDefault();
             }}
             onClick={() => onSelect(s.id)}
             onAuxClick={(e) => e.button === 1 && onClose(s.id)}
