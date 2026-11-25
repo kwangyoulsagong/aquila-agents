@@ -833,9 +833,11 @@ throttled or hot → `saver`). The rules every task below follows:
   _Left over: the hover fix that came first (sigma re-framed the camera to label boxes on every hover:
   `autoRescaleContent: 'positions'` now, 90 ms hover delay) is in the same branch. Follow-up in the same branch:
   Map "Colour: Group" (Louvain, `model/clusters.ts`, 8 `--color-graph-group-*` tokens) and live sessions (new IPC
-  `session:agent-ids`; status on the node, "Go to tab", an "Open sessions" lens). Guide text updated, media **not**
-  re-captured: `npm run capture` fails on this machine in earlier scenarios (global shortcut, terminal find, history
-  search), and a global-shortcut dialog left open eats ⌘⇧N, so the graph shot comes out wrong — recapture
-  `graph` on a machine where capture passes. The stale-note lens compares session time with the note's mtime only. `smoke` fails before the graph on this machine at the Preview panel drag (also on `main`), and
+  `session:agent-ids`; status on the node, "Go to tab", an "Open sessions" lens). Guide text and media updated (1.2.0). Capture and
+  smoke failed at random steps when their window was covered by another one: macOS occlusion stops
+  requestAnimationFrame, and the palette runs its command in one. Both now set perf's switches
+  (`disable-renderer-backgrounding`, `disable-backgrounding-occluded-windows`, `MacWebContentsOcclusion` off); smoke
+  has a 15-minute run limit that names the check it was stuck in, and the Preview drag / terminal-find steps send
+  their input the way that holds (smoke and capture each passed twice in a row). The stale-note lens compares session time with the note's mtime only. `smoke` fails before the graph on this machine at the Preview panel drag (also on `main`), and
   the guide shortcut sheet / vault preview checks fail intermittently there too; the graph, links, vault and app-graph
   checks pass with the panel drag skipped locally._

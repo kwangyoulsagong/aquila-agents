@@ -1,0 +1,30 @@
+{
+  "version": "1.2.0",
+  "date": "2026-11-25",
+  "headlines": [
+    {
+      "guideId": "graph",
+      "title": { "ko": "지금 노트 주변부터 보는 그래프", "en": "A graph that starts where you are" },
+      "body": {
+        "ko": "그래프를 열면 에디터에서 연 노트가 가운데에 오고, 왼쪽에 연결된 노트, 오른쪽에 그 노트를 다룬 세션·할 일·바뀐 파일이 중요한 순서로 놓여요. 누르면 그쪽으로 옮겨 가고 ←로 돌아와요. 이름은 겹치지 않고, 마우스를 올려도 그래프가 깜빡이지 않아요.",
+        "en": "The graph opens on the note in the editor: linked notes on the left, the sessions, to-dos and changed files around it on the right, most relevant first. Click one to move there, ← to come back. Labels never overlap, and hovering no longer makes the graph jump."
+      }
+    },
+    {
+      "guideId": "graph",
+      "title": { "ko": "전체 지도: 질문과 묶음", "en": "The Map: questions and groups" },
+      "body": {
+        "ko": "전체 지도에서 열린 세션, 할 일, 연결 없는 노트, 최근 7일 세션, 작업 후 그대로인 노트를 칩 하나로 찾아요. 색을 \"묶음\"으로 바꾸면 서로 많이 이어진 노트끼리 같은 색이 돼요. 지금 탭에 열린 세션은 상태가 보이고 \"탭으로 가기\"로 바로 가요.",
+        "en": "On the Map, one chip finds open sessions, to-dos, unlinked notes, last week's sessions or notes the work moved past. Switch the colour to Group and closely linked notes share a colour. Sessions open in a tab show their status, and \"Go to tab\" takes you there."
+      }
+    },
+    {
+      "guideId": "sessions",
+      "title": { "ko": "탭 끌어서 순서 바꾸기, 이제 돼요", "en": "Dragging tabs to reorder now works" },
+      "body": {
+        "ko": "탭을 끌어 다른 탭의 앞이나 뒤에 놓으면 그 자리로 옮겨져요. 전에는 끌리기만 하고 놓아도 그대로였어요.",
+        "en": "Drag a tab before or after another one and it moves there. Before, it dragged but stayed put when you let go."
+      }
+    }
+  ]
+}

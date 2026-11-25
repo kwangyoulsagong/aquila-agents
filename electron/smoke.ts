@@ -48,10 +48,19 @@ const YES_BUDGET_MS = 3000;
 /** Smoke keeps only the tail of the output (the `yes` flood would grow it without bound). */
 export const SMOKE_BUFFER_BYTES = 256 * 1024;
 const TIMEOUT_MS = 40000;
+/** The whole run, every check included (a full run takes ~6–9 min). */
+const RUN_LIMIT_MS = 15 * 60_000;
 /** = MAX_GPU in src/entities/session/lib/gpuPool.ts (main only compiles shared/ from the renderer). */
 const MAX_GPU = 12;
 
 export const isSmoke = process.env.AQUILA_SMOKE === '1';
+// Keep painting behind other windows (set before app ready, at import): macOS occlusion stops requestAnimationFrame,
+// which the palette and pointer-driven UI rely on — a covered smoke window failed at random steps. Same as perf.
+if (isSmoke) {
+  app.commandLine.appendSwitch('disable-renderer-backgrounding');
+  app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
+  app.commandLine.appendSwitch('disable-features', 'MacWebContentsOcclusion');
+}
 /** Links the app window sent to the browser during smoke (recorded instead of opening a browser). */
 export const smokeLinks: string[] = [];
 
@@ -110,6 +119,10 @@ export async function runSmoke(
     void sessions.killAll().finally(() => app.exit(1));
   };
   const timer = setTimeout(() => fail('timeout'), TIMEOUT_MS);
+  // The checks after startup had no limit: one that never settled (a renderer promise that doesn't resolve) hung the
+  // run for good. Now it fails, naming the check it was in.
+  let stage = 'startup';
+  setTimeout(() => fail(`stuck in ${stage} (${RUN_LIMIT_MS / 60_000} min)`), RUN_LIMIT_MS).unref();
 
   const project = config.projects[0];
   if (!project) return fail('no project in config');
@@ -152,68 +165,96 @@ export async function runSmoke(
     const outDir = app.isPackaged ? app.getPath('temp') : path.join(__dirname, '..', '..', 'dist');
     const out = path.join(outDir, 'smoke.png');
     // Open shells from the UI so the screenshot shows real xterms, and check WebGL follows what's on screen.
+    stage = 'checkGpuFollowsScreen';
     const gpuError = await checkGpuFollowsScreen(win);
     if (gpuError) return fail(gpuError);
     fs.writeFileSync(out, (await win.webContents.capturePage()).toPNG());
+    stage = 'checkPaneResizeAndZoom';
     const panesError = await checkPaneResizeAndZoom(win, outDir);
     if (panesError) return fail(panesError);
+    stage = 'checkFullscreen';
     const fullscreenError = await checkFullscreen(win, outDir);
     if (fullscreenError) return fail(fullscreenError);
+    stage = 'checkPasteAndFind';
     const findError = await checkPasteAndFind(win, outDir);
     if (findError) return fail(findError);
+    stage = 'checkQuickSelectFollows';
     const quickError = await checkQuickSelectFollows(win);
     if (quickError) return fail(quickError);
+    stage = 'checkMenuPaste';
     const menuPasteError = await checkMenuPaste(win);
     if (menuPasteError) return fail(menuPasteError);
+    stage = 'checkRename';
     const renameError = await checkRename(win, sessions, outDir);
     if (renameError) return fail(renameError);
+    stage = 'checkTabReorder';
     const reorderError = await checkTabReorder(win);
     if (reorderError) return fail(reorderError);
+    stage = 'checkPromptTitle';
     const promptError = await checkPromptTitle(win, sessions);
     if (promptError) return fail(promptError);
+    stage = 'checkWaitingReason';
     const reasonError = await checkWaitingReason(win, sessions, outDir);
     if (reasonError) return fail(reasonError);
+    stage = 'checkPanelLayout';
     const layoutError = await checkPanelLayout(win, outDir);
     if (layoutError) return fail(layoutError);
     const onPath = (bin: string) =>
       (process.env.PATH ?? '').split(':').some((dir) => dir && fs.existsSync(path.join(dir, bin)));
     console.log(`[smoke] PATH has claude: ${onPath('claude')}, codex: ${onPath('codex')}`);
+    stage = 'checkFirstRun';
     const firstRunError = await checkFirstRun(win, config, path.join(outDir, 'smoke-first-run.png'));
     if (firstRunError) return fail(firstRunError);
+    stage = 'checkProjectSettings';
     const settingsError = await checkProjectSettings(win, config, path.join(outDir, 'smoke-settings.png'));
     if (settingsError) return fail(settingsError);
+    stage = 'checkGlobalShortcut';
     const shortcutError = await checkGlobalShortcut(
       win,
       config,
       path.join(outDir, 'smoke-global-shortcut.png'),
     );
     if (shortcutError) return fail(shortcutError);
+    stage = 'checkSummonFromOtherApp';
     const summonError = await checkSummonFromOtherApp(win, sessions);
     if (summonError) return fail(summonError);
+    stage = 'checkGuide';
     const guideError = await checkGuide(win, outDir);
     if (guideError) return fail(guideError);
+    stage = 'checkLinks';
     const linkOpenError = await checkLinks(win);
     if (linkOpenError) return fail(linkOpenError);
+    stage = 'checkWhatsNew';
     const notesError = await checkWhatsNew(win, config, path.join(outDir, 'smoke-whats-new.png'));
     if (notesError) return fail(notesError);
+    stage = 'checkTrends';
     const trendsError = await checkTrends(win, outDir);
     if (trendsError) return fail(trendsError);
+    stage = 'checkApplyTrend';
     const applyError = await checkApplyTrend(win, outDir);
     if (applyError) return fail(applyError);
+    stage = 'checkGraphSources';
     const sourcesError = await checkGraphSources(win, config, path.join(outDir, 'smoke-sources.png'));
     if (sourcesError) return fail(sourcesError);
+    stage = 'checkGraphView';
     const graphError = await checkGraphView(win, config, outDir);
     if (graphError) return fail(graphError);
+    stage = 'checkNoteEditor';
     const noteError = await checkNoteEditor(win, config, outDir);
     if (noteError) return fail(noteError);
+    stage = 'checkLinkSuggestions';
     const linksError = await checkLinkSuggestions(win, config, outDir);
     if (linksError) return fail(linksError);
+    stage = 'checkVault';
     const vaultError = await checkVault(win, config, outDir);
     if (vaultError) return fail(vaultError);
+    stage = 'checkAppGraph';
     const appGraphError = await checkAppGraph(win, config, outDir);
     if (appGraphError) return fail(appGraphError);
+    stage = 'checkIme';
     const imeError = await checkIme(win);
     if (imeError) return fail(imeError);
+    stage = 'checkReviewQueue';
     const reviewError = await checkReviewQueue(win, sessions, outDir);
     if (reviewError) return fail(reviewError);
     const runError = runs ? await checkRunSlot(win, runs, config, outDir) : 'no run manager';
@@ -224,8 +265,10 @@ export async function runSmoke(
       ? await checkExtensions(win, extensions, sessions, config, outDir)
       : 'no extension host';
     if (extError) return fail(extError);
+    stage = 'checkRemoteSession';
     const remoteError = await checkRemoteSession(sessions, config, output);
     if (remoteError) return fail(remoteError);
+    stage = 'checkRealHost';
     const realHostError = await checkRealHost(sessions, config, output);
     if (realHostError) return fail(realHostError);
     console.log(
@@ -746,11 +789,17 @@ async function checkPanelLayout(win: BrowserWindow, outDir: string): Promise<str
         clickCount: 1,
         modifiers: type === 'mouseMove' ? ['leftbuttondown'] : [],
       });
+    // Same input as the guide capture's resize (which passes): hover the handle first, so the press starts a
+    // pointer sequence on it, then move in steps long enough apart for each to be delivered on its own.
+    win.webContents.sendInputEvent({ type: 'mouseMove', x: edge.x, y: edge.y });
+    await wait(60);
     mouse('mouseDown', edge.x);
+    await wait(60);
     for (let dx = 20; dx <= 160; dx += 20) {
       mouse('mouseMove', edge.x + dx);
-      await wait(30);
+      await wait(50);
     }
+    await wait(100);
     mouse('mouseUp', edge.x + 160);
     await wait(300);
     dragged = await js(`(() => {
