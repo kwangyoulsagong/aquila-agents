@@ -4,7 +4,8 @@
  * a file edited in it, a trend applied on its branch.
  *
  * Built from data the app already has (the history index's last scan, `~/.aquila/applies`); nothing is scanned or
- * polled here. Only sessions that touched a note or ran an applied trend are shown, so the graph stays about notes.
+ * polled here. Only sessions that touched a note or ran an applied trend are shown, so the graph stays about notes —
+ * and those open in a tab right now (T76), so the tab's own work can be shown.
  */
 import fs from 'node:fs';
 import os from 'node:os';
@@ -38,6 +39,11 @@ export interface AppData {
   projects: AppProject[];
   /** Files Claude turns changed by any means (`TurnFiles`), by Claude session id. */
   turnFiles?: Record<string, string[]>;
+  /**
+   * T76: conversations open in a tab now (`<agent>:<id>`): in the graph even before they touch a note, with the
+   * files they changed, so "This tab" shows a coding tab's work.
+   */
+  open?: readonly string[];
 }
 
 /** FSD layers: `src/<layer>` is a folder of its own in the skeleton (as in T64's scan). */
@@ -141,6 +147,7 @@ export function appGraph(index: readonly GraphNode[], data: AppData, home = os.h
   }
 
   const sessions = [...data.sessions].sort((a, b) => b.entry.updatedAt - a.entry.updatedAt);
+  const open = new Set(data.open ?? []);
   let kept = 0;
   for (const { entry, files: edited, mentions } of sessions) {
     if (kept >= MAX_SESSIONS) break;
@@ -150,7 +157,7 @@ export function appGraph(index: readonly GraphNode[], data: AppData, home = os.h
     ] as string[];
     const apply =
       entry.projectId && entry.branch ? appliedOn.get(`${entry.projectId}\0${entry.branch}`) : undefined;
-    if (!sent.length && !apply) continue;
+    if (!sent.length && !apply && !open.has(`${entry.agent}:${entry.id}`)) continue;
     kept++;
     const files =
       entry.agent === 'claude' && data.turnFiles?.[entry.id]

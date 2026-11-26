@@ -12,7 +12,7 @@ import type {
   GraphSnapshot,
   GraphSourceState,
 } from '../../src/shared/api/types';
-import { buildGraph, noteId, type CodeName, type IndexedNote } from './build';
+import { buildGraph, mentionCache, noteId, type CodeName, type IndexedNote } from './build';
 import { collectCodeNames, SKIP_DIRS, yieldNow, type CodeProject } from './code';
 import { Extractor, type ExtractorOptions, type RunPrompt } from './extract';
 import { parseNote } from './parse';
@@ -148,6 +148,8 @@ export class GraphEngine {
   private closed = false;
   private running = new Set<Promise<void>>();
   private similar = new SimilarIndex();
+  /** T76: title mentions per note, kept between snapshots. */
+  private mentions = mentionCache();
   private links: LinkData;
   private extractor: Extractor;
   private vaultLinks = new Map<string, CompiledLinkRule[]>();
@@ -300,6 +302,7 @@ export class GraphEngine {
       this.extractor.sync(docs);
       this.cache = buildGraph(this.notes.values(), this.codeNames, this.version, {
         similar: this.similar.all(),
+        mentions: this.mentions,
         ai: this.extractor.extracts(),
         links: this.links,
         vaultLinks: this.vaultLinks,

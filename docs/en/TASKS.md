@@ -909,3 +909,20 @@ throttled or hot → `saver`). The rules every task below follows:
   snapshot as `terms`; Korean predicate endings like 됐다 / 이며 dropped), so notes titled only by IDs get named by
   what they say; on the flat folder the loosely linked went 45 → 36.
   _Left over: no morphology — Korean particles can stay on a word (결제를)._
+
+### T76 · Graph 11: a coding tab's work, fewer controls, lighter on battery and quota
+- [x] **Goal:** "This tab" works for a tab that only codes; the panel has fewer controls; the graph costs less CPU,
+  battery and Claude quota.
+- **Spec:** conversations open in a tab are in the graph before they touch a note (`AppData.open`, roots in
+  `filterSnapshot`), with the files they changed. The panel's first bar is one row (a field in a bar takes the room
+  left, `--size-bar-field`); lens chips and week chips show only with answers (week kind chips only when there are
+  two kinds). Title mentions are kept per note between builds (`MentionCache`), and a note's body words per note —
+  a rebuild after one save went 1.2 s → ~35 ms on 1,500 notes. The panel fetches no snapshot while the app is
+  hidden, every 3 s in power saver. AI extraction sends only titles that share words with the notes (≤ 40, was up to
+  300) and 4,000 characters per note (was 6,000).
+- **Owns:** `electron/graph/` (`app-nodes.ts`, `build.ts`, `engine.ts`, `similar.ts`, `extract.ts`),
+  `src/widgets/knowledge-graph/`, `src/entities/note/model/useGraphData.ts`.
+- **Done:** unit tests (open tab in, roots, mention cache via the engine tests, terms cache, candidate titles);
+  measured on a copy of the 1,505-note monorepo (rebuild 1,126–1,371 ms → 34–60 ms); idle CPU 0 % with the panel
+  open; smoke.
+  _Left over: the first index of a big repo still takes seconds (once; cached after)._

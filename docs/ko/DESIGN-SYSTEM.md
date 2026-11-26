@@ -125,6 +125,7 @@
 | `--size-board-column` / `--size-code-input` | 256 / 224 | 보드 보기의 열 너비 / 텍스트로 고치는 설정의 높이 (T69) |
 | `--size-focus-row` / `--size-focus-center` / `--size-focus-gap` | 40 / 208 / 48 | 그래프 주변 보기 (T72): 항목 하나(라벨 + 메타 줄) / 가운데 카드 / 두 열 사이 선이 지나갈 자리 |
 | `--size-bubble-min` / `--size-bubble-max` | 24 / 64 | 그래프 지도 묶음 (T73): 가장 작은 / 큰 묶음의 원 반지름 (√개수 비례) |
+| `--size-bar-field` | 224 | 패널 막대 안의 검색창 (T76): 버튼 옆 남는 폭을 쓰고, 이보다 좁을 때만 한 줄을 차지 |
 
 ## 컴포넌트 (`components.css`)
 

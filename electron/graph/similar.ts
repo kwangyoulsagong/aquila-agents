@@ -115,6 +115,9 @@ export class SimilarIndex {
   private postings = new Map<string, Set<string>>();
   private pairs = new Map<string, SimilarPair>();
   private byNote = new Map<string, Set<string>>();
+  /** T76: `terms` per note (by its signature), and the note count they were weighed at. */
+  private termsCache = new Map<string, { sig: string; terms: string[] }>();
+  private termsAt = 0;
 
   /**
    * Brings the index in line with these notes: new / changed ones are scored again, gone ones dropped. Returns
@@ -217,12 +220,22 @@ export class SimilarIndex {
   terms(id: string, k = TERMS_PER_NOTE): string[] {
     const doc = this.docs.get(id);
     if (!doc) return [];
+    // Kept while the note is unchanged (T76): the weights drift a little as other notes come and go, not enough to
+    // be worth weighing 1,500 notes again on every save; a big change in the note count starts over.
+    if (Math.abs(this.docs.size - this.termsAt) > this.termsAt * 0.1) {
+      this.termsCache.clear();
+      this.termsAt = this.docs.size;
+    }
+    const kept = this.termsCache.get(id);
+    if (kept && kept.sig === doc.sig) return kept.terms;
     const maxDf = Math.max(2, Math.floor(this.docs.size * MAX_DF_SHARE));
-    return [...this.weigh(doc.tf).w]
+    const out = [...this.weigh(doc.tf).w]
       .filter(([t]) => (this.df.get(t) ?? 0) <= maxDf && !PREDICATE.test(t))
       .sort((x, y) => y[1] - x[1] || x[0].localeCompare(y[0]))
       .slice(0, k)
       .map(([t]) => t);
+    this.termsCache.set(id, { sig: doc.sig, terms: out });
+    return out;
   }
 
   private weigh(tf: Map<string, number>): { w: Map<string, number>; norm: number } {

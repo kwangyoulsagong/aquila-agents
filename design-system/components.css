@@ -473,6 +473,8 @@ body {
   font-size: var(--font-size-caption); color: var(--color-text-tertiary);
 }
 .c-panel__bar-end { margin-left: auto; display: flex; align-items: center; gap: var(--space-inline-xs); }
+/* A field in a bar takes the room left on the row (with the buttons beside it), a row of its own only when narrow. */
+.c-panel__bar > .c-input { flex: 1 1 var(--size-bar-field); width: auto; min-width: 0; }
 
 /* ── Preview (T33) ──────────────────────────────────────────
  * The page itself is a native view main lays over `.c-preview__stage`; the stage's own content (empty state, load

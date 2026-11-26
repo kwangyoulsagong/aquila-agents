@@ -125,6 +125,16 @@ describe('appGraph', () => {
     expect(g.edges).toEqual([]);
   });
 
+  it('T76: a session open in a tab is in even before it touches a note, with the files it changed', () => {
+    const g = appGraph(
+      index,
+      data({ sessions: [work({}, ['/Users/me/app/x.ts'], [])], open: ['claude:s1'] }),
+      HOME,
+    );
+    expect(g.nodes.map((n) => n.id)).toContain('session:claude:s1');
+    expect(g.nodes.some((n) => n.kind === 'file' && n.path === '/Users/me/app/x.ts')).toBe(true);
+  });
+
   it('a session that edits a note links to it, not to a file node', () => {
     const g = appGraph(
       index,

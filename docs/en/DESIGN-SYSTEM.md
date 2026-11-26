@@ -126,6 +126,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `--size-board-column` / `--size-code-input` | 256 / 224 | A board view's column / the height of settings edited as text (T69) |
 | `--size-focus-row` / `--size-focus-center` / `--size-focus-gap` | 40 / 208 / 48 | Graph focus view (T72): one item (label + meta line) / the centre card / room for links between two columns |
 | `--size-bubble-min` / `--size-bubble-max` | 24 / 64 | Graph Map groups (T73): bubble radius of the smallest / biggest group (by √members) |
+| `--size-bar-field` | 224 | A search field sharing a panel bar (T76): it takes the room left beside the buttons, a row of its own only below this |
 
 ## Components (`components.css`)
 

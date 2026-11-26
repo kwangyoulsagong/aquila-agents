@@ -58,8 +58,10 @@ export interface ExtractorOptions {
 export const DAILY_CAP = 40;
 const BATCH = 4;
 const DELAY_MS = 30_000;
-const NOTE_CHARS = 6000;
-const MAX_TITLES = 300;
+/** T76: tokens are the user's quota — the start of a note carries what it is about. */
+const NOTE_CHARS = 4000;
+/** T76: known titles sent per call: only those whose words appear in the notes sent (was every title, up to 300). */
+const MAX_TITLES = 40;
 const FILE_VERSION = 1;
 const RUN_TIMEOUT_MS = 2 * 60_000;
 const LIMITS = { people: 6, decisions: 4, todos: 6, related: 5 } as const;
@@ -83,6 +85,35 @@ const dayOf = (ms: number) => {
 /** Quoted data: a closing tag inside a note can't end the quote. */
 const quote = (s: string) => s.replace(/<\/?note\b/gi, (m) => m.replace('<', '‹'));
 
+const WORD = /[\p{L}\p{N}_]+/gu;
+const words = (s: string) =>
+  (s.toLowerCase().match(WORD) ?? []).filter((w) => w.length >= 2 && !/^\d+$/.test(w));
+
+/**
+ * T76: the titles worth sending as KNOWN NOTES for these notes — those sharing words with their text, most shared
+ * first, never their own. A note can only be "about" a title it says something of, so the rest only cost tokens.
+ * Local, no model call.
+ */
+export function candidateTitles(
+  notes: readonly { title: string; text: string }[],
+  titles: readonly string[],
+  cap = MAX_TITLES,
+): string[] {
+  const text = new Set(notes.flatMap((n) => words(`${n.title} ${n.text}`)));
+  const own = new Set(notes.map((n) => n.title));
+  return [...new Set(titles)]
+    .filter((t) => !own.has(t))
+    .map((t) => {
+      const ws = [...new Set(words(t))];
+      const hit = ws.filter((w) => text.has(w)).length;
+      return { t, hit, share: ws.length ? hit / ws.length : 0 };
+    })
+    .filter((x) => x.hit > 0 && x.share >= 0.5)
+    .sort((a, b) => b.share - a.share || b.hit - a.hit || a.t.localeCompare(b.t))
+    .slice(0, cap)
+    .map((x) => x.t);
+}
+
 export function extractPrompt(
   notes: readonly { key: string; title: string; text: string }[],
   titles: readonly string[],
@@ -100,7 +131,7 @@ export function extractPrompt(
     '{"notes":[{"id":"n1","people":[],"decisions":[],"todos":[],"related":[]}]}',
     '',
     'KNOWN NOTES:',
-    ...titles.map((t) => `- ${t.replace(/\s+/g, ' ')}`),
+    ...(titles.length ? titles.map((t) => `- ${t.replace(/\s+/g, ' ')}`) : ['(none)']),
     '',
     ...notes.map(
       (n) => `<note id="${n.key}" title="${quote(n.title).replace(/"/g, "'")}">\n${quote(n.text)}\n</note>`,
@@ -358,13 +389,14 @@ export class Extractor {
           keys.set(`n${i + 1}`, n.id);
           items.push({ key: `n${i + 1}`, title: n.title, text: text.slice(0, NOTE_CHARS) });
         }
-        // Titles to relate to: this source's first, then the rest.
-        const titles = [
-          ...this.notes.filter((n) => n.sourceId === sourceId),
-          ...this.notes.filter((n) => n.sourceId !== sourceId),
-        ]
-          .map((n) => n.title)
-          .slice(0, MAX_TITLES);
+        // Titles to relate to: only those the notes sent say something of (T76), this source's first on a tie.
+        const titles = candidateTitles(
+          items,
+          [
+            ...this.notes.filter((n) => n.sourceId === sourceId),
+            ...this.notes.filter((n) => n.sourceId !== sourceId),
+          ].map((n) => n.title),
+        );
         const reply = await run(extractPrompt(items, titles));
         const parsed = parseExtract(reply, keys, this.titleIndex());
         const at = this.now();
