@@ -95,6 +95,22 @@ describe('topicGroups', () => {
     ]);
   });
 
+  it('titles that are only IDs: named by what the bodies say', () => {
+    const ided = (id: string, terms: string[]): GraphNode => ({ id, kind: 'note', label: `F0${id}`, terms });
+    const pay = [0, 1, 2, 3].map((i) => ided(`1${i}`, ['coupon', 'discount', `x${i}`]));
+    const auth = [0, 1, 2, 3].map((i) => ided(`2${i}`, ['login', 'token', `y${i}`]));
+    const ring = (ns: GraphNode[]) => ns.flatMap((n, i) => ns.slice(i + 1).map((m) => edge(n.id, m.id)));
+    const v = { nodes: [...pay, ...auth], edges: [...ring(pay), ...ring(auth)] };
+    const t = topicGroups(
+      v,
+      v.nodes.map((n) => n.id),
+    )!;
+    expect(t.map((g) => [...g.words].sort())).toEqual([
+      ['coupon', 'discount'],
+      ['login', 'token'],
+    ]);
+  });
+
   it('no links: titles that share a word still group; nothing shared → null', () => {
     const t = topicGroups(
       { nodes: view.nodes, edges: [] },

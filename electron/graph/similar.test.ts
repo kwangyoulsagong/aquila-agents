@@ -55,3 +55,34 @@ describe('SimilarIndex', () => {
     expect(idx.all().some((p) => p.a === 'meeting' || p.b === 'meeting')).toBe(false);
   });
 });
+
+describe('terms (T75)', () => {
+  it("a note's telling body words: its own subject first, words every note has left out", () => {
+    const idx = new SimilarIndex();
+    const docs = [
+      { id: 'a', sig: '1', text: 'coupon discount coupon checkout total project' },
+      { id: 'b', sig: '1', text: 'coupon discount refund project' },
+      { id: 'c', sig: '1', text: 'login token refresh project' },
+      { id: 'd', sig: '1', text: 'login token expiry project' },
+      ...Array.from({ length: 8 }, (_, i) => ({
+        id: `x${i}`,
+        sig: '1',
+        text: `project filler${i} other${i}`,
+      })),
+    ];
+    idx.sync(docs);
+    const a = idx.terms('a');
+    expect(a.slice(0, 2)).toEqual(['coupon', 'discount']);
+    expect(a).not.toContain('project');
+    expect(idx.terms('c')).toEqual(expect.arrayContaining(['login', 'token']));
+    expect(idx.terms('nope')).toEqual([]);
+    // Korean predicates ("제거됐다", "정리이며") say what happened, not what it's about.
+    const ko = new SimilarIndex();
+    ko.sync([
+      { id: 'k1', sig: '1', text: '회고 할인 제거됐다 정리이며' },
+      { id: 'k2', sig: '1', text: '회고 할인 제거됐다 정리이며' },
+      ...Array.from({ length: 8 }, (_, i) => ({ id: `y${i}`, sig: '1', text: `기타${i} 다른${i}` })),
+    ]);
+    expect(ko.terms('k1').sort()).toEqual(['할인', '회고']);
+  });
+});

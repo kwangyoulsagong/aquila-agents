@@ -905,4 +905,7 @@ throttled or hot → `saver`). The rules every task below follows:
 - **Owns:** `src/widgets/knowledge-graph/model/clusters.ts` (`topicGroups`, `titleWords`), `model/groups.ts`.
 - **Done:** unit tests (split, naming, outside links, no links, merge, keys stable, layout room for names); checked
   on a flat 171-note folder in an isolated HOME (12 named groups, 45 loosely linked).
-  _Left over: names are title words, so a repo whose titles are only IDs gets few named groups._
+  Follow-up: names also use each note's telling body words (the T68 similarity index's TF-IDF, 8 per note on the
+  snapshot as `terms`; Korean predicate endings like 됐다 / 이며 dropped), so notes titled only by IDs get named by
+  what they say; on the flat folder the loosely linked went 45 → 36.
+  _Left over: no morphology — Korean particles can stay on a word (결제를)._

@@ -123,7 +123,8 @@ export async function walkMarkdown(
       if (e.name.startsWith('.')) continue;
       const child = rel ? `${rel}/${e.name}` : e.name;
       if (e.isDirectory()) {
-        if (!SKIP_DIRS.has(e.name) && e.name !== 'node_modules' && !excluded(child, exclude)) stack.push(child);
+        if (!SKIP_DIRS.has(e.name) && e.name !== 'node_modules' && !excluded(child, exclude))
+          stack.push(child);
       } else if (e.isFile() && /\.md$/i.test(e.name)) {
         out.push(child);
         if (out.length >= max) break;
@@ -303,6 +304,12 @@ export class GraphEngine {
         links: this.links,
         vaultLinks: this.vaultLinks,
       });
+      // T75: each note's telling body words, for naming the Map's groups by what the notes say.
+      for (const n of this.cache.nodes)
+        if (n.kind === 'note') {
+          const terms = this.similar.terms(n.id);
+          if (terms.length) n.terms = terms;
+        }
       this.edgeCount = this.cache.edges.length;
     }
     return this.cache;

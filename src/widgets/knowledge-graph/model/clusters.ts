@@ -153,7 +153,16 @@ export function topicGroups(view: GraphView, members: readonly string[]): Topic[
     else groups.set(c, [id]);
   });
   // Document frequency of each title word over the set.
-  const words = new Map(sorted.map((id) => [id, titleWords(byId.get(id)?.label ?? '')]));
+  // Title words and the body's telling words (T75): a group gets a name even when its titles are only IDs.
+  const words = new Map(
+    sorted.map((id) => {
+      const n = byId.get(id);
+      return [
+        id,
+        [...new Set([...titleWords(n?.label ?? ''), ...(n?.terms ?? []).filter((t) => !NOISE.test(t))])],
+      ];
+    }),
+  );
   const df = new Map<string, number>();
   for (const ws of words.values()) for (const w of ws) df.set(w, (df.get(w) ?? 0) + 1);
   const n = sorted.length;
