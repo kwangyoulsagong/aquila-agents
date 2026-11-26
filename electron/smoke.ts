@@ -1616,19 +1616,17 @@ async function checkGraphView(win: BrowserWindow, config: Config, outDir: string
   })()`);
   if (lensState.chips !== 5) return `graph: ${lensState.chips} lens chips on the map, expected 5`;
   if (lensState.on === false) return 'graph: a lens did not switch on';
-  // Colour by group: the legend lists the groups (Louvain) instead of the kinds.
-  await js(`[...document.querySelectorAll('aside .c-segment__item')].find((e) => e.textContent.trim() === ${JSON.stringify(t('graph.paint.group'))})?.click()`);
-  await wait(300);
-  const groups = await js<number>(`document.querySelectorAll('aside .c-kgraph__legend [data-group]').length`);
-  if (!groups) return 'graph: colour by group shows no groups in the legend';
+  // Groups (T73): the fixture is small, so the Map shows its dots straight away (no group bubbles, no crumbs).
+  const groups = await js<number>(`document.querySelectorAll('aside .c-kgroups__bubble').length`);
+  if (groups) return `graph: ${groups} group bubbles for a ${whole.nodes}-node map (small maps show dots)`;
   fs.writeFileSync(path.join(outDir, 'smoke-graph-map.png'), (await win.webContents.capturePage()).toPNG());
-  await js(`(() => { localStorage.removeItem('aquila.graph.mode'); localStorage.removeItem('aquila.graph.paint'); })()`);
+  await js(`(() => { localStorage.removeItem('aquila.graph.mode'); localStorage.removeItem('aquila.graph.project'); })()`);
   press(win, 'N', ['meta', 'shift']);
   await wait(400);
   const left = await js<number>(`document.querySelectorAll('.c-kgraph').length`);
   if (left) return 'graph: ⌘⇧N did not close the panel';
   console.log(
-    `[smoke] graph: focus ${focus.nodes} nodes in ${focus.ms} ms; "${target.label}" → "${moved}" → back; map ${whole.nodes} nodes settled in ${whole.ms} ms (${whole.iterations} iterations), ${groups} groups`,
+    `[smoke] graph: focus ${focus.nodes} nodes in ${focus.ms} ms; "${target.label}" → "${moved}" → back; map ${whole.nodes} nodes settled in ${whole.ms} ms (${whole.iterations} iterations)`,
   );
   return null;
 }

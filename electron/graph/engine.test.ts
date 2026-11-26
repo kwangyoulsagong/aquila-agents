@@ -154,6 +154,8 @@ describe('walkMarkdown', () => {
     for (const f of ['top.md', 'a/in.MD', 'a/no.txt', '.obsidian/w.md', 'node_modules/x/r.md', 'dist/d.md'])
       fs.writeFileSync(path.join(root, f), '');
     expect((await walkMarkdown(root)).sort()).toEqual(['a/in.MD', 'top.md']);
+    // T73: a folder that is another source is left out.
+    expect((await walkMarkdown(root, undefined, ['a'])).sort()).toEqual(['top.md']);
   });
 });
 

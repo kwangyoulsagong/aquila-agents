@@ -38,6 +38,8 @@ import {
   TIME_WINDOWS,
   filterSnapshot,
   kindsOf,
+  projectSources,
+  scopeOf,
   searchMatches,
   tagsOf,
   type GraphFilter,
@@ -48,9 +50,18 @@ import { LENSES, lensHits, type LensId } from '../model/lenses';
 import { useGraphRenderer } from './useGraphRenderer';
 import { FocusView, nodeLabel, swatchOf } from './FocusView';
 import { useLiveSessions } from './useLiveSessions';
-import { clustersOf } from '../model/clusters';
-import { GROUP_COLORS } from '../model/colors';
-import { shortLabel } from './useGraphRenderer';
+import {
+  crumbStops,
+  groupLevel,
+  groupPath,
+  mapView,
+  MORE,
+  unionKey,
+  unionKeys,
+  type GroupRule,
+} from '../model/groups';
+import { GroupsView, useGroupLabel } from './GroupsView';
+import { GroupRulesDialog } from './GroupRulesDialog';
 
 export interface KnowledgeGraphPanelProps {
   full: boolean;
@@ -71,13 +82,39 @@ export interface KnowledgeGraphPanelProps {
   sessions?: readonly Session[];
   /** Brings a tab to the front (a live session node's "Go to tab"). */
   onShowSession?: (tabId: string) => void;
+  /** Local projects: the graph shows one at a time (T73). `path` as stored (`~/…`). */
+  projects?: readonly { id: string; name: string; path: string }[];
+  /** The project of the tab in front: what "Current project" means. */
+  activeProjectId?: string | null;
 }
 
 type Mode = 'focus' | 'map';
 const HINT_KEY = 'aquila.graph.hintSeen.v2';
 const MODE_KEY = 'aquila.graph.mode';
 const FOLLOW_KEY = 'aquila.graph.follow';
-const PAINT_KEY = 'aquila.graph.paint';
+const PROJECT_KEY = 'aquila.graph.project';
+const RULES_KEY = 'aquila.graph.groups';
+/** Project choice: the tab in front's project, every project, or one project id. */
+const CURRENT = '';
+const ALL = '*';
+
+const storedRules = (): GroupRule[] => {
+  try {
+    const v: unknown = JSON.parse(stored(RULES_KEY) ?? '[]');
+    return Array.isArray(v)
+      ? v.filter(
+          (r): r is GroupRule =>
+            !!r &&
+            typeof r === 'object' &&
+            typeof (r as GroupRule).id === 'string' &&
+            typeof (r as GroupRule).name === 'string' &&
+            typeof (r as GroupRule).query === 'string',
+        )
+      : [];
+  } catch {
+    return [];
+  }
+};
 /** Centres remembered for Back. */
 const TRAIL_MAX = 30;
 /** Crumbs shown (the rest is still reachable with Back). */
@@ -132,6 +169,8 @@ export default function KnowledgeGraphPanel({
   onError,
   sessions,
   onShowSession,
+  projects = [],
+  activeProjectId = null,
 }: KnowledgeGraphPanelProps) {
   const t = useT();
   const width = usePanelWidth('aquila.panel.graph');
@@ -166,9 +205,36 @@ export default function KnowledgeGraphPanel({
     store(FOLLOW_KEY, on ? '1' : '0');
   };
 
+  // Project (T73): the current tab's project by default, so the graph is about what you're working on.
+  const [projectChoice, setProjectChoiceState] = useState(() => stored(PROJECT_KEY) ?? CURRENT);
+  const setProjectChoice = (v: string) => {
+    setProjectChoiceState(v);
+    store(PROJECT_KEY, v);
+  };
+  const sourceList = status?.sources;
+  const owners = useMemo(() => projectSources(sourceList ?? [], projects), [sourceList, projects]);
+  // "Current" needs a note folder inside the tab's project; without one it shows every project (else the graph
+  // would open empty in most projects).
+  const currentHasNotes = !!activeProjectId && [...owners.values()].includes(activeProjectId);
+  const projectId =
+    projectChoice === ALL
+      ? null
+      : projectChoice === CURRENT
+        ? currentHasNotes
+          ? activeProjectId
+          : null
+        : projects.some((p) => p.id === projectChoice)
+          ? projectChoice
+          : null;
+  const scopeKey = projectId ? `${projectId}\0${[...owners].join(',')}` : '';
+  const scope = useMemo(
+    () => (projectId ? scopeOf(projectId, owners) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [scopeKey],
+  );
   const view = useMemo(
-    () => (snapshot ? filterSnapshot(snapshot, filter) : { nodes: [], edges: [] }),
-    [snapshot, filter],
+    () => (snapshot ? filterSnapshot(snapshot, filter, Date.now(), scope) : { nodes: [], edges: [] }),
+    [snapshot, filter, scope],
   );
   const byId = useMemo(() => new Map(view.nodes.map((n) => [n.id, n])), [view.nodes]);
   const allNodes = snapshot?.nodes;
@@ -177,27 +243,83 @@ export default function KnowledgeGraphPanel({
   const live = useLiveSessions(sessions);
   const liveIds = useMemo(() => new Set(live.keys()), [live]);
   const lenses = useMemo(() => lensHits(view, Date.now(), liveIds), [view, liveIds]);
-  const [paintBy, setPaintByState] = useState<'kind' | 'group'>(() =>
-    stored(PAINT_KEY) === 'group' ? 'group' : 'kind',
-  );
-  const setPaintBy = (v: 'kind' | 'group') => {
-    setPaintByState(v);
-    store(PAINT_KEY, v);
+  // Map as groups (T73): folders / kinds / the user's groups, opened one level at a time.
+  const [rules, setRulesState] = useState(storedRules);
+  const setRules = (r: GroupRule[]) => {
+    setRulesState(r);
+    store(RULES_KEY, JSON.stringify(r));
   };
-  const groups = useMemo(
-    () => (mode === 'map' && paintBy === 'group' ? clustersOf(view) : null),
-    [mode, paintBy, view],
-  );
-  const nodeColor = useMemo(
-    () =>
-      groups
-        ? (n: GraphNode) => {
-            const g = groups.of.get(n.id);
-            return g !== undefined && g < GROUP_COLORS ? colors.groups[g]! : colors.missing;
-          }
-        : null,
-    [groups, colors],
-  );
+  const [rulesOpen, setRulesOpen] = useState(false);
+  const [groupAt, setGroupAt] = useState<string[]>([]);
+  useEffect(() => setGroupAt([]), [projectId]);
+  const groupLabel = useGroupLabel();
+  const recent = useMemo(() => {
+    const since = Date.now() - 7 * 86_400_000;
+    return new Set(view.nodes.filter((n) => (n.mtime ?? 0) >= since).map((n) => n.id));
+  }, [view]);
+  const paths = useMemo(() => {
+    if (mode !== 'map') return null;
+    const names = new Map((sourceList ?? []).map((s) => [s.id, sourceName(s.path)]));
+    const ctx = {
+      rules: rules.filter((r) => r.query.trim()),
+      sourceName: (id: string) => names.get(id) ?? id,
+      multiSource: new Set(view.nodes.flatMap((n) => (n.sourceId ? [n.sourceId] : []))).size > 1,
+      projects,
+      multiProject: !projectId,
+    };
+    return new Map(view.nodes.map((n) => [n.id, groupPath(n, ctx)]));
+  }, [mode, view, rules, sourceList, projects, projectId]);
+  const level = useMemo(() => (paths ? groupLevel(view, paths, groupAt) : null), [view, paths, groupAt]);
+  // ⌘-clicked groups of this level, to open together.
+  const [picked, setPicked] = useState<string[]>([]);
+  const levelKey = level ? level.at.join('/') : '';
+  useEffect(() => setPicked([]), [levelKey]);
+  const pickedSet = useMemo(() => new Set(picked), [picked]);
+  const mapV = useMemo(() => {
+    if (level?.kind !== 'map') return view;
+    // Sessions / code / files make sense with what they link to; a note folder stands on its own.
+    const nonNotes = [...level.ids].every((id) => byId.get(id)?.kind !== 'note');
+    return mapView(view, level.ids, nonNotes && level.at.length > 0);
+  }, [level, view, byId]);
+  /**
+   * Crumbs of the Map: every group, then each opened group by name. A level that holds a single group is skipped on
+   * the way in, so its crumb (and Back) would land straight back here: it is merged into the next one ("a / b").
+   */
+  const { groupCrumbs, groupParent } = useMemo(() => {
+    if (!level || !paths) return { groupCrumbs: [], groupParent: null };
+    // One name per step. Depth counts real levels ("N more" stays on its level), as `groupLevel` walks them.
+    const labels: string[] = [];
+    let depth = 0;
+    let parent: string | null = null;
+    for (const key of level.at) {
+      if (key === MORE) {
+        labels.push(t('graph.groups.moreShort'));
+        continue;
+      }
+      const at = depth;
+      const name = (k: string) =>
+        groupLabel(
+          { seg: [...paths.values()].find((p) => p[at]?.key === k)?.[at] ?? { key: k, label: k } },
+          parent,
+        );
+      const together = unionKeys(key);
+      const label = together ? together.map(name).join(' + ') : name(key);
+      labels.push(label);
+      parent = label;
+      depth++;
+    }
+    const stops = crumbStops(view, paths, level.at);
+    const items = stops.map((k, j) => {
+      const from = j === 0 ? 0 : stops[j - 1]!;
+      const names = labels.slice(from, k);
+      return {
+        id: String(k),
+        label: j === 0 ? [t('graph.groups.all'), ...names].join(' / ') : names.join(' / '),
+      };
+    });
+    return { groupCrumbs: items, groupParent: labels[labels.length - 1] ?? null };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [level, paths, view, t]);
 
   // The centre: the end of the trail. Moving pushes; Back pops.
   const center = trail[trail.length - 1] ?? null;
@@ -280,13 +402,13 @@ export default function KnowledgeGraphPanel({
   };
   const handle = centerNode ? handleTarget(snapshot, centerNode) : null;
   const mapMatches = lens ? lenses[lens] : matches;
-  const renderer = useGraphRenderer(mode === 'map' ? host : null, {
-    view,
+  const renderer = useGraphRenderer(mode === 'map' && level?.kind === 'map' ? host : null, {
+    view: mapV,
     colors,
     selected: null,
     matches: mapMatches,
     saver,
-    nodeColor,
+    nodeColor: null,
     onSelect: (id) => id && recentre(id),
     onOpen: open,
     onSettled: (info) => {
@@ -312,7 +434,9 @@ export default function KnowledgeGraphPanel({
         ? filter.hiddenKinds.filter((x) => x !== k)
         : [...filter.hiddenKinds, k],
     });
-  const legendKinds = kinds.filter((k) => !filter.hiddenKinds.includes(k));
+  // The Map's legend names what is drawn (a group's dots), not every kind in the graph.
+  const drawn = new Set(mapV.nodes.map((n) => n.kind));
+  const legendKinds = kinds.filter((k) => !filter.hiddenKinds.includes(k) && drawn.has(k));
   // One colour for AI and app nodes: its label names the kinds present ("Sessions · Trends").
   const swatches = [...new Set(legendKinds.map(swatchOf))].map((kind) => ({
     kind,
@@ -368,7 +492,7 @@ export default function KnowledgeGraphPanel({
               {t('graph.daily')}
             </Button>
           )}
-          {mode === 'map' && !empty && (
+          {mode === 'map' && level?.kind === 'map' && !empty && (
             <Button
               variant="ghost"
               icon
@@ -412,6 +536,29 @@ export default function KnowledgeGraphPanel({
         </div>
       </div>
       <div className="c-panel__bar">
+        {projects.length > 0 && (
+          <Select
+            aria-label={t('graph.project.label')}
+            value={
+              projectChoice === CURRENT ||
+              projectChoice === ALL ||
+              projects.some((p) => p.id === projectChoice)
+                ? projectChoice
+                : CURRENT
+            }
+            onChange={setProjectChoice}
+            options={[
+              {
+                value: CURRENT,
+                label: t(currentHasNotes ? 'graph.project.current' : 'graph.project.currentAll', {
+                  name: projects.find((p) => p.id === activeProjectId)?.name ?? '—',
+                }),
+              },
+              { value: ALL, label: t('graph.project.all') },
+              ...projects.map((p) => ({ value: p.id, label: p.name })),
+            ]}
+          />
+        )}
         <Segment
           label={t('graph.mode.label')}
           value={mode}
@@ -542,6 +689,40 @@ export default function KnowledgeGraphPanel({
           </Button>
         </div>
       )}
+      {!empty && mode === 'map' && groupCrumbs.length > 1 && (
+        <div className="c-panel__bar">
+          <GraphTrail
+            back={
+              <Button
+                variant="ghost"
+                icon
+                // To the previous crumb (a skipped level isn't one: Back would land here again).
+                onClick={() =>
+                  setGroupAt((at) =>
+                    (level?.at ?? at).slice(0, Number(groupCrumbs[groupCrumbs.length - 2]?.id ?? 0)),
+                  )
+                }
+                title={t('graph.back')}
+                aria-label={t('graph.back')}
+              >
+                ←
+              </Button>
+            }
+            items={groupCrumbs}
+            onPick={(id) => setGroupAt((level?.at ?? []).slice(0, Number(id)))}
+          />
+        </div>
+      )}
+      {!empty && mode === 'map' && level?.kind === 'groups' && picked.length > 0 && (
+        <div className="c-panel__bar">
+          <Button variant="primary" onClick={() => setGroupAt([...level.at, unionKey(picked)])}>
+            {t('graph.groups.together', { n: String(picked.length) })}
+          </Button>
+          <Button variant="ghost" onClick={() => setPicked([])}>
+            {t('graph.groups.unpick')}
+          </Button>
+        </div>
+      )}
       {!empty && mode === 'map' && (
         <div className="c-panel__bar" role="group" aria-label={t('graph.lens.label')}>
           {LENSES.map((id) => (
@@ -556,18 +737,18 @@ export default function KnowledgeGraphPanel({
             </GraphLens>
           ))}
           <span className="c-panel__bar-end">
-            <Segment
-              label={t('graph.paint.label')}
-              value={paintBy}
-              onChange={setPaintBy}
-              options={[
-                { value: 'kind', label: t('graph.paint.kind') },
-                { value: 'group', label: t('graph.paint.group') },
-              ]}
-            />
+            <Button variant="ghost" onClick={() => setRulesOpen(true)} title={t('graph.groups.editHint')}>
+              {rules.length ? t('graph.groups.editN', { n: String(rules.length) }) : t('graph.groups.edit')}
+            </Button>
           </span>
         </div>
       )}
+      <GroupRulesDialog
+        open={rulesOpen}
+        rules={rules}
+        onChange={setRules}
+        onClose={() => setRulesOpen(false)}
+      />
       <GraphStage canvasRef={setHost}>
         {showResults && (
           <GraphResults label={t('graph.results')}>
@@ -586,6 +767,18 @@ export default function KnowledgeGraphPanel({
               />
             ))}
           </GraphResults>
+        )}
+        {!empty && mode === 'map' && level?.kind === 'groups' && (
+          <GroupsView
+            items={level.items}
+            links={level.links}
+            parent={groupParent}
+            hits={lens ? lenses[lens] : null}
+            recent={recent}
+            picked={pickedSet}
+            onToggle={(key) => setPicked((p) => (p.includes(key) ? p.filter((k) => k !== key) : [...p, key]))}
+            onOpen={(key) => setGroupAt([...level.at, key])}
+          />
         )}
         {!empty && mode === 'focus' && layout && (
           <FocusView
@@ -635,6 +828,7 @@ export default function KnowledgeGraphPanel({
                 <Button
                   onClick={() => {
                     setFilter(DEFAULT_FILTER);
+                    if (projectId && !view.nodes.length) setProjectChoice(ALL);
                     if (mode === 'focus' && center && !layout) setTrail([]);
                   }}
                 >
@@ -646,20 +840,10 @@ export default function KnowledgeGraphPanel({
             {empty.body}
           </EmptyState>
         ) : (
-          mode === 'map' && (
+          mode === 'map' &&
+          level?.kind === 'map' && (
             <GraphLegend
-              swatches={
-                groups
-                  ? groups.list
-                      .filter((g) => g.size > 1)
-                      .slice(0, GROUP_COLORS)
-                      .map((g) => ({
-                        kind: 'note' as const,
-                        group: g.index + 1,
-                        label: `${shortLabel(g.name)} ${g.size}`,
-                      }))
-                  : swatches
-              }
+              swatches={swatches}
               lines={[
                 { line: 'solid', label: t('graph.line.explicit') },
                 { line: 'dashed', label: t('graph.line.mention') },

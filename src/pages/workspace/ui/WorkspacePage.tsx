@@ -212,6 +212,11 @@ export default function WorkspacePage() {
   });
 
   const { config, project, activeSessionId, openSession, closeSession, setConfig, showError } = ws;
+  // The graph's project choice (T73): local projects only (a remote project's notes aren't on this machine).
+  const graphProjects = useMemo(
+    () => (config?.projects ?? []).filter((p) => !p.remote).map((p) => ({ id: p.id, name: p.name, path: p.path })),
+    [config?.projects],
+  );
   // Only while the preview is actually shown: a remote project or full window would otherwise leave nothing on screen.
   const previewFull = previewFullOn && previewOpen && !fullscreen.on && !!project && !project.remote;
   const graphFull = graphFullOn && graphOpen && !fullscreen.on && !previewFull;
@@ -742,6 +747,8 @@ export default function WorkspacePage() {
         {graphOpen && !fullscreen.on && !previewFull && !noteFull && (
           <KnowledgeGraphPanel
             full={graphFull}
+            projects={graphProjects}
+            activeProjectId={ws.activeProjectId}
             activeNotePath={notePath}
             sessions={ws.sessions}
             onShowSession={ws.selectSession}

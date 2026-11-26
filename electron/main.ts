@@ -634,6 +634,7 @@ app.whenReady().then(async () => {
         config = appMenu.refresh(
           editProjects({ op: 'addProject', path: created.dir, name: String(name ?? '').trim(), group, account }),
         );
+        graph.projectsChanged(); // T73: its folder joins the graph
         projectId = projectForPath(config, created.dir);
       }
       if (!projectId) throw new Error('could not add the extension folder as a project');
@@ -748,7 +749,10 @@ app.whenReady().then(async () => {
   );
   ipcMain.handle(IPC.configEditProjects, (_e, edit: ProjectEdit) => {
     if (edit.op === 'removeProject') void runs?.stopProject(edit.id);
-    return appMenu.refresh(editProjects(edit));
+    const config = appMenu.refresh(editProjects(edit));
+    // T73: project folders are graph sources: they follow the project list.
+    graph.projectsChanged();
+    return config;
   });
   ipcMain.handle(IPC.dialogPickFolder, async () => {
     const options: Electron.OpenDialogOptions = { properties: ['openDirectory', 'createDirectory'] };
@@ -948,6 +952,8 @@ app.whenReady().then(async () => {
     dir: graphDir,
     workerFile: path.join(__dirname, 'graph', 'worker.js').replace(/app\.asar([/\\])/, 'app.asar.unpacked$1'),
     saver: powerState().saver,
+    // Capture runs as smoke too, but shows the demo projects' notes the way a user sees them.
+    autoProjects: !isSmoke || !!process.env.AQUILA_CAPTURE,
     projects: () =>
       loadConfig()
         .projects.filter((p) => !p.remote)
@@ -1328,6 +1334,7 @@ app.whenReady().then(async () => {
           account: account ?? 'shared',
         });
         added = true;
+        graph.projectsChanged(); // T73: its folder joins the graph
         projectId = matchProject(config, entry.cwd);
       }
       const project = projectId && config.projects.find((p) => p.id === projectId);

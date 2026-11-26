@@ -7,6 +7,8 @@ import {
   lineStyle,
   localView,
   neighbourhood,
+  projectSources,
+  scopeOf,
   searchMatches,
   tagsOf,
 } from './view';
@@ -139,5 +141,55 @@ describe('app nodes (T70)', () => {
   it('hiding sessions cuts the path to their files', () => {
     const v = filterSnapshot(app, { ...DEFAULT_FILTER, hiddenKinds: ['session'] }, NOW);
     expect(v.nodes.some((n) => n.kind === 'file')).toBe(false);
+  });
+});
+
+describe('project scope (T73)', () => {
+  const inA = note('a1');
+  const outside = { ...note('o1'), id: 'note:s2:o1.md', sourceId: 's2' };
+  const sessA: GraphNode = { id: 'session:claude:a', kind: 'session', label: 'a', projects: ['A'] };
+  const sessB: GraphNode = { id: 'session:claude:b', kind: 'session', label: 'b', projects: ['B'] };
+  const fileA: GraphNode = { id: 'file:/a/x.ts', kind: 'file', label: 'x.ts', projects: ['A'] };
+  const t: GraphNode = { id: 'tag:x', kind: 'tag', label: 'x' };
+  const snapP: GraphSnapshot = {
+    nodes: [inA, outside, sessA, sessB, fileA, t],
+    edges: [
+      edge(inA.id, t.id),
+      edge(outside.id, sessB.id),
+      edge(sessA.id, fileA.id),
+      edge(sessA.id, outside.id),
+      edge(inA.id, sessB.id),
+    ],
+    idGroups: [],
+    version: 1,
+  };
+
+  it('maps sources to the most specific project folder', () => {
+    const owners = projectSources(
+      [
+        { id: 's1', path: '~/Desktop/SALT/requirements' },
+        { id: 's2', path: '~/notes' },
+        { id: 's3', path: '/elsewhere' },
+      ],
+      [
+        { id: 'home', path: '~' },
+        { id: 'salt', path: '~/Desktop/SALT/' },
+        { id: 'sal', path: '~/Desktop/SAL' },
+      ],
+    );
+    expect([...owners]).toEqual([
+      ['s1', 'salt'],
+      ['s2', 'home'],
+    ]);
+  });
+
+  it("keeps the project's notes and work, drops other projects'", () => {
+    const owners = new Map([
+      ['s1', 'A'],
+      ['s2', 'B'],
+    ]);
+    const v = filterSnapshot(snapP, DEFAULT_FILTER, NOW, scopeOf('A', owners));
+    expect(v.nodes.map((n) => n.id).sort()).toEqual([fileA.id, inA.id, sessA.id, t.id].sort());
+    expect(v.edges.map((e) => e.id).sort()).toEqual([`${inA.id}→${t.id}`, `${sessA.id}→${fileA.id}`].sort());
   });
 });

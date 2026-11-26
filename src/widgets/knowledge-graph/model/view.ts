@@ -44,6 +44,45 @@ const LINE: Record<GraphEdgeKind, LineStyle> = {
 };
 export const lineStyle = (kind: GraphEdgeKind): LineStyle => LINE[kind];
 
+/**
+ * One project's part of the graph (T73): notes of the sources inside its folder, and the app nodes (sessions,
+ * files, code names, applies) of that project. Null = every project.
+ */
+export interface GraphScope {
+  projectId: string;
+  /** Note sources inside the project folder (the most specific project wins: see `projectSources`). */
+  sourceIds: ReadonlySet<string>;
+}
+
+/** `~/a/b` is inside `~/a` (both as stored: `~/…` or absolute). */
+const inside = (child: string, parent: string): boolean => {
+  const p = parent.replace(/\/+$/, '');
+  return child === p || child.startsWith(`${p}/`);
+};
+
+/**
+ * Source id → the project it belongs to: the project with the longest folder that contains the source (so a
+ * project at `~` only gets the sources no other project holds). Sources outside every project belong to none.
+ */
+export function projectSources(
+  sources: readonly { id: string; path: string }[],
+  projects: readonly { id: string; path: string }[],
+): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const s of sources) {
+    const owner = projects
+      .filter((p) => inside(s.path, p.path))
+      .sort((a, b) => b.path.length - a.path.length)[0];
+    if (owner) out.set(s.id, owner.id);
+  }
+  return out;
+}
+
+/** The scope of one project, from `projectSources`. */
+export function scopeOf(projectId: string, owners: ReadonlyMap<string, string>): GraphScope {
+  return { projectId, sourceIds: new Set([...owners].filter(([, p]) => p === projectId).map(([s]) => s)) };
+}
+
 export interface GraphView {
   nodes: GraphNode[];
   edges: GraphEdge[];
@@ -53,11 +92,17 @@ export interface GraphView {
  * What the filters leave of the snapshot. Notes are kept by source, tag and time; the other nodes (tags, code
  * names, missing links) only while a kept note still links to them, so filtering never leaves orphans floating.
  */
-export function filterSnapshot(snap: GraphSnapshot, f: GraphFilter, now = Date.now()): GraphView {
+export function filterSnapshot(
+  snap: GraphSnapshot,
+  f: GraphFilter,
+  now = Date.now(),
+  scope: GraphScope | null = null,
+): GraphView {
   const hidden = new Set(f.hiddenKinds);
   const sources = f.sources.length ? new Set(f.sources) : null;
   const since = now - WINDOW_MS[f.time];
   const keepNote = (n: GraphNode) =>
+    (!scope || (n.sourceId !== undefined && scope.sourceIds.has(n.sourceId))) &&
     (!sources || (n.sourceId !== undefined && sources.has(n.sourceId))) &&
     (!f.tag || !!n.tags?.includes(f.tag)) &&
     (f.time === 'any' || (n.mtime ?? 0) >= since);
@@ -68,7 +113,7 @@ export function filterSnapshot(snap: GraphSnapshot, f: GraphFilter, now = Date.n
     if (hidden.has(n.kind)) continue;
     if (n.kind === 'note') {
       if (keepNote(n)) kept.set(n.id, n);
-    } else others.set(n.id, n);
+    } else if (!scope || !n.projects || n.projects.includes(scope.projectId)) others.set(n.id, n);
   }
   const candidates: GraphEdge[] = [];
   const adjacent = new Map<string, string[]>();
@@ -83,7 +128,9 @@ export function filterSnapshot(snap: GraphSnapshot, f: GraphFilter, now = Date.n
   // A non-note joins through a path from a kept note (note → session → changed file), or from a trend / apply
   // decision (T70: trend → apply → session), which stand on their own.
   const reached = new Set<string>(kept.keys());
-  for (const n of others.values()) if (ROOT_KINDS.has(n.kind)) reached.add(n.id);
+  // In a project, its own sessions / files / code / applies stand on their own too (a project with no notes still
+  // shows its work); trends only through the project's apply decisions.
+  for (const n of others.values()) if (scope ? !!n.projects : ROOT_KINDS.has(n.kind)) reached.add(n.id);
   const queue = [...reached];
   while (queue.length) {
     for (const next of adjacent.get(queue.pop()!) ?? []) {

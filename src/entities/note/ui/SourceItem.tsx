@@ -12,7 +12,7 @@ export default function SourceItem({ source, actions }: { source: GraphSourceSta
     <ChecklistItem
       leading={<Dot status={sourceDot(source.state)} label={line} />}
       title={sourceName(source.path)}
-      meta={`${line} · ${source.path}`}
+      meta={[line, source.auto ? t('sources.auto') : '', source.path].filter(Boolean).join(' · ')}
       actions={actions}
     />
   );
