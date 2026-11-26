@@ -23,6 +23,14 @@ export interface SimilarDoc {
 const TOP_K = 3;
 const MIN_SCORE = 0.2;
 const MIN_SHARED = 2;
+/**
+ * Korean words that end like a verb or a clause ("이동됐다", "정리이며", "있어요"): they say what happened, not what
+ * a note is about, so they don't name a group. Two-syllable endings only, so nouns like 회고 / 재고 stay.
+ */
+const PREDICATE =
+  /(했다|됐다|된다|한다|있다|없다|이다|였다|았다|었다|겠다|니다|이며|하며|되며|이고|하고|되고|해요|어요|아요|에요|예요|는데|지만|어서|아서|해서|에서|으로|했음|됐음)$/u;
+/** Body words sent with each note for naming groups (T75). */
+const TERMS_PER_NOTE = 8;
 /** Words a note is looked up by (its heaviest). */
 const LOOKUP_TERMS = 24;
 /** A word in more than this share of notes is too common to look up by. */
@@ -202,6 +210,21 @@ export class SimilarIndex {
   // ---- internals ----
 
   /** TF-IDF weights (log-scaled term frequency) and the vector's length. */
+  /**
+   * T75: a note's most telling body words — its heaviest by the same weights, words in too many notes left out —
+   * so a group of notes can be named by what they say even when their titles are only IDs.
+   */
+  terms(id: string, k = TERMS_PER_NOTE): string[] {
+    const doc = this.docs.get(id);
+    if (!doc) return [];
+    const maxDf = Math.max(2, Math.floor(this.docs.size * MAX_DF_SHARE));
+    return [...this.weigh(doc.tf).w]
+      .filter(([t]) => (this.df.get(t) ?? 0) <= maxDf && !PREDICATE.test(t))
+      .sort((x, y) => y[1] - x[1] || x[0].localeCompare(y[0]))
+      .slice(0, k)
+      .map(([t]) => t);
+  }
+
   private weigh(tf: Map<string, number>): { w: Map<string, number>; norm: number } {
     const n = this.docs.size;
     const w = new Map<string, number>();

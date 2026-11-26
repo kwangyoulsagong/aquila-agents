@@ -731,6 +731,8 @@ export interface GraphNode {
   projects?: string[];
   /** Trends (T70): the article. */
   url?: string;
+  /** Notes (T75): the most telling words of the body (local TF-IDF), for naming groups of notes. */
+  terms?: string[];
 }
 
 /**

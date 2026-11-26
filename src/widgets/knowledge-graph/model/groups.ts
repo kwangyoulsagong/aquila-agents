@@ -1,4 +1,5 @@
 import type { GraphNode, GraphNodeKind } from '@/shared/api';
+import { topicGroups } from './clusters';
 import type { GraphView } from './view';
 
 // The Map as groups (T73). Hundreds of dots read as noise, so the Map starts with a few named groups — note
@@ -124,6 +125,11 @@ export const MAP_MAX = 60;
 export const MORE = '…';
 /** Nodes directly in a folder that also has sub-folders. */
 export const HERE = '·';
+/** T75: groups split by links and title words: `topic:<word>·<word>`; `topic:~` = notes that link to little. */
+export const TOPIC = 'topic:';
+export const TOPIC_REST = 'topic:~';
+/** "결제 · 쿠폰" from a topic key. */
+export const topicLabel = (key: string): string => key.slice(TOPIC.length).split('·').join(' · ');
 /** A path step that is several groups of one level shown together (⌘-click): `UNION` + keys joined by `UNION`. */
 export const UNION = '\u0001';
 export const unionKey = (keys: readonly string[]): string => UNION + keys.join(UNION);
@@ -163,9 +169,10 @@ export function groupLevel(
   at: readonly string[],
 ): GroupLevel {
   const path = at;
-  // Groups of `ids` by the segment at `depth`.
-  const split = (ids: string[], depth: number) => {
-    const by = new Map<string, { seg: GroupSeg; ids: string[] }>();
+  // Groups of `ids` by the segment at `depth`. `topic`: split by links and title words (T75), not a path step.
+  type Group = { seg: GroupSeg; ids: string[]; topic?: boolean };
+  const split = (ids: string[], depth: number): Group[] => {
+    const by = new Map<string, Group>();
     for (const id of ids) {
       const seg = paths.get(id)?.[depth] ?? { key: HERE, label: HERE };
       const g = by.get(seg.key);
@@ -180,15 +187,27 @@ export function groupLevel(
     );
   };
 
+  // A big set with no folders left (everything directly here): split by how it links and what its titles say,
+  // which works in any repo (T75). Null from `topicGroups` (nothing to split by) leaves the dots.
+  const level = (ids: string[], depth: number): Group[] => {
+    const groups = split(ids, depth);
+    if (ids.length <= MAP_MAX || groups.length !== 1 || groups[0]!.seg.key !== HERE) return groups;
+    const topics = topicGroups(view, ids);
+    return topics
+      ? topics.map((tp) => ({ seg: { key: tp.key, label: tp.words.join(' · ') }, ids: tp.ids, topic: true }))
+      : groups;
+  };
+
   let ids = view.nodes.map((n) => n.id);
   let depth = 0;
-  let groups = split(ids, 0);
+  let groups = level(ids, 0);
   const out: string[] = [];
-  const into = (g: { seg: GroupSeg; ids: string[] }) => {
+  const into = (g: Group) => {
     out.push(g.seg.key);
     ids = g.ids;
-    depth++;
-    groups = split(ids, depth);
+    // A topic is a split of this level, not a folder deeper: the members' paths stay where they are.
+    if (!g.topic) depth++;
+    groups = level(ids, depth);
   };
   for (let i = 0; ;) {
     const want = path[i];
@@ -208,7 +227,7 @@ export function groupLevel(
         out.push(unionKey(picked.map((g) => g.seg.key)));
         ids = picked.flatMap((g) => g.ids);
         depth++;
-        groups = split(ids, depth);
+        groups = level(ids, depth);
         i++;
         continue;
       }
@@ -217,7 +236,6 @@ export function groupLevel(
     if (next) {
       into(next);
       i++;
-      if (next.seg.key === HERE) return { kind: 'map', at: out, ids: new Set(ids) };
       continue;
     }
     // The path ends here (or a group the filters emptied): stop following it.
@@ -293,6 +311,11 @@ export function mapView(view: GraphView, ids: ReadonlySet<string>, withNeighbour
   };
 }
 
+/** Room a bubble's name and "+N this week" take under it (px), kept clear of the next bubble. */
+export const LABEL_ROOM = 40;
+/** A grid cell is at least this wide, so a name (`salt-microFe`) doesn't run into the next one. */
+const LABEL_WIDTH = 104;
+
 export interface BubbleBox {
   key: string;
   x: number;
@@ -312,13 +335,12 @@ export function bubbleLayout(
   { min, max, pad }: { min: number; max: number; pad: number },
 ): BubbleBox[] {
   if (!items.length) return [];
-  const biggest = Math.max(...items.map((i) => i.ids.length));
-  // Many groups in a small box: shrink every bubble so neighbours on the ring (and their names) don't overlap.
   const n = items.length;
-  const ring = Math.max(0, Math.min(width / 2, height / 2) - max - pad);
-  const room = n > 1 ? 0.45 * 2 * Math.max(ring, max) * Math.sin(Math.PI / n) : max;
-  const scale = Math.min(1, room / max);
-  const radius = (k: number) => (min + (max - min) * Math.sqrt(k / biggest)) * scale;
+  const biggest = Math.max(...items.map((i) => i.ids.length));
+  const sized = (top: number) => (k: number) => {
+    const lo = Math.min(min, top);
+    return lo + (top - lo) * Math.sqrt(k / biggest);
+  };
   const weight = new Map<string, number>();
   for (const l of links) {
     weight.set(`${l.a}\0${l.b}`, l.count);
@@ -336,13 +358,43 @@ export function bubbleLayout(
   }
   const cx = width / 2;
   const cy = height / 2;
-  if (order.length === 1) return [{ key: order[0]!.key, x: cx, y: cy, r: radius(order[0]!.ids.length) }];
-  // Ring radius: leave room for the largest bubble and its label below it.
-  const big = Math.max(...order.map((i) => radius(i.ids.length)));
-  const rx = Math.max(big, cx - big - pad);
-  const ry = Math.max(big, cy - big - pad * 2);
-  return order.map((it, i) => {
-    const a = -Math.PI / 2 + (2 * Math.PI * i) / order.length;
-    return { key: it.key, x: cx + rx * Math.cos(a), y: cy + ry * Math.sin(a), r: radius(it.ids.length) };
-  });
+  if (n === 1) return [{ key: order[0]!.key, x: cx, y: cy, r: max }];
+
+  // A ring when it fits: neighbours (a chord apart on the ellipse's shorter side) clear each other and the name
+  // under each (two lines). Bubbles shrink towards `min` to make it fit.
+  for (let top = max; top >= min; top -= 2) {
+    const rx = cx - top - pad;
+    const ry = cy - top - pad * 2;
+    if (Math.min(rx, ry) <= top) continue;
+    const gap = 2 * Math.min(rx, ry) * Math.sin(Math.PI / n);
+    if (gap < 2 * top + LABEL_ROOM) continue;
+    const radius = sized(top);
+    return order.map((it, i) => {
+      const a = -Math.PI / 2 + (2 * Math.PI * i) / n;
+      return { key: it.key, x: cx + rx * Math.cos(a), y: cy + ry * Math.sin(a), r: radius(it.ids.length) };
+    });
+  }
+  // Too many for a ring in this box: rows, biggest first, the largest bubbles that still fit (or `min`).
+  let top = min;
+  for (let r = max; r >= min; r -= 2) {
+    const cols = Math.max(1, Math.floor((width - pad) / Math.max(2 * r + pad, LABEL_WIDTH)));
+    if (Math.ceil(n / cols) * (2 * r + LABEL_ROOM + pad / 2) <= height - pad) {
+      top = r;
+      break;
+    }
+  }
+  const radius = sized(top);
+  const cellW = Math.max(2 * top + pad, LABEL_WIDTH);
+  const cellH = 2 * top + LABEL_ROOM + pad / 2;
+  const cols = Math.max(1, Math.min(n, Math.floor((width - pad) / cellW)));
+  const rows = Math.ceil(n / cols);
+  const x0 = cx - (cols * cellW) / 2 + cellW / 2;
+  const y0 = Math.max(pad + top, cy - (rows * cellH) / 2 + top);
+  const bySize = [...order].sort((a, b) => b.ids.length - a.ids.length);
+  return bySize.map((it, i) => ({
+    key: it.key,
+    x: x0 + (i % cols) * cellW,
+    y: y0 + Math.floor(i / cols) * cellH,
+    r: radius(it.ids.length),
+  }));
 }
