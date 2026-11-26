@@ -1,0 +1,30 @@
+{
+  "version": "1.3.0",
+  "date": "2026-11-26",
+  "headlines": [
+    {
+      "guideId": "graph",
+      "title": { "ko": "프로젝트 노트가 설정 없이 그래프에", "en": "Your projects' notes, with no setup" },
+      "body": {
+        "ko": "앱에 넣은 프로젝트 폴더의 Markdown을 알아서 읽어요. 레포마다 노트를 어디에 두든 다 찾고(숨김·빌드 폴더만 빼요), 그래프는 지금 탭의 프로젝트부터 보여줘요. 위에서 다른 프로젝트나 전체로 바꿀 수 있어요.",
+        "en": "The Markdown in your projects' folders is read on its own, wherever each repo keeps it (hidden and build folders are skipped), and the graph shows the current tab's project first. Switch to another project or all of them at the top."
+      }
+    },
+    {
+      "guideId": "graph",
+      "title": { "ko": "전체 지도는 이름 있는 묶음부터", "en": "The Map starts with named groups" },
+      "body": {
+        "ko": "점 수백 개 대신 폴더·종류별 묶음이 원으로 보여요. 원을 누르면 하위 폴더로 들어가고, 작아지면 점으로 펼쳐져요. ⌘클릭으로 여러 개 골라 \"같이 보기\"를 누르면 이름이 같은 폴더끼리 합쳐 봐요. 폴더가 없는 레포는 연결과 노트 내용으로 나누고 내용에 많이 나오는 단어로 이름을 붙여요. 라벨은 서로, 그리고 점과도 겹치지 않아요.",
+        "en": "Instead of hundreds of dots, groups by folder and kind show as bubbles. Click one to go into its sub-folders; small enough, it opens into dots. ⌘-click several and See together merges folders of the same name. Repos with no folders are split by their links and named by the words their notes use most. Labels never overlap each other or a dot."
+      }
+    },
+    {
+      "guideId": "graph",
+      "title": { "ko": "이번 주, 그리고 지금 탭", "en": "This week, and this tab" },
+      "body": {
+        "ko": "그래프를 열면 최근 7일에 바뀐 노트·세션·파일이 날짜별 목록으로 먼저 보여요. 체크아웃처럼 한꺼번에 바뀐 건 한 줄로 접혀요. \"지금 탭\"을 누르면 앞에 있는 탭의 대화와 그 대화가 다룬 노트·파일만 남아요.",
+        "en": "The graph now opens on the notes, sessions and files changed in the last 7 days, by day; a checkout's worth of changes folds into one row. This tab keeps only the front tab's conversation and the notes and files it touched."
+      }
+    }
+  ]
+}
