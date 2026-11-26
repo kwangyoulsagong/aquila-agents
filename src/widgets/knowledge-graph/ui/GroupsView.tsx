@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { GraphGroups, type GroupBubble, type GroupLinkLine } from '@design-system/react';
 import { useT } from '@/shared/i18n';
 import { bubbleLayout, HERE, MORE, type GroupItem, type GroupLink } from '../model/groups';
@@ -65,6 +65,8 @@ export function GroupsView({
   const [host, setHost] = useState<HTMLDivElement | null>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [hovered, setHovered] = useState<string | null>(null);
+  // A clicked bubble goes away without a mouseleave: the next level must not stay faded around it.
+  useEffect(() => setHovered(null), [items]);
   useLayoutEffect(() => {
     if (!host) return;
     const read = () => setSize({ width: host.clientWidth, height: host.clientHeight });

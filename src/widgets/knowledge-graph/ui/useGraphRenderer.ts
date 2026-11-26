@@ -88,7 +88,10 @@ export function useGraphRenderer(
   focus.current = { selected, matches, view, colors };
   // Sigma refuses attribute updates for items it hasn't drawn yet: after a rebuild, updates wait for the first frame.
   const painted = useRef(false);
-  const pending = useRef<{ xy: Float32Array | null; focus: boolean; paint?: boolean }>({ xy: null, focus: false });
+  const pending = useRef<{ xy: Float32Array | null; focus: boolean; paint?: boolean }>({
+    xy: null,
+    focus: false,
+  });
   const paint = useRef(nodeColor);
   paint.current = nodeColor;
   const colorOf = (n: GraphNode) => paint.current?.(n) ?? kindColor(focus.current.colors, n.kind);
@@ -271,7 +274,8 @@ export function useGraphRenderer(
         renderEdgeLabels: false,
         hideEdgesOnMove: false,
         labelDensity: 0.6,
-        // Only hubs (4+ links) carry a label on the map; lens hits and the hovered node always do (labelVisibility).
+        // Unused for our labels: `labelVisibility` is always 'visible' or 'hidden' (T73: `placeLabels` decides; node
+        // sizes are screen px, `itemSizesReference: 'screen'`, so its overlap check holds at any zoom).
         labelRenderedSizeThreshold: 8,
         zoomDuration: saver ? 0 : 200,
         inertiaDuration: saver ? 0 : 200,
@@ -417,14 +421,13 @@ export function useGraphRenderer(
       run?.stop();
     };
     // applyFocus reads refs and the current view; it doesn't need to restart the layout.
-     
   }, [el, view, colors, saver]);
 
   // Colour by group / kind: repaint only, the layout stays.
-  useEffect(applyPaint, [nodeColor]);  
+  useEffect(applyPaint, [nodeColor]);
 
   // Focus / search changes only restyle.
-  useEffect(applyFocus, [selected, matches]);  
+  useEffect(applyFocus, [selected, matches]);
 
   return {
     fit: () => void sigmaRef.current?.getCamera().reset({ duration: saver ? 0 : 200 }),

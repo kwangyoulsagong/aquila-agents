@@ -6,6 +6,7 @@ import {
   MAX_GROUPS,
   MORE,
   bubbleLayout,
+  crumbStops,
   groupLevel,
   groupPath,
   mapView,
@@ -91,6 +92,23 @@ describe('groupPath: code and files', () => {
       'dir:shared',
     ]);
   });
+  it('notes go by folder inside their project, whichever source indexed them', () => {
+    const n = note('specs/a.md', {
+      id: 'note:requirements:specs/a.md',
+      sourceId: 'requirements',
+      path: '/Users/me/Desktop/SALT/requirements/specs/a.md',
+    });
+    const c = { ...ctx, projects, multiSource: true };
+    expect(groupPath(n, c).map((s) => s.key)).toEqual(['dir:requirements', 'dir:specs']);
+    expect(groupPath(n, { ...c, multiProject: true }).map((s) => s.key)).toEqual([
+      'project:salt',
+      'dir:requirements',
+      'dir:specs',
+    ]);
+    const loose = note('README.md', { path: '/Users/me/Desktop/SALT/README.md' });
+    expect(groupPath(loose, c).map((s) => s.key)).toEqual(['project:salt']);
+  });
+
   it('stay in their kind group outside every project', () => {
     expect(groupPath({ ...code, path: '/opt/x.ts', projects: [] }, { ...ctx, projects })).toHaveLength(1);
   });
@@ -150,6 +168,16 @@ describe('groupLevel', () => {
     expect(level.kind === 'groups' && level.items.map((i) => i.key)).toEqual(['dir:deep', 'dir:deeper']);
   });
 
+  it('a skipped single-group level is no stop for crumbs or Back', () => {
+    const big = many('only/deep', MAP_MAX + 5).concat(many('only/deeper/x', 5));
+    const v: GraphView = { nodes: big, edges: [] };
+    const p = pathsOf(v);
+    // Opened at the top, the map is already in `only`: nothing to go back to.
+    expect(crumbStops(v, p, ['dir:only'])).toEqual([1]);
+    // One level further in: Back goes to `only` (1), never to 0 (which opens `only` again).
+    expect(crumbStops(v, p, ['dir:only', 'dir:deep'])).toEqual([1, 2]);
+  });
+
   it('notes directly in a split folder get a group of their own, last', () => {
     const v: GraphView = { nodes: [...many('a/b', MAP_MAX), ...many('a', 3), ...many('c', 1)], edges: [] };
     const level = groupLevel(v, pathsOf(v), ['dir:a']);
@@ -181,7 +209,11 @@ describe('groupLevel', () => {
 
   it('big groups opened together merge their sub-folders by name', () => {
     const v: GraphView = {
-      nodes: [...many('server/requirements', 50), ...many('front/requirements', 40), ...many('front/docs', 20)],
+      nodes: [
+        ...many('server/requirements', 50),
+        ...many('front/requirements', 40),
+        ...many('front/docs', 20),
+      ],
       edges: [],
     };
     const both = groupLevel(v, pathsOf(v), [unionKey(['dir:server', 'dir:front'])]);
@@ -228,6 +260,17 @@ describe('bubbleLayout', () => {
   it('one bubble sits in the middle at full size', () => {
     expect(bubbleLayout([item('a', 9)], [], 400, 300, opts)).toEqual([{ key: 'a', x: 200, y: 150, r: 40 }]);
   });
+  it('many groups in a narrow box: no two bubbles overlap', () => {
+    const items = Array.from({ length: 12 }, (_, i) => item(`g${i}`, 100 - i * 7));
+    const boxes = bubbleLayout(items, [], 360, 600, { min: 24, max: 51, pad: 24 });
+    for (let i = 0; i < boxes.length; i++)
+      for (let j = i + 1; j < boxes.length; j++) {
+        const a = boxes[i]!;
+        const b = boxes[j]!;
+        expect(Math.hypot(a.x - b.x, a.y - b.y)).toBeGreaterThanOrEqual(a.r + b.r);
+      }
+  });
+
   it('puts the most linked group next to the previous one, inside the box', () => {
     const items = [item('a', 50), item('b', 10), item('c', 10)];
     const boxes = bubbleLayout(items, [{ a: 'a', b: 'c', count: 9 }], 400, 300, opts);

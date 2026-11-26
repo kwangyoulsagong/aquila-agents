@@ -130,8 +130,7 @@ export function filterSnapshot(
   const reached = new Set<string>(kept.keys());
   // In a project, its own sessions / files / code / applies stand on their own too (a project with no notes still
   // shows its work); trends only through the project's apply decisions.
-  for (const n of others.values())
-    if (scope ? !!n.projects : ROOT_KINDS.has(n.kind)) reached.add(n.id);
+  for (const n of others.values()) if (scope ? !!n.projects : ROOT_KINDS.has(n.kind)) reached.add(n.id);
   const queue = [...reached];
   while (queue.length) {
     for (const next of adjacent.get(queue.pop()!) ?? []) {

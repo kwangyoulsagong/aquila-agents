@@ -843,6 +843,9 @@ T66–T70은 그 타입에 맞춰 각자 워크트리에서 병렬로 진행한�
   done 점 94개.
   가이드 텍스트·미디어 다시 만듦: 데모 레포가 노트를 제각각 둠(`scripts/capture/demo_notes.py`, 캡처는 프로젝트 폴더
   소스를 켬), 영상은 web-shop + api-server → 같이 보기 → requirements → 점.
+  리뷰 수정: 소스가 겹치면 바깥 소스가 안쪽 폴더를 뺌(`withExcludes`, 워커가 건너뜀) → 프로젝트 안에 직접 넣은 폴더는
+  id·AI·볼트 설정 유지, 프로젝트 폴더도 끄기·AI 가능(sources.json `auto`), 노트는 어느 소스든 프로젝트 안 폴더로 묶음,
+  프로젝트 추가 경로 전부 그래프에 알림, 뒤로·경로는 묶음 하나뿐인 단계를 건너뜀(`crumbStops`), 원은 고리에 맞게 줄어듦.
   _남은 것: 사용자 묶음은 localStorage(기기별), `.gitignore`는 안 읽음(숨김·빌드 폴더만).
   오늘 이 기기에서 `smoke`가 "extensions: the page did not follow the window (320×208)"에서 멈춤(기준 커밋도 같음,
   같은 날 앞서는 통과), 그래프 검사는 통과._

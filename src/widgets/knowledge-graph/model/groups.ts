@@ -70,7 +70,8 @@ function placeInProject(
     if (n.projects && !n.projects.includes(p.id)) continue;
     const frag = rootFragment(p.path);
     const at = n.path.indexOf(frag);
-    if (at >= 0 && (!best || frag.length > best.len)) best = { project: p, at: at + frag.length, len: frag.length };
+    if (at >= 0 && (!best || frag.length > best.len))
+      best = { project: p, at: at + frag.length, len: frag.length };
   }
   if (!best) return null;
   const rel = n.path.slice(best.at).replace(/\/+$/, '');
@@ -85,13 +86,24 @@ export function groupPath(n: GraphNode, ctx: GroupContext): GroupSeg[] {
     if (rule) return lead;
     const kind: GroupSeg = { key: `kind:${n.kind}`, label: n.kind, kind: n.kind };
     // Code names and changed files: by folder inside the project (`salt-server/src/coach`), like notes.
-    const place = (n.kind === 'code' || n.kind === 'file') && ctx.projects ? placeInProject(n, ctx.projects) : null;
+    const place =
+      (n.kind === 'code' || n.kind === 'file') && ctx.projects ? placeInProject(n, ctx.projects) : null;
     if (!place) return [kind];
     return [
       kind,
       ...(ctx.multiProject ? [{ key: `project:${place.project.id}`, label: place.project.name }] : []),
       ...place.dirs.map((d) => ({ key: `dir:${d}`, label: d })),
     ];
+  }
+  // Notes in a project: by folder inside the project, whichever source indexed them (a folder the user added
+  // inside a project is a source of its own, T73) — the repo's own layout, not the sources'.
+  const inProject = ctx.projects ? placeInProject(n, ctx.projects) : null;
+  if (inProject) {
+    const project: GroupSeg = { key: `project:${inProject.project.id}`, label: inProject.project.name };
+    const dirs = inProject.dirs.map((d) => ({ key: `dir:${d}`, label: d }));
+    if (ctx.multiProject && !rule) return [project, ...dirs];
+    // Notes at the top of the project: a group named after it, so they don't float unnamed.
+    return dirs.length || rule ? [...lead, ...dirs] : [project];
   }
   const src = n.sourceId ?? '';
   const name = ctx.sourceName(src);
@@ -115,7 +127,8 @@ export const HERE = '·';
 /** A path step that is several groups of one level shown together (⌘-click): `UNION` + keys joined by `UNION`. */
 export const UNION = '\u0001';
 export const unionKey = (keys: readonly string[]): string => UNION + keys.join(UNION);
-export const unionKeys = (key: string): string[] | null => (key.startsWith(UNION) ? key.slice(1).split(UNION) : null);
+export const unionKeys = (key: string): string[] | null =>
+  key.startsWith(UNION) ? key.slice(1).split(UNION) : null;
 
 export interface GroupItem {
   key: string;
@@ -177,7 +190,7 @@ export function groupLevel(
     depth++;
     groups = split(ids, depth);
   };
-  for (let i = 0; ; ) {
+  for (let i = 0; ;) {
     const want = path[i];
     if (want === MORE && groups.length > MAX_GROUPS) {
       groups = groups.slice(MAX_GROUPS - 1);
@@ -249,6 +262,21 @@ export function groupLevel(
   return { kind: 'groups', at: out, items, links: [...counts.values()] };
 }
 
+/**
+ * Path lengths a crumb (or Back) can go to: those that open where they say. A level holding a single group is
+ * skipped on the way in, so going "back" to it would land right here again — it is no stop. Always ends with `at`.
+ */
+export function crumbStops(
+  view: GraphView,
+  paths: ReadonlyMap<string, GroupSeg[]>,
+  at: readonly string[],
+): number[] {
+  const stops: number[] = [];
+  for (let k = 0; k <= at.length; k++)
+    if (k === at.length || groupLevel(view, paths, at.slice(0, k)).at.length === k) stops.push(k);
+  return stops;
+}
+
 /** A group's dots: its members, plus — for groups of non-notes (Sessions, Code) — what they link to, for context. */
 export function mapView(view: GraphView, ids: ReadonlySet<string>, withNeighbours: boolean): GraphView {
   const keep = new Set(ids);
@@ -285,7 +313,12 @@ export function bubbleLayout(
 ): BubbleBox[] {
   if (!items.length) return [];
   const biggest = Math.max(...items.map((i) => i.ids.length));
-  const radius = (n: number) => min + (max - min) * Math.sqrt(n / biggest);
+  // Many groups in a small box: shrink every bubble so neighbours on the ring (and their names) don't overlap.
+  const n = items.length;
+  const ring = Math.max(0, Math.min(width / 2, height / 2) - max - pad);
+  const room = n > 1 ? 0.45 * 2 * Math.max(ring, max) * Math.sin(Math.PI / n) : max;
+  const scale = Math.min(1, room / max);
+  const radius = (k: number) => (min + (max - min) * Math.sqrt(k / biggest)) * scale;
   const weight = new Map<string, number>();
   for (const l of links) {
     weight.set(`${l.a}\0${l.b}`, l.count);

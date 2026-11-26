@@ -31,7 +31,8 @@ const TOKENS: Record<keyof GraphColors, string> = {
 export function readColors(el: Element = document.documentElement): GraphColors {
   const css = getComputedStyle(el);
   const out = {} as GraphColors;
-  for (const k of Object.keys(TOKENS) as (keyof typeof TOKENS)[]) out[k] = css.getPropertyValue(TOKENS[k]).trim();
+  for (const k of Object.keys(TOKENS) as (keyof typeof TOKENS)[])
+    out[k] = css.getPropertyValue(TOKENS[k]).trim();
   return out;
 }
 

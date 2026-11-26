@@ -2,7 +2,20 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { addSource, GraphService, mergeStatus, readSources, SourceError, sourceId, tildify, writeSources, autoSources, effectiveSources } from './index';
+import {
+  addSource,
+  autoSources,
+  effectiveSources,
+  GraphService,
+  mergeStatus,
+  readAutoPrefs,
+  readSources,
+  SourceError,
+  sourceId,
+  tildify,
+  withExcludes,
+  writeSources,
+} from './index';
 
 const HOME = '/Users/me';
 
@@ -105,21 +118,59 @@ describe('project folders as sources (T73)', () => {
     { id: 'a b', root: '/Users/me/code/a' },
     { id: 'dup', root: '/Users/me/code/a/' },
   ];
+  const auto = autoSources(projects, home);
 
-  it('one per project folder: not home, outermost of nested ones, no duplicates', () => {
-    expect(autoSources(projects, home)).toEqual([
-      { id: 'project-salt', path: '~/Desktop/SALT', enabled: true, auto: true },
-      { id: 'project-a-b', path: '~/code/a', enabled: true, auto: true },
+  it('one per project folder: not home, nested ones each their own, the first of duplicates', () => {
+    expect(auto.map((s) => [s.id, s.path])).toEqual([
+      ['project-salt', '~/Desktop/SALT'],
+      ['project-inner', '~/Desktop/SALT/salt-server'],
+      ['project-a-b', '~/code/a'],
     ]);
   });
 
-  it("a user's folder inside a project is covered; one holding a project covers it", () => {
-    const auto = autoSources(projects, home);
+  it("keeps the user's own sources as they are; a project at exactly a user folder is that folder", () => {
     const user = [
-      { id: 'requirements', path: '~/Desktop/SALT/requirements', enabled: true },
-      { id: 'code', path: '~/code', enabled: true },
-      { id: 'notes', path: '~/notes', enabled: true },
+      { id: 'requirements', path: '~/Desktop/SALT/requirements', enabled: true, ai: true },
+      { id: 'a', path: '~/code/a', enabled: false },
     ];
-    expect(effectiveSources(user, auto, home).map((s) => s.id)).toEqual(['code', 'notes', 'project-salt']);
+    const all = effectiveSources(user, auto, home, { 'project-salt': { enabled: false } });
+    expect(all.map((s) => [s.id, s.enabled])).toEqual([
+      ['requirements', true],
+      ['a', false],
+      ['project-salt', false],
+      ['project-inner', true],
+    ]);
+    expect(all[0]!.ai).toBe(true);
+  });
+
+  it('nested sources: the outer one leaves every inner folder out, on or off', () => {
+    const all = effectiveSources(
+      [
+        { id: 'requirements', path: '~/Desktop/SALT/requirements', enabled: false },
+        { id: 'code', path: '~/code', enabled: true },
+      ],
+      auto,
+      home,
+    );
+    expect(withExcludes(all, home).map((x) => [x.source.id, x.exclude])).toEqual([
+      ['requirements', []],
+      ['code', ['a']],
+      ['project-salt', ['requirements', 'salt-server']],
+      ['project-inner', []],
+      ['project-a-b', []],
+    ]);
+  });
+
+  it('settings on project folders round-trip beside the sources', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'aquila-auto-'));
+    const file = path.join(dir, 'sources.json');
+    writeSources(file, [], { 'project-salt': { enabled: false, ai: true } });
+    expect(readAutoPrefs(file)).toEqual({ 'project-salt': { enabled: false, ai: true } });
+    expect(readSources(file)).toEqual([]);
+  });
+
+  it('a new folder never takes an id a project folder has', () => {
+    const next = addSource([], '/Users/me/x/project-salt', home, ['project-salt']);
+    expect(next[0]!.id).not.toBe('project-salt');
   });
 });

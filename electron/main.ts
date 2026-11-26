@@ -634,6 +634,7 @@ app.whenReady().then(async () => {
         config = appMenu.refresh(
           editProjects({ op: 'addProject', path: created.dir, name: String(name ?? '').trim(), group, account }),
         );
+        graph.projectsChanged(); // T73: its folder joins the graph
         projectId = projectForPath(config, created.dir);
       }
       if (!projectId) throw new Error('could not add the extension folder as a project');
@@ -1333,6 +1334,7 @@ app.whenReady().then(async () => {
           account: account ?? 'shared',
         });
         added = true;
+        graph.projectsChanged(); // T73: its folder joins the graph
         projectId = matchProject(config, entry.cwd);
       }
       const project = projectId && config.projects.find((p) => p.id === projectId);

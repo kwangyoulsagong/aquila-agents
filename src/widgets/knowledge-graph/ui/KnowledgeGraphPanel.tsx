@@ -50,7 +50,16 @@ import { LENSES, lensHits, type LensId } from '../model/lenses';
 import { useGraphRenderer } from './useGraphRenderer';
 import { FocusView, nodeLabel, swatchOf } from './FocusView';
 import { useLiveSessions } from './useLiveSessions';
-import { groupLevel, groupPath, mapView, MORE, unionKey, unionKeys, type GroupRule } from '../model/groups';
+import {
+  crumbStops,
+  groupLevel,
+  groupPath,
+  mapView,
+  MORE,
+  unionKey,
+  unionKeys,
+  type GroupRule,
+} from '../model/groups';
 import { GroupsView, useGroupLabel } from './GroupsView';
 import { GroupRulesDialog } from './GroupRulesDialog';
 
@@ -272,33 +281,45 @@ export default function KnowledgeGraphPanel({
     const nonNotes = [...level.ids].every((id) => byId.get(id)?.kind !== 'note');
     return mapView(view, level.ids, nonNotes && level.at.length > 0);
   }, [level, view, byId]);
-  /** Crumbs of the Map: every group, then each opened group by name. */
-  const groupCrumbs = useMemo(() => {
-    if (!level || !paths) return [];
-    const out = [{ id: '0', label: t('graph.groups.all') }];
+  /**
+   * Crumbs of the Map: every group, then each opened group by name. A level that holds a single group is skipped on
+   * the way in, so its crumb (and Back) would land straight back here: it is merged into the next one ("a / b").
+   */
+  const { groupCrumbs, groupParent } = useMemo(() => {
+    if (!level || !paths) return { groupCrumbs: [], groupParent: null };
+    // One name per step. Depth counts real levels ("N more" stays on its level), as `groupLevel` walks them.
+    const labels: string[] = [];
+    let depth = 0;
     let parent: string | null = null;
-    level.at.forEach((key, i) => {
+    for (const key of level.at) {
       if (key === MORE) {
-        out.push({ id: String(i + 1), label: t('graph.groups.moreShort') });
-        return;
+        labels.push(t('graph.groups.moreShort'));
+        continue;
       }
+      const at = depth;
+      const name = (k: string) =>
+        groupLabel(
+          { seg: [...paths.values()].find((p) => p[at]?.key === k)?.[at] ?? { key: k, label: k } },
+          parent,
+        );
       const together = unionKeys(key);
-      if (together) {
-        const name = (k: string) => {
-          const seg = [...paths.values()].find((p) => p[i]?.key === k)?.[i];
-          return groupLabel({ seg: seg ?? { key: k, label: k } }, parent);
-        };
-        out.push({ id: String(i + 1), label: together.map(name).join(' + ') });
-        return;
-      }
-      const seg = [...paths.values()].find((p) => p[i]?.key === key)?.[i];
-      const label = seg ? groupLabel({ seg }, parent) : groupLabel({ seg: { key, label: key } }, parent);
-      out.push({ id: String(i + 1), label });
+      const label = together ? together.map(name).join(' + ') : name(key);
+      labels.push(label);
       parent = label;
+      depth++;
+    }
+    const stops = crumbStops(view, paths, level.at);
+    const items = stops.map((k, j) => {
+      const from = j === 0 ? 0 : stops[j - 1]!;
+      const names = labels.slice(from, k);
+      return {
+        id: String(k),
+        label: j === 0 ? [t('graph.groups.all'), ...names].join(' / ') : names.join(' / '),
+      };
     });
-    return out;
+    return { groupCrumbs: items, groupParent: labels[labels.length - 1] ?? null };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [level, paths, t]);
+  }, [level, paths, view, t]);
 
   // The centre: the end of the trail. Moving pushes; Back pops.
   const center = trail[trail.length - 1] ?? null;
@@ -675,7 +696,12 @@ export default function KnowledgeGraphPanel({
               <Button
                 variant="ghost"
                 icon
-                onClick={() => setGroupAt((at) => (level?.at ?? at).slice(0, -1))}
+                // To the previous crumb (a skipped level isn't one: Back would land here again).
+                onClick={() =>
+                  setGroupAt((at) =>
+                    (level?.at ?? at).slice(0, Number(groupCrumbs[groupCrumbs.length - 2]?.id ?? 0)),
+                  )
+                }
                 title={t('graph.back')}
                 aria-label={t('graph.back')}
               >
@@ -746,7 +772,7 @@ export default function KnowledgeGraphPanel({
           <GroupsView
             items={level.items}
             links={level.links}
-            parent={groupCrumbs.length > 1 ? groupCrumbs[groupCrumbs.length - 1]!.label : null}
+            parent={groupParent}
             hits={lens ? lenses[lens] : null}
             recent={recent}
             picked={pickedSet}

@@ -24,6 +24,8 @@ import type { VaultLinkRule } from '../../src/shared/api/types';
 export interface EngineSource {
   id: string;
   root: string;
+  /** T73: folders inside `root` (relative, `/`-separated) that are other sources: not walked or watched here. */
+  exclude?: string[];
 }
 
 export interface EngineSourceStatus {
@@ -90,14 +92,23 @@ interface SourceState {
   timer?: NodeJS.Timeout;
   /** Bumped when the source is removed or re-added: a running walk stops. */
   epoch: number;
+  /** T73: folders inside it that belong to another source. */
+  exclude: string[];
 }
 
 const toPosix = (p: string) => p.split(path.sep).join('/');
 const ignored = (rel: string) =>
   rel.split('/').some((part, i, all) => part.startsWith('.') || (i < all.length - 1 && SKIP_DIRS.has(part)));
+/** `rel` is one of `exclude` or inside one. */
+const excluded = (rel: string, exclude: readonly string[]) =>
+  exclude.some((x) => rel === x || rel.startsWith(`${x}/`));
 
 /** `.md` files under `root` (relative, `/`-separated), hidden and build folders skipped, capped. */
-export async function walkMarkdown(root: string, max = MAX_FILES): Promise<string[]> {
+export async function walkMarkdown(
+  root: string,
+  max = MAX_FILES,
+  exclude: readonly string[] = [],
+): Promise<string[]> {
   const out: string[] = [];
   const stack = [''];
   while (stack.length && out.length < max) {
@@ -112,7 +123,7 @@ export async function walkMarkdown(root: string, max = MAX_FILES): Promise<strin
       if (e.name.startsWith('.')) continue;
       const child = rel ? `${rel}/${e.name}` : e.name;
       if (e.isDirectory()) {
-        if (!SKIP_DIRS.has(e.name) && e.name !== 'node_modules') stack.push(child);
+        if (!SKIP_DIRS.has(e.name) && e.name !== 'node_modules' && !excluded(child, exclude)) stack.push(child);
       } else if (e.isFile() && /\.md$/i.test(e.name)) {
         out.push(child);
         if (out.length >= max) break;
@@ -156,8 +167,12 @@ export class GraphEngine {
   async setSources(sources: readonly EngineSource[], projects: readonly CodeProject[] = []): Promise<void> {
     this.load();
     const wanted = new Map(sources.map((s) => [s.id, s]));
-    for (const [id, s] of this.sources)
-      if (!wanted.has(id) || wanted.get(id)!.root !== s.root) this.dropSource(id);
+    const excludeKey = (x: readonly string[] | undefined) => [...(x ?? [])].sort().join('\n');
+    for (const [id, s] of this.sources) {
+      const w = wanted.get(id);
+      // Another source appeared inside it (or went): walk it again with the new folders left out.
+      if (!w || w.root !== s.root || excludeKey(w.exclude) !== excludeKey(s.exclude)) this.dropSource(id);
+    }
     // Notes of sources that are gone (removed while the app was closed, or disabled) cost nothing.
     for (const [key, n] of this.notes) if (!wanted.has(n.sourceId)) this.notes.delete(key);
 
@@ -170,6 +185,7 @@ export class GraphEngine {
         pending: new Set(),
         rescan: false,
         epoch: 0,
+        exclude: [...(s.exclude ?? [])],
       });
     this.emit();
     // Indexing runs on: a later change of sources (a source turned off mid-index) doesn't wait for it.
@@ -365,7 +381,7 @@ export class GraphEngine {
         this.emit();
         return;
       }
-      const rels = await walkMarkdown(s.root);
+      const rels = await walkMarkdown(s.root, undefined, s.exclude);
       if (!live()) return;
       const known = new Set<string>();
       for (const n of this.notes.values()) if (n.sourceId === id) known.add(n.rel);
@@ -444,7 +460,7 @@ export class GraphEngine {
       s.watcher = fs.watch(s.root, { recursive: true }, (_event, filename) => {
         const rel = filename ? toPosix(filename.toString()) : '';
         if (rel === SHARED_FILE) return this.opts.onVaultFile?.(s.id);
-        if (rel && ignored(rel)) return;
+        if (rel && (ignored(rel) || excluded(rel, s.exclude))) return;
         if (rel && /\.md$/i.test(rel)) s.pending.add(rel);
         else if (!rel || !/\.[^/]+$/.test(rel))
           s.rescan = true; // a folder (or unknown): walk again

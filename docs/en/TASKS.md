@@ -868,6 +868,10 @@ throttled or hot → `saver`). The rules every task below follows:
   (repo folders as the top groups), salt-server + salt-microFe → requirements 482 → specs → done 94 dots.
   Guide text and media redone: demo repos keep notes their own way (`scripts/capture/demo_notes.py`, capture turns
   the project folders on), the loop picks web-shop + api-server → See together → requirements → dots.
+  Review fixes: sources may nest — the outer one leaves inner folders out (`withExcludes`, the worker skips them),
+  so a folder the user added inside a project keeps its id, AI and vault settings; project folders can be turned off
+  and get AI (sources.json `auto`); notes group by folder inside their project whatever source indexed them; every
+  project add tells the graph; Back / crumbs skip single-group levels (`crumbStops`); bubbles shrink to fit the ring.
   _Left over: user groups live in localStorage (per machine); `.gitignore`
   is not read (hidden + build folders only). `smoke` stops at "extensions: the page did not follow the window
   (320×208)" on this machine today, on the base commit too (it passed earlier the same day); graph checks pass._
