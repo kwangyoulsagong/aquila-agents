@@ -14,6 +14,7 @@ import type {
   WebContents,
   WebContentsView,
 } from 'electron';
+import { ExtStorage } from './ext-storage';
 import type { Translate } from '../src/shared/i18n/dictionary';
 import type {
   AccountUsage,
@@ -36,8 +37,7 @@ export const SUSPEND_AFTER_MS = 5 * 60 * 1000;
 /** One shared `system` poll for every extension that may read it. */
 export const SYSTEM_POLL_MS = 2_000;
 export const SYSTEM_POLL_SAVER_MS = 10_000;
-/** `storage`: per extension, JSON-encoded. */
-export const STORAGE_MAX_BYTES = 512 * 1024;
+export { STORAGE_MAX_BYTES } from './ext-storage';
 /** `notify`: at most one banner per extension in this window. */
 export const NOTIFY_GAP_MS = 10_000;
 /** `chip.set`: short text in the sidebar. */
@@ -543,6 +543,7 @@ export class ExtensionHost {
   private sessionsReady = new Set<string>();
   private chips = new Map<string, string>();
   private lastNotify = new Map<string, number>();
+  private store: ExtStorage;
   private statuses = new Map<string, SessionStatus>();
   private countsTimer: NodeJS.Timeout | undefined;
   private lastCounts = '';
@@ -554,6 +555,7 @@ export class ExtensionHost {
   private rescanTimer: NodeJS.Timeout | undefined;
 
   constructor(private deps: HostDeps) {
+    this.store = new ExtStorage(deps.dataDir);
     let text = '';
     try {
       text = fs.readFileSync(deps.prefsPath, 'utf8');
@@ -994,6 +996,7 @@ export class ExtensionHost {
       clearTimeout(this.saveTimer);
       this.savePrefs();
     }
+    this.store.dispose();
     this.watcher?.close();
   }
 
@@ -1103,6 +1106,7 @@ export class ExtensionHost {
     const l = this.live.get(id);
     if (!l) return;
     this.live.delete(id);
+    this.store.release(id);
     const wc = l.view.webContents;
     this.byContents.delete(wc.id);
     const float = l.float;
@@ -1267,20 +1271,15 @@ export class ExtensionHost {
       case 'usage.get':
         return usageView(await this.deps.usage());
       case 'storage.get':
-        return this.storage(id)[String(p.key)] ?? null;
+        return this.store.get(id, String(p.key));
       case 'storage.keys':
-        return Object.keys(this.storage(id));
+        return this.store.keys(id);
       case 'storage.set':
       case 'storage.remove': {
         const key = String(p.key ?? '');
         if (!key || key.length > 200) throw new Error('storage: key must be 1–200 characters');
-        const data = this.storage(id);
-        if (method === 'storage.remove') delete data[key];
-        else data[key] = p.value === undefined ? null : p.value;
-        const text = JSON.stringify(data);
-        if (Buffer.byteLength(text) > STORAGE_MAX_BYTES) throw new Error('storage: over 512 KB');
-        fs.mkdirSync(this.deps.dataDir, { recursive: true });
-        fs.writeFileSync(this.storageFile(id), text);
+        if (method === 'storage.remove') await this.store.remove(id, key);
+        else await this.store.set(id, key, p.value);
         return true;
       }
       case 'notify': {
@@ -1304,18 +1303,6 @@ export class ExtensionHost {
     throw new Error(`not allowed: ${method}`);
   }
 
-  private storageFile(id: string): string {
-    return path.join(this.deps.dataDir, `${id}.json`);
-  }
-
-  private storage(id: string): Record<string, unknown> {
-    try {
-      const d = JSON.parse(fs.readFileSync(this.storageFile(id), 'utf8')) as unknown;
-      return d && typeof d === 'object' && !Array.isArray(d) ? (d as Record<string, unknown>) : {};
-    } catch {
-      return {};
-    }
-  }
 
   // ── New extension ──
 
@@ -1469,7 +1456,7 @@ Ask only for what the page uses: the user sees the list before enabling it, and 
 | \`system\` | \`aquila.system()\` and the \`system\` event: \`{ cpu, cores, load, memory: { used, total }, appMemory, onBattery, saver, at }\` (cpu in %, bytes) |
 | \`sessions:status\` | \`aquila.sessions()\` and the \`sessions\` event: \`{ counts: { working, waiting, done, error, idle, stopped }, total }\`; the \`waiting\` event \`{ count }\` when a session starts waiting |
 | \`usage\` | \`aquila.usage()\` and the \`usage\` event: \`[{ account, kind, fiveHour, weekly, near }]\` (percent or null) |
-| \`storage\` | \`aquila.storage.get/set/remove/keys\` — JSON values, 512 KB in all |
+| \`storage\` | \`aquila.storage.get/set/remove/keys\` — JSON values, 10 MB in all |
 | \`notify\` | \`aquila.notify(title, body)\` — a macOS banner, at most one per 10 s |
 | \`background\` | may keep running while the panel is closed, if the user allows it; otherwise a hidden page is closed after 5 minutes |
 | \`network:<domain>\` | \`fetch\`/WebSocket to \`https://<domain>\` (\`*.example.com\` for subdomains). Nothing else reaches the network |
