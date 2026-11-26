@@ -77,11 +77,69 @@ describe('ExtStorage', () => {
     expect(await new ExtStorage(dir).get('a', 'v')).toBe('y'.repeat(5_000) + 98);
   });
 
+  it('does not rewrite the whole log on every write with short or Korean keys', async () => {
+    const s = new ExtStorage(dir);
+    for (let i = 0; i < 20_000; i++) await s.set('a', '세션메모' + i, 1);
+    await s.settle();
+    const ino = fs.statSync(path.join(dir, 'a.log')).ino;
+    for (let i = 0; i < 5; i++) {
+      await s.set('a', 'n', i);
+      await s.settle();
+    }
+    expect(fs.statSync(path.join(dir, 'a.log')).ino).toBe(ino);
+  });
+
+  it('frees a store closed while it was still loading', async () => {
+    fs.writeFileSync(path.join(dir, 'a.log'), '["k",1]\n');
+    const s = new ExtStorage(dir);
+    const got = s.get('a', 'k');
+    s.release('a');
+    expect(await got).toBe(1);
+    await s.settle();
+    await new Promise((r) => setImmediate(r));
+    expect((s as unknown as { stores: Map<string, unknown> }).stores.has('a')).toBe(false);
+  });
+
+  it('retries a failed write a second later, without waiting for another change', async () => {
+    vi.useFakeTimers();
+    const blocker = path.join(dir, 'sub');
+    fs.writeFileSync(blocker, 'a file where the folder should be');
+    const s = new ExtStorage(blocker);
+    await s.set('a', 'n', 1);
+    await vi.advanceTimersByTimeAsync(STORE_WRITE_MS);
+    await s.settle().catch(() => undefined);
+    expect(vi.getTimerCount()).toBe(1);
+    fs.rmSync(blocker);
+    await vi.advanceTimersByTimeAsync(STORE_WRITE_MS);
+    vi.useRealTimers();
+    await s.settle();
+    expect(await new ExtStorage(blocker).get('a', 'n')).toBe(1);
+  });
+
   it('skips a line cut short by a crash', async () => {
     fs.writeFileSync(path.join(dir, 'a.log'), '["k",1]\n["k",2]\n["half",{"x":');
     const s = new ExtStorage(dir);
     expect(await s.keys('a')).toEqual(['k']);
     expect(await s.get('a', 'k')).toBe(2);
+  });
+
+  it('does not lose the next change appended after a crashed line', async () => {
+    fs.writeFileSync(path.join(dir, 'a.log'), '["k",1]\n["half",{"x":');
+    const s = new ExtStorage(dir);
+    await s.set('a', 'n', 2);
+    await s.settle();
+    const again = new ExtStorage(dir);
+    expect(await again.get('a', 'n')).toBe(2);
+    expect(await again.get('a', 'k')).toBe(1);
+  });
+
+  it('removes the old file when quit writes a migrated store', async () => {
+    fs.writeFileSync(path.join(dir, 'a.json'), JSON.stringify({ k: 'v' }));
+    const s = new ExtStorage(dir);
+    await s.set('a', 'n', 1);
+    s.dispose();
+    expect(fs.existsSync(path.join(dir, 'a.json'))).toBe(false);
+    expect(await new ExtStorage(dir).get('a', 'k')).toBe('v');
   });
 
   it('moves the old single-file format to the log on the next write', async () => {

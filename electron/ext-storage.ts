@@ -28,6 +28,9 @@ interface Store {
   /** Each key's measured size (key length + value JSON bytes). */
   sizes: Map<string, number>;
   used: number;
+  /** Each key's line in a compacted log, and their total: what the log shrinks to (`used` counts differently). */
+  lines: Map<string, number>;
+  lineTotal: number;
   /** Bytes in the log file now. */
   logBytes: number;
   /** Changed since the last write: key → value JSON, or null when removed. */
@@ -36,9 +39,27 @@ interface Store {
   legacy: boolean;
 }
 
-const sizeOf = (key: string, json: string) => key.length + Buffer.byteLength(json);
+/** Bytes of `[<key>,<value>]\n` for a value of `bytes`. */
+const lineBytes = (key: string, bytes: number) => Buffer.byteLength(JSON.stringify(key)) + bytes + 4;
 const line = (key: string, json: string | null) =>
   json === null ? `[${JSON.stringify(key)}]\n` : `[${JSON.stringify(key)},${json}]\n`;
+
+/** A key's sizes after it is set to a value of `bytes` JSON bytes, or removed (null). */
+function account(s: Store, key: string, bytes: number | null): void {
+  s.used -= s.sizes.get(key) ?? 0;
+  s.lineTotal -= s.lines.get(key) ?? 0;
+  if (bytes === null) {
+    s.sizes.delete(key);
+    s.lines.delete(key);
+    return;
+  }
+  const size = key.length + bytes;
+  const line = lineBytes(key, bytes);
+  s.sizes.set(key, size);
+  s.lines.set(key, line);
+  s.used += size;
+  s.lineTotal += line;
+}
 
 export class ExtStorage {
   private stores = new Map<string, Store>();
@@ -66,12 +87,11 @@ export class ExtStorage {
     const s = await this.load(id);
     // Only this value is serialized, once: for the size and for the log line.
     const json = JSON.stringify(value ?? null) ?? 'null';
-    const before = s.sizes.get(key) ?? 0;
-    const size = sizeOf(key, json);
-    if (s.used - before + size > STORAGE_MAX_BYTES) throw new Error('storage: over 10 MB');
+    const bytes = Buffer.byteLength(json);
+    if (s.used - (s.sizes.get(key) ?? 0) + key.length + bytes > STORAGE_MAX_BYTES)
+      throw new Error('storage: over 10 MB');
+    account(s, key, bytes);
     s.data[key] = JSON.parse(json) as unknown;
-    s.sizes.set(key, size);
-    s.used += size - before;
     this.changed(id, s, key, json);
   }
 
@@ -79,13 +99,18 @@ export class ExtStorage {
     const s = await this.load(id);
     if (!Object.hasOwn(s.data, key)) return;
     delete s.data[key];
-    s.used -= s.sizes.get(key) ?? 0;
-    s.sizes.delete(key);
+    account(s, key, null);
     this.changed(id, s, key, null);
   }
 
   /** The extension closed: write what's left, then free its memory. */
   release(id: string): void {
+    // Still loading: release once it's in, or it would stay in memory for good.
+    const loading = this.loading.get(id);
+    if (loading) {
+      void loading.then(() => this.release(id));
+      return;
+    }
     if (!this.stores.has(id)) return;
     this.chain = this.chain
       .then(() => this.write(id))
@@ -112,6 +137,7 @@ export class ExtStorage {
             .join(''),
         );
         fs.renameSync(tmp, this.file(id));
+        if (s.legacy) fs.rmSync(path.join(this.dir, `${id}.json`), { force: true });
       } catch {
         // Nothing left to retry with.
       }
@@ -133,7 +159,12 @@ export class ExtStorage {
   private changed(id: string, s: Store, key: string, json: string | null): void {
     s.pending.set(key, json);
     this.dirty.add(id);
-    // Not reset by later changes: at most one write a second however often an extension saves.
+    this.schedule();
+  }
+
+  /** Not reset by later changes: at most one write a second however often an extension saves. */
+  private schedule(): void {
+    if (this.disposed) return;
     this.timer ??= setTimeout(() => {
       this.timer = undefined;
       void this.flush();
@@ -157,7 +188,7 @@ export class ExtStorage {
       const text = [...s.pending].map(([k, v]) => line(k, v)).join('');
       s.pending.clear();
       // The log would pass twice the data: rewrite it instead of appending (the rewrite holds these changes too).
-      if (s.legacy || s.logBytes + Buffer.byteLength(text) > 2 * s.used + COMPACT_SLACK) {
+      if (s.legacy || s.logBytes + Buffer.byteLength(text) > 2 * s.lineTotal + COMPACT_SLACK) {
         await this.compact(id, s);
         if (s.legacy) {
           s.legacy = false;
@@ -176,9 +207,10 @@ export class ExtStorage {
       }
       s.logBytes += Buffer.byteLength(text);
     } catch {
-      // Disk full / gone: write everything next time.
+      // Disk full / gone: write everything on the next try (a second later; no retry loop beyond that rhythm).
       s.logBytes = Infinity;
       this.dirty.add(id);
+      this.schedule();
     } finally {
       this.busy.delete(id);
     }
@@ -232,22 +264,17 @@ export class ExtStorage {
       data: Object.create(null) as Record<string, unknown>,
       sizes: new Map(),
       used: 0,
+      lines: new Map(),
+      lineTotal: 0,
       logBytes: 0,
       pending: new Map(),
       legacy: false,
     };
     /** `bytes`: the value's JSON size, or null when removed. */
     const put = (key: string, value: unknown, bytes: number | null) => {
-      s.used -= s.sizes.get(key) ?? 0;
-      if (bytes === null) {
-        delete s.data[key];
-        s.sizes.delete(key);
-        return;
-      }
-      const size = key.length + bytes;
-      s.data[key] = value;
-      s.sizes.set(key, size);
-      s.used += size;
+      account(s, key, bytes);
+      if (bytes === null) delete s.data[key];
+      else s.data[key] = value;
     };
     let text: string | null = null;
     try {
@@ -256,7 +283,9 @@ export class ExtStorage {
       // No log yet.
     }
     if (text !== null) {
-      s.logBytes = Buffer.byteLength(text);
+      // Cut short by a crash (no final newline): rewrite the log on the next write, so the next line isn't appended
+      // onto the broken one and lost with it.
+      s.logBytes = text.endsWith('\n') ? Buffer.byteLength(text) : Infinity;
       let since = performance.now();
       for (const l of text.split('\n')) {
         if (!l) continue;
