@@ -866,6 +866,8 @@ throttled or hot → `saver`). The rules every task below follows:
   each group's 2 strongest lines at rest (all of a hovered one's); Map labels placed by measured width and never over
   a label or a dot (`model/labels.ts`). Checked again in the isolated HOME: 1,490 notes found in SALT with no setup
   (repo folders as the top groups), salt-server + salt-microFe → requirements 482 → specs → done 94 dots.
-  _Left over: user groups live in localStorage (per machine); the guide media still shows the old Map; `.gitignore`
+  Guide text and media redone: demo repos keep notes their own way (`scripts/capture/demo_notes.py`, capture turns
+  the project folders on), the loop picks web-shop + api-server → See together → requirements → dots.
+  _Left over: user groups live in localStorage (per machine); `.gitignore`
   is not read (hidden + build folders only). `smoke` stops at "extensions: the page did not follow the window
   (320×208)" on this machine today, on the base commit too (it passed earlier the same day); graph checks pass._

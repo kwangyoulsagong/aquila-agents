@@ -525,18 +525,44 @@ export async function runCapture(
     },
     {
       // Notes graph (T66): the smoke's three fixture folders as sources, ⌘⇧N, one note selected, its neighbours lit.
+      // Graph (T73): the demo repos' notes with no setup, as groups; two repos picked together → their
+      // `requirements` merge → a folder → its dots.
       id: 'graph',
       rect: FULL,
+      ms: 6500,
+      poster: 'first', // the groups are what the still should show
       stage: async () => {
-        const fixtures = path.join(__dirname, '..', '..', 'electron', 'fixtures', 'graph');
-        for (const dir of ['meetings', 'specs', 'memos'])
-          await js(`window.aquila.graphAddSource(${JSON.stringify(path.join(fixtures, dir))}).catch(() => null)`);
-        await js('window.__graphSettled = null');
+        await js(`(() => {
+          localStorage.setItem('aquila.graph.mode', 'map');
+          localStorage.setItem('aquila.graph.project', '*');
+          localStorage.setItem('aquila.graph.hintSeen.v2', '1');
+        })()`);
         await press('N', ['meta', 'shift'], 400);
-        await waitFor(`!!window.__graphSettled && window.__graphSettled.nodes > 3`, 15_000);
+        await waitFor(`document.querySelectorAll('.c-kgroups__bubble').length > 3`, 20_000);
         await wait(600);
       },
-      after: () => press('N', ['meta', 'shift'], 400),
+      act: async () => {
+        const bubble = (name: string, meta: boolean) =>
+          js<boolean>(`(() => {
+            const b = [...document.querySelectorAll('.c-kgroups__bubble')]
+              .find((g) => g.querySelector('.c-kgroups__label')?.textContent === ${JSON.stringify(name)});
+            b?.dispatchEvent(new MouseEvent('click', { bubbles: true, metaKey: ${meta} }));
+            return !!b;
+          })()`);
+        await wait(700);
+        if (!(await bubble('web-shop', true))) throw new Error('graph: no web-shop group');
+        await wait(500);
+        if (!(await bubble('api-server', true))) throw new Error('graph: no api-server group');
+        await wait(700);
+        await click('.c-panel__bar button', t('graph.groups.together', { n: '2' }));
+        await wait(1200);
+        await bubble('requirements', false);
+        await wait(1800);
+      },
+      after: async () => {
+        await press('N', ['meta', 'shift'], 400);
+        await js(`['mode', 'project'].forEach((k) => localStorage.removeItem('aquila.graph.' + k))`);
+      },
     },
     { id: 'restore', rect: FULL },
     { id: 'power', rect: TOP_LEFT },

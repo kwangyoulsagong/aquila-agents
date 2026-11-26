@@ -325,7 +325,7 @@ const ko = {
   'graph.live.idle': '열려 있음',
   'graph.live.show': '탭으로 가기',
   'graph.hint':
-    '에디터에서 연 노트가 가운데, 왼쪽에 연결된 노트, 오른쪽에 그 노트를 다룬 세션·할 일·바뀐 파일이 보여요. 누르면 그쪽으로 옮겨 가고 ←로 돌아와요. 더블클릭이나 ⌘클릭으로 열어요. 전체 지도에서는 할 일·연결 없는 노트 같은 질문으로 찾아요.',
+    '에디터에서 연 노트가 가운데, 왼쪽에 연결된 노트, 오른쪽에 그 노트를 다룬 세션·할 일·바뀐 파일이 보여요. 누르면 그쪽으로 옮겨 가고 ←로 돌아와요. 더블클릭이나 ⌘클릭으로 열어요. 전체 지도는 폴더별 묶음으로 시작해요. 원을 누르면 안으로 들어가고, ⌘클릭으로 여러 개 골라 같이 봐요.',
   'graph.hint.hide': '안내 닫기',
   'graph.hint.show': '사용법 보기',
   'graph.full.enter': '그래프만 크게 보기',
@@ -815,7 +815,7 @@ const ko = {
     '에이전트와 따로 dev 서버나 테스트 워처를 띄워요. 점이 초록이면 떠 있고, 고리는 종료, ! 는 오류(그 줄을 보여 줌)예요. 로그는 패널에서 보고, 출력에 localhost 주소가 나오면 프리뷰에서 바로 엽니다. 명령은 프로젝트 설정 → 실행 명령(없으면 package.json의 dev). 오류 뒤 정상으로 돌아왔다는 줄을 직접 정하려면 명령 끝에 "# ready: Listening on"처럼 적어요. 워크트리마다 따로, 앱을 다시 열면 이어서 실행돼요.',
   'guide.graph.title': '노트 그래프',
   'guide.graph.body':
-    '설정 → 노트 소스에 넣은 Markdown 폴더가 하나의 그래프로 보여요. 실선은 직접 적은 링크, 파선은 본문에서 찾은 연결(같은 ID, 코드 이름, 제목), 점선은 제안이에요. 소스·종류·태그·기간·연결 강도로 거르고, 검색하면 맞는 노트가 밝아져요. "주변"에서는 에디터에서 연 노트가 가운데에 오고 왼쪽에 연결된 노트, 오른쪽에 세션·할 일·바뀐 파일이 열마다 중요한 순서로 놓여요. 누르면 그쪽으로 옮겨 가고 ←로 돌아와요. "전체 지도"에서는 할 일·연결 없는 노트·최근 세션 같은 질문 칩으로 찾아요. ⌘클릭이나 ⌘O로 노트를 에디터에서 열어요. 제목·표·체크박스가 바로 보이고 커서가 있는 줄만 원문으로 바뀌며, 손대지 않은 줄은 그대로 저장돼요. [[ 를 치면 노트 이름이 나오고, 옆에 목차·백링크·링크 없는 언급이 보여요. ⤢로 창 전체에 띄워요.',
+    '앱에 넣은 프로젝트 폴더의 Markdown이 설정 없이 그래프에 들어와요. 레포마다 노트를 어디에 두든 다 찾아요(숨김·빌드 폴더만 빼요). 맨 위에서 프로젝트를 고르고(기본은 지금 탭의 프로젝트), "전체 지도"는 폴더·종류별 묶음 원으로 시작해요. 원 크기는 노트 수, 선 굵기는 묶음 사이 연결 수, 아래 숫자는 이번 주에 바뀐 노트예요. 원을 누르면 하위 폴더로 내려가고 작아지면 점으로 펼쳐져요. ⌘클릭으로 여러 개를 골라 "같이 보기"를 누르면 이름이 같은 폴더끼리 합쳐 보여요(두 레포의 requirements → 한 묶음). "묶음 편집"으로 path:specs 같은 검색식 묶음도 만들어요. "주변"에서는 에디터에서 연 노트가 가운데에 오고 왼쪽에 연결된 노트, 오른쪽에 세션·할 일·바뀐 파일이 놓여요. 실선은 직접 적은 링크, 파선은 본문에서 찾은 연결, 점선은 제안이에요. ⌘클릭이나 ⌘O로 노트를 에디터에서 열고, [[ 를 치면 노트 이름이 나와요. ⤢로 창 전체에 띄워요.',
   'guide.preview.title': '미리보기 + 요소 선택',
   'guide.preview.body':
     '실행 중인 앱을 오른쪽에서 봐요. 주소는 .claude/launch.json과 터미널에 나온 localhost 주소에서 찾아요. 390·768·1440 너비로 바꿔 보고, 요소 선택으로 클릭하면 선택자·텍스트·스타일·컴포넌트 이름과 스크린샷이 선택한 Claude·Codex 탭에 붙어요(답을 기다리는 탭이면 클립보드로). ↗는 Chrome(없으면 기본 브라우저)으로 열고, ⛶는 프리뷰만 크게 보여 줘요. Figma를 켠 프로젝트는 디자이너 보기로 앱과 Figma를 함께 봐요(디자이너 비교 항목).',
@@ -1465,7 +1465,7 @@ const en = {
   'graph.live.idle': 'open',
   'graph.live.show': 'Go to tab',
   'graph.hint':
-    'The note open in the editor sits in the middle: linked notes on the left, the sessions, to-dos and changed files around it on the right. Click one to move there, ← to come back, double-click or ⌘-click to open. On the Map, questions like to-dos or unlinked notes find things across everything.',
+    'The note open in the editor sits in the middle: linked notes on the left, the sessions, to-dos and changed files around it on the right. Click one to move there, ← to come back, double-click or ⌘-click to open. The Map starts as groups by folder: click a bubble to go in, ⌘-click several to see them together.',
   'graph.hint.hide': 'Hide tips',
   'graph.hint.show': 'How to use',
   'graph.full.enter': 'Graph only, full window',
@@ -1961,7 +1961,7 @@ const en = {
     'Start a dev server or test watcher apart from the agent. A green dot means it\'s up, a ring that it ended, ! an error (the line is shown). Read its log in the panel; a localhost address in the output opens in the preview. Commands come from project settings → Run commands (else package.json\'s dev); end one with "# ready: Listening on" to say which line means healthy again after an error. Each worktree has its own, and they start again when you reopen the app.',
   'guide.graph.title': 'Notes graph',
   'guide.graph.body':
-    'The Markdown folders in Settings → Note sources as one graph. Solid lines are links you wrote, dashed ones were found in the text (a shared ID, a code name, a title), dotted ones are suggestions. Filter by source, kind, tag, time and link strength; searching lights up the matches. In Around, the note open in the editor sits in the middle with linked notes on the left and sessions, to-dos and changed files on the right, most relevant first; click one to move there, ← to come back. On the Map, question chips (to-dos, unlinked notes, recent sessions) find things across everything. ⌘-click or ⌘O opens a note in the editor: headings, tables and checkboxes show rendered, only the cursor line shows raw text, and untouched lines are saved as they were. Type [[ for note names; the outline, backlinks and unlinked mentions sit beside it. ⤢ fills the window.',
+    "Markdown in your projects' folders joins the graph with no setup, wherever each repo keeps it (hidden and build folders are skipped). Pick the project at the top (the current tab's by default). The Map starts as groups by folder and kind: bubble size is notes, line width is links between groups, the number under it is notes changed this week. Click a bubble to go into its sub-folders; small enough, it opens into dots. ⌘-click several and See together merges folders of the same name (two repos' requirements → one group). Edit groups makes your own from a query like path:specs. In Around, the note open in the editor sits in the middle with linked notes on the left and sessions, to-dos and changed files on the right. Solid lines are links you wrote, dashed ones were found in the text, dotted ones are suggestions. ⌘-click or ⌘O opens a note in the editor; type [[ for note names. ⤢ fills the window.",
   'guide.preview.title': 'Preview + select element',
   'guide.preview.body':
     'See the running app on the right. The address comes from .claude/launch.json and the localhost addresses your terminals print. Switch between 390, 768 and 1440 wide; Select element and click: its selector, text, style, component name and a screenshot are pasted into the focused Claude or Codex tab (copied instead when that tab is waiting for an answer). ↗ opens the page in Chrome (else your default browser); ⛶ shows only the preview. With Figma on, Designer shows the app and Figma together (see Designer compare).',

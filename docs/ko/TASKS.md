@@ -841,6 +841,8 @@ T66–T70은 그 타입에 맞춰 각자 워크트리에서 병렬로 진행한�
   지도 라벨은 실제 너비를 재서 배치하고 라벨·점 위에 겹치지 않음(`model/labels.ts`). 격리 HOME에서 다시 확인:
   설정 없이 SALT 노트 1,490개(레포 폴더가 최상위 묶음), salt-server + salt-microFe → requirements 482 → specs →
   done 점 94개.
-  _남은 것: 사용자 묶음은 localStorage(기기별), 가이드 미디어는 예전 지도, `.gitignore`는 안 읽음(숨김·빌드 폴더만).
+  가이드 텍스트·미디어 다시 만듦: 데모 레포가 노트를 제각각 둠(`scripts/capture/demo_notes.py`, 캡처는 프로젝트 폴더
+  소스를 켬), 영상은 web-shop + api-server → 같이 보기 → requirements → 점.
+  _남은 것: 사용자 묶음은 localStorage(기기별), `.gitignore`는 안 읽음(숨김·빌드 폴더만).
   오늘 이 기기에서 `smoke`가 "extensions: the page did not follow the window (320×208)"에서 멈춤(기준 커밋도 같음,
   같은 날 앞서는 통과), 그래프 검사는 통과._

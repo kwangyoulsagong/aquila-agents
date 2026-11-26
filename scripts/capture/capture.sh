@@ -124,6 +124,8 @@ for lang in ${CAPTURE_LANGS:-ko en}; do
   demo_repo "$P/api-server" "orders/total.ts:export const total = (n: number) => Math.round(n * 100) / 100;\n" "README.md:# api-server\n"
   demo_repo "$P/docs-site" "guide/index.md:# Guide\n" "README.md:# docs-site\n"
   demo_repo "$P/mobile-app" "app/settings.tsx:export default function Settings() {}\n" "README.md:# mobile-app\n"
+  # Notes kept in each repo its own way (T73): the graph finds them with no setup.
+  python3 -I "$ROOT/scripts/capture/demo_notes.py" "$P" "$lang"
 
   # Past sessions for the history panel (T11): Claude transcripts per account and codex rollouts, dated relative to now.
   demo_history "$home" "$lang"

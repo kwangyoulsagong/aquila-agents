@@ -951,7 +951,8 @@ app.whenReady().then(async () => {
     dir: graphDir,
     workerFile: path.join(__dirname, 'graph', 'worker.js').replace(/app\.asar([/\\])/, 'app.asar.unpacked$1'),
     saver: powerState().saver,
-    autoProjects: !isSmoke,
+    // Capture runs as smoke too, but shows the demo projects' notes the way a user sees them.
+    autoProjects: !isSmoke || !!process.env.AQUILA_CAPTURE,
     projects: () =>
       loadConfig()
         .projects.filter((p) => !p.remote)
