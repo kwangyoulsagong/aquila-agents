@@ -812,8 +812,7 @@ throttled or hot → `saver`). The rules every task below follows:
   Left over: graph closed and idle right
   after indexing is ~1 % CPU for a few seconds (code-name scan), then 0.5 %. Follow-up: an extension switched off by a grown manifest
   shows what was added in its review (`added` on the extension info; smoke checks it), and a note over 2 MB opens only
-  its start, read-only (`MAX_EDIT_BYTES`, cut at a whole line). Not done from the review: graph and editor each fetch their own snapshot; extension storage
-  is read synchronously on every call; extraction child processes outlive a stopped graph worker; CodeMirror's own panel text (search) is English only._
+  its start, read-only (`MAX_EDIT_BYTES`, cut at a whole line). Not done from the review: graph and editor each fetch their own snapshot; extraction child processes outlive a stopped graph worker; CodeMirror's own panel text (search) is English only._
 
 ### T72 · Graph 7: around this note, and a map with questions
 - [x] **Goal:** the graph answers "what's around what I'm working on" instead of showing a 2,000-node hairball.

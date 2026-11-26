@@ -733,7 +733,7 @@ small panels; **nothing is bundled** — `~/.aquila/extensions/<id>/` holds what
   samples, memory, load, app RSS, battery/saver from `power.ts`; 2 s, 10 s in saver; only while an extension with
   `system` is loaded), `sessions:status` (counts by status + a `waiting` event — taken from the status updates main
   sends the window; no ids, titles or output), `usage` (percent per account, from the last usage update), `storage`
-  (`~/.aquila/extensions-data/<id>.json`, 512 KB), `notify` (one banner per 10 s, titled with its name). Always:
+  (`~/.aquila/extensions-data/<id>.json`, 10 MB like Chrome, parsed once and kept in memory), `notify` (one banner per 10 s, titled with its name). Always:
   `info`, `power` + `power` event, `chip.set` (16 chars, shown in the sidebar band), `visible` and `command` events.
   There is no method that reads terminal output or writes to a session. The template's `aquila.js` wraps it in promises.
 - **Views:** the panel's stage reports its rect (`extensions:show`, ResizeObserver on the stage and `.app__main` — the
