@@ -891,3 +891,18 @@ throttled or hot → `saver`). The rules every task below follows:
   changed"), the app-graph check finds the new note and its session listed; checked on the 1,500-note monorepo in an
   isolated HOME (today's checkout folded into one row, the morning's reports listed one by one).
   _Left over: "This tab" is empty until the tab's conversation touches a note (sessions only enter the graph then)._
+
+### T75 · Graph 10: groups for repos with no folders
+- [x] **Goal:** the Map stays readable for people who keep notes flat (no sub-folders), without assuming their
+  conventions (tags, IDs, dates, folder names).
+- **Why:** folder groups (T73) left a flat folder of 300 notes as 300 dots. Tag / ID / month rules only help those
+  who use them; links and title words exist in every repo.
+- **Spec:** a set with no folder left to split by and more than 60 members is split by links — Louvain over the
+  members and what they link to outside the set (two checklists of one spec belong together) — and named by the two
+  words its titles use far more than the rest (tf × idf; words in half the titles or more never name a group).
+  Pieces named alike merge. What links too little is grouped by a word its titles share (≥ 3), the rest is
+  "Loosely linked". Bubbles keep their names clear: a ring when it fits, else rows.
+- **Owns:** `src/widgets/knowledge-graph/model/clusters.ts` (`topicGroups`, `titleWords`), `model/groups.ts`.
+- **Done:** unit tests (split, naming, outside links, no links, merge, keys stable, layout room for names); checked
+  on a flat 171-note folder in an isolated HOME (12 named groups, 45 loosely linked).
+  _Left over: names are title words, so a repo whose titles are only IDs gets few named groups._

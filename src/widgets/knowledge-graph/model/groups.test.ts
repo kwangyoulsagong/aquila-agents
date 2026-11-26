@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { GraphEdge, GraphNode } from '@/shared/api';
 import {
   HERE,
+  LABEL_ROOM,
   MAP_MAX,
   MAX_GROUPS,
   MORE,
@@ -235,6 +236,31 @@ describe('groupLevel', () => {
   });
 });
 
+describe('groupLevel: a big folder with no sub-folders (T75)', () => {
+  // 70 notes in one folder: two linked sets with their own words, a few loose ones.
+  const titled = (rel: string, label: string) => note(rel, { label });
+  const pay = Array.from({ length: 35 }, (_, i) => titled(`flat/p${i}.md`, `결제 쿠폰 ${i}`));
+  const auth = Array.from({ length: 32 }, (_, i) => titled(`flat/a${i}.md`, `login token ${i}`));
+  const loose = Array.from({ length: 3 }, (_, i) => titled(`flat/x${i}.md`, `idea ${i}`));
+  const chain = (ns: GraphNode[]) => ns.slice(1).map((n, i) => edge(ns[i]!.id, n.id));
+  const v: GraphView = { nodes: [...pay, ...auth, ...loose], edges: [...chain(pay), ...chain(auth)] };
+  const p = pathsOf(v);
+
+  it('is split by links and title words, named by them', () => {
+    const level = groupLevel(v, p, []);
+    expect(level.at).toEqual(['dir:flat']);
+    if (level.kind !== 'groups') throw new Error('groups expected');
+    // The loose ones link to nothing but share a word: a group of their own.
+    expect(level.items.map((i) => i.key)).toEqual(['topic:결제·쿠폰', 'topic:login·token', 'topic:idea']);
+  });
+
+  it('a topic opens into its dots; crumbs / Back still work', () => {
+    const level = groupLevel(v, p, ['dir:flat', 'topic:결제·쿠폰']);
+    expect(level.kind === 'map' && level.ids.size).toBe(35);
+    expect(crumbStops(v, p, level.at)).toEqual([1, 2]);
+  });
+});
+
 describe('mapView', () => {
   const a = note('a/1.md');
   const b = note('b/2.md');
@@ -262,13 +288,22 @@ describe('bubbleLayout', () => {
   });
   it('many groups in a narrow box: no two bubbles overlap', () => {
     const items = Array.from({ length: 12 }, (_, i) => item(`g${i}`, 100 - i * 7));
-    const boxes = bubbleLayout(items, [], 360, 600, { min: 24, max: 51, pad: 24 });
-    for (let i = 0; i < boxes.length; i++)
-      for (let j = i + 1; j < boxes.length; j++) {
-        const a = boxes[i]!;
-        const b = boxes[j]!;
-        expect(Math.hypot(a.x - b.x, a.y - b.y)).toBeGreaterThanOrEqual(a.r + b.r);
-      }
+    for (const [w, h] of [
+      [360, 600],
+      [990, 860],
+    ] as const) {
+      const boxes = bubbleLayout(items, [], w, h, { min: 24, max: 51, pad: 24 });
+      for (let i = 0; i < boxes.length; i++)
+        for (let j = i + 1; j < boxes.length; j++) {
+          const a = boxes[i]!;
+          const b = boxes[j]!;
+          // Apart, with room for the name under the upper one when they stack.
+          const stacked = Math.abs(a.y - b.y) > Math.abs(a.x - b.x);
+          expect(Math.hypot(a.x - b.x, a.y - b.y)).toBeGreaterThanOrEqual(
+            a.r + b.r + (stacked ? LABEL_ROOM : 0) - 1,
+          );
+        }
+    }
   });
 
   it('puts the most linked group next to the previous one, inside the box', () => {

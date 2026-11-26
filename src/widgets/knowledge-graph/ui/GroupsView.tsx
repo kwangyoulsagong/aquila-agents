@@ -1,7 +1,16 @@
 import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { GraphGroups, type GroupBubble, type GroupLinkLine } from '@design-system/react';
 import { useT } from '@/shared/i18n';
-import { bubbleLayout, HERE, MORE, type GroupItem, type GroupLink } from '../model/groups';
+import {
+  bubbleLayout,
+  HERE,
+  MORE,
+  TOPIC,
+  TOPIC_REST,
+  topicLabel,
+  type GroupItem,
+  type GroupLink,
+} from '../model/groups';
 
 export interface GroupsViewProps {
   items: GroupItem[];
@@ -39,11 +48,15 @@ export function useGroupLabel(): (item: Pick<GroupItem, 'seg' | 'folded'>, paren
   return (item, parent) =>
     item.seg.key === MORE
       ? t('graph.groups.more', { n: String(item.folded ?? 0) })
-      : item.seg.key === HERE
-        ? t('graph.groups.here', { name: parent ?? '' })
-        : item.seg.kind
-          ? t(`graph.kind.${item.seg.kind}`)
-          : item.seg.label;
+      : item.seg.key === TOPIC_REST
+        ? t('graph.groups.rest')
+        : item.seg.key.startsWith(TOPIC)
+          ? item.seg.label || topicLabel(item.seg.key)
+          : item.seg.key === HERE
+            ? t('graph.groups.here', { name: parent ?? '' })
+            : item.seg.kind
+              ? t(`graph.kind.${item.seg.kind}`)
+              : item.seg.label;
 }
 
 /**

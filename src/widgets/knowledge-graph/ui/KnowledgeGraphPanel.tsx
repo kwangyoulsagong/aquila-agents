@@ -57,6 +57,7 @@ import {
   mapView,
   MORE,
   placeInProject,
+  TOPIC,
   unionKey,
   unionKeys,
   type GroupRule,
@@ -336,7 +337,8 @@ export default function KnowledgeGraphPanel({
       const label = together ? together.map(name).join(' + ') : name(key);
       labels.push(label);
       parent = label;
-      depth++;
+      // A topic (T75) splits a level, it isn't a folder deeper.
+      if (!key.startsWith(TOPIC)) depth++;
     }
     const stops = crumbStops(view, paths, level.at);
     const items = stops.map((k, j) => {

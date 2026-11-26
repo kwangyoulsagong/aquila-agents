@@ -53,7 +53,7 @@ export function GroupRulesDialog({
             <Field label={t('graph.groups.query')}>
               <Input
                 value={r.query}
-                placeholder="path:specs tag:auth"
+                placeholder="path:docs tag:auth"
                 onChange={(e) => set(r.id, { query: e.currentTarget.value })}
               />
             </Field>
