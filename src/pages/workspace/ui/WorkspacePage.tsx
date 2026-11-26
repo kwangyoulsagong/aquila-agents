@@ -749,6 +749,7 @@ export default function WorkspacePage() {
             full={graphFull}
             projects={graphProjects}
             activeProjectId={ws.activeProjectId}
+            activeSessionId={activeSessionId}
             activeNotePath={notePath}
             sessions={ws.sessions}
             onShowSession={ws.selectSession}

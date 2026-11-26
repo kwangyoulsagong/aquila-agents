@@ -875,3 +875,19 @@ throttled or hot → `saver`). The rules every task below follows:
   _Left over: user groups live in localStorage (per machine); `.gitignore`
   is not read (hidden + build folders only). `smoke` stops at "extensions: the page did not follow the window
   (320×208)" on this machine today, on the base commit too (it passed earlier the same day); graph checks pass._
+
+### T74 · Graph 9: this week, and this tab
+- [x] **Goal:** the graph opens on what changed lately, as a list — and can narrow to the work of the tab in front.
+- **Why:** "what did I / the AI work on this week" is answered faster by a list than a drawing (Lee, Plaisant et
+  al. 2006: graphs for topology, lists for counts and recency); the research for T73 ranked it first.
+- **Spec:** a third view, **This week** (default when no view was chosen before): the filtered graph's items with a
+  time in the last 7 days, newest first, by local day (Today / Yesterday / date). Each row: kind swatch, name, meta
+  (a note's folder inside the project + sessions that used it; a session's agent + notes / files it touched; a
+  file's folder), time; "Around" on hover. Many changes in one minute (a checkout, a pull: ≥ 8) fold into one row
+  that opens. Chips: **This tab** (the front tab's conversation + what it touched, any time) and one per kind.
+- **Owns:** `src/widgets/knowledge-graph/` (`model/week.ts`, `ui/WeekView.tsx`), `design-system/react/GraphWeek.tsx`
+  (+ `.c-kweek` in `components.css`).
+- **Done:** unit tests (days, kinds, bursts, this tab, day labels); smoke: ⌘⇧N opens on This week (list or "nothing
+  changed"), the app-graph check finds the new note and its session listed; checked on the 1,500-note monorepo in an
+  isolated HOME (today's checkout folded into one row, the morning's reports listed one by one).
+  _Left over: "This tab" is empty until the tab's conversation touches a note (sessions only enter the graph then)._
