@@ -9,6 +9,7 @@ import {
   groupLevel,
   groupPath,
   mapView,
+  unionKey,
   ruleMatches,
   type GroupContext,
   type GroupSeg,
@@ -169,6 +170,27 @@ describe('groupLevel', () => {
     const more = groupLevel(v, pathsOf(v), [MORE]);
     expect(more.at).toEqual([MORE]);
     expect(more.kind).toBe('map');
+  });
+
+  it('several groups of one level open together as dots', () => {
+    const both = groupLevel(view, paths, [unionKey(['dir:specs', 'kind:session'])]);
+    expect(both.kind).toBe('map');
+    expect(both.kind === 'map' && both.ids.size).toBe(31);
+    expect(both.at).toEqual([unionKey(['dir:specs', 'kind:session'])]);
+  });
+
+  it('big groups opened together merge their sub-folders by name', () => {
+    const v: GraphView = {
+      nodes: [...many('server/requirements', 50), ...many('front/requirements', 40), ...many('front/docs', 20)],
+      edges: [],
+    };
+    const both = groupLevel(v, pathsOf(v), [unionKey(['dir:server', 'dir:front'])]);
+    expect(both.kind === 'groups' && both.items.map((i) => [i.key, i.ids.length])).toEqual([
+      ['dir:requirements', 90],
+      ['dir:docs', 20],
+    ]);
+    const req = groupLevel(v, pathsOf(v), [unionKey(['dir:server', 'dir:front']), 'dir:requirements']);
+    expect(req.kind === 'map' && req.ids.size).toBe(90);
   });
 
   it('a path the filters emptied stops where it still holds', () => {

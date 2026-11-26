@@ -50,7 +50,7 @@ import { LENSES, lensHits, type LensId } from '../model/lenses';
 import { useGraphRenderer } from './useGraphRenderer';
 import { FocusView, nodeLabel, swatchOf } from './FocusView';
 import { useLiveSessions } from './useLiveSessions';
-import { groupLevel, groupPath, mapView, MORE, type GroupRule } from '../model/groups';
+import { groupLevel, groupPath, mapView, MORE, unionKey, unionKeys, type GroupRule } from '../model/groups';
 import { GroupsView, useGroupLabel } from './GroupsView';
 import { GroupRulesDialog } from './GroupRulesDialog';
 
@@ -261,6 +261,11 @@ export default function KnowledgeGraphPanel({
     return new Map(view.nodes.map((n) => [n.id, groupPath(n, ctx)]));
   }, [mode, view, rules, sourceList, projects, projectId]);
   const level = useMemo(() => (paths ? groupLevel(view, paths, groupAt) : null), [view, paths, groupAt]);
+  // ⌘-clicked groups of this level, to open together.
+  const [picked, setPicked] = useState<string[]>([]);
+  const levelKey = level ? level.at.join('/') : '';
+  useEffect(() => setPicked([]), [levelKey]);
+  const pickedSet = useMemo(() => new Set(picked), [picked]);
   const mapV = useMemo(() => {
     if (level?.kind !== 'map') return view;
     // Sessions / code / files make sense with what they link to; a note folder stands on its own.
@@ -275,6 +280,15 @@ export default function KnowledgeGraphPanel({
     level.at.forEach((key, i) => {
       if (key === MORE) {
         out.push({ id: String(i + 1), label: t('graph.groups.moreShort') });
+        return;
+      }
+      const together = unionKeys(key);
+      if (together) {
+        const name = (k: string) => {
+          const seg = [...paths.values()].find((p) => p[i]?.key === k)?.[i];
+          return groupLabel({ seg: seg ?? { key: k, label: k } }, parent);
+        };
+        out.push({ id: String(i + 1), label: together.map(name).join(' + ') });
         return;
       }
       const seg = [...paths.values()].find((p) => p[i]?.key === key)?.[i];
@@ -673,6 +687,16 @@ export default function KnowledgeGraphPanel({
           />
         </div>
       )}
+      {!empty && mode === 'map' && level?.kind === 'groups' && picked.length > 0 && (
+        <div className="c-panel__bar">
+          <Button variant="primary" onClick={() => setGroupAt([...level.at, unionKey(picked)])}>
+            {t('graph.groups.together', { n: String(picked.length) })}
+          </Button>
+          <Button variant="ghost" onClick={() => setPicked([])}>
+            {t('graph.groups.unpick')}
+          </Button>
+        </div>
+      )}
       {!empty && mode === 'map' && (
         <div className="c-panel__bar" role="group" aria-label={t('graph.lens.label')}>
           {LENSES.map((id) => (
@@ -725,6 +749,8 @@ export default function KnowledgeGraphPanel({
             parent={groupCrumbs.length > 1 ? groupCrumbs[groupCrumbs.length - 1]!.label : null}
             hits={lens ? lenses[lens] : null}
             recent={recent}
+            picked={pickedSet}
+            onToggle={(key) => setPicked((p) => (p.includes(key) ? p.filter((k) => k !== key) : [...p, key]))}
             onOpen={(key) => setGroupAt([...level.at, key])}
           />
         )}

@@ -748,7 +748,10 @@ app.whenReady().then(async () => {
   );
   ipcMain.handle(IPC.configEditProjects, (_e, edit: ProjectEdit) => {
     if (edit.op === 'removeProject') void runs?.stopProject(edit.id);
-    return appMenu.refresh(editProjects(edit));
+    const config = appMenu.refresh(editProjects(edit));
+    // T73: project folders are graph sources: they follow the project list.
+    graph.projectsChanged();
+    return config;
   });
   ipcMain.handle(IPC.dialogPickFolder, async () => {
     const options: Electron.OpenDialogOptions = { properties: ['openDirectory', 'createDirectory'] };
@@ -948,6 +951,7 @@ app.whenReady().then(async () => {
     dir: graphDir,
     workerFile: path.join(__dirname, 'graph', 'worker.js').replace(/app\.asar([/\\])/, 'app.asar.unpacked$1'),
     saver: powerState().saver,
+    autoProjects: !isSmoke,
     projects: () =>
       loadConfig()
         .projects.filter((p) => !p.remote)

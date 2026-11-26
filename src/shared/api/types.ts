@@ -800,6 +800,11 @@ export interface GraphSource {
   enabled: boolean;
   /** T68: changed notes go to a hidden `claude -p` (haiku) for people / decisions / to-dos / related notes. Off by default. */
   ai?: boolean;
+  /**
+   * T73: a project's folder, indexed with no setup (every `.md` in it; hidden and build folders skipped). Not stored
+   * in sources.json; it comes and goes with the project. Can't be removed or turned off here.
+   */
+  auto?: boolean;
 }
 
 /**

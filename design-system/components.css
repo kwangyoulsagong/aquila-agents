@@ -1001,6 +1001,12 @@ body {
 }
 .c-kgroups__bubble:hover .c-kgroups__disc { fill-opacity: 0.3; }
 .c-kgroups__bubble:focus-visible .c-kgroups__disc { stroke: var(--color-graph-focus); stroke-width: 2.5; }
+.c-kgroups__bubble[data-selected] .c-kgroups__disc { fill-opacity: 0.36; stroke: var(--color-graph-focus); stroke-width: 3; }
+.c-kgroups__bubble[data-selected] .c-kgroups__label { fill: var(--color-text-primary); font-weight: 600; }
+.c-kgroups__hint {
+  position: absolute; left: var(--space-inset-md); bottom: var(--space-inset-md);
+  font-size: var(--font-size-caption); color: var(--color-text-tertiary); pointer-events: none;
+}
 .c-kgroups__count { fill: var(--color-text-primary); font-size: var(--font-size-label); font-weight: 600; text-anchor: middle; }
 .c-kgroups__label {
   fill: var(--color-text-secondary); font-size: var(--font-size-label); text-anchor: middle;

@@ -427,6 +427,9 @@ import하지 않음).
 
 `electron/graph/` + `entities/note` + `features/graph-sources`. Markdown 폴더(레포 안이든 밖이든)가 **소스**
 (`~/.aquila/graph/sources.json`). 파일은 제자리에 두고 절대 쓰지 않는다.
+- **프로젝트 폴더는 설정 없이 (T73):** 로컬 프로젝트 폴더도 모두 소스다(`autoSources`, 저장 안 함, 프로젝트 목록을
+  따라감). 그 안의 `.md` 전부, 숨김·빌드 폴더 제외, 폴더 이름은 가정하지 않는다. 홈 폴더는 제외, 중첩된 프로젝트는
+  가장 바깥 것만. 프로젝트 폴더 안에 있는 사용자 소스는 그 프로젝트 소스가 대신한다.
 
 - **지연 시작:** 렌더러가 그래프 API를 처음 부를 때까지(설정 ▸ 노트 소스…, 나중엔 그래프 패널) 아무것도 안 돈다.
   `GraphService`(`index.ts`)는 켜진 소스가 있을 때만 `worker_thread`(`worker.ts` → `engine.ts`)를 띄우고, 마지막

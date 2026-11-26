@@ -860,5 +860,12 @@ throttled or hot → `saver`). The rules every task below follows:
 - **Done:** unit tests for scope, group paths, levels, layout; smoke (small fixture → dots, no bubbles); checked on
   a 568-note vault in an isolated HOME (top: code 639 / reports 371 / specs 182 / decisions 12; reports →
   checklists / retrospects / research; code → salt-server / salt-microFe / …; specs → in-progress → 46 dots).
-  _Left over: user groups live in localStorage (per machine); labels on a dense 40–60-dot group still crowd; the
-  guide media still shows the old Map._
+  Follow-up in the same branch: **no setup** — every local project folder is indexed as a source (all `.md`, hidden
+  / build folders skipped, nothing assumed about folder names; off in smoke, whose project is this repo); ⌘-click
+  several bubbles → "See N together" (their sub-folders merge by name: two repos' `requirements` → one group); only
+  each group's 2 strongest lines at rest (all of a hovered one's); Map labels placed by measured width and never over
+  a label or a dot (`model/labels.ts`). Checked again in the isolated HOME: 1,490 notes found in SALT with no setup
+  (repo folders as the top groups), salt-server + salt-microFe → requirements 482 → specs → done 94 dots.
+  _Left over: user groups live in localStorage (per machine); the guide media still shows the old Map; `.gitignore`
+  is not read (hidden + build folders only). `smoke` stops at "extensions: the page did not follow the window
+  (320×208)" on this machine today, on the base commit too (it passed earlier the same day); graph checks pass._

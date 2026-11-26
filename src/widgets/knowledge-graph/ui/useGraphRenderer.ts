@@ -6,6 +6,7 @@ import type { GraphNode } from '@/shared/api';
 import { kindColor, type GraphColors } from '../model/colors';
 import { seedPositions } from '../model/layout';
 import { runLayout, type LayoutRun } from '../model/runLayout';
+import { placeLabels, type LabelCandidate } from '../model/labels';
 import { lineStyle, neighbourhood, nodeSizes, type GraphView, type LineStyle } from '../model/view';
 
 interface NodeAttrs {
@@ -22,6 +23,8 @@ interface NodeAttrs {
   pin: boolean;
   /** The focused node: label shown uncut. */
   full: boolean;
+  /** Its label fits without touching another one (T73: `placeLabels`). */
+  room: boolean;
 }
 interface EdgeAttrs {
   size: number;
@@ -90,6 +93,60 @@ export function useGraphRenderer(
   paint.current = nodeColor;
   const colorOf = (n: GraphNode) => paint.current?.(n) ?? kindColor(focus.current.colors, n.kind);
   const index = useRef(new Map<string, number>());
+  /** Label widths (px) by text, measured with the label font. */
+  const widths = useRef(new Map<string, number>());
+  const measureCtx = useRef<CanvasRenderingContext2D | null>(null);
+  const labelFrame = useRef(0);
+
+  /** Which labels fit (no overlaps), from the nodes' places on screen now. Runs at most once per frame. */
+  const placeNow = () => {
+    const g = graphRef.current;
+    const sigma = sigmaRef.current;
+    if (!g || !sigma || !painted.current) return;
+    const ctx = (measureCtx.current ??= document.createElement('canvas').getContext('2d'));
+    if (!ctx) return;
+    ctx.font = `11px ${focus.current.colors.font || 'sans-serif'}`;
+    const measure = (text: string) => {
+      let w = widths.current.get(text);
+      if (w === undefined) {
+        // A little slack: canvas and WebGL text don't measure exactly alike.
+        w = Math.ceil(ctx.measureText(text).width * 1.06) + 2;
+        widths.current.set(text, w);
+      }
+      return w;
+    };
+    const { width, height } = sigma.getDimensions();
+    const candidates: LabelCandidate[] = [];
+    const discs: { id: string; x: number; y: number; r: number }[] = [];
+    g.forEachNode((id, a) => {
+      const p = sigma.graphToViewport({ x: a.x, y: a.y });
+      discs.push({ id, x: p.x, y: p.y, r: a.size });
+      if (a.dim) return;
+      const text = a.full || id === hovered.current ? a.label : shortLabel(a.label);
+      candidates.push({
+        id,
+        x: p.x,
+        y: p.y,
+        r: a.size,
+        width: measure(text),
+        // The focused / hovered node first (always shown), then search and lens hits.
+        priority: a.full || id === hovered.current ? 2 : a.pin ? 1 : 0,
+      });
+    });
+    const shown = placeLabels(candidates, { width, height }, discs);
+    let changed = false;
+    g.forEachNode((id, a) => {
+      if (a.room !== shown.has(id)) changed = true;
+    });
+    if (changed) g.updateEachNodeAttributes((id, a) => ({ ...a, room: shown.has(id) }));
+  };
+  const placeLabelsSoon = () => {
+    if (labelFrame.current) return;
+    labelFrame.current = requestAnimationFrame(() => {
+      labelFrame.current = 0;
+      placeNow();
+    });
+  };
 
   /** What's lit: the hovered/selected node's neighbours, or the search hits; everything else fades. */
   const focusOf = () => {
@@ -121,6 +178,7 @@ export function useGraphRenderer(
     const f = focusOf();
     g.updateEachNodeAttributes((id, a) => ({ ...a, ...f.node(id) }));
     g.updateEachEdgeAttributes((_e, a, s, t) => ({ ...a, ...f.edge(s, t) }));
+    placeLabelsSoon();
   };
 
   const applyPaint = () => {
@@ -150,6 +208,7 @@ export function useGraphRenderer(
       positions.current.set(id, pos);
       return { ...a, ...pos };
     });
+    placeLabelsSoon();
   };
 
   // One sigma per colour set (theme change): its label colours and fonts are fixed at construction.
@@ -187,8 +246,10 @@ export function useGraphRenderer(
           // fit — forcing every neighbour's full title on screen piled them into one unreadable block.
           label: (a: NodeAttrs, s) => (s.isHovered || a.full ? a.label : shortLabel(a.label)),
           labelColor: colors.label,
+          // Every label is decided here (never sigma's 'auto' grid, which doesn't measure text and let long titles
+          // run into each other): the hovered / focused one always, the rest only where `placeLabels` found room.
           labelVisibility: (a: NodeAttrs, s) =>
-            s.isHovered || a.pin ? 'visible' : a.dim ? 'hidden' : 'auto',
+            s.isHovered || a.full ? 'visible' : a.dim || !a.room ? 'hidden' : 'visible',
           backdropVisibility: { whenState: 'isHovered', then: 'visible', else: 'hidden' },
           backdropColor: colors.surface,
           backdropShadowColor: TRANSPARENT,
@@ -243,7 +304,10 @@ export function useGraphRenderer(
       if (xy) applyPositions(xy);
       if (f) applyFocus();
       if (p) applyPaint();
+      placeLabelsSoon();
     });
+    // Zoom / pan moves labels on screen: place them again.
+    sigma.getCamera().on('updated', placeLabelsSoon);
     let hoverTimer = 0;
     const hoverTo = (node: string | null) => {
       window.clearTimeout(hoverTimer);
@@ -263,10 +327,15 @@ export function useGraphRenderer(
     });
     sigma.on('clickStage', () => cb.current.onSelect(null));
     // sigma only listens to window resizes: resizing the panel or ⤢ stretched the old canvas (blurry, clipped).
-    const resized = new ResizeObserver(() => sigma.scheduleRefresh());
+    const resized = new ResizeObserver(() => {
+      sigma.scheduleRefresh();
+      placeLabelsSoon();
+    });
     resized.observe(el);
     return () => {
       window.clearTimeout(hoverTimer);
+      cancelAnimationFrame(labelFrame.current);
+      labelFrame.current = 0;
       hovered.current = null;
       resized.disconnect();
       sigma.kill();
@@ -307,6 +376,7 @@ export function useGraphRenderer(
         size: sizes.get(n.id) ?? 4,
         label: n.label,
         color: colorOf(n),
+        room: false,
         ...f.node(n.id),
       }),
     );

@@ -18,6 +18,8 @@ export interface GroupBubble {
   dim?: boolean;
   /** Tooltip / accessible name. */
   title: string;
+  /** Picked to be shown together with others (⌘-click). */
+  selected?: boolean;
 }
 
 export interface GroupLinkLine {
@@ -39,6 +41,7 @@ export interface GroupLinkLine {
  * as the links between them. A bubble is a button (click / Enter opens it). Static SVG: renders on change only.
  */
 export function GraphGroups({
+  hint,
   hostRef,
   width,
   height,
@@ -56,13 +59,16 @@ export function GraphGroups({
   label: string;
   bubbles: GroupBubble[];
   links: GroupLinkLine[];
-  onPick: (key: string) => void;
+  /** `multi`: ⌘ / Shift held — add to (or take out of) the picked ones instead of opening. */
+  onPick: (key: string, multi: boolean) => void;
   onHover?: (key: string | null) => void;
+  /** A quiet line bottom-left (how to use it). */
+  hint?: string;
 }) {
   const key = (e: KeyboardEvent, k: string) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      onPick(k);
+      onPick(k, e.metaKey || e.shiftKey);
     }
   };
   return (
@@ -110,7 +116,9 @@ export function GraphGroups({
             role="button"
             tabIndex={0}
             aria-label={b.title}
-            onClick={() => onPick(b.key)}
+            aria-pressed={b.selected ?? false}
+            data-selected={b.selected || undefined}
+            onClick={(e) => onPick(b.key, e.metaKey || e.shiftKey)}
             onKeyDown={(e) => key(e, b.key)}
             onMouseEnter={() => onHover?.(b.key)}
             onMouseLeave={() => onHover?.(null)}
@@ -139,6 +147,7 @@ export function GraphGroups({
           </g>
         ))}
       </svg>
+      {hint && <div className="c-kgroups__hint">{hint}</div>}
     </div>
   );
 }

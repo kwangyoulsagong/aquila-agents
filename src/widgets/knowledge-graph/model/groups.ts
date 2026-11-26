@@ -112,6 +112,10 @@ export const MAP_MAX = 60;
 export const MORE = '…';
 /** Nodes directly in a folder that also has sub-folders. */
 export const HERE = '·';
+/** A path step that is several groups of one level shown together (⌘-click): `UNION` + keys joined by `UNION`. */
+export const UNION = '\u0001';
+export const unionKey = (keys: readonly string[]): string => UNION + keys.join(UNION);
+export const unionKeys = (key: string): string[] | null => (key.startsWith(UNION) ? key.slice(1).split(UNION) : null);
 
 export interface GroupItem {
   key: string;
@@ -182,7 +186,21 @@ export function groupLevel(
       i++;
       continue;
     }
-    const next = want === undefined ? undefined : groups.find((g) => g.seg.key === want);
+    // Several groups together: their dots, in one picture.
+    const together = want === undefined ? null : unionKeys(want);
+    if (together) {
+      const picked = groups.filter((g) => together.includes(g.seg.key));
+      if (picked.length) {
+        // Their contents merge by name (both repos' `requirements` → one group) and split on like any level.
+        out.push(unionKey(picked.map((g) => g.seg.key)));
+        ids = picked.flatMap((g) => g.ids);
+        depth++;
+        groups = split(ids, depth);
+        i++;
+        continue;
+      }
+    }
+    const next = want === undefined || together ? undefined : groups.find((g) => g.seg.key === want);
     if (next) {
       into(next);
       i++;

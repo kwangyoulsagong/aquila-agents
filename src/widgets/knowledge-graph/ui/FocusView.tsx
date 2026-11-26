@@ -111,7 +111,10 @@ export function FocusView({ layout, live, onRecentre, onOpen, onMore, onBack, on
       case 'session': {
         const agent = /^session:(claude|codex):/.exec(n.id)?.[1];
         const tab = live?.get(n.id);
-        return [agent === 'codex' ? 'Codex' : agent === 'claude' ? 'Claude' : '', tab ? t(`graph.live.${tab.status}`) : when]
+        return [
+          agent === 'codex' ? 'Codex' : agent === 'claude' ? 'Claude' : '',
+          tab ? t(`graph.live.${tab.status}`) : when,
+        ]
           .filter(Boolean)
           .join(' · ');
       }
@@ -215,59 +218,59 @@ export function FocusView({ layout, live, onRecentre, onOpen, onMore, onBack, on
             state: linkState(l.from, l.to),
           }))}
         >
-            {geo.heads.map((h) => (
-              <FocusHead key={h.key} x={h.x} y={h.y} width={h.width} align={h.align}>
-                {headText(h.key)}
-              </FocusHead>
-            ))}
-            {geo.nodes.map((p) => {
-              const center = p.column === 'center';
-              return (
-                <FocusNode
-                  key={p.node.id}
-                  id={p.node.id}
-                  x={p.x}
-                  y={p.y}
-                  width={p.width}
-                  {...(p.height !== undefined ? { height: p.height } : {})}
-                  align={p.align}
-                  kind={swatchOf(p.node.kind)}
-                  label={nodeLabel(p.node)}
-                  meta={
-                    center
-                      ? [t('graph.links', { n: String(layout.degree) }), metaOf(p.node)]
-                          .filter(Boolean)
-                          .join(' · ')
-                      : metaOf(p.node)
-                  }
-                  {...(p.depth === 2 ? { depth: 2 as const } : {})}
-                  {...(lit ? { state: lit.has(p.node.id) ? ('hot' as const) : ('dim' as const) } : {})}
-                  current={p.node.id === current}
-                  {...(live?.get(p.node.id) ? { live: live.get(p.node.id)!.status } : {})}
-                  title={center ? t('graph.focus.openHint') : t('graph.focus.goHint', { name: p.node.label })}
-                  onClick={(e) => {
-                    setCursor(p.node.id);
-                    if (e.metaKey || e.ctrlKey) onOpen(p.node);
-                    else if (!center) onRecentre(p.node.id);
-                  }}
-                  {...(center ? { onDoubleClick: () => onOpen(p.node) } : {})}
-                  onHover={(on) => setHovered(on ? p.node.id : null)}
-                  onFocus={() => setCursor(p.node.id)}
-                />
-              );
-            })}
-            {geo.mores.map((b) => (
-              <FocusMore
-                key={b.key}
-                x={b.x}
-                y={b.y}
-                width={b.width}
-                align={b.align}
-                onClick={() => onMore(b.column)}
-              >
-                {t('graph.focus.more', { n: String(b.count) })}
-              </FocusMore>
-            ))}
+          {geo.heads.map((h) => (
+            <FocusHead key={h.key} x={h.x} y={h.y} width={h.width} align={h.align}>
+              {headText(h.key)}
+            </FocusHead>
+          ))}
+          {geo.nodes.map((p) => {
+            const center = p.column === 'center';
+            return (
+              <FocusNode
+                key={p.node.id}
+                id={p.node.id}
+                x={p.x}
+                y={p.y}
+                width={p.width}
+                {...(p.height !== undefined ? { height: p.height } : {})}
+                align={p.align}
+                kind={swatchOf(p.node.kind)}
+                label={nodeLabel(p.node)}
+                meta={
+                  center
+                    ? [t('graph.links', { n: String(layout.degree) }), metaOf(p.node)]
+                        .filter(Boolean)
+                        .join(' · ')
+                    : metaOf(p.node)
+                }
+                {...(p.depth === 2 ? { depth: 2 as const } : {})}
+                {...(lit ? { state: lit.has(p.node.id) ? ('hot' as const) : ('dim' as const) } : {})}
+                current={p.node.id === current}
+                {...(live?.get(p.node.id) ? { live: live.get(p.node.id)!.status } : {})}
+                title={center ? t('graph.focus.openHint') : t('graph.focus.goHint', { name: p.node.label })}
+                onClick={(e) => {
+                  setCursor(p.node.id);
+                  if (e.metaKey || e.ctrlKey) onOpen(p.node);
+                  else if (!center) onRecentre(p.node.id);
+                }}
+                {...(center ? { onDoubleClick: () => onOpen(p.node) } : {})}
+                onHover={(on) => setHovered(on ? p.node.id : null)}
+                onFocus={() => setCursor(p.node.id)}
+              />
+            );
+          })}
+          {geo.mores.map((b) => (
+            <FocusMore
+              key={b.key}
+              x={b.x}
+              y={b.y}
+              width={b.width}
+              align={b.align}
+              onClick={() => onMore(b.column)}
+            >
+              {t('graph.focus.more', { n: String(b.count) })}
+            </FocusMore>
+          ))}
         </FocusStage>
       )}
     </div>

@@ -458,6 +458,9 @@ own title.
 
 `electron/graph/` + `entities/note` + `features/graph-sources`. Folders of Markdown (in repos or not) are **sources**
 (`~/.aquila/graph/sources.json`); files stay where they are and are never written to.
+- **Project folders need no setup (T73):** every local project's folder is a source too (`autoSources`, not stored;
+  it follows the project list): every `.md` in it, hidden and build folders skipped, no folder names assumed. Not
+  the home folder; the outermost of nested projects. A user source inside a project folder is covered by it.
 
 - **Lazy:** nothing runs until the renderer first calls a graph API (Settings ▸ Note sources…, later the graph panel).
   `GraphService` (`index.ts`) starts a `worker_thread` (`worker.ts` → `engine.ts`) only while a source is enabled and

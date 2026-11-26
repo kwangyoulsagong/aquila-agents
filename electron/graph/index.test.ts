@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { addSource, GraphService, mergeStatus, readSources, SourceError, sourceId, tildify, writeSources } from './index';
+import { addSource, GraphService, mergeStatus, readSources, SourceError, sourceId, tildify, writeSources, autoSources, effectiveSources } from './index';
 
 const HOME = '/Users/me';
 
@@ -93,5 +93,33 @@ describe('notePath', () => {
     expect(g.notePath(path.join(off, 'b.md'))).toBeNull();
     expect(g.notePath(path.join(notes, 'gone.md'))).toBeNull();
     fs.rmSync(dir, { recursive: true, force: true });
+  });
+});
+
+describe('project folders as sources (T73)', () => {
+  const home = '/Users/me';
+  const projects = [
+    { id: 'home', root: '/Users/me' },
+    { id: 'salt', root: '/Users/me/Desktop/SALT' },
+    { id: 'inner', root: '/Users/me/Desktop/SALT/salt-server' },
+    { id: 'a b', root: '/Users/me/code/a' },
+    { id: 'dup', root: '/Users/me/code/a/' },
+  ];
+
+  it('one per project folder: not home, outermost of nested ones, no duplicates', () => {
+    expect(autoSources(projects, home)).toEqual([
+      { id: 'project-salt', path: '~/Desktop/SALT', enabled: true, auto: true },
+      { id: 'project-a-b', path: '~/code/a', enabled: true, auto: true },
+    ]);
+  });
+
+  it("a user's folder inside a project is covered; one holding a project covers it", () => {
+    const auto = autoSources(projects, home);
+    const user = [
+      { id: 'requirements', path: '~/Desktop/SALT/requirements', enabled: true },
+      { id: 'code', path: '~/code', enabled: true },
+      { id: 'notes', path: '~/notes', enabled: true },
+    ];
+    expect(effectiveSources(user, auto, home).map((s) => s.id)).toEqual(['code', 'notes', 'project-salt']);
   });
 });

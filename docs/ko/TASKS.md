@@ -835,4 +835,12 @@ T66–T70은 그 타입에 맞춰 각자 워크트리에서 병렬로 진행한�
 - **완료:** 범위·묶음 경로·단계·배치 단위 테스트, smoke(작은 픽스처 → 점, 원 없음), 격리된 HOME에서 노트 568개
   볼트로 확인(최상위: 코드 639 / reports 371 / specs 182 / decisions 12, reports → checklists / retrospects /
   research, 코드 → salt-server / salt-microFe / …, specs → in-progress → 점 46개).
-  _남은 것: 사용자 묶음은 localStorage(기기별), 40–60개 점 묶음에서는 라벨이 여전히 몰림, 가이드 미디어는 예전 지도._
+  같은 브랜치 후속: **설정 없음**: 로컬 프로젝트 폴더를 모두 소스로 색인(`.md` 전부, 숨김·빌드 폴더 제외, 폴더 이름
+  가정 없음, smoke에서는 끔: smoke 프로젝트가 이 레포라서), 원 여러 개 ⌘-클릭 → "고른 N개 같이 보기"(하위 폴더는
+  이름으로 합침: 두 레포의 `requirements` → 한 묶음), 평소엔 묶음마다 가장 강한 선 2개만(마우스 올린 묶음은 전부),
+  지도 라벨은 실제 너비를 재서 배치하고 라벨·점 위에 겹치지 않음(`model/labels.ts`). 격리 HOME에서 다시 확인:
+  설정 없이 SALT 노트 1,490개(레포 폴더가 최상위 묶음), salt-server + salt-microFe → requirements 482 → specs →
+  done 점 94개.
+  _남은 것: 사용자 묶음은 localStorage(기기별), 가이드 미디어는 예전 지도, `.gitignore`는 안 읽음(숨김·빌드 폴더만).
+  오늘 이 기기에서 `smoke`가 "extensions: the page did not follow the window (320×208)"에서 멈춤(기준 커밋도 같음,
+  같은 날 앞서는 통과), 그래프 검사는 통과._

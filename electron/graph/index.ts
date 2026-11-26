@@ -65,6 +65,41 @@ export function addSource(list: readonly GraphSource[], abs: string, home = HOME
   return [...list, { id, path: tildify(target, home), enabled: true }];
 }
 
+/**
+ * T73: every local project's folder is a source with no setup, so a project's notes are in the graph wherever its
+ * repo keeps them (no folder names assumed). Not the home folder (a project at `~` would index everything), and
+ * only the outermost of nested projects (sources can't overlap).
+ */
+export function autoSources(projects: readonly CodeProject[], home = HOME): GraphSource[] {
+  const h = path.resolve(home);
+  // The same folder twice (two projects on one repo): the first one names it.
+  const byRoot = new Map<string, string>();
+  for (const p of projects) if (!byRoot.has(path.resolve(p.root))) byRoot.set(path.resolve(p.root), p.id);
+  const roots = [...byRoot].filter(([root]) => root !== h && !inside(h, root));
+  return roots
+    .filter(([root]) => !roots.some(([other]) => other !== root && inside(root, other)))
+    .map(([root, id]) => ({
+      id: `project-${id.replace(/[^\w-]/g, '-')}`,
+      path: tildify(root, home),
+      enabled: true,
+      auto: true,
+    }));
+}
+
+/**
+ * What gets indexed: the user's own sources, then the project folders. A user source inside a project folder is
+ * covered by it (left out); a project folder inside a user source is covered by that one.
+ */
+export function effectiveSources(
+  user: readonly GraphSource[],
+  auto: readonly GraphSource[],
+  home = HOME,
+): GraphSource[] {
+  const abs = (s: GraphSource) => path.resolve(untildify(s.path, home));
+  const kept = user.filter((u) => !auto.some((a) => inside(abs(u), abs(a))));
+  return [...kept, ...auto.filter((a) => !kept.some((k) => inside(abs(a), abs(k))))];
+}
+
 export function readSources(file: string): GraphSource[] {
   try {
     const data = JSON.parse(fs.readFileSync(file, 'utf8')) as { sources?: unknown };
@@ -131,11 +166,19 @@ export interface GraphServiceOptions {
   onVaultFile?: (id: string) => void;
   /** T70: sessions, changed files, trends and applies for the index's nodes (merged into every snapshot). */
   app?: (nodes: GraphNode[]) => Promise<AppGraph>;
+  /**
+   * T73: project folders are sources with no setup (default on). Off in smoke, whose project is this repo and
+   * whose fixture sources live inside it.
+   */
+  autoProjects?: boolean;
   /** Tests / smoke: a fake folder dialog has nothing to do with this; `home` for `~/…` paths. */
   home?: string;
 }
 
 export class GraphService implements VaultGraph {
+  /** The user's own sources (sources.json). */
+  private stored: GraphSource[];
+  /** What is indexed: the user's sources + the project folders (T73), worked out on each `sync`. */
   private sources: GraphSource[];
   private worker: Worker | null = null;
   private engine: EngineStatus | null = null;
@@ -151,8 +194,23 @@ export class GraphService implements VaultGraph {
   private appTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(private opts: GraphServiceOptions) {
-    this.sources = readSources(this.file);
+    this.stored = readSources(this.file);
+    this.sources = this.effective();
     this.saver = opts.saver;
+  }
+
+  private effective(): GraphSource[] {
+    const auto = this.opts.autoProjects === false ? [] : autoSources(this.opts.projects(), this.opts.home);
+    return effectiveSources(this.stored, auto, this.opts.home);
+  }
+
+  /** T73: projects were added, moved or removed — their folders follow. */
+  projectsChanged(): void {
+    const next = this.effective();
+    if (JSON.stringify(next) === JSON.stringify(this.sources)) return;
+    this.sources = next;
+    if (this.started) this.sync();
+    this.opts.onStatus(this.current());
   }
 
   private get file() {
@@ -167,26 +225,28 @@ export class GraphService implements VaultGraph {
 
   add(abs: string): GraphStatus {
     if (!fs.statSync(abs, { throwIfNoEntry: false })?.isDirectory()) throw new SourceError('notFolder');
-    this.save(addSource(this.sources, abs, this.opts.home));
+    // Overlap is checked against everything indexed (a folder inside a project is already in the graph).
+    const added = addSource(this.sources, abs, this.opts.home).at(-1)!;
+    this.save([...this.stored, added]);
     return this.status();
   }
 
   remove(id: string): GraphStatus {
-    if (!this.sources.some((s) => s.id === id)) throw new SourceError('unknown');
-    this.save(this.sources.filter((s) => s.id !== id));
+    if (!this.stored.some((s) => s.id === id)) throw new SourceError('unknown');
+    this.save(this.stored.filter((s) => s.id !== id));
     return this.status();
   }
 
   setEnabled(id: string, enabled: boolean): GraphStatus {
-    if (!this.sources.some((s) => s.id === id)) throw new SourceError('unknown');
-    this.save(this.sources.map((s) => (s.id === id ? { ...s, enabled } : s)));
+    if (!this.stored.some((s) => s.id === id)) throw new SourceError('unknown');
+    this.save(this.stored.map((s) => (s.id === id ? { ...s, enabled } : s)));
     return this.status();
   }
 
   /** T68: AI extraction on/off for a source (stored in sources.json). */
   setAi(id: string, ai: boolean): GraphStatus {
-    if (!this.sources.some((s) => s.id === id)) throw new SourceError('unknown');
-    this.save(this.sources.map((s) => (s.id === id ? { ...s, ai } : s)));
+    if (!this.stored.some((s) => s.id === id)) throw new SourceError('unknown');
+    this.save(this.stored.map((s) => (s.id === id ? { ...s, ai } : s)));
     return this.status();
   }
 
@@ -330,7 +390,8 @@ export class GraphService implements VaultGraph {
 
   private save(next: GraphSource[]): void {
     writeSources(this.file, next);
-    this.sources = next;
+    this.stored = next;
+    this.sources = this.effective();
     if (this.started) this.sync();
     this.opts.onStatus(this.current());
   }

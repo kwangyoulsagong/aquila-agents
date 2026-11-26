@@ -41,21 +41,23 @@ export default function SourcesDialog({ onClose }: { onClose: () => void }) {
               actions={
                 <>
                   {s.state === 'paused' && (
-                    <Button onClick={() => void indexNow(s.id)}>
-                      {t('sources.indexNow')}
-                    </Button>
+                    <Button onClick={() => void indexNow(s.id)}>{t('sources.indexNow')}</Button>
                   )}
-                  <Button variant="ghost" onClick={() => void setEnabled(s.id, !s.enabled)}>
-                    {t(s.enabled ? 'sources.turnOff' : 'sources.turnOn')}
-                  </Button>
-                  <Button
-                   
-                    variant="ghost"
-                    title={t('sources.removeHint')}
-                    onClick={() => void remove(s.id)}
-                  >
-                    {t('sources.remove')}
-                  </Button>
+                  {/* T73: a project folder comes and goes with its project. */}
+                  {!s.auto && (
+                    <>
+                      <Button variant="ghost" onClick={() => void setEnabled(s.id, !s.enabled)}>
+                        {t(s.enabled ? 'sources.turnOff' : 'sources.turnOn')}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        title={t('sources.removeHint')}
+                        onClick={() => void remove(s.id)}
+                      >
+                        {t('sources.remove')}
+                      </Button>
+                    </>
+                  )}
                 </>
               }
             />

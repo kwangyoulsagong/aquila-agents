@@ -12,8 +12,15 @@ export interface GroupsViewProps {
   hits: ReadonlySet<string> | null;
   /** Nodes changed in the last 7 days ("+3 this week" under a group). */
   recent: ReadonlySet<string>;
+  /** Groups picked with ⌘-click, to be shown together. */
+  picked: ReadonlySet<string>;
   onOpen: (key: string) => void;
+  /** ⌘ / Shift-click: pick or unpick. */
+  onToggle: (key: string) => void;
 }
+
+/** Links drawn per group at rest (the rest show on hover). */
+const STRONGEST = 2;
 
 /** Radii from the tokens (read once per mount). */
 function readRadii(el: Element) {
@@ -43,7 +50,16 @@ export function useGroupLabel(): (item: Pick<GroupItem, 'seg' | 'folded'>, paren
  * The Map's groups (T73): bubbles on a ring, linked groups side by side, line width by how many links run between
  * two groups. Hovering a group lights its lines with their counts; click / Enter opens it.
  */
-export function GroupsView({ items, links, parent, hits, recent, onOpen }: GroupsViewProps) {
+export function GroupsView({
+  items,
+  links,
+  parent,
+  hits,
+  recent,
+  picked,
+  onOpen,
+  onToggle,
+}: GroupsViewProps) {
   const t = useT();
   const labelOf = useGroupLabel();
   const [host, setHost] = useState<HTMLDivElement | null>(null);
@@ -76,7 +92,20 @@ export function GroupsView({ items, links, parent, hits, recent, onOpen }: Group
       if (l.b === hovered) linked.add(l.a);
     }
   const most = Math.max(1, ...links.map((l) => l.count));
+  // Every pair linked drew a hairball of lines again: at rest, only each group's strongest links; hovering a group
+  // shows all of its own.
+  const strong = useMemo(() => {
+    const keep = new Set<GroupLink>();
+    for (const it of items)
+      links
+        .filter((l) => l.a === it.key || l.b === it.key)
+        .sort((x, y) => y.count - x.count)
+        .slice(0, STRONGEST)
+        .forEach((l) => keep.add(l));
+    return keep;
+  }, [items, links]);
   const lines: GroupLinkLine[] = links.flatMap((l) => {
+    if (!strong.has(l) && !(hovered && (l.a === hovered || l.b === hovered))) return [];
     const a = at.get(l.a);
     const b = at.get(l.b);
     if (!a || !b) return [];
@@ -115,6 +144,7 @@ export function GroupsView({ items, links, parent, hits, recent, onOpen }: Group
         group: it.colour,
         ...(n !== undefined ? { hits: n } : {}),
         dim: !!hovered && hovered !== it.key && !linked.has(it.key),
+        selected: picked.has(it.key),
         title: t('graph.groups.open', { name, n: String(it.ids.length) }),
       },
     ];
@@ -127,7 +157,8 @@ export function GroupsView({ items, links, parent, hits, recent, onOpen }: Group
       label={t('graph.groups.label')}
       bubbles={bubbles}
       links={lines}
-      onPick={onOpen}
+      onPick={(key, multi) => (multi ? onToggle(key) : onOpen(key))}
+      hint={t('graph.groups.hint')}
       onHover={setHovered}
     />
   );
