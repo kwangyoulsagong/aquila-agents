@@ -125,8 +125,18 @@ function contains(text: string, title: string): boolean {
   return false;
 }
 
+/** T76: which notes each note's text mentions by title, kept between builds (see `buildGraph`). */
+export interface MentionCache {
+  /** Every mentionable title (id + title): when it changes, everything is scanned again. */
+  titles: string;
+  byNote: Map<string, { sig: string; targets: string[] }>;
+}
+export const mentionCache = (): MentionCache => ({ titles: '', byNote: new Map() });
+
 /** T68 additions: suggestions (local similarity, AI) and the user's decisions / rules. */
 export interface BuildExtras {
+  /** T76: mention results kept between builds (the engine's). */
+  mentions?: MentionCache;
   similar?: readonly SimilarPair[];
   ai?: ReadonlyMap<string, AiExtract>;
   links?: Pick<LinkData, 'accepted' | 'rejected' | 'rules'>;
@@ -291,21 +301,46 @@ export function buildGraph(
     }
   }
 
-  // Another note's title in the text. Candidates come from a token index, then the text is checked.
-  const keys = new Map<string, IndexedNote[]>();
-  for (const n of all) for (const k of tokenKeys(n.note.text)) push(keys, k, n);
+  // Another note's title in the text: for each note, the titles whose first word is among its words, checked in
+  // the text. Kept per note while the note and the set of titles stay the same (T76): one changed note is one note
+  // scanned, not the whole index — a rebuild on every save was ~1 s for 1,500 notes.
+  const titleKey = new Map<string, IndexedNote[]>();
+  const titleList: string[] = [];
   for (const target of all) {
     const title = target.note.title.trim().toLowerCase();
     if (!mentionable(title)) continue;
     const first = title.match(TOKEN)?.[0];
     if (!first) continue;
-    const key = ASCII.test(first) || first.length <= 2 ? first : first.slice(0, 2);
-    const to = noteId(target.sourceId, target.rel);
-    for (const n of keys.get(key) ?? []) {
-      if (n === target || !contains(n.note.text, title)) continue;
-      edges.add(noteId(n.sourceId, n.rel), to, { via: 'title', label: target.note.title });
-    }
+    push(titleKey, ASCII.test(first) || first.length <= 2 ? first : first.slice(0, 2), target);
+    titleList.push(`${noteId(target.sourceId, target.rel)}\u0001${title}`);
   }
+  const cache = extras.mentions;
+  const titles = titleList.join('\u0002');
+  if (cache && cache.titles !== titles) {
+    cache.titles = titles;
+    cache.byNote.clear();
+  }
+  const noteById = new Map(all.map((n) => [noteId(n.sourceId, n.rel), n]));
+  for (const n of all) {
+    const from = noteId(n.sourceId, n.rel);
+    const sig = `${n.mtime}:${n.size}`;
+    const kept = cache?.byNote.get(from);
+    let targets = kept && kept.sig === sig ? kept.targets : null;
+    if (!targets) {
+      targets = [];
+      const seen = new Set<IndexedNote>();
+      for (const k of tokenKeys(n.note.text))
+        for (const target of titleKey.get(k) ?? []) {
+          if (target === n || seen.has(target)) continue;
+          seen.add(target);
+          if (contains(n.note.text, target.note.title.trim().toLowerCase()))
+            targets.push(noteId(target.sourceId, target.rel));
+        }
+      cache?.byNote.set(from, { sig, targets });
+    }
+    for (const to of targets) edges.add(from, to, { via: 'title', label: noteById.get(to)!.note.title });
+  }
+  if (cache) for (const id of cache.byNote.keys()) if (!noteById.has(id)) cache.byNote.delete(id);
 
   // A repeated ID or a shared URL.
   const byId = new Map<string, string[]>();

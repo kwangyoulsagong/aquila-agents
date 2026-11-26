@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Extractor, extractPrompt, parseExtract, type ExtractNote } from './extract';
+import { candidateTitles, Extractor, extractPrompt, parseExtract, type ExtractNote } from './extract';
 
 const note = (id: string, sourceId: string, title: string, text: string): ExtractNote => ({
   id,
@@ -124,5 +124,23 @@ describe('Extractor', () => {
     await new Promise((r) => setTimeout(r, 30));
     expect(calls).toBe(2);
     x.close();
+  });
+});
+
+describe('candidateTitles (T76)', () => {
+  const titles = ['Login plan', 'Coupon discount', '결제 재시도', 'Quarterly offsite', 'Login plan'];
+  it('only titles the notes say something of, never their own, deduped', () => {
+    const out = candidateTitles(
+      [{ title: 'Login plan', text: 'We retry the 결제 after a coupon discount fails.' }],
+      titles,
+    );
+    expect(out).toEqual(['Coupon discount', '결제 재시도']);
+  });
+  it('nothing shared: nothing sent', () => {
+    expect(candidateTitles([{ title: 'x', text: 'unrelated words here' }], titles)).toEqual([]);
+  });
+  it('caps what is sent', () => {
+    const many = Array.from({ length: 100 }, (_, i) => `topic ${i}`);
+    expect(candidateTitles([{ title: 'n', text: 'topic' }], many, 40)).toHaveLength(40);
   });
 });

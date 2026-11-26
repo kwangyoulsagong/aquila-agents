@@ -243,16 +243,18 @@ export default function KnowledgeGraphPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [scopeKey],
   );
+  // Open tabs' conversations stay in even with no note behind them (T76: "This tab" of a coding tab).
+  const live = useLiveSessions(sessions);
+  const liveIds = useMemo(() => new Set(live.keys()), [live]);
   const view = useMemo(
-    () => (snapshot ? filterSnapshot(snapshot, filter, Date.now(), scope) : { nodes: [], edges: [] }),
-    [snapshot, filter, scope],
+    () =>
+      snapshot ? filterSnapshot(snapshot, filter, Date.now(), scope, liveIds) : { nodes: [], edges: [] },
+    [snapshot, filter, scope, liveIds],
   );
   const byId = useMemo(() => new Map(view.nodes.map((n) => [n.id, n])), [view.nodes]);
   const allNodes = snapshot?.nodes;
   const tags = useMemo(() => tagsOf(allNodes ?? []), [allNodes]);
   const kinds = useMemo(() => kindsOf(allNodes ?? []), [allNodes]);
-  const live = useLiveSessions(sessions);
-  const liveIds = useMemo(() => new Set(live.keys()), [live]);
   const lenses = useMemo(() => lensHits(view, Date.now(), liveIds), [view, liveIds]);
   // "This week" (T74): what changed lately, or — "This tab" — the front tab's conversation and what it touched.
   const [weekKind, setWeekKind] = useState<WeekKind | null>(null);
@@ -273,6 +275,13 @@ export default function KnowledgeGraphPanel({
         : weekList(view, weekTab ? { since: null, only: tabOnly, kind: weekKind } : { kind: weekKind }),
     [mode, view, weekTab, tabOnly, weekKind],
   );
+
+  // Kind chips only when they split something: kinds with items, and at least two of them (T76: fewer controls).
+  const weekChips = useMemo(() => {
+    if (!week) return [];
+    const present = WEEK_KINDS.filter((k) => week.counts[k] > 0 || weekKind === k);
+    return present.length > 1 || weekKind ? present : [];
+  }, [week, weekKind]);
 
   // Map as groups (T73): folders / kinds / the user's groups, opened one level at a time.
   const [rules, setRulesState] = useState(storedRules);
@@ -722,17 +731,19 @@ export default function KnowledgeGraphPanel({
           </Button>
         </div>
       )}
-      {!empty && mode === 'week' && week && (
+      {!empty && mode === 'week' && week && (weekChips.length > 0 || tabCount > 0 || weekTab) && (
         <div className="c-panel__bar" role="group" aria-label={t('graph.mode.week')}>
-          <GraphLens
-            pressed={weekTab}
-            count={tabCount}
-            title={t('graph.week.tabHint')}
-            onClick={() => setWeekTab((v) => !v)}
-          >
-            {t('graph.week.tab')}
-          </GraphLens>
-          {WEEK_KINDS.map((k) => (
+          {(tabCount > 0 || weekTab) && (
+            <GraphLens
+              pressed={weekTab}
+              count={tabCount}
+              title={t('graph.week.tabHint')}
+              onClick={() => setWeekTab((v) => !v)}
+            >
+              {t('graph.week.tab')}
+            </GraphLens>
+          )}
+          {weekChips.map((k) => (
             <GraphLens
               key={k}
               pressed={weekKind === k}
@@ -780,7 +791,8 @@ export default function KnowledgeGraphPanel({
       )}
       {!empty && mode === 'map' && (
         <div className="c-panel__bar" role="group" aria-label={t('graph.lens.label')}>
-          {LENSES.map((id) => (
+          {/* Only questions with answers here (or the one switched on): a row of zeros is noise (T76). */}
+          {LENSES.filter((id) => lenses[id].size > 0 || lens === id).map((id) => (
             <GraphLens
               key={id}
               pressed={lens === id}

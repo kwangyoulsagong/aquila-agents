@@ -1010,6 +1010,8 @@ app.whenReady().then(async () => {
       applies: applies.list(),
       projects: localProjects(),
       turnFiles: turns.all(),
+      // T76: tabs' conversations are in the graph before they touch a note ("This tab").
+      open: s.agentIds().map((a) => `${a.agent}:${a.sessionId}`),
     };
   });
   // Files a Claude turn changed by any means, shell included: the folder's git status at the prompt and at Stop.

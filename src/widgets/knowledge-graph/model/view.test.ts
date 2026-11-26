@@ -193,3 +193,16 @@ describe('project scope (T73)', () => {
     expect(v.edges.map((e) => e.id).sort()).toEqual([`${inA.id}→${t.id}`, `${sessA.id}→${fileA.id}`].sort());
   });
 });
+
+describe('roots (T76)', () => {
+  it('a session open in a tab stays with its files though no note links it', () => {
+    const s: GraphNode = { id: 'session:claude:t', kind: 'session', label: 't', projects: ['A'] };
+    const f: GraphNode = { id: 'file:/a/x.ts', kind: 'file', label: 'x.ts', projects: ['A'] };
+    const snapT: GraphSnapshot = { nodes: [s, f], edges: [edge(s.id, f.id)], idGroups: [], version: 1 };
+    expect(filterSnapshot(snapT, DEFAULT_FILTER, NOW).nodes).toEqual([]);
+    expect(filterSnapshot(snapT, DEFAULT_FILTER, NOW, null, new Set([s.id])).nodes.map((n) => n.id)).toEqual([
+      s.id,
+      f.id,
+    ]);
+  });
+});

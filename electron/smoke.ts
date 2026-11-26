@@ -1623,7 +1623,7 @@ async function checkGraphView(win: BrowserWindow, config: Config, outDir: string
     return 'graph: no canvas on the map';
   if (whole.ms > 3500) return `graph: layout ran ${whole.ms} ms (budget 3 s)`;
   if (focus.nodes > whole.nodes) return `graph: focus view has ${focus.nodes} nodes, the map ${whole.nodes}`;
-  // A lens with answers switches on; one with none can't be pressed.
+  // A lens with answers switches on.
   const lensState = await js<{ chips: number; on: boolean | null }>(`(async () => {
     const chips = [...document.querySelectorAll('aside .c-kgraph__lens')];
     const b = chips.find((c) => !c.disabled);
@@ -1632,7 +1632,12 @@ async function checkGraphView(win: BrowserWindow, config: Config, outDir: string
     await new Promise((r) => setTimeout(r, 300));
     return { chips: chips.length, on: b.getAttribute('aria-pressed') === 'true' };
   })()`);
-  if (lensState.chips !== 5) return `graph: ${lensState.chips} lens chips on the map, expected 5`;
+  // T76: only questions with answers show (a row of zeros is noise).
+  if (lensState.chips > 5) return `graph: ${lensState.chips} lens chips on the map, at most 5`;
+  const zeros = await js<number>(
+    `[...document.querySelectorAll('aside .c-kgraph__lens-count')].filter((c) => c.textContent.trim() === '0').length`,
+  );
+  if (zeros) return `graph: ${zeros} lens chip(s) with no answers shown`;
   if (lensState.on === false) return 'graph: a lens did not switch on';
   // Groups (T73): the fixture is small, so the Map shows its dots straight away (no group bubbles, no crumbs).
   const groups = await js<number>(`document.querySelectorAll('aside .c-kgroups__bubble').length`);

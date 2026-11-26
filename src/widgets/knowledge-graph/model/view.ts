@@ -97,6 +97,8 @@ export function filterSnapshot(
   f: GraphFilter,
   now = Date.now(),
   scope: GraphScope | null = null,
+  /** T76: nodes that stand on their own too (sessions open in a tab, before they touch a note). */
+  roots: ReadonlySet<string> = new Set(),
 ): GraphView {
   const hidden = new Set(f.hiddenKinds);
   const sources = f.sources.length ? new Set(f.sources) : null;
@@ -130,7 +132,8 @@ export function filterSnapshot(
   const reached = new Set<string>(kept.keys());
   // In a project, its own sessions / files / code / applies stand on their own too (a project with no notes still
   // shows its work); trends only through the project's apply decisions.
-  for (const n of others.values()) if (scope ? !!n.projects : ROOT_KINDS.has(n.kind)) reached.add(n.id);
+  for (const n of others.values())
+    if ((scope ? !!n.projects : ROOT_KINDS.has(n.kind)) || roots.has(n.id)) reached.add(n.id);
   const queue = [...reached];
   while (queue.length) {
     for (const next of adjacent.get(queue.pop()!) ?? []) {
