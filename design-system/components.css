@@ -969,6 +969,49 @@ body {
 }
 .c-kgraph > .c-empty { position: absolute; inset: 0; z-index: 1; }
 
+/* ── Knowledge graph "This week" (T74): a list of what changed, by day, filling the stage ─── */
+.c-kweek { position: absolute; inset: 0; overflow-y: auto; padding: var(--space-inline-xs) 0 var(--space-stack-lg); }
+.c-kweek__day + .c-kweek__day { margin-top: var(--space-inline-sm); }
+.c-kweek__day-title {
+  position: sticky; top: 0; z-index: 1; display: flex; align-items: baseline; gap: var(--space-inline-sm);
+  margin: 0; padding: var(--space-inline-sm) var(--space-inset-md) var(--space-inline-xs);
+  background: var(--color-bg-canvas); font-size: var(--font-size-caption); font-weight: 600; color: var(--color-text-secondary);
+}
+.c-kweek__day-count { font-weight: 400; color: var(--color-text-tertiary); font-variant-numeric: tabular-nums; }
+.c-kweek__list { margin: 0; padding: 0 var(--space-inline-sm); list-style: none; }
+.c-kweek__item { position: relative; display: flex; align-items: center; border-radius: var(--radius-control); }
+.c-kweek__item:hover { background: var(--color-bg-hover); }
+.c-kweek__main {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: var(--space-inline-sm);
+  padding: var(--space-inline-xs) var(--space-inline-sm); border: 0; background: none; color: inherit; font: inherit;
+  text-align: left; cursor: pointer; border-radius: var(--radius-control);
+}
+.c-kweek__text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.c-kweek__label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--font-size-body); }
+.c-kweek__detail {
+  display: flex; align-items: center; gap: var(--space-inline-xs); min-width: 0; overflow: hidden; white-space: nowrap;
+  text-overflow: ellipsis; font-size: var(--font-size-caption); color: var(--color-text-tertiary);
+}
+.c-kweek__live {
+  flex: none; padding: 0 var(--space-inline-xs); border-radius: var(--radius-badge);
+  background: var(--color-bg-selected); color: var(--color-text-primary);
+}
+.c-kweek__time { flex: none; font-size: var(--font-size-caption); color: var(--color-text-tertiary); font-variant-numeric: tabular-nums; }
+.c-kweek__burst .c-kweek__label { color: var(--color-text-secondary); }
+.c-kweek__chevron {
+  flex: none; width: var(--size-dot); color: var(--color-text-tertiary); text-align: center;
+  transition: transform var(--motion-fast) var(--motion-ease);
+}
+.c-kweek__main[aria-expanded='true'] .c-kweek__chevron { transform: rotate(90deg); }
+.c-kweek__nest { margin-left: var(--space-inset-md); border-left: 1px solid var(--color-border-subtle); }
+/* Over the time on hover (so every row's time lines up, with or without a second action). */
+.c-kweek__side {
+  position: absolute; top: 50%; right: var(--space-inline-xs); transform: translateY(-50%);
+  border-radius: var(--radius-control); background: var(--color-bg-hover);
+  opacity: 0; pointer-events: none; transition: opacity var(--motion-fast) var(--motion-ease);
+}
+.c-kweek__item:hover .c-kweek__side, .c-kweek__item:focus-within .c-kweek__side { opacity: 1; pointer-events: auto; }
+
 /* ── Knowledge graph Map groups (T73): bubbles placed by the caller, lines as thick as the links between ─── */
 .c-kgroups { position: absolute; inset: 0; overflow: hidden; }
 .c-kgroups__svg { display: block; overflow: visible; }

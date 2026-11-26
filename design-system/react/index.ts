@@ -67,6 +67,7 @@ export {
   GraphFoot,
   type FocusLink,
 } from './GraphFocus';
+export { WeekList, WeekDay, WeekItem, WeekBurst } from './GraphWeek';
 export { GraphGroups, type GroupBubble, type GroupLinkLine } from './GraphGroups';
 export { SuggestionList, SuggestionItem, SuggestionProposal } from './Suggestion';
 export {

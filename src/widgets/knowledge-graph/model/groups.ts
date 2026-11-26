@@ -60,7 +60,7 @@ export interface GroupContext {
 const rootFragment = (p: string) => `${p.replace(/^~/, '').replace(/\/+$/, '')}/`;
 
 /** Project and folders of a code name / changed file inside its project; null when it is in none. */
-function placeInProject(
+export function placeInProject(
   n: GraphNode,
   projects: NonNullable<GroupContext['projects']>,
 ): { project: { id: string; name: string }; dirs: string[] } | null {

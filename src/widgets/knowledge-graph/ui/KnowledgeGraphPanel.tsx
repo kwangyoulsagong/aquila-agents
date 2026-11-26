@@ -56,12 +56,15 @@ import {
   groupPath,
   mapView,
   MORE,
+  placeInProject,
   unionKey,
   unionKeys,
   type GroupRule,
 } from '../model/groups';
 import { GroupsView, useGroupLabel } from './GroupsView';
 import { GroupRulesDialog } from './GroupRulesDialog';
+import { WeekView } from './WeekView';
+import { tabWork, WEEK_KINDS, weekList, type WeekKind } from '../model/week';
 
 export interface KnowledgeGraphPanelProps {
   full: boolean;
@@ -86,9 +89,11 @@ export interface KnowledgeGraphPanelProps {
   projects?: readonly { id: string; name: string; path: string }[];
   /** The project of the tab in front: what "Current project" means. */
   activeProjectId?: string | null;
+  /** The tab in front (T74: "This tab" lists its conversation's work). */
+  activeSessionId?: string | null;
 }
 
-type Mode = 'focus' | 'map';
+type Mode = 'week' | 'focus' | 'map';
 const HINT_KEY = 'aquila.graph.hintSeen.v2';
 const MODE_KEY = 'aquila.graph.mode';
 const FOLLOW_KEY = 'aquila.graph.follow';
@@ -171,6 +176,7 @@ export default function KnowledgeGraphPanel({
   onShowSession,
   projects = [],
   activeProjectId = null,
+  activeSessionId = null,
 }: KnowledgeGraphPanelProps) {
   const t = useT();
   const width = usePanelWidth('aquila.panel.graph');
@@ -182,7 +188,11 @@ export default function KnowledgeGraphPanel({
   const deferredQuery = useDeferredValue(query);
   const [searching, setSearching] = useState(false);
   const [resultAt, setResultAt] = useState(0);
-  const [mode, setModeState] = useState<Mode>(() => (stored(MODE_KEY) === 'map' ? 'map' : 'focus'));
+  // T74: "This week" first, unless the person chose another view before.
+  const [mode, setModeState] = useState<Mode>(() => {
+    const m = stored(MODE_KEY);
+    return m === 'map' || m === 'focus' ? m : 'week';
+  });
   const [follow, setFollowState] = useState(() => stored(FOLLOW_KEY) !== '0');
   const [trail, setTrail] = useState<string[]>([]);
   const [shown, setShown] = useState<Partial<Record<FocusColumnKey, number>>>({});
@@ -243,6 +253,26 @@ export default function KnowledgeGraphPanel({
   const live = useLiveSessions(sessions);
   const liveIds = useMemo(() => new Set(live.keys()), [live]);
   const lenses = useMemo(() => lensHits(view, Date.now(), liveIds), [view, liveIds]);
+  // "This week" (T74): what changed lately, or — "This tab" — the front tab's conversation and what it touched.
+  const [weekKind, setWeekKind] = useState<WeekKind | null>(null);
+  const [weekTab, setWeekTab] = useState(false);
+  const tabIds = useMemo(
+    () => [...live].filter(([, v]) => v.tabId === activeSessionId).map(([id]) => id),
+    [live, activeSessionId],
+  );
+  const tabOnly = useMemo(() => tabWork(view, tabIds), [view, tabIds]);
+  const tabCount = useMemo(
+    () => (tabOnly.size ? weekList(view, { since: null, only: tabOnly }).counts.all : 0),
+    [view, tabOnly],
+  );
+  const week = useMemo(
+    () =>
+      mode !== 'week'
+        ? null
+        : weekList(view, weekTab ? { since: null, only: tabOnly, kind: weekKind } : { kind: weekKind }),
+    [mode, view, weekTab, tabOnly, weekKind],
+  );
+
   // Map as groups (T73): folders / kinds / the user's groups, opened one level at a time.
   const [rules, setRulesState] = useState(storedRules);
   const setRules = (r: GroupRule[]) => {
@@ -564,6 +594,7 @@ export default function KnowledgeGraphPanel({
           value={mode}
           onChange={(v) => setMode(v)}
           options={[
+            { value: 'week', label: t('graph.mode.week') },
             { value: 'focus', label: t('graph.mode.focus') },
             { value: 'map', label: t('graph.mode.map') },
           ]}
@@ -689,6 +720,28 @@ export default function KnowledgeGraphPanel({
           </Button>
         </div>
       )}
+      {!empty && mode === 'week' && week && (
+        <div className="c-panel__bar" role="group" aria-label={t('graph.mode.week')}>
+          <GraphLens
+            pressed={weekTab}
+            count={tabCount}
+            title={t('graph.week.tabHint')}
+            onClick={() => setWeekTab((v) => !v)}
+          >
+            {t('graph.week.tab')}
+          </GraphLens>
+          {WEEK_KINDS.map((k) => (
+            <GraphLens
+              key={k}
+              pressed={weekKind === k}
+              count={week.counts[k]}
+              onClick={() => setWeekKind((v) => (v === k ? null : k))}
+            >
+              {k === 'other' ? t('graph.week.other') : t(`graph.kind.${k}`)}
+            </GraphLens>
+          ))}
+        </div>
+      )}
       {!empty && mode === 'map' && groupCrumbs.length > 1 && (
         <div className="c-panel__bar">
           <GraphTrail
@@ -780,6 +833,20 @@ export default function KnowledgeGraphPanel({
             onOpen={(key) => setGroupAt([...level.at, key])}
           />
         )}
+        {!empty && mode === 'week' && week && (
+          <WeekView
+            list={week}
+            tab={weekTab}
+            live={live}
+            placeOf={(n) => {
+              // In one project, the path inside it (the project's name on every row is noise).
+              const p = projectId && n.path ? placeInProject(n, projects) : null;
+              return p ? [...p.dirs, n.path!.split('/').pop()].join('/') : notePlace(n, sources);
+            }}
+            onOpen={open}
+            onAround={recentre}
+          />
+        )}
         {!empty && mode === 'focus' && layout && (
           <FocusView
             live={live}
@@ -801,7 +868,7 @@ export default function KnowledgeGraphPanel({
             }}
           />
         )}
-        {hint && !empty && !showResults && (
+        {hint && !empty && !showResults && mode !== 'week' && (
           <GraphHint
             close={
               <Button

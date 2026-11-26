@@ -1543,6 +1543,24 @@ async function checkGraphView(win: BrowserWindow, config: Config, outDir: string
     js<string>(`document.querySelector('aside .c-kfocus__node[data-align=center] .c-kfocus__label')?.textContent ?? ''`);
   await js(`(() => { localStorage.removeItem('aquila.graph.mode'); window.__graphSettled = null; })()`);
   press(win, 'N', ['meta', 'shift']);
+  // T74: it opens on "This week": the fixture notes changed lately are listed, or it says nothing changed (the
+  // fixtures' file times are the checkout's).
+  let weekRows = -1;
+  for (let i = 0; i < 50 && weekRows < 0; i++) {
+    await wait(100);
+    weekRows = await js<number>(`(() => {
+      const rows = document.querySelectorAll('aside .c-kweek__item').length;
+      const none = [...document.querySelectorAll('aside .c-empty')].some((e) => e.textContent.includes(${JSON.stringify(t('graph.week.empty'))}));
+      return rows || (none ? 0 : -1);
+    })()`);
+  }
+  if (weekRows < 0) return 'graph: "This week" showed neither a list nor "nothing changed" after ⌘⇧N';
+  const toAround = await js<boolean>(`(() => {
+    const b = [...document.querySelectorAll('aside .c-segment__item')].find((e) => e.textContent.trim() === ${JSON.stringify(t('graph.mode.focus'))});
+    b?.click();
+    return !!b;
+  })()`);
+  if (!toAround) return 'graph: no Around switch';
   const focus = await settled('focus');
   if (!focus) return 'graph: the focus view never showed after ⌘⇧N';
   const items = await js<number>(`document.querySelectorAll('aside .c-kfocus__node').length`);
@@ -1626,7 +1644,7 @@ async function checkGraphView(win: BrowserWindow, config: Config, outDir: string
   const left = await js<number>(`document.querySelectorAll('.c-kgraph').length`);
   if (left) return 'graph: ⌘⇧N did not close the panel';
   console.log(
-    `[smoke] graph: focus ${focus.nodes} nodes in ${focus.ms} ms; "${target.label}" → "${moved}" → back; map ${whole.nodes} nodes settled in ${whole.ms} ms (${whole.iterations} iterations)`,
+    `[smoke] graph: this week ${weekRows} rows; focus ${focus.nodes} nodes in ${focus.ms} ms; "${target.label}" → "${moved}" → back; map ${whole.nodes} nodes settled in ${whole.ms} ms (${whole.iterations} iterations)`,
   );
   return null;
 }
@@ -2188,7 +2206,30 @@ async function checkAppGraph(win: BrowserWindow, config: Config, outDir: string)
 
     await js('window.__graphSettled = null');
     press(win, 'N', ['meta', 'shift']);
-    if (!(await until('!!window.__graphSettled', 15_000))) return 'app graph: the graph never settled';
+    // T74: "This week" lists the note written just now and the session that used it. (An earlier check may have
+    // left the panel on another view: pick it.)
+    await until(`(() => {
+      const b = [...document.querySelectorAll('aside .c-segment__item')].find((e) => e.textContent.trim() === ${JSON.stringify(t('graph.mode.week'))});
+      b?.click();
+      return !!b;
+    })()`);
+    if (
+      !(await until(
+        `(() => {
+          const rows = [...document.querySelectorAll('aside .c-kweek__label')].map((e) => e.textContent);
+          return rows.includes('Login plan') && rows.includes(${JSON.stringify(intro)});
+        })()`,
+        15_000,
+      ))
+    )
+      return `app graph: "This week" did not list the note and its session (${await js<string>(
+        `(() => {
+          const seg = document.querySelector('aside .c-segment__item[aria-pressed=true], aside .c-segment__item[aria-checked=true]')?.textContent;
+          const rows = [...document.querySelectorAll('aside .c-kweek__label')].map((e) => e.textContent);
+          const empty = document.querySelector('aside .c-empty')?.textContent;
+          return JSON.stringify({ seg, rows: rows.slice(0, 8), empty });
+        })()`,
+      )})`;
     if (!(await select(intro))) return 'app graph: the session node could not be selected';
     if (!(await cardHas(t('graph.resume')))) return 'app graph: the session card has no Resume';
     fs.writeFileSync(path.join(outDir, 'smoke-app-graph.png'), (await win.webContents.capturePage()).toPNG());
