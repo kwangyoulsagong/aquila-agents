@@ -14,6 +14,7 @@ import type {
   WebContents,
   WebContentsView,
 } from 'electron';
+import { ExtStorage } from './ext-storage';
 import type { Translate } from '../src/shared/i18n/dictionary';
 import type {
   AccountUsage,
@@ -36,8 +37,7 @@ export const SUSPEND_AFTER_MS = 5 * 60 * 1000;
 /** One shared `system` poll for every extension that may read it. */
 export const SYSTEM_POLL_MS = 2_000;
 export const SYSTEM_POLL_SAVER_MS = 10_000;
-/** `storage`: per extension, JSON-encoded. 10 MB, measured like Chrome's `chrome.storage.local` (key lengths + value JSON). */
-export const STORAGE_MAX_BYTES = 10 * 1024 * 1024;
+export { STORAGE_MAX_BYTES } from './ext-storage';
 /** `notify`: at most one banner per extension in this window. */
 export const NOTIFY_GAP_MS = 10_000;
 /** `chip.set`: short text in the sidebar. */
@@ -543,8 +543,7 @@ export class ExtensionHost {
   private sessionsReady = new Set<string>();
   private chips = new Map<string, string>();
   private lastNotify = new Map<string, number>();
-  /** Parsed `storage` per extension: read from disk once, not on every get (it can be 10 MB). */
-  private stores = new Map<string, Record<string, unknown>>();
+  private store: ExtStorage;
   private statuses = new Map<string, SessionStatus>();
   private countsTimer: NodeJS.Timeout | undefined;
   private lastCounts = '';
@@ -556,6 +555,7 @@ export class ExtensionHost {
   private rescanTimer: NodeJS.Timeout | undefined;
 
   constructor(private deps: HostDeps) {
+    this.store = new ExtStorage(deps.dataDir);
     let text = '';
     try {
       text = fs.readFileSync(deps.prefsPath, 'utf8');
@@ -996,6 +996,7 @@ export class ExtensionHost {
       clearTimeout(this.saveTimer);
       this.savePrefs();
     }
+    this.store.dispose();
     this.watcher?.close();
   }
 
@@ -1105,6 +1106,7 @@ export class ExtensionHost {
     const l = this.live.get(id);
     if (!l) return;
     this.live.delete(id);
+    this.store.release(id);
     const wc = l.view.webContents;
     this.byContents.delete(wc.id);
     const float = l.float;
@@ -1269,24 +1271,15 @@ export class ExtensionHost {
       case 'usage.get':
         return usageView(await this.deps.usage());
       case 'storage.get':
-        return this.storage(id)[String(p.key)] ?? null;
+        return this.store.get(id, String(p.key));
       case 'storage.keys':
-        return Object.keys(this.storage(id));
+        return this.store.keys(id);
       case 'storage.set':
       case 'storage.remove': {
         const key = String(p.key ?? '');
         if (!key || key.length > 200) throw new Error('storage: key must be 1–200 characters');
-        const data = { ...this.storage(id) };
-        if (method === 'storage.remove') delete data[key];
-        else data[key] = p.value === undefined ? null : p.value;
-        // Measured like Chrome: every key's length plus the JSON of every value.
-        let used = 0;
-        for (const [k, v] of Object.entries(data)) used += k.length + Buffer.byteLength(JSON.stringify(v) ?? '');
-        if (used > STORAGE_MAX_BYTES) throw new Error('storage: over 10 MB');
-        const text = JSON.stringify(data);
-        fs.mkdirSync(this.deps.dataDir, { recursive: true });
-        fs.writeFileSync(this.storageFile(id), text);
-        this.stores.set(id, JSON.parse(text) as Record<string, unknown>);
+        if (method === 'storage.remove') await this.store.remove(id, key);
+        else await this.store.set(id, key, p.value);
         return true;
       }
       case 'notify': {
@@ -1310,23 +1303,6 @@ export class ExtensionHost {
     throw new Error(`not allowed: ${method}`);
   }
 
-  private storageFile(id: string): string {
-    return path.join(this.deps.dataDir, `${id}.json`);
-  }
-
-  private storage(id: string): Record<string, unknown> {
-    const cached = this.stores.get(id);
-    if (cached) return cached;
-    let data: Record<string, unknown> = {};
-    try {
-      const d = JSON.parse(fs.readFileSync(this.storageFile(id), 'utf8')) as unknown;
-      if (d && typeof d === 'object' && !Array.isArray(d)) data = d as Record<string, unknown>;
-    } catch {
-      // Missing or broken: start empty.
-    }
-    this.stores.set(id, data);
-    return data;
-  }
 
   // ── New extension ──
 

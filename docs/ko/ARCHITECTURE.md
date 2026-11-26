@@ -672,7 +672,7 @@ import하지 않음).
   `system`(main에서 하나만 폴링: `os.cpus()` 표본 사이 CPU 비율, 메모리, 부하, 앱 RSS, `power.ts`의 배터리/절전; 2초,
   절전 10초; `system` 권한 확장이 떠 있을 때만), `sessions:status`(상태별 개수 + `waiting` 이벤트 — main이 창에 보내는
   상태 갱신에서 얻음; id·제목·출력 없음), `usage`(계정별 퍼센트, 마지막 사용량 갱신), `storage`
-  (`~/.aquila/extensions-data/<id>.json`, Chrome처럼 10 MB, 한 번 읽어 메모리에 둠), `notify`(10초에 하나, 제목에 확장 이름). 항상 가능: `info`, `power` +
+  (`~/.aquila/extensions-data/<id>.log`, Chrome과 같은 방식으로 잰 10 MB; `electron/ext-storage.ts`: 한 번 읽어 메모리에 두고, 쓰기는 바뀐 키만 1초씩 모아 로그 끝에 덧붙임, 데이터의 2배를 넘으면 다시 씀, 유휴 시 아무것도 안 돎), `notify`(10초에 하나, 제목에 확장 이름). 항상 가능: `info`, `power` +
   `power` 이벤트, `chip.set`(16자, 사이드바 띠에 표시), `visible`·`command` 이벤트. 터미널 출력을 읽거나 세션에 쓰는
   메서드는 없다. 템플릿의 `aquila.js`가 이를 Promise로 감싼다.
 - **뷰:** 패널 stage가 자기 사각형을 보냄(`extensions:show`, stage와 `.app__main`에 ResizeObserver — 마지막 열이 아님 —
