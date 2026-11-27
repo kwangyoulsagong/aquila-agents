@@ -316,8 +316,20 @@ export function filterFiles(files: readonly NoteFsEntry[], query: string): Map<s
     );
     scored.push({ rel: f.rel, score, marks });
   }
-  scored.sort((a, b) => b.score - a.score || naturalCompare(a.rel, b.rel));
-  return new Map(scored.map((s) => [s.rel, s.marks]));
+  // Typed whole (an ID, a word): only the notes that have it as written. A subsequence over a long path and title
+  // matched far too much on real folders — `FE-REQ-030` found `checklists/FE-REQ-035` ("FE-REQ-03" + the 0 of
+  // "F004" in its title), 31 rows for 3 real ones. Nothing has it whole: the fuzzy matches, as before.
+  const lower = q.toLowerCase();
+  const whole = new Set(
+    q.length < 3
+      ? []
+      : files
+          .filter((f) => f.rel.toLowerCase().includes(lower) || !!f.title?.toLowerCase().includes(lower))
+          .map((f) => f.rel),
+  );
+  const kept = whole.size ? scored.filter((s) => whole.has(s.rel)) : scored;
+  kept.sort((a, b) => b.score - a.score || naturalCompare(a.rel, b.rel));
+  return new Map(kept.map((s) => [s.rel, s.marks]));
 }
 
 /**
