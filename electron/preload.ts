@@ -156,6 +156,7 @@ const api: AquilaApi = {
   vaultView: (id, viewId) => ipcRenderer.invoke(IPC.vaultView, { id, viewId }),
   vaultMove: (path, viewId, group) => ipcRenderer.invoke(IPC.vaultMove, { path, viewId, group }),
   vaultNoteInfo: (path) => ipcRenderer.invoke(IPC.vaultNoteInfo, path),
+  noteTable: (id) => ipcRenderer.invoke(IPC.noteTable, id),
   vaultEdit: (path, text, edit) => ipcRenderer.invoke(IPC.vaultEdit, { path, text, edit }),
   vaultCreateNote: (id, templateId, title) =>
     ipcRenderer.invoke(IPC.vaultCreateNote, { id, templateId, title }),

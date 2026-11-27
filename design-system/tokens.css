@@ -261,6 +261,9 @@
   --size-bubble-max: 64px;          /* Map groups: radius of the biggest group's bubble */
   --size-bar-field: var(--p-size-224); /* a search field sharing a panel bar: below this it takes a row of its own (T76) */
   --size-code-input: var(--p-size-224); /* a settings file edited as text (T69) */
+  --size-props-key: 128px;          /* properties panel (T78): the key column */
+  --size-ntable-title: 288px;       /* table view (T78): the title column */
+  --size-ntable-col: 160px;         /* table view: a property column's least width */
 
   /* Motion */
   --motion-ease: cubic-bezier(0.2, 0, 0, 1);        /* standard: settles quickly */

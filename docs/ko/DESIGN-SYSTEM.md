@@ -126,6 +126,7 @@
 | `--size-focus-row` / `--size-focus-center` / `--size-focus-gap` | 40 / 208 / 48 | 그래프 주변 보기 (T72): 항목 하나(라벨 + 메타 줄) / 가운데 카드 / 두 열 사이 선이 지나갈 자리 |
 | `--size-bubble-min` / `--size-bubble-max` | 24 / 64 | 그래프 지도 묶음 (T73): 가장 작은 / 큰 묶음의 원 반지름 (√개수 비례) |
 | `--size-bar-field` | 224 | 패널 막대 안의 검색창 (T76): 버튼 옆 남는 폭을 쓰고, 이보다 좁을 때만 한 줄을 차지 |
+| `--size-props-key` / `--size-ntable-title` / `--size-ntable-col` | 128 / 288 / 160 | 속성 패널의 키 열 / 표 보기의 제목 열 / 속성 열의 최소 너비 (T78) |
 
 ## 컴포넌트 (`components.css`)
 
@@ -195,6 +196,8 @@
 | `.c-dropzone[data-over]` | 점선 드롭 영역. 끌어 올리는 동안 강조 테두리 + 선택 배경 |
 | `.c-field` `__label` `__hint`, `.c-input` (`--multiline`, `--inline`), `.c-select` `__control` | 폼 필드: 라벨, 텍스트 입력 / 선택 (포커스 = 파란 테두리), 모노스페이스 힌트 (`data-tone="warning"` = 대기 주황). `--inline`은 줄 안에서 제목을 바로 고친다(탭 이름 바꾸기, T43): 그 줄의 글꼴, 고정 높이 없음 |
 | `.c-field__row`, `.c-field-grid` | 컨트롤 옆에 버튼(경로 + "바꾸기…"); 짧은 필드 두 개를 나란히 |
+| `.c-props` `__head` `__toggle` `__count` `__actions` `__list` `__row` `__key` `__value` `__input` `__remove` `__chips` `__chip` `__raw` | 노트 본문 위의 속성 (T78): 접히는 머리, 키 · 값 · 지우기 줄; 목록 값은 칩, 그대로 두는 값은 모노 |
+| `.c-ntable` `__frame` `__bar` `__chips` `__chip[aria-pressed]` `__head` `__th[aria-sort]` `__sort` `__row` `__group` `__cell[data-editable\|data-editing]` `__open` `__input` `__empty` | 표 보기 (T78): 가상화된 격자, 한 줄 = `--size-row`; 고정된 정렬 머리, 제목 열 다음 속성 열; 위에 필터 / 상태 칩 |
 
 ## React 컴포넌트 (`design-system/react/`)
 
@@ -243,6 +246,8 @@
 | `StepList` `label`, `StepItem` `checked` `onToggle` `title` `checkLabel?` `tags?` `meta?` `onHover?` | `.c-steps` |
 | `Media` `src` `kind` `poster` `alt` `still` `placeholder` | `.c-media` (reduced motion이나 `still`이면 영상 대신 포스터) |
 | `ShortcutSheet` `groups` | `.c-shortcuts` |
+| `PropPanel` `title` `count?` `open` `onToggle` `actions?`, `PropRow` `name` `onRemove?` `removeLabel?`, `PropChips`, `PropChip` `label` `onRemove?`, `PropInput`, `PropRaw` | `.c-props` |
+| `DataGrid` `label` `columns` `count` `renderRow(i)` `rowKey(i)` `empty?`, `GridRow`, `GridGroup` `title` `count`, `GridOpen` `label` `onOpen`, `GridCell` `text` `muted?` `onEdit?` `editing?` `editor?`, `GridInput`, `GridBar`, `GridChips` `label`, `GridChip` `label` `count?` `pressed` `onClick`, `GridFrame` | `.c-ntable` (화면에 보이는 줄만 그림) |
 
 ## 문구
 

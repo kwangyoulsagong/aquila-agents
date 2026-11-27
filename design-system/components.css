@@ -1350,6 +1350,118 @@ body {
 .c-table__open { padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .c-table__open:hover { color: var(--color-action-primary); }
 
+/* ── Properties above a note's text (T78) ─────────────────── */
+/* The frontmatter as rows: key · value control · remove. The head folds them; edits splice only that key's lines. */
+.c-props { flex: none; border-bottom: 1px solid var(--color-border-subtle); background: var(--color-bg-surface); }
+.c-props__head { display: flex; align-items: center; gap: var(--space-inline-xs); min-height: var(--size-row); padding: 0 var(--space-inset-sm); }
+.c-props__toggle {
+  display: flex; align-items: center; gap: var(--space-inline-xs); height: var(--size-control); padding: 0 var(--space-inline-xs);
+  border: 0; border-radius: var(--radius-control); background: none; color: var(--color-text-secondary);
+  font: inherit; font-size: var(--font-size-label); cursor: pointer;
+}
+.c-props__toggle:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
+.c-props__chevron { display: inline-block; transition: transform var(--motion-fast) var(--motion-ease); }
+.c-props__toggle[aria-expanded='true'] .c-props__chevron { transform: rotate(90deg); }
+.c-props__count { color: var(--color-text-tertiary); font-variant-numeric: tabular-nums; }
+.c-props__actions { margin-left: auto; display: flex; gap: var(--space-inline-xs); }
+.c-props__list { display: flex; flex-direction: column; padding: 0 var(--space-inset-sm) var(--space-inline-xs); }
+.c-props__row {
+  display: grid; grid-template-columns: var(--size-props-key) minmax(0, 1fr) var(--size-control); align-items: center;
+  gap: var(--space-inline-sm); min-height: var(--size-row); padding: 0 var(--space-inline-xs); border-radius: var(--radius-control);
+}
+.c-props__row:hover, .c-props__row:focus-within { background: var(--color-bg-hover); }
+.c-props__key { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--font-size-label); color: var(--color-text-tertiary); }
+.c-props__value { min-width: 0; display: flex; align-items: center; font-size: var(--font-size-body); color: var(--color-text-primary); }
+.c-props__value > .c-select { flex: 1; min-width: 0; }
+.c-props__input {
+  flex: 1; min-width: 0; height: var(--size-control); padding: 0 var(--space-inline-xs); border: 1px solid transparent; border-radius: var(--radius-badge);
+  background: none; color: var(--color-text-primary); font: var(--font-size-body) var(--font-family-ui); user-select: text;
+  transition: border-color var(--motion-fast) var(--motion-ease);
+}
+.c-props__input:hover { border-color: var(--color-border-subtle); }
+.c-props__input:focus-visible { outline: none; border-color: var(--color-border-focus); background: var(--color-bg-canvas); }
+.c-props__input::placeholder { color: var(--color-text-tertiary); }
+.c-props__input:disabled { cursor: default; border-color: transparent; }
+.c-props__remove {
+  width: var(--size-control); height: var(--size-control); padding: 0; border: 0; border-radius: var(--radius-control);
+  background: none; color: var(--color-text-tertiary); font: inherit; cursor: pointer; opacity: 0;
+  transition: opacity var(--motion-fast) var(--motion-ease);
+}
+.c-props__row:hover .c-props__remove, .c-props__remove:focus-visible { opacity: 1; }
+.c-props__remove:hover { color: var(--color-text-primary); background: var(--color-bg-selected); }
+.c-props__chips { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-inline-xs); padding: var(--space-inline-xs) 0; }
+.c-props__chips > .c-props__input { flex: 1 0 var(--size-board-column); min-width: 0; }
+.c-props__chip {
+  display: inline-flex; align-items: center; gap: var(--space-inline-xs); height: var(--size-badge); padding: 0 var(--space-inline-sm);
+  border-radius: var(--radius-badge); background: var(--color-bg-selected); color: var(--color-text-primary); font-size: var(--font-size-label); white-space: nowrap;
+}
+.c-props__chip-remove { padding: 0; border: 0; background: none; color: var(--color-text-tertiary); font: inherit; line-height: 1; cursor: pointer; }
+.c-props__chip-remove:hover { color: var(--color-text-primary); }
+.c-props__raw { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-family-mono); font-size: var(--font-size-label); color: var(--color-text-secondary); }
+
+/* ── Table view of a source's notes (T78) ─────────────────── */
+/* Virtualized: one --size-row per row, only the rows on screen exist. Title column, then property columns. */
+.c-ntable__frame { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: var(--space-inset-sm); }
+.c-ntable__bar { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-inline-sm); }
+.c-ntable__bar > .c-input { flex: 1 1 var(--size-bar-field); width: auto; min-width: 0; }
+.c-ntable__bar > .c-select { flex: 0 1 var(--size-ntable-col); min-width: 0; }
+.c-ntable__chips { flex: none; display: flex; flex-wrap: wrap; gap: var(--space-inline-xs); }
+.c-ntable__chip {
+  display: inline-flex; align-items: center; gap: var(--space-inline-xs); height: var(--size-control); padding: 0 var(--space-inset-sm);
+  border: 1px solid var(--color-border-subtle); border-radius: var(--radius-control); background: none;
+  color: var(--color-text-secondary); font: inherit; font-size: var(--font-size-label); cursor: pointer;
+  transition: background var(--motion-fast) var(--motion-ease), border-color var(--motion-fast) var(--motion-ease);
+}
+.c-ntable__chip:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
+.c-ntable__chip[aria-pressed='true'] { border-color: var(--color-action-primary); background: var(--color-bg-selected); color: var(--color-text-primary); }
+.c-ntable__count { color: var(--color-text-tertiary); font-weight: 400; font-variant-numeric: tabular-nums; }
+.c-ntable {
+  --ntable-template: var(--size-ntable-title) repeat(var(--ntable-cols), minmax(var(--size-ntable-col), 1fr));
+  flex: 1; min-height: 0; overflow: auto; position: relative; border: 1px solid var(--color-border-subtle); border-radius: var(--radius-control);
+  font-size: var(--font-size-label); background: var(--color-bg-canvas); overscroll-behavior: contain;
+}
+.c-ntable__head, .c-ntable__row {
+  display: grid; grid-template-columns: var(--ntable-template);
+  min-width: calc(var(--size-ntable-title) + var(--ntable-cols) * var(--size-ntable-col));
+}
+.c-ntable__head { position: sticky; top: 0; z-index: 1; height: var(--size-row); background: var(--color-bg-surface); border-bottom: 1px solid var(--color-border-subtle); }
+.c-ntable__th { display: flex; align-items: center; min-width: 0; padding: 0 var(--space-inset-sm); color: var(--color-text-tertiary); white-space: nowrap; overflow: hidden; }
+.c-ntable__sort {
+  display: flex; align-items: center; gap: var(--space-inline-xs); min-width: 0; padding: 0; border: 0; background: none;
+  color: inherit; font: inherit; cursor: pointer; overflow: hidden; text-overflow: ellipsis;
+}
+.c-ntable__sort:hover, .c-ntable__th[aria-sort='ascending'], .c-ntable__th[aria-sort='descending'] { color: var(--color-text-primary); }
+.c-ntable__arrow { flex: none; }
+.c-ntable__body { position: relative; }
+.c-ntable__window { position: absolute; inset: 0 auto auto 0; min-width: 100%; will-change: transform; }
+.c-ntable__slot { height: var(--size-row); }
+.c-ntable__row { height: var(--size-row); border-bottom: 1px solid var(--color-border-subtle); }
+.c-ntable__row:hover { background: var(--color-bg-hover); }
+.c-ntable__group {
+  display: flex; align-items: center; height: var(--size-row); padding: 0 var(--space-inset-sm);
+  border-bottom: 1px solid var(--color-border-subtle); background: var(--color-bg-surface); font-weight: 600; color: var(--color-text-primary);
+}
+.c-ntable__cell {
+  display: flex; align-items: center; min-width: 0; padding: 0 var(--space-inset-sm); overflow: hidden;
+  white-space: nowrap; text-overflow: ellipsis; color: var(--color-text-secondary);
+}
+.c-ntable__cell[data-muted] { color: var(--color-text-tertiary); font-variant-numeric: tabular-nums; }
+.c-ntable__cell[data-editable] { cursor: text; }
+.c-ntable__cell[data-editable]:focus-visible { outline: none; box-shadow: inset 0 0 0 1px var(--color-border-focus); }
+.c-ntable__cell[data-editing] { padding: 0; }
+.c-ntable__cell > .c-select { flex: 1; min-width: 0; }
+.c-ntable__open {
+  min-width: 0; padding: 0; border: 0; background: none; color: var(--color-text-primary); font: inherit; text-align: left;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer;
+}
+.c-ntable__open:hover { color: var(--color-action-primary); }
+.c-ntable__input {
+  width: 100%; height: 100%; padding: 0 var(--space-inset-sm); border: 0; box-shadow: inset 0 0 0 1px var(--color-border-focus);
+  background: var(--color-bg-canvas); color: var(--color-text-primary); font: inherit; user-select: text;
+}
+.c-ntable__input:focus-visible { outline: none; }
+.c-ntable__empty { padding: var(--space-stack-md); color: var(--color-text-tertiary); }
+
 /* ── Steps (a plan to tick, T64) ──────────────────────────── */
 .c-steps { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; border: 1px solid var(--color-border-subtle); border-radius: var(--radius-control); }
 .c-steps__item { display: flex; align-items: flex-start; gap: var(--space-inline-sm); padding: var(--space-inset-sm) var(--space-inset-md); }

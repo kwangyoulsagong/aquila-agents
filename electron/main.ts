@@ -166,6 +166,8 @@ import {
   type GraphRuleOp,
   type VaultConfig,
   type VaultEdit,
+  type NoteTableData,
+  type VaultProperty,
   type VaultPresetId,
   type VaultScope,
   type ToolId,
@@ -1202,6 +1204,23 @@ app.whenReady().then(async () => {
     vault.move(String(a.path), String(a.viewId), String(a.group)),
   );
   ipcMain.handle(IPC.vaultNoteInfo, (_e, p: string) => vault.noteInfo(String(p)));
+  // T78: the table view's rows straight from the index; property types from the source's settings when it has some.
+  ipcMain.handle(IPC.noteTable, async (_e, id: string): Promise<NoteTableData | null> => {
+    const sid = String(id);
+    if (!graph.sourceRoot(sid)) return null;
+    const notes = await graph.notes(sid);
+    let properties: VaultProperty[] = [];
+    try {
+      properties = vault.state(sid).config.properties;
+    } catch {
+      // settings unreadable: plain text columns
+    }
+    return {
+      sourceId: sid,
+      notes: notes.map((n) => ({ path: n.abs, rel: n.rel, title: n.title, props: n.frontmatter, mtime: n.mtime })),
+      properties,
+    };
+  });
   ipcMain.handle(IPC.vaultEdit, (_e, a: { path: string; text: string; edit: VaultEdit }) =>
     a?.edit && typeof a.edit === 'object' ? vault.edit(String(a.path), a.text, a.edit) : null,
   );
