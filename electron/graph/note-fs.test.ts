@@ -23,7 +23,12 @@ const write = (root: string, rel: string, text: string) => {
 };
 
 /** A fake index over the folder: every `.md`, links read with a tiny regex (enough for these tests). */
-function setup(files: Record<string, string>, draft?: { name: string; text: string }) {
+function setup(
+  files: Record<string, string>,
+  draft?: { name: string; text: string },
+  /** Like the real index (`EdgeSet.add`): one edge per pair, a mutual link kept in the first direction only. */
+  onePerPair = false,
+) {
   const root = tmpDir();
   for (const [rel, text] of Object.entries(files)) write(root, rel, text);
   const walk = (dir: string): string[] =>
@@ -57,6 +62,13 @@ function setup(files: Record<string, string>, draft?: { name: string; text: stri
           reasons: [{ via: 'link' as const }],
         }));
     });
+    const seen = new Set<string>();
+    const kept = onePerPair
+      ? edges.filter((e) => {
+          const key = [e.source, e.target].sort().join('|');
+          return !seen.has(key) && !!seen.add(key);
+        })
+      : edges;
     return {
       nodes: ns.map((n) => ({
         id: id(n.rel),
@@ -65,7 +77,7 @@ function setup(files: Record<string, string>, draft?: { name: string; text: stri
         sourceId: 's',
         path: n.abs,
       })),
-      edges,
+      edges: kept,
       idGroups: [],
       version: 1,
     } as GraphSnapshot;
@@ -162,6 +174,20 @@ describe('rename and move', () => {
     );
     expect(fixed).toEqual({ fixed: 2, failed: [] });
     expect(read('notes/a.md')).toBe('See [[New|the spec]] and [x](../specs/New.md)\r\n');
+  });
+
+  it('finds a linker whose mutual link the index stored in the other direction', async () => {
+    // A↔B is stored once, as A→B; renaming A must still offer B (which links to A).
+    const { nfs, read } = setup({ 'A.md': 'to [[B]]\n', 'B.md': 'back to [[A]]\n' }, undefined, true);
+    const r = await nfs.rename('s', 'A.md', 'C');
+    expect(r.ok && r.links).toEqual([{ rel: 'B.md', count: 1 }]);
+    if (!r.ok) return;
+    nfs.fixLinks(
+      's',
+      r.files,
+      r.links.map((l) => l.rel),
+    );
+    expect(read('B.md')).toBe('back to [[C]]\n');
   });
 
   it('refuses a taken name and a move into itself', async () => {

@@ -311,8 +311,12 @@ export class NoteFs {
     for (const e of snap.edges) {
       const to = relOf.get(e.target);
       const from = relOf.get(e.source);
-      if (!to || !from || !targets.has(to)) continue;
-      if (e.reasons.some((r) => r.via === 'link' || r.via === 'frontmatter')) out.add(from);
+      if (!to || !from || (!targets.has(to) && !targets.has(from))) continue;
+      if (!e.reasons.some((r) => r.via === 'link' || r.via === 'frontmatter')) continue;
+      // The index keeps one direction per pair (a mutual link is stored once), so either end may be the linker;
+      // a candidate with nothing to rewrite is dropped later.
+      if (targets.has(to)) out.add(from);
+      if (targets.has(from)) out.add(to);
     }
     return out;
   }
