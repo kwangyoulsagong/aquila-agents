@@ -74,11 +74,9 @@ function wikiTarget(target: string, moves: readonly FileMove[]): string | null {
   return null;
 }
 
+/** Only what would end or break a bare link is escaped (spaces, parentheses, `%`); Korean stays readable. */
 function encodeHref(p: string): string {
-  return p
-    .split('/')
-    .map((s) => encodeURIComponent(s).replace(/%2B/g, '+'))
-    .join('/');
+  return p.replace(/[ %()<>]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0')}`);
 }
 
 /**
@@ -134,7 +132,8 @@ export function linkSplices(
     let rel = path.posix.relative(dirOf(noteTo), target);
     if (decoded.startsWith('./') && !rel.startsWith('../')) rel = `./${rel}`;
     if (rel === decoded) continue;
-    const encoded = angled || decoded === pathPart ? rel : encodeHref(rel);
+    // Encoded as written; a bare link to a name with a space must be encoded, or it stops being a link.
+    const encoded = angled ? rel : decoded !== pathPart || /[\s()<>]/.test(rel) ? encodeHref(rel) : rel;
     const insert = angled ? `<${encoded}${suffix}>` : `${encoded}${suffix}`;
     const from = m.index + m[0].length - href.length;
     out.push({ from, to: from + href.length, insert });

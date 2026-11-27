@@ -39,6 +39,11 @@ describe('relative Markdown links', () => {
       '[a](archive/my%20spec.md) [b](<archive/my spec.md>)',
     );
   });
+  it('encodes a new space in a bare link (it would stop being a link), keeps Korean readable', () => {
+    expect(fix('[x](a/spec.md)', [{ from: 'a/spec.md', to: 'a/스펙 login.md' }])).toBe(
+      '[x](a/스펙%20login.md)',
+    );
+  });
   it("rewrites a moved note's own links to notes that stayed", () => {
     expect(fix('[up](../index.md) [x](https://a.md)', [], 'a/b.md', 'a/c/b.md')).toBe(
       '[up](../../index.md) [x](https://a.md)',

@@ -124,6 +124,7 @@
 | `--size-modal-wide` / `--size-modal-wide-height` / `--size-modal-wide-aside` | 960 / 640 / 320 | `.c-modal--wide` (세션 기록: 긴 행, 대화 미리보기) / 목록 열 너비 |
 | `--size-editor-measure` / `--size-editor-side` | 720 / 240 | 노트 에디터 (T67): 전체 창에서 본문 한 줄 최대 너비 / 목차·링크 열 너비 |
 | `--size-doc-check` | 16 | 노트 문서 (T82): 할 일 체크박스, 콜아웃 아이콘 |
+| `--size-explorer` / `--size-tree-row` / `--size-tree-indent` | 256 / 24 / 12 | 노트 탐색기 (T83): 파일 트리 열 / 트리 한 줄(촘촘하게, 목록은 가상화) / 폴더 한 단계 들여쓰기 |
 | `--size-card-list` | 224 | 그래프 카드: 제안된 연결 목록이 스크롤되기 전 높이 (T68) |
 | `--size-board-column` / `--size-code-input` | 256 / 224 | 보드 보기의 열 너비 / 텍스트로 고치는 설정의 높이 (T69) |
 | `--size-focus-row` / `--size-focus-center` / `--size-focus-gap` | 40 / 208 / 48 | 그래프 주변 보기 (T72): 항목 하나(라벨 + 메타 줄) / 가운데 카드 / 두 열 사이 선이 지나갈 자리 |
@@ -201,6 +202,8 @@
 | `.c-field__row`, `.c-field-grid` | 컨트롤 옆에 버튼(경로 + "바꾸기…"); 짧은 필드 두 개를 나란히 |
 | `.c-props` `__head` `__toggle` `__count` `__actions` `__list` `__row` `__key` `__value` `__input` `__remove` `__chips` `__chip` `__raw` | 노트 본문 위의 속성 (T78): 접히는 머리, 키 · 값 · 지우기 줄; 목록 값은 칩, 그대로 두는 값은 모노 |
 | `.c-ntable` `__frame` `__bar` `__chips` `__chip[aria-pressed]` `__head` `__th[aria-sort]` `__sort` `__row` `__group` `__cell[data-editable\|data-editing]` `__open` `__input` `__empty` | 표 보기 (T78): 가상화된 격자, 한 줄 = `--size-row`; 고정된 정렬 머리, 제목 열 다음 속성 열; 위에 필터 / 상태 칩 |
+| `.c-explorer` `__head` `__filter` `__note[data-tone]`, `.c-editor__explorer` | 에디터 왼쪽의 노트 탐색기 열 (T83): 소스 + 정렬 + 버튼, 거르기 칸, 상태 줄(warn = 오류), 그 아래 트리 |
+| `.c-tree` `__spacer` `__section` `__row` (`--level`, `aria-selected` `aria-expanded` `data-current` `data-cursor` `data-drop` `data-dragging` `data-kind`) `__twisty` `__icon` `__name` (`mark` = 거르기 일치) `__count` `__dot[data-tone=done\|active\|other\|changed]` `__actions` `__action` `__input[aria-invalid]` `__ghost` | 가상화된 파일 트리: 고정 높이 `--size-tree-row` 줄을 절대 위치로, 폴더는 노트 수, 노트는 상태 · "방금 바뀜" 점, 마우스를 올리면 버튼, 그 자리에서 이름 입력, 끌 때 따라오는 이름표. 놓을 폴더는 강조색 테두리 |
 
 ## React 컴포넌트 (`design-system/react/`)
 
@@ -243,7 +246,8 @@
 | `CommandList` `label`, `CommandRow` `state` `stateLabel` `command` `time?` `marks?` | `.c-commands`, `.c-command` |
 | `RunList` `label`, `RunItem` `name` `status` `state` `current` `title?` `onClick` | `.c-runs`, `.c-runs__item` |
 | `Graph` `width` `height` `label` `nodes` `edges` `columns?` | `.c-graph` |
-| `NoteEditor` `hostRef` `top?` `side?`, `EditorBanner` `tone?` `actions?`, `EditorCompare`, `EditorSection` `title` `empty?`, `EditorItem` `label` `detail?` `level?` `onClick` | `.c-editor` |
+| `NoteEditor` `hostRef` `top?` `side?` `explorer?` `placeholder?`, `EditorBanner` `tone?` `actions?`, `EditorCompare`, `EditorSection` `title` `empty?`, `EditorItem` `label` `detail?` `level?` `onClick` | `.c-editor` |
+| `Explorer` `label` `head` `filter?` `note?`, `Tree` `label` `height` `scrollRef?` `onScroll?` `onKeyDown?`, `TreeSection` `top`, `TreeRow` `top` `level` `kind` `name` `rel` `matches?` `open?` `selected?` `current?` `cursor?` `drop?` `dragging?` `count?` `dot?` `actions?` `editor?`, `TreeAction` `label` `onClick`, `TreeInput` `value` `label` `invalid?` `onChange` `onSubmit` `onCancel`, `TreeGhost` `x` `y` | `.c-explorer`, `.c-tree` |
 | `ReviewCounts` `added` `removed` `unit?`, `ReviewMeta`, `ReviewConfirm` `actions` | `.c-review` |
 | `NoteIdRow` `actions?`, `NoteIdText` `label` `detail?` `title?`, `NoteIdNote` `tone?` `actions?` | `.c-noteid-*` |
 | `StepList` `label`, `StepItem` `checked` `onToggle` `title` `checkLabel?` `tags?` `meta?` `onHover?` | `.c-steps` |

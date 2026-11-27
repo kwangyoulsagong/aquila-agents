@@ -125,6 +125,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `--size-modal-wide` / `--size-modal-wide-height` / `--size-modal-wide-aside` | 960 / 640 / 320 | `.c-modal--wide` (session history: longer rows, a transcript) / its list column |
 | `--size-editor-measure` / `--size-editor-side` | 720 / 240 | Note editor (T67): longest text line in full window / outline + links column |
 | `--size-doc-check` | 16 | Note document (T82): a to-do checkbox, a callout icon |
+| `--size-explorer` / `--size-tree-row` / `--size-tree-indent` | 256 / 24 / 12 | Note explorer (T83): the file tree column / one tree row (dense, the list is virtualized) / indent per folder level |
 | `--size-card-list` | 224 | Graph card: suggested links before they scroll (T68) |
 | `--size-board-column` / `--size-code-input` | 256 / 224 | A board view's column / the height of settings edited as text (T69) |
 | `--size-focus-row` / `--size-focus-center` / `--size-focus-gap` | 40 / 208 / 48 | Graph focus view (T72): one item (label + meta line) / the centre card / room for links between two columns |
@@ -202,6 +203,8 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `.c-field__row`, `.c-field-grid` | A control with a button beside it (path + "Change…"); two short fields side by side |
 | `.c-props` `__head` `__toggle` `__count` `__actions` `__list` `__row` `__key` `__value` `__input` `__remove` `__chips` `__chip` `__raw` | A note's properties above its text (T78): a folding head, then key · value · remove rows; list values as chips; raw values in mono |
 | `.c-ntable` `__frame` `__bar` `__chips` `__chip[aria-pressed]` `__head` `__th[aria-sort]` `__sort` `__row` `__group` `__cell[data-editable\|data-editing]` `__open` `__input` `__empty` | Table view (T78): a virtualized grid, one `--size-row` per row; sticky sortable header, title column then property columns; filter / status chips above |
+| `.c-explorer` `__head` `__filter` `__note[data-tone]`, `.c-editor__explorer` | Note explorer column left of the editor (T83): source + sort + buttons, a filter field, a status line (warn = an error), then the tree |
+| `.c-tree` `__spacer` `__section` `__row` (`--level`, `aria-selected` `aria-expanded` `data-current` `data-cursor` `data-drop` `data-dragging` `data-kind`) `__twisty` `__icon` `__name` (`mark` = filter match) `__count` `__dot[data-tone=done\|active\|other\|changed]` `__actions` `__action` `__input[aria-invalid]` `__ghost` | A virtualized file tree: fixed `--size-tree-row` rows placed absolutely, folders with a note count, notes with a status / "just changed" dot, hover buttons, a name typed in place, the label following a drag; the drop folder gets an accent outline |
 
 ## React components (`design-system/react/`)
 
@@ -244,7 +247,8 @@ from `src/` (ESLint enforces it). New primitive → add the class to `components
 | `CommandList` `label`, `CommandRow` `state` `stateLabel` `command` `time?` `marks?` | `.c-commands`, `.c-command` |
 | `RunList` `label`, `RunItem` `name` `status` `state` `current` `title?` `onClick` | `.c-runs`, `.c-runs__item` |
 | `Graph` `width` `height` `label` `nodes` `edges` `columns?` | `.c-graph` |
-| `NoteEditor` `hostRef` `top?` `side?`, `EditorBanner` `tone?` `actions?`, `EditorCompare`, `EditorSection` `title` `empty?`, `EditorItem` `label` `detail?` `level?` `onClick` | `.c-editor` |
+| `NoteEditor` `hostRef` `top?` `side?` `explorer?` `placeholder?`, `EditorBanner` `tone?` `actions?`, `EditorCompare`, `EditorSection` `title` `empty?`, `EditorItem` `label` `detail?` `level?` `onClick` | `.c-editor` |
+| `Explorer` `label` `head` `filter?` `note?`, `Tree` `label` `height` `scrollRef?` `onScroll?` `onKeyDown?`, `TreeSection` `top`, `TreeRow` `top` `level` `kind` `name` `rel` `matches?` `open?` `selected?` `current?` `cursor?` `drop?` `dragging?` `count?` `dot?` `actions?` `editor?`, `TreeAction` `label` `onClick`, `TreeInput` `value` `label` `invalid?` `onChange` `onSubmit` `onCancel`, `TreeGhost` `x` `y` | `.c-explorer`, `.c-tree` |
 | `ReviewCounts` `added` `removed` `unit?`, `ReviewMeta`, `ReviewConfirm` `actions` | `.c-review` |
 | `NoteIdRow` `actions?`, `NoteIdText` `label` `detail?` `title?`, `NoteIdNote` `tone?` `actions?` | `.c-noteid-*` |
 | `StepList` `label`, `StepItem` `checked` `onToggle` `title` `checkLabel?` `tags?` `meta?` `onHover?` | `.c-steps` |

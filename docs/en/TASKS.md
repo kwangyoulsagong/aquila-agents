@@ -1008,3 +1008,47 @@ save byte-exact, add the conveniences on top. Built in parallel worktrees, merge
   Fixed on the way: reading mode left `readOnly` false (Backspace / ⌥⇧↓ still edited); the graph's default centre
   could land on top of a search pick made before its effect ran (the "search + Enter" flake).
   _Left over: PDF input (PDFKit) and the Referenced-in session / file rows aren't driven by smoke._
+
+### T83 · Note explorer: browse, create, rename and move notes while writing (2026-11-27)
+- [x] **Goal:** requirement specs live in repo folders (`requirements/specs/in-progress/FE-REQ-030.md`, checklists…);
+  browse them and create / rename / move folders and notes without leaving the editor, links kept working.
+- **Built** (`src/features/note-explorer/`, `electron/graph/note-fs.ts`, `electron/graph/link-rewrite.ts`, `noteFs:*` IPC,
+  design-system `Explorer` / `Tree*` + `.c-explorer` / `.c-tree`, tokens `--size-explorer` / `--size-tree-row` / `--size-tree-indent`):
+  - **Files** column left of the editor (▤ in the head, remembered; full window too). **Note explorer** in ⌘K and
+    **⌘⇧O** (Windows Ctrl+Shift+B; ⌘⇧E is quick select) opens the panel with no note: "Pick a note or make a new one".
+  - The tree of the tab in front's project's sources (same rule as the graph), a picker for the others. Built from
+    the index's file list (no disk walk); empty folders come from one readdir when a folder is expanded. Virtualized
+    (fixed rows); 4,000 notes build + flatten well under the test's 500 ms budget. Folders first, natural sort
+    (`FE-REQ-2` < `FE-REQ-030`, Korean collation), sort picker Name / Modified / Created (per source). Folder note
+    counts; `status:` dot; a "just changed" dot for notes written in the last 5 minutes. Open folders remembered per
+    source; the open note highlighted, its folders opened, **◎ Reveal active note**. **Pinned** and **Recent** at the
+    top, stored per source in `~/.aquila/explorer.json` (never in the repo).
+  - **Filter** box: fuzzy over the whole relative path and title (IDs, Korean), matched folders open, Enter opens the
+    best match.
+  - **Actions** (right-click native menu, hover buttons, keys): New note (the source's `newNotes` template, else
+    `# Title`; suggests the next ID when siblings share one: `FE-REQ-029`, `FE-REQ-030` → `FE-REQ-031`), New folder,
+    Rename (F2), Move (drag with a 4 px threshold, hover-to-open folders, drop outline, Esc cancels, same-folder drop
+    is a no-op; or **Move to…** with a folder search), Pin, Reveal in Finder, Open in default app, Copy path / relative
+    path, Move to Trash (`shell.trashItem`, always asks). ⌘ / ⇧-click multi-select for bulk move / Trash. Keys while
+    the tree has focus: ↑↓ ←→ Enter F2 ⌘⌫ ⌘N ⌘Z.
+  - **Undo** (⌘Z in the tree, kept in memory): move, rename, new folder (while empty), new note (while untouched). The
+    Trash isn't undoable — the confirm says so (Finder can put it back).
+  - **Links:** after a rename / move, the index's edges give the notes linking to what moved (plus the moved notes'
+    own relative links); "Fix the links in N notes?" lists them; on yes only the link spans change (`[[name]]`,
+    `[[name#h|alias]]`, path-form wikilinks, relative `[..](a/b.md)` with encoding / `<…>` kept), through the
+    refuse-if-changed write; code fences and inline code untouched, CRLF / BOM kept. Asked every time.
+  - **Safety (main):** every path checked: enabled source, no empty / `.` / `..` / hidden part, the deepest existing
+    folder resolved through symlinks must stay inside the source; names with `/ \ :` or a leading `.` refused; never
+    overwrites (a taken name is an inline error; case-only renames allowed). The open editor saves first and follows a
+    rename / move of its note (no "file deleted").
+- **Tests:** `note-fs.test.ts` (guards, `..`, symlink escape, bad names, collisions, template, rename → links → fix,
+  folder move, refused writes, trash / undo, prefs), `link-rewrite.test.ts` (alias / heading / path wikilinks, md links,
+  encoding, CRLF, code untouched), `tree.test.ts` (tree + empty folders, natural sort, filter, next ID, scoping,
+  4,000 notes), `vault.test.ts` (draft from the template). Smoke `explorer` (`electron/notesSmoke.ts`): ⌘⇧O empty
+  state, nested tree with counts, New folder, New note from the template with the next ID, F2 rename → confirm →
+  link spans rewritten exactly (CRLF), drag onto a folder → editor follows, links fixed again, ⌘Z undo, filter +
+  Enter, folder to the Trash; screenshots `dist/smoke-explorer.png`, `dist/smoke-explorer-links.png`.
+  _Left over: the nice-to-haves — group by `status` as virtual folders, folder notes (index.md / README.md), sticky
+  parent rows, compact single-child chains; "always / never" for the links question; no auto-scroll while dragging
+  near the tree's edge; the Trash can't be undone from the app; the native context menu isn't driven by smoke (its
+  actions are, through keys and hover buttons). Guide text / media not updated._

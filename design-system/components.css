@@ -1409,7 +1409,8 @@ body {
 .c-editor__explorer { flex: none; width: var(--size-explorer); min-height: 0; display: flex; border-right: 1px solid var(--color-border-subtle); background: var(--color-bg-surface); }
 .c-explorer { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
 .c-explorer__head { flex: none; display: flex; align-items: center; gap: var(--space-inline-xs); padding: var(--space-inline-xs) var(--space-inset-sm); border-bottom: 1px solid var(--color-border-subtle); }
-.c-explorer__head > .c-select { flex: 1; min-width: 0; }
+.c-explorer__head > .c-select { flex: 0 1 auto; min-width: 0; }
+.c-explorer__head > .c-select:first-child { flex: 1 1 0; }
 .c-explorer__filter { flex: none; padding: var(--space-inline-xs) var(--space-inset-sm); }
 .c-explorer__note { flex: none; padding: var(--space-inline-xs) var(--space-inset-md); font-size: var(--font-size-caption); color: var(--color-text-tertiary); }
 .c-explorer__note[data-tone='warn'] { color: var(--color-status-waiting); }

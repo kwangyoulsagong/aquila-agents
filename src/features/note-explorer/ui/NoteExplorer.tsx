@@ -149,7 +149,8 @@ export default function NoteExplorer({
   );
   const [picked, setPicked] = useState<string | null>(null);
   useEffect(() => {
-    if (currentSource) setPicked(null);
+    // Follows the open note to its source and stays there (a renamed note is briefly not in the index).
+    if (currentSource) setPicked(currentSource);
   }, [currentSource]);
   const has = (id: string | null | undefined): id is string => !!id && enabled.some((s) => s.id === id);
   const sourceId = has(picked)
@@ -253,7 +254,11 @@ export default function NoteExplorer({
   const anchor = useRef<string | null>(null);
   const [editing, setEditing] = useState<Editing | null>(null);
   const [note, setNote] = useState<{ text: string; warn?: boolean } | null>(null);
-  const [linkAsk, setLinkAsk] = useState<{ files: NoteFsMove[]; links: NoteFsLinkNote[] } | null>(null);
+  const [linkAsk, setLinkAsk] = useState<{
+    sourceId: string;
+    files: NoteFsMove[];
+    links: NoteFsLinkNote[];
+  } | null>(null);
   const [trashAsk, setTrashAsk] = useState<string[] | null>(null);
   const [moveAsk, setMoveAsk] = useState<string[] | null>(null);
   const history = useRef<Op[]>([]);
@@ -400,7 +405,7 @@ export default function NoteExplorer({
       if (next !== currentRel) onMoved(abs(next));
     }
     setNote(null);
-    if (res.links.length) setLinkAsk({ files: res.files, links: res.links });
+    if (res.links.length && sourceId) setLinkAsk({ sourceId, files: res.files, links: res.links });
     refreshSoon();
   };
 
@@ -495,10 +500,10 @@ export default function NoteExplorer({
   const fixLinks = async () => {
     const ask = linkAsk;
     setLinkAsk(null);
-    if (!ask || !sourceId) return;
+    if (!ask) return;
     await beforeChange();
     const r = await api.noteFsFixLinks(
-      sourceId,
+      ask.sourceId,
       ask.files,
       ask.links.map((l) => l.rel),
     );
@@ -769,13 +774,13 @@ export default function NoteExplorer({
 
   const head = (
     <>
-        <Select
-          aria-label={t('explorer.source')}
-          title={t('explorer.source')}
-          value={sourceId ?? ''}
-          options={sourceOptions}
-          onChange={(v) => setPicked(v)}
-        />
+      <Select
+        aria-label={t('explorer.source')}
+        title={t('explorer.source')}
+        value={sourceId ?? ''}
+        options={sourceOptions}
+        onChange={(v) => setPicked(v)}
+      />
       <Select
         aria-label={t('explorer.sort')}
         title={t('explorer.sort')}

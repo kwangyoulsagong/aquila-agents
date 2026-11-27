@@ -233,7 +233,15 @@ export async function checkNoteFeatures(
       return 'notes: the fixture notes never reached the index';
     await ctx.cdp('Emulation.setFocusEmulationEnabled', { enabled: true });
 
-    for (const check of [checkBlocks, checkProperties, checkIds, checkReview, checkWhatIsThis, checkLook]) {
+    for (const check of [
+      checkBlocks,
+      checkProperties,
+      checkIds,
+      checkReview,
+      checkWhatIsThis,
+      checkLook,
+      checkExplorer,
+    ]) {
       const error = await check(ctx, sourceId);
       if (error) return error;
     }
@@ -241,6 +249,7 @@ export async function checkNoteFeatures(
   } finally {
     // Back to editing (reading mode is remembered) and close the editor.
     await js(`localStorage.setItem('aquila.note.reading', '0')`).catch(() => undefined);
+    await js(`localStorage.setItem('aquila.note.explorer', '0')`).catch(() => undefined);
     await js(`document.querySelector('${noteAside} .c-panel__actions button:last-child')?.click()`).catch(
       () => undefined,
     );
@@ -783,4 +792,277 @@ async function checkLook(c: Ctx): Promise<string | null> {
     `[smoke] look: header, callout / table / code cards; ⌘E reading mode (typing / Backspace / ⌥⇧↓ ignored, checkbox wrote [x]) and back, screenshots: ${editShot}, ${readShot}`,
   );
   return null;
+}
+/** T83: a second throwaway source with nested folders, a `newNotes` template and a note linking to a spec. */
+const EXPLORER_FIXTURES: Record<string, string> = {
+  '.aquila-vault.json': JSON.stringify({
+    v: 1,
+    templates: [
+      {
+        id: 'spec',
+        name: 'Spec',
+        folder: 'inbox',
+        file: '{{title}}.md',
+        body: '---\nstatus: todo\n---\n# {{title}}\n',
+      },
+    ],
+    newNotes: 'spec',
+  }),
+  'specs/in-progress/FE-REQ-029.md': '# Explorer twenty-nine\n',
+  'specs/in-progress/FE-REQ-030.md': '# Explorer thirty\n\nBody.\n',
+  'specs/done/FE-REQ-001.md': '# Explorer one\n',
+  'notes/linker.md': CRLF([
+    '# Explorer linker',
+    '',
+    'See [[FE-REQ-030|the spec]] and [x](../specs/in-progress/FE-REQ-030.md).',
+    '',
+  ]),
+};
+
+/**
+ * T83: ⌘⇧O opens the editor panel with the explorer and no note; the tree lists the nested folders with counts;
+ * New folder; New note suggests the next ID and uses the template; F2 renames the open note → the link question →
+ * exactly the two link spans rewritten (CRLF kept) and the editor follows; a drag onto a folder moves it (editor
+ * follows, links fixed again); ⌘Z undoes the move (links left as they are on "Leave them"); the filter + Enter opens
+ * a match; Trash removes a folder (to the macOS Trash, not emptied).
+ */
+async function checkExplorer(c: Ctx): Promise<string | null> {
+  const t = c.t;
+  const dir = fs.mkdtempSync(path.join(app.getPath('temp'), 'aquila-smoke-explorer-'));
+  const at = (rel: string) => path.join(dir, ...rel.split('/'));
+  for (const [rel, text] of Object.entries(EXPLORER_FIXTURES)) {
+    fs.mkdirSync(path.dirname(at(rel)), { recursive: true });
+    fs.writeFileSync(at(rel), text);
+  }
+  const read = (rel: string) => (fs.existsSync(at(rel)) ? fs.readFileSync(at(rel), 'utf8') : null);
+  const poll = async (ok: () => boolean, ms = 5000) => {
+    for (let i = 0; i < ms / 100; i++) {
+      if (ok()) return true;
+      await wait(100);
+    }
+    return false;
+  };
+  const ROW = (rel: string) =>
+    `[...document.querySelectorAll('.c-explorer .c-tree__row')].filter((r) => r.dataset.rel === ${JSON.stringify(rel)}).pop()`;
+  const head = (p: string) =>
+    `document.querySelector('${c.noteAside} .c-panel__head > span')?.getAttribute('title') === ${JSON.stringify(p)}`;
+  const inputValue = (v: string) =>
+    `document.activeElement?.classList.contains('c-tree__input') && document.activeElement.value === ${JSON.stringify(v)}`;
+  const linkQuestion = `[...document.querySelectorAll('.c-dialog[open]')].some((d) => d.textContent.includes('notes/linker.md'))`;
+  const dialogButton = (label: string) =>
+    c.js<boolean>(`(() => {
+      const b = [...document.querySelectorAll('.c-dialog[open] button')].find((x) => x.textContent === ${JSON.stringify(label)});
+      b?.click();
+      return !!b;
+    })()`);
+  const focusTree = () => c.js(`document.querySelector('.c-explorer .c-tree').focus()`);
+  const rowAction = (rel: string, label: string) =>
+    c.js<boolean>(`(() => {
+      const b = [...(${ROW(rel)}?.querySelectorAll('button') ?? [])].find((x) => x.getAttribute('aria-label') === ${JSON.stringify(label)});
+      b?.click();
+      return !!b;
+    })()`);
+  let sourceId = '';
+  try {
+    const st = await c.js<{ sources: { id: string; path: string }[] }>(
+      `window.aquila.graphAddSource(${JSON.stringify(dir)})`,
+    );
+    sourceId = st.sources.find((x) => x.path === dir || x.path.endsWith(path.basename(dir)))?.id ?? '';
+    if (!sourceId) return 'explorer: the fixture source was not added';
+    const linker = at('notes/linker.md');
+    const spec = at('specs/in-progress/FE-REQ-030.md');
+    if (
+      !(await c.until(
+        `window.aquila.graphSnapshot({ notesOnly: true }).then((g) => {
+          const id = (p) => g.nodes.find((n) => n.path === p)?.id;
+          return g.edges.some((e) => e.source === id(${JSON.stringify(linker)}) && e.target === id(${JSON.stringify(spec)}));
+        })`,
+        15_000,
+      ))
+    )
+      return 'explorer: the index never linked notes/linker.md to FE-REQ-030';
+
+    // No note open: ⌘⇧O opens the panel with the explorer and the empty state.
+    await c.js(`document.querySelector('${c.noteAside} .c-panel__actions button:last-child')?.click()`);
+    await c.until(`!document.querySelector('${c.noteAside}')`, 3000);
+    c.h.press(c.win, 'O', ['meta', 'shift']);
+    if (!(await c.until(`!!document.querySelector('${c.noteAside} .c-explorer')`)))
+      return 'explorer: ⌘⇧O did not open the panel with the explorer';
+    if (
+      !(await c.until(
+        `document.querySelector('${c.noteAside} .c-empty__title')?.textContent === ${JSON.stringify(t('explorer.empty'))}`,
+        3000,
+      ))
+    )
+      return 'explorer: no "pick a note" empty state';
+    await c.js(`(() => {
+      const s = document.querySelector('.c-explorer select[aria-label=${JSON.stringify(t('explorer.source'))}]');
+      if (!s) return;
+      const set = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
+      set.call(s, ${JSON.stringify(sourceId)});
+      s.dispatchEvent(new Event('change', { bubbles: true }));
+    })()`);
+    if (
+      !(await c.until(
+        `${ROW('specs')}?.querySelector('.c-tree__count')?.textContent === '3' && !!${ROW('notes')}`,
+      ))
+    )
+      return 'explorer: the tree does not list "specs" (3 notes) and "notes"';
+    await c.js(`${ROW('specs')}.click()`);
+    if (!(await c.until(`!!${ROW('specs/in-progress')} && !!${ROW('specs/done')}`, 3000)))
+      return 'explorer: clicking "specs" did not open it';
+    await c.js(`${ROW('specs/in-progress')}.click()`);
+    if (!(await c.until(`!!${ROW('specs/in-progress/FE-REQ-030.md')}`, 3000)))
+      return 'explorer: clicking "in-progress" did not open it';
+
+    // New folder.
+    if (!(await rowAction('specs', t('explorer.newFolder'))))
+      return 'explorer: no New folder button on "specs"';
+    if (!(await c.until(inputValue(''), 3000))) return 'explorer: New folder showed no name field';
+    c.win.webContents.insertText('archive');
+    c.h.press(c.win, 'Enter', []);
+    if (!(await poll(() => !!fs.statSync(at('specs/archive'), { throwIfNoEntry: false })?.isDirectory())))
+      return 'explorer: New folder did not make specs/archive';
+    if (!(await c.until(`!!${ROW('specs/archive')}`, 3000)))
+      return 'explorer: the new empty folder is not listed';
+
+    // New note: the next ID suggested, the template applied, the note opens.
+    if (!(await rowAction('specs/in-progress', t('explorer.newNote'))))
+      return 'explorer: no New note button on "in-progress"';
+    if (!(await c.until(inputValue('FE-REQ-031'), 3000)))
+      return 'explorer: New note did not suggest FE-REQ-031';
+    c.h.press(c.win, 'Enter', []);
+    const created = 'specs/in-progress/FE-REQ-031.md';
+    if (!(await poll(() => read(created) === '---\nstatus: todo\n---\n# FE-REQ-031\n')))
+      return `explorer: the new note is ${JSON.stringify(read(created))}, not the template`;
+    if (!(await c.until(head(at(created)), 5000))) return 'explorer: the new note did not open';
+
+    // Open FE-REQ-030, F2 → rename → fix links.
+    await c.js(`${ROW('specs/in-progress/FE-REQ-030.md')}.click()`);
+    if (
+      !(await c.until(
+        `${head(spec)} && !!document.querySelector('.c-editor .cm-content')?.textContent.includes('Explorer thirty')`,
+      ))
+    )
+      return 'explorer: clicking FE-REQ-030 did not open it';
+    await wait(400);
+    await focusTree();
+    c.h.press(c.win, 'F2', []);
+    if (!(await c.until(inputValue('FE-REQ-030'), 3000))) return 'explorer: F2 showed no rename field';
+    c.win.webContents.insertText('FE-REQ-030 login');
+    c.h.press(c.win, 'Enter', []);
+    const renamed = 'specs/in-progress/FE-REQ-030 login.md';
+    if (
+      !(await poll(
+        () =>
+          read(renamed) === '# Explorer thirty\n\nBody.\n' &&
+          read('specs/in-progress/FE-REQ-030.md') === null,
+      ))
+    )
+      return 'explorer: F2 did not rename FE-REQ-030';
+    if (!(await c.until(linkQuestion))) return 'explorer: no "fix links?" question after the rename';
+    if (read('notes/linker.md') !== EXPLORER_FIXTURES['notes/linker.md'])
+      return 'explorer: links were rewritten before the yes';
+    const linksShot = await c.shot('explorer-links');
+    if (!(await dialogButton(t('explorer.links.fix')))) return 'explorer: no "Fix links" button';
+    const want1 = CRLF([
+      '# Explorer linker',
+      '',
+      'See [[FE-REQ-030 login|the spec]] and [x](../specs/in-progress/FE-REQ-030%20login.md).',
+      '',
+    ]);
+    if (!(await poll(() => read('notes/linker.md') === want1)))
+      return `explorer: links after the rename: ${JSON.stringify(read('notes/linker.md'))}`;
+    if (!(await c.until(head(at(renamed)), 3000))) return 'explorer: the editor did not follow the rename';
+
+    // Drag the open note onto specs/done.
+    const box = (rel: string) =>
+      c.js<{ x: number; y: number } | null>(`(() => {
+        const r = ${ROW(rel)}?.getBoundingClientRect();
+        return r ? { x: r.left + 48, y: r.top + r.height / 2 } : null;
+      })()`);
+    if (!(await c.until(`!!${ROW(renamed)}`, 3000))) return 'explorer: the renamed note is not in the tree';
+    const from = await box(renamed);
+    const to = await box('specs/done');
+    if (!from || !to) return 'explorer: rows to drag are not on screen';
+    c.mouse('mouseMove', from.x, from.y);
+    c.mouse('mouseDown', from.x, from.y);
+    for (let i = 1; i <= 8; i++) {
+      c.mouse('mouseMove', from.x, from.y + ((to.y - from.y) * i) / 8, ['leftbuttondown']);
+      await wait(30);
+    }
+    const dropShown = await c.js<boolean>(`!!${ROW('specs/done')}?.hasAttribute('data-drop')`);
+    c.mouse('mouseUp', to.x, to.y);
+    const movedRel = 'specs/done/FE-REQ-030 login.md';
+    if (!(await poll(() => read(movedRel) !== null && read(renamed) === null)))
+      return `explorer: dragging onto specs/done did not move the note (drop target shown: ${dropShown})`;
+    if (!(await c.until(linkQuestion))) return 'explorer: no "fix links?" question after the move';
+    await dialogButton(t('explorer.links.fix'));
+    const want2 = want1.replace('in-progress/FE-REQ-030%20login', 'done/FE-REQ-030%20login');
+    if (!(await poll(() => read('notes/linker.md') === want2)))
+      return `explorer: links after the move: ${JSON.stringify(read('notes/linker.md'))}`;
+    if (!(await c.until(head(at(movedRel)), 3000))) return 'explorer: the editor did not follow the move';
+    await wait(500);
+    if (
+      await c.js<boolean>(
+        `!!document.querySelector('${c.noteAside}')?.textContent.includes(${JSON.stringify(t('note.deleted'))})`,
+      )
+    )
+      return 'explorer: the editor says the moved note was deleted';
+
+    // ⌘Z undoes the move; "Leave them" writes nothing.
+    await focusTree();
+    c.h.press(c.win, 'Z', ['meta']);
+    if (!(await poll(() => read(renamed) !== null && read(movedRel) === null)))
+      return 'explorer: ⌘Z did not undo the move';
+    if (await c.until(linkQuestion, 3000)) await dialogButton(t('explorer.links.skip'));
+    await wait(300);
+    if (read('notes/linker.md') !== want2) return 'explorer: "Leave them" changed the links';
+    if (!(await c.until(head(at(renamed)), 3000))) return 'explorer: the editor did not follow the undo';
+
+    // Filter + Enter opens the first match.
+    await c.js(`(() => {
+      const input = document.querySelector('.c-explorer input[aria-label=${JSON.stringify(t('explorer.filter'))}]');
+      input.focus();
+      const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+      set.call(input, '031');
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    })()`);
+    if (
+      !(await c.until(
+        `(() => { const files = [...document.querySelectorAll('.c-explorer .c-tree__row[data-kind=file]')]; return files.length === 1 && files[0].dataset.rel === ${JSON.stringify(created)}; })()`,
+        3000,
+      ))
+    )
+      return 'explorer: the filter "031" did not leave FE-REQ-031 alone';
+    c.h.press(c.win, 'Enter', []);
+    if (!(await c.until(head(at(created)), 3000)))
+      return 'explorer: Enter in the filter did not open the match';
+    const shot = await c.shot('explorer');
+    await c.js(`(() => {
+      const input = document.querySelector('.c-explorer input[aria-label=${JSON.stringify(t('explorer.filter'))}]');
+      const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+      set.call(input, '');
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    })()`);
+
+    // Trash a folder (asks first).
+    if (!(await c.until(`!!${ROW('specs/archive')}`, 3000))) return 'explorer: specs/archive is not listed';
+    await c.js(`${ROW('specs/archive')}.click()`);
+    await focusTree();
+    c.h.press(c.win, 'Backspace', ['meta']);
+    if (!(await c.until(`!!document.querySelector('.c-dialog[open]')`, 3000)))
+      return 'explorer: ⌘⌫ did not ask before the Trash';
+    await dialogButton(t('explorer.delete'));
+    if (!(await poll(() => !fs.existsSync(at('specs/archive')))))
+      return 'explorer: specs/archive was not moved to the Trash';
+    console.log(
+      `[smoke] explorer: ⌘⇧O empty state, nested tree with counts, New folder, New note FE-REQ-031 from the template, F2 rename → links fixed exactly (CRLF kept), drag onto specs/done (drop target ${dropShown ? 'shown' : 'not seen'}) → editor followed, ⌘Z undo, filter + Enter, folder to the Trash; screenshots: ${shot}, ${linksShot}`,
+    );
+    return null;
+  } finally {
+    if (sourceId)
+      await c.js(`window.aquila.graphRemoveSource(${JSON.stringify(sourceId)})`).catch(() => undefined);
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 }
