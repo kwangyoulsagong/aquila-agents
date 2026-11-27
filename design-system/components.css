@@ -1269,6 +1269,38 @@ body {
 .c-editor .cm-md-table table { border-collapse: collapse; font-size: var(--font-size-body); }
 .c-editor .cm-md-table th, .c-editor .cm-md-table td { padding: var(--space-inline-xs) var(--space-inset-sm); border: 1px solid var(--color-border-subtle); cursor: text; }
 .c-editor .cm-md-table th { font-weight: 600; background: var(--color-bg-surface); }
+/* Blocks (T77): a ⋮⋮ handle left of the hovered block (drag to move, click for its menu), the drop line while
+   dragging, the block menu, and slash-menu rows (the autocomplete tooltip above). Positioned by the editor. */
+.c-editor__handle {
+  position: absolute; z-index: 2; display: flex; align-items: center; justify-content: center;
+  width: var(--size-badge); height: var(--size-control); padding: 0; border: 0; border-radius: var(--radius-badge);
+  background: none; color: var(--color-text-tertiary); font: inherit; font-size: var(--font-size-label); cursor: grab;
+  touch-action: none; user-select: none; animation: c-fade-in var(--motion-fast) var(--motion-ease);
+  transition: background var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease);
+}
+.c-editor__handle[hidden] { display: none; }
+.c-editor__handle:hover, .c-editor__handle[aria-expanded='true'] { background: var(--color-bg-hover); color: var(--color-text-secondary); }
+.c-editor__handle[data-dragging] { cursor: grabbing; background: var(--color-bg-pressed); color: var(--color-text-primary); }
+.c-editor__handle:focus-visible { outline: none; box-shadow: inset 0 0 0 1px var(--color-border-focus); }
+.c-editor__drop { position: absolute; z-index: 2; height: var(--size-focus-line); border-radius: var(--radius-badge); background: var(--color-border-focus); pointer-events: none; }
+.c-editor__drop[hidden] { display: none; }
+.c-editor__menu {
+  position: absolute; z-index: 3; min-width: var(--size-editor-side); max-height: var(--size-palette-list); overflow: auto;
+  padding: var(--space-inline-xs) 0; border: 1px solid var(--color-border-subtle); border-radius: var(--radius-control);
+  background: var(--color-bg-surface); color: var(--color-text-primary); font-family: var(--font-family-ui);
+  animation: c-fade-in var(--motion-fast) var(--motion-ease);
+}
+.c-editor__menu:focus { outline: none; }
+.c-editor__menu-title { padding: var(--space-inline-xs) var(--space-inset-sm); font-size: var(--font-size-caption); color: var(--color-text-tertiary); }
+.c-editor__menu-item {
+  display: flex; align-items: center; gap: var(--space-inline-sm); width: 100%; padding: var(--space-inline-xs) var(--space-inset-sm);
+  border: 0; background: none; color: var(--color-text-primary); font: inherit; font-size: var(--font-size-label); text-align: left; cursor: pointer;
+}
+.c-editor__menu-item:hover, .c-editor__menu-item:focus-visible { outline: none; background: var(--color-bg-hover); }
+.c-editor__menu-item:disabled { color: var(--color-text-tertiary); cursor: default; background: none; }
+.c-editor__menu-hint { margin-left: auto; font-family: var(--font-family-mono); font-size: var(--font-size-caption); color: var(--color-text-tertiary); }
+.c-editor__menu-sep { margin: var(--space-inline-xs) 0; border-top: 1px solid var(--color-border-subtle); }
+.c-editor .c-editor__slash-item .cm-completionDetail { font-family: var(--font-family-mono); font-size: var(--font-size-caption); }
 
 /* Companion files as tabs above the text, the note's actions at the end of the row (T69). */
 .c-editor__tabs {

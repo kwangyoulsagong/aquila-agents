@@ -33,7 +33,7 @@ export interface NoteEditorState {
   text: string;
 }
 
-type Callbacks = Pick<EditorOptions, 'links' | 'onOpenLink'>;
+type Callbacks = Pick<EditorOptions, 'links' | 'onOpenLink' | 't'>;
 
 /**
  * One CodeMirror view for the panel's lifetime; `path` swaps the note in it. Keeps the text as read plus every
@@ -171,6 +171,7 @@ export function useNoteEditor(host: HTMLElement | null, path: string, cb: Callba
 
     const extensions = editorExtensions({
       links: () => cbRef.current.links(),
+      t: () => cbRef.current.t(),
       onOpenLink: (t) => cbRef.current.onOpenLink(t),
       onOpenUrl: (url) => void api.noteOpenUrl(url),
       imageSrc: (target) => imageSrc(path, target),
