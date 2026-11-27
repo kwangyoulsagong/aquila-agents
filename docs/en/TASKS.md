@@ -1101,3 +1101,11 @@ save byte-exact, add the conveniences on top. Built in parallel worktrees, merge
 - Also fixed: the requirement-ID hover card and the project context menus were always Korean (their hooks ran in the
   workspace page above its language provider, so `useT()` gave the default); they take the config's language now.
   _Left over: guide media for the new items are captured in a demo state (stills + loops), not driven by smoke._
+- [x] **Review fixes**: every hidden `claude -p` (brief, graph extraction, Make with Claude, news summary) runs with
+  `--tools "" --strict-mcp-config` (the brief with Figma: only Aquila's Figma config and its two read tools; the apply
+  analysis: plan mode, `Read,Glob,Grep` only); rename/move finds linkers stored in either edge direction; a moved note
+  re-bases its own images and file links; What is this? cancels a running brief when the input changes and drops a
+  reply for another input (cache key also holds language + account); only the editor's real open records a note as
+  seen (helpers use `noteRead`); a `newNotes` pattern without `{{title}}` keeps the typed name / suffixes the rendered
+  stem; the table ignores a slow reply for the previous source; a disabled exact link rule beats a covering legacy
+  one; `--size-underline-offset` token.
