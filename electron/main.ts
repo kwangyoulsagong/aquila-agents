@@ -88,6 +88,7 @@ import {
   prepareBrief,
   runClaudeBrief,
 } from './brief';
+import { pdfText } from './pdf-text';
 import { cleanIds } from './graph/related';
 import { PowerWatcher, type PowerSource } from './power';
 import { FIXTURE_NOW, fixtureFetcher, NewsService, readHead } from './news';
@@ -1307,6 +1308,9 @@ app.whenReady().then(async () => {
     });
   });
   ipcMain.on(IPC.briefCancel, (_e, id: string) => briefs.cancel(String(id)));
+  ipcMain.handle(IPC.briefPdfText, (_e, data: unknown) =>
+    data instanceof Uint8Array ? pdfText(data) : { error: 'unreadable' as const },
+  );
   ipcMain.handle(IPC.briefTargets, (_e, projectId: string | null): BriefTargets => {
     const enabled = graph.status().sources.filter((x) => x.enabled);
     const root = (() => {

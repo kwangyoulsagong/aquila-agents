@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { translator } from '@/shared/i18n';
 import type { BriefFields, RelatedNote } from '@/shared/api';
-import { checkFile, defaultTitle, isEmpty, MAX_FILE_BYTES, termIds, whyLabel } from './brief';
+import { checkFile, defaultTitle, isEmpty, MAX_FILE_BYTES, MAX_PDF_BYTES, termIds, whyLabel } from './brief';
 
 const fields = (over: Partial<BriefFields> = {}): BriefFields => ({
   product: '',
@@ -14,11 +14,13 @@ const fields = (over: Partial<BriefFields> = {}): BriefFields => ({
 });
 
 describe('checkFile', () => {
-  it('reads text files; PDFs and binaries are unsupported; big files refused', () => {
-    expect(checkFile('guide.md', '', 10)).toEqual({ ok: true });
-    expect(checkFile('mail.eml', 'message/rfc822', 10)).toEqual({ ok: true });
-    expect(checkFile('notes', 'text/plain', 10)).toEqual({ ok: true });
-    expect(checkFile('spec.pdf', 'application/pdf', 10)).toEqual({ ok: false, reason: 'unsupported' });
+  it('reads text files and PDFs; binaries are unsupported; big files refused', () => {
+    expect(checkFile('guide.md', '', 10)).toEqual({ ok: true, pdf: false });
+    expect(checkFile('mail.eml', 'message/rfc822', 10)).toEqual({ ok: true, pdf: false });
+    expect(checkFile('notes', 'text/plain', 10)).toEqual({ ok: true, pdf: false });
+    expect(checkFile('spec.pdf', 'application/pdf', 10)).toEqual({ ok: true, pdf: true });
+    expect(checkFile('scan', 'application/pdf', MAX_FILE_BYTES + 1)).toEqual({ ok: true, pdf: true });
+    expect(checkFile('huge.pdf', '', MAX_PDF_BYTES + 1)).toEqual({ ok: false, reason: 'tooBig' });
     expect(checkFile('shot.png', 'image/png', 10)).toEqual({ ok: false, reason: 'unsupported' });
     expect(checkFile('big.txt', 'text/plain', MAX_FILE_BYTES + 1)).toEqual({ ok: false, reason: 'tooBig' });
   });

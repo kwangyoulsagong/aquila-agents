@@ -1477,6 +1477,8 @@ export interface AquilaApi {
   /** T81: one hidden `claude -p` on the user's click (cached per input for the session). `id` is for cancel. */
   briefRun(req: BriefRunRequest): Promise<BriefResult>;
   briefCancel(id: string): void;
+  /** T81: the text of a dropped / picked PDF (≤ 20 MB), read on this Mac — nothing is sent anywhere. */
+  briefPdfText(data: Uint8Array): Promise<BriefPdfText>;
   /** T81: note sources a brief can be saved into, the current project's first. */
   briefTargets(projectId: string | null): Promise<BriefTargets>;
   /** T81: writes the brief as a new note (only on "Save as note"): its path, or null. */
@@ -1714,6 +1716,8 @@ export interface BriefInput {
 }
 
 export type BriefSourceKind = 'text' | 'markdown' | 'email' | 'html' | 'figma';
+/** T81: a PDF's text, read locally (macOS PDFKit), or why not: no text layer (scanned), locked, not readable. */
+export type BriefPdfText = { text: string } | { error: 'empty' | 'locked' | 'unreadable' | 'unsupported' };
 export type BriefModel = 'haiku' | 'sonnet';
 
 /** Exactly what goes to Claude, shown before the run. */
@@ -1956,6 +1960,7 @@ export const IPC = {
   briefPrepare: 'brief:prepare',
   briefRun: 'brief:run',
   briefCancel: 'brief:cancel',
+  briefPdfText: 'brief:pdf-text',
   briefTargets: 'brief:targets',
   briefSave: 'brief:save',
   graphRelated: 'graph:related',

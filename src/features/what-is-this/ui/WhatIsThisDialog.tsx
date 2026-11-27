@@ -146,7 +146,7 @@ export default function WhatIsThisDialog({ projectId, seed, onClose, onOpenNote 
             ref={fileRef}
             type="file"
             hidden
-            accept=".md,.markdown,.txt,.eml,.html,.htm,text/*"
+            accept=".md,.markdown,.txt,.eml,.html,.htm,.pdf,text/*,application/pdf"
             onChange={(e) => {
               const file = e.target.files?.[0];
               e.target.value = '';

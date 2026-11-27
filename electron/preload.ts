@@ -165,6 +165,7 @@ const api: AquilaApi = {
   briefPrepare: (input, projectId) => ipcRenderer.invoke(IPC.briefPrepare, { input, projectId }),
   briefRun: (req) => ipcRenderer.invoke(IPC.briefRun, req),
   briefCancel: (id) => ipcRenderer.send(IPC.briefCancel, id),
+  briefPdfText: (data) => ipcRenderer.invoke(IPC.briefPdfText, data),
   briefTargets: (projectId) => ipcRenderer.invoke(IPC.briefTargets, projectId),
   briefSave: (req) => ipcRenderer.invoke(IPC.briefSave, req),
   graphRelated: (text, ids) => ipcRenderer.invoke(IPC.graphRelated, { text, ids }),

@@ -1,18 +1,22 @@
-import type { BriefFields, BriefInput, RelatedNote } from '@/shared/api';
+import { api, type BriefFields, type BriefInput, type RelatedNote } from '@/shared/api';
 import type { Translate } from '@/shared/i18n';
 
-/** Files read as text in the renderer; main sanitizes them. PDFs and the rest: "copy and paste the text". */
+/** Files read as text in the renderer; main sanitizes them. PDFs: their text, read by main (macOS PDFKit). */
 const TEXT_FILE = /\.(md|markdown|mdx|txt|text|eml|html?|csv|json|ya?ml)$/i;
+const PDF_FILE = /\.pdf$/i;
 /** A bigger file is refused before it is read (main caps what is sent at 20k characters anyway). */
 export const MAX_FILE_BYTES = 5 * 1024 * 1024;
+/** PDFs carry fonts and images: more room (main refuses above this too). */
+export const MAX_PDF_BYTES = 20 * 1024 * 1024;
 
-export type FileCheck = { ok: true } | { ok: false; reason: 'unsupported' | 'tooBig' };
+export type FileCheck = { ok: true; pdf: boolean } | { ok: false; reason: 'unsupported' | 'tooBig' };
 
 export function checkFile(name: string, type: string, size: number): FileCheck {
-  const text = TEXT_FILE.test(name) || (type.startsWith('text/') && !/\.pdf$/i.test(name));
-  if (!text) return { ok: false, reason: 'unsupported' };
-  if (size > MAX_FILE_BYTES) return { ok: false, reason: 'tooBig' };
-  return { ok: true };
+  const pdf = PDF_FILE.test(name) || type === 'application/pdf';
+  const text = !pdf && (TEXT_FILE.test(name) || type.startsWith('text/'));
+  if (!pdf && !text) return { ok: false, reason: 'unsupported' };
+  if (size > (pdf ? MAX_PDF_BYTES : MAX_FILE_BYTES)) return { ok: false, reason: 'tooBig' };
+  return { ok: true, pdf };
 }
 
 /** What was dropped / picked: an input to prepare, or why it can't be one. */
@@ -24,7 +28,11 @@ export async function readFile(file: File, t: Translate): Promise<BriefSeed> {
     return {
       error: t(check.reason === 'tooBig' ? 'brief.tooBig' : 'brief.unsupported', { name: file.name }),
     };
-  return { name: file.name, text: await file.text() };
+  if (!check.pdf) return { name: file.name, text: await file.text() };
+  const r = await api.briefPdfText(new Uint8Array(await file.arrayBuffer()));
+  return 'text' in r
+    ? { name: file.name, text: r.text }
+    : { error: t(`brief.pdf.${r.error}`, { name: file.name }) };
 }
 
 /** A drop: the first file, else dropped text (a link dragged from a browser, a selection). */
