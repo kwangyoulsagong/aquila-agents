@@ -394,7 +394,13 @@ export default function KnowledgeGraphPanel({
     }
     if (!center) {
       const first = activeId ?? defaultCenter(view);
-      if (first) recentreQuietly(first);
+      // Only while nothing is centred *now*: `center` here is this render's, and a pick can land between the commit
+      // and this (passive) effect — Enter in search right as the first snapshot draws its results. Pushing the
+      // default on top of that pick snapped the graph to another note (the smoke "search + Enter" flake).
+      if (first) {
+        setTrail((tr) => (tr.length ? tr : [first]));
+        setShown({});
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeId, follow, snapshot, center === null]);
