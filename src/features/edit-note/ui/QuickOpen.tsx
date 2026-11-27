@@ -1,6 +1,7 @@
-import { useEffect, useId, useMemo, useState, type KeyboardEvent } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { Palette, PaletteEmpty, PaletteItem, PaletteList } from '@design-system/react';
 import { api, type GraphSnapshot } from '@/shared/api';
+import { peekGraphSnapshot } from '@/entities/note';
 import { useT } from '@/shared/i18n';
 import { fuzzyRank } from '@/shared/lib/fuzzy';
 
@@ -26,14 +27,21 @@ export default function QuickOpen({ open, onClose, onPick }: Props) {
   const [query, setQuery] = useState('');
   const [index, setIndex] = useState(0);
   const [snap, setSnap] = useState<GraphSnapshot | null>(null);
+  /** Enter pressed before the list arrived: open the first match as soon as it does (no dead key). */
+  const pendingEnter = useRef(false);
 
   useEffect(() => {
     // Closed: let go of the snapshot (every node of the graph); it's read again on the next open.
+    pendingEnter.current = false;
     if (!open) return setSnap(null);
     setQuery('');
     setIndex(0);
+    // The graph or the editor holds one already: at once. Else the notes alone — the full snapshot waits for the
+    // session history scan (seconds on the first open).
+    const held = peekGraphSnapshot();
+    if (held) return setSnap(held);
     let alive = true;
-    void api.graphSnapshot().then((s) => alive && setSnap(s));
+    void api.graphSnapshot({ notesOnly: true }).then((s) => alive && setSnap(s));
     return () => {
       alive = false;
     };
@@ -64,6 +72,13 @@ export default function QuickOpen({ open, onClose, onPick }: Props) {
     [items, query],
   );
   const selected = Math.min(index, results.length - 1);
+  useEffect(() => {
+    if (!pendingEnter.current || !snap) return;
+    pendingEnter.current = false;
+    if (results.length) pick(results[0]!.item);
+    // `pick` closes over the latest props; only the list arriving matters here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [snap]);
 
   const pick = (i: Item) => {
     onClose();
@@ -81,6 +96,9 @@ export default function QuickOpen({ open, onClose, onPick }: Props) {
     } else if (e.key === 'Enter' && n) {
       e.preventDefault();
       pick(results[selected]!.item);
+    } else if (e.key === 'Enter' && !snap) {
+      e.preventDefault();
+      pendingEnter.current = true;
     }
   };
   const optionId = (i: number) => `${baseId}-opt-${i}`;

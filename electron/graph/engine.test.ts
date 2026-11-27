@@ -4,7 +4,8 @@ import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { GraphSnapshot } from '../../src/shared/api/types';
 import type { CodeName } from './build';
-import { GraphEngine, walkMarkdown, type EngineStatus } from './engine';
+import { execFileSync } from 'node:child_process';
+import { GraphEngine, gitIgnored, walkMarkdown, type EngineStatus } from './engine';
 
 const FIXTURES = path.join(__dirname, '..', 'fixtures', 'graph');
 const tmp: string[] = [];
@@ -147,6 +148,21 @@ describe('GraphEngine', () => {
 });
 
 describe('walkMarkdown', () => {
+  it("leaves out what the repo's .gitignore ignores (a Unity package cache)", async () => {
+    const dir = mkTmp();
+    execFileSync('git', ['init', '-q'], { cwd: dir });
+    fs.writeFileSync(path.join(dir, '.gitignore'), 'Library/\nscratch.md\n');
+    fs.mkdirSync(path.join(dir, 'Library', 'PackageCache', 'pkg'), { recursive: true });
+    fs.writeFileSync(path.join(dir, 'Library', 'PackageCache', 'pkg', 'README.md'), '# vendored');
+    fs.mkdirSync(path.join(dir, 'specs'));
+    fs.writeFileSync(path.join(dir, 'specs', 'a.md'), '# A');
+    fs.writeFileSync(path.join(dir, 'scratch.md'), '# scratch');
+    const skip = await gitIgnored(dir);
+    expect(await walkMarkdown(dir, undefined, [], skip)).toEqual(['specs/a.md']);
+    // Not a repo: nothing is left out.
+    expect((await gitIgnored(mkTmp())).size).toBe(0);
+  });
+
   it('skips hidden and build folders', async () => {
     const root = mkTmp();
     for (const d of ['a', '.obsidian', 'node_modules/x', 'dist'])

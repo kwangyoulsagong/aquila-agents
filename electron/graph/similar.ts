@@ -35,6 +35,12 @@ const TERMS_PER_NOTE = 8;
 const LOOKUP_TERMS = 24;
 /** A word in more than this share of notes is too common to look up by. */
 const MAX_DF_SHARE = 0.25;
+/**
+ * Notes scored exactly per note: the best by the lookup words' share of the dot product. Scoring every note that
+ * shares a word was O(n²) (4,000 notes: 45 s of a cold index); the exact cosine of the best few picks the same
+ * neighbours.
+ */
+const CANDIDATES = 30;
 
 const TOKEN = /[\p{L}\p{N}_]+/gu;
 // eslint-disable-next-line no-control-regex -- the whole ASCII range on purpose
@@ -165,9 +171,26 @@ export class SimilarIndex {
         .filter(([t]) => (this.df.get(t) ?? 0) <= maxDf)
         .sort((x, y) => y[1] - x[1])
         .slice(0, LOOKUP_TERMS);
-      const candidates = new Set<string>();
-      for (const [t] of lookup)
-        for (const other of this.postings.get(t) ?? []) if (other !== id) candidates.add(other);
+      // Rough score from the lookup words alone (their weight in the other note read straight from its counts),
+      // then the exact cosine for the best few.
+      const rough = new Map<string, number>();
+      for (const [t, w] of lookup) {
+        const idf = this.idf(t);
+        for (const other of this.postings.get(t) ?? []) {
+          if (other === id) continue;
+          const tf = this.docs.get(other)!.tf.get(t) ?? 0;
+          rough.set(other, (rough.get(other) ?? 0) + w * (1 + Math.log(tf)) * idf);
+        }
+      }
+      // Divided by the other note's length, as the cosine is (a long note shares many words with everything).
+      const candidates =
+        rough.size <= CANDIDATES
+          ? [...rough.keys()]
+          : [...rough.entries()]
+              .map(([k, v]) => [k, v / (vec(k).norm || 1)] as const)
+              .sort((x, y) => y[1] - x[1])
+              .slice(0, CANDIDATES)
+              .map(([k]) => k);
       const scored: SimilarPair[] = [];
       for (const other of candidates) {
         const them = vec(other);
@@ -236,6 +259,11 @@ export class SimilarIndex {
       .map(([t]) => t);
     this.termsCache.set(id, { sig: doc.sig, terms: out });
     return out;
+  }
+
+  /** How telling a word is (the IDF part of `weigh`). */
+  private idf(t: string): number {
+    return Math.log(1 + this.docs.size / (this.df.get(t) ?? 1));
   }
 
   private weigh(tf: Map<string, number>): { w: Map<string, number>; norm: number } {
