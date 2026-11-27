@@ -286,6 +286,8 @@ function renumber(src: string, changes: Change[]): { changes: Change[]; edits: C
   }
   const inserted = (b: Block) => spans.some((s) => s.to > s.from && s.from <= b.from && b.to <= s.to);
   const edits: Change[] = [];
+  /** Line index → spaces to add (negative: remove) in front of it. */
+  const shifts = new Map<number, number>();
   for (const run of orderedRuns(after.blocks, after.lines)) {
     const a = run[0]!.from;
     const z = run[run.length - 1]!.to;
@@ -298,10 +300,24 @@ function renumber(src: string, changes: Change[]): { changes: Change[]; edits: C
     const lazy = known ? known.lazy : kept.length > 1 && kept.every((n) => n === kept[0]);
     marks.forEach((m, k) => {
       const want = lazy ? start : start + k;
-      if (m.n !== want) edits.push({ from: m.from, to: m.to, insert: String(want) });
+      if (m.n === want) return;
+      edits.push({ from: m.from, to: m.to, insert: String(want) });
+      const grow = String(want).length - (m.to - m.from);
+      if (grow) indentContinuation(after.lines, run[k]!, m, grow, shifts);
     });
   }
+  // A number that gained / lost a digit moves its item's content column: its continuation lines and nested blocks
+  // follow by the same amount (one splice at the start of each such line).
+  for (const [k, d] of shifts) {
+    const l = after.lines[k]!;
+    if (d > 0) edits.push({ from: l.from, to: l.from, insert: ' '.repeat(d) });
+    else {
+      const n = Math.min(-d, l.text.length - l.text.replace(/^ +/, '').length);
+      if (n) edits.push({ from: l.from, to: l.from + n, insert: '' });
+    }
+  }
   if (!edits.length) return none;
+  edits.sort((x, y) => x.from - y.from || x.to - y.to);
   // Back into offsets of `src`: an edit inside inserted text changes that insertion, any other is a change of its own.
   const out = changes.map((c) => ({ ...c }));
   const extra: Change[] = [];
@@ -320,6 +336,31 @@ function renumber(src: string, changes: Change[]): { changes: Change[]; edits: C
   }
   const all = [...out, ...extra].sort((x, y) => x.from - y.from || x.to - x.from - (y.to - y.from));
   return { changes: all, edits };
+}
+
+/**
+ * Adds `grow` (spaces; negative removes) to `shifts` for the lines of ordered item `b` after its first one that sit at
+ * or past its content column (`m` is its number token): its continuation text and nested blocks. Lazy continuation
+ * lines (less indented), blank lines and tab-indented lines are left alone.
+ */
+function indentContinuation(
+  lines: Line[],
+  b: Block,
+  m: { from: number; to: number },
+  grow: number,
+  shifts: Map<number, number>,
+): void {
+  const first = lines[b.line]!;
+  const rest = first.text.slice(m.to - first.from + 1);
+  let sp = rest.length - rest.replace(/^ +/, '').length;
+  if (!rest.trim() || sp > 4) sp = 1;
+  const col = m.to - first.from + 1 + sp;
+  for (let k = b.line + 1; k <= b.lastLine; k++) {
+    const text = lines[k]!.text;
+    if (!text.trim()) continue;
+    const lead = text.length - text.replace(/^ +/, '').length;
+    if (lead >= col) shifts.set(k, (shifts.get(k) ?? 0) + grow);
+  }
 }
 
 /** `changes` with the ordered lists they touch renumbered. */

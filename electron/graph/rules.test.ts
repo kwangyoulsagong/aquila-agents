@@ -161,7 +161,9 @@ describe('T79: accepts under the old short prefix count with the whole one', () 
       ...emptyLinks(),
       accepted: [acc('a', 'b', 'id:REQ'), acc('a', 'c', 'id:REQ'), acc('b', 'c', 'id:FE-REQ')],
     };
-    expect(proposals(d)).toEqual([{ key: 'id:FE-REQ', pattern: { kind: 'id', prefix: 'FE-REQ' }, accepts: 3 }]);
+    expect(proposals(d)).toEqual([
+      { key: 'id:FE-REQ', pattern: { kind: 'id', prefix: 'FE-REQ' }, accepts: 3 },
+    ]);
   });
 
   it('an accept with both keys counts once; other families and plain prefixes stay apart', () => {
@@ -221,7 +223,11 @@ describe('T79: accepts under the old short prefix count with the whole one', () 
       file,
       JSON.stringify({
         v: 1,
-        accepted: [acc('a', 'b', 'id:REQ'), acc('a', 'c', 'id:FE-REQ'), { a: 'x', b: 'y', patterns: 3, at: 0 }],
+        accepted: [
+          acc('a', 'b', 'id:REQ'),
+          acc('a', 'c', 'id:FE-REQ'),
+          { a: 'x', b: 'y', patterns: 3, at: 0 },
+        ],
         rejected: [],
         rules: [],
         dismissed: [],
