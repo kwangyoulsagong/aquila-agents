@@ -27,7 +27,8 @@ function lineStarts(original: string): number[] {
 
 /**
  * `original` with `changes` (made on `docOf(original)`) applied. No changes → `original`, unchanged. Inserted
- * line breaks use the file's own ending.
+ * line breaks use the file's own ending — except a line that was removed elsewhere in the same changes and comes
+ * back with the same text (a moved block): it keeps the ending it had, so a mixed-ending file stays as it was.
  */
 export function applyChanges(original: string, changes: ChangeSet): string {
   if (changes.empty) return original;
@@ -38,11 +39,27 @@ export function applyChanges(original: string, changes: ChangeSet): string {
     const line = doc.lineAt(pos);
     return starts[line.number - 1]! + (pos - line.from);
   };
+  // The endings of the removed lines, by the text in front of each.
+  const removed = new Map<string, string[]>();
+  changes.iterChanges((fromA, toA) => {
+    const cut = original.slice(at(fromA), at(toA));
+    const re = /\r\n?|\n/g;
+    let from = 0;
+    for (let m = re.exec(cut); m; m = re.exec(cut)) {
+      const key = cut.slice(from, m.index);
+      removed.set(key, [...(removed.get(key) ?? []), m[0]]);
+      from = m.index + m[0].length;
+    }
+  });
+  const ending = (line: string) => removed.get(line)?.shift() ?? sep;
   const parts: string[] = [];
   let last = 0;
   changes.iterChanges((fromA, toA, _fromB, _toB, inserted) => {
     const from = at(fromA);
-    parts.push(original.slice(last, from), inserted.sliceString(0, inserted.length, sep));
+    const lines = inserted.toJSON();
+    let text = lines[0]!;
+    for (let i = 1; i < lines.length; i++) text += ending(lines[i - 1]!) + lines[i]!;
+    parts.push(original.slice(last, from), text);
     last = at(toA);
   });
   parts.push(original.slice(last));

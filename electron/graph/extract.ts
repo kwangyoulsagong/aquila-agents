@@ -9,6 +9,7 @@ import fsp from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import type { GraphAiState } from '../../src/shared/api/types';
+import { NO_TOOLS } from '../claude-args';
 
 export interface AiExtract {
   /** Hash of the note text it was read from. */
@@ -186,7 +187,12 @@ export function parseExtract(
   return out;
 }
 
-/** Hidden `claude -p`: haiku, one turn, no session file, prompt on stdin. */
+/** Argv of the hidden extraction / Make with Claude run: notes are untrusted text, so no tools and no MCP servers. */
+export function haikuArgs(model: string): string[] {
+  return ['-p', '--no-session-persistence', '--max-turns', '1', '--model', model, '--output-format', 'text', ...NO_TOOLS];
+}
+
+/** Hidden `claude -p`: haiku, one turn, no session file, no tools, prompt on stdin. */
 export const runClaudeHaiku =
   (binary: string, configDir?: string, model = 'haiku'): RunPrompt =>
   (prompt) => {
@@ -196,11 +202,7 @@ export const runClaudeHaiku =
     delete env.CLAUDE_CODE_CHILD_SESSION;
     if (configDir) env.CLAUDE_CONFIG_DIR = configDir;
     return new Promise((resolve, reject) => {
-      const child = spawn(
-        binary,
-        ['-p', '--no-session-persistence', '--max-turns', '1', '--model', model, '--output-format', 'text'],
-        { cwd: os.tmpdir(), env, stdio: ['pipe', 'pipe', 'pipe'] },
-      );
+      const child = spawn(binary, haikuArgs(model), { cwd: os.tmpdir(), env, stdio: ['pipe', 'pipe', 'pipe'] });
       let out = '';
       let err = '';
       child.stdout.on('data', (d: Buffer) => (out += d.toString('utf8')));

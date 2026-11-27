@@ -736,7 +736,7 @@ throttled or hot → `saver`). The rules every task below follows:
 - **Battery:** local similarity runs in the T65 worker on changed notes only; Claude extraction never starts by itself in saver (queued until on power or run by hand) and has a daily cap per source.
 - **Owns:** `electron/graph/extract.ts`, `electron/graph/rules.ts` (+ tests), `src/features/link-suggestions/`.
 - **Done:** a fixture meeting note gets a suggested edge to a spec; three accepts of `DB-` links propose a rule.
-  _Left over: local similarity lives in `electron/graph/similar.ts` (owned files + one). Accept / reject works on found-in-text (dashed) edges too, so shared-ID links can be accepted and teach rules; patterns are ID prefixes and URL hosts. AI uses the shared Claude account, 4 notes per call, 40 notes / day / source, starts 30 s after the last change. "[[" appends `[[file name]]` as the last line of the note being viewed (not placed in the text). Smoke: the meeting → spec similar suggestion, "[[" in the graph card writes exactly one line, 3 DB- accepts → proposal → rule, AI on + Run now with a canned reply → a person node. Not done: `npm run perf` has no T68 scenario (similarity runs in the existing index pass); no real haiku run checked by hand; guide text / media not updated._
+  _Left over: local similarity lives in `electron/graph/similar.ts` (owned files + one). Accept / reject works on found-in-text (dashed) edges too, so shared-ID links can be accepted and teach rules; patterns are ID prefixes and URL hosts. AI uses the shared Claude account, 4 notes per call, 40 notes / day / source, starts 30 s after the last change. "[[" appends `[[file name]]` as the last line of the note being viewed (not placed in the text). Smoke: the meeting → spec similar suggestion, "[[" in the graph card writes exactly one line, 3 DB- accepts → proposal → rule, AI on + Run now with a canned reply → a person node. Not done: `npm run perf` has no T68 scenario (similarity runs in the existing index pass); no real haiku run checked by hand; guide text / media for the explorer basics are in (see "Notes: guide, hidden capture, OCR, cold index"); these view options aren't in the guide media yet._
 
 ### T69 · Graph 5: per-folder customisation
 - [x] **Goal:** each source can be shaped the way its owner works — nothing about any repo's format is built in.
@@ -924,7 +924,8 @@ throttled or hot → `saver`). The rules every task below follows:
 - **Done:** unit tests (open tab in, roots, mention cache via the engine tests, terms cache, candidate titles);
   measured on a copy of the 1,505-note monorepo (rebuild 1,126–1,371 ms → 34–60 ms); idle CPU 0 % with the panel
   open; smoke.
-  _Left over: the first index of a big repo still takes seconds (once; cached after)._
+  _Left over: the first index of a big repo still takes seconds (once; cached after) — 4,071 notes cut 10.2 → 4.5 s
+  (see "Notes: guide, hidden capture, OCR, cold index")._
 
 ### Fix · Graph: closing the note editor, typing lag (2026-11-27)
 - [x] A long note title pushed the editor's ⤢ / × off the panel (panel head titles now shrink with an ellipsis).
@@ -948,3 +949,163 @@ throttled or hot → `saver`). The rules every task below follows:
   repos, SALT 1,523 notes 6.4 → 2.6 s, data-bahn 4,030 notes 45 → 9.9 s, 98–99 % of suggestions unchanged, one
   edit 8–17 ms.
   _Left over: not measured on the 1,500-note repo; smoke fails at the note editor step on `main` too (unrelated)._
+
+### T77–T82 · Notes you'd actually use: blocks, properties, IDs, review, briefs, a document look (2026-11-27)
+From the note-app research (Obsidian / Notion / block editors / spec tools): keep the file plain Markdown and the
+save byte-exact, add the conveniences on top. Built in parallel worktrees, merged in `task/notes-pipeline`.
+- [x] **T77 Block editing** (`src/features/edit-note/model/blocks.ts`, `blockEdits.ts`, `blockHandle.ts`,
+  `slashMenu.ts`): blocks are ranges of the text; ⋮⋮ handle to drag (drop line, auto-scroll), click for a menu
+  (turn into, duplicate, delete, copy as Markdown), ⌥⇧↑/↓ moves a block, `/` menu (Korean / English / Markdown
+  aliases, never while the IME composes). Every operation is one splice; untouched bytes and CRLF stay.
+  _Leftovers done (`task/notes-leftovers`): move / turn into / delete / duplicate renumber the ordered lists they
+  touch (number tokens only; start number, `.` / `)` and `1.` `1.` `1.` lists kept); a paragraph moved under a list
+  item's text or next to an ordered item gets a blank line; the save gives moved lines in a mixed-ending file their
+  own endings back. Final leftovers (`task/notes-final-a`): a number that gains / loses a digit (`9.` → `10.`)
+  moves its item's continuation lines and nested blocks by the same amount (one splice per line; lazy, blank and
+  tab-indented lines left alone). Nothing left over._
+- [x] **T78 Properties + table** (`src/features/note-properties/`, `src/widgets/note-table/`, `note:table` IPC):
+  frontmatter as editable rows above every note (text / date / list chips / select, add / remove, minimal splice);
+  ⌘K **Table view**: rows from the index, pick columns, sort, filter (text, folder, property, status chips), group,
+  virtualized, inline cell edit (refused if the file changed).
+  _Leftovers done: the T69 table / list views use the design-system `DataGrid` too (sortable headers, group rows;
+  the old `DataTable` / `.c-table` are gone); the vault side lists only declared properties the note doesn't have
+  yet ("Properties to fill")._
+- [x] **T79 Requirement IDs** (`src/features/note-ids/`, `src/features/link-mentions/`): IDs the index learned get
+  an underline (defined / duplicate / unknown / loose), hover card (defining note, status, referenced in N notes ·
+  M sessions · K files), ⌘-click opens; "Referenced in" + checklist meter in the side column; lenses "IDs with no
+  work", "Unknown · duplicate IDs"; **Link** on a mention turns its first plain mention into `[[name]]`.
+  _Leftovers done: the index reads IDs whole (`FE-REQ-030`; shared-ID links, ID groups, `{{id}}` in templates);
+  rule prefixes may have several segments and a rule learned as `REQ` keeps covering `FE-REQ-<n>`; index cache v2
+  re-parses; the parser's separate `refIds` is gone (nodes take `ids`). "Referenced in": a session brings its tab
+  to the front or resumes, a file shows in Finder (`file:reveal`). Final leftovers (`task/notes-final-a`): accepts
+  recorded under an old short prefix (`id:REQ`) count with the whole prefix of the same family (`id:FE-REQ`) toward
+  a proposal, once per accept; `links.json` v2 migrates v1 on load (a short key with one whole family becomes it,
+  "Not now" too; ambiguous ones stay short and count toward each family). Nothing left over._
+- [x] **T80 Agent change review** (`electron/graph/note-seen.ts`, `src/features/note-review/`): the text you last
+  saw per note (`~/.aquila/notes-seen/`, 2,000 notes / 50 MB LRU); "Claude changed this note · +12 −3" bar with
+  Review (diff), Revert hunk (confirm), Mark as seen; "Changed outside" list. No polling.
+  _Left over: "who" comes from turn files (can name an earlier session); the list refreshes on open / mark._
+- [x] **T81 What is this?** (`electron/brief.ts`, `electron/graph/related.ts`, `src/features/what-is-this/`): drop
+  or paste a guide, email (headers cut to Subject / From / Date), HTML or a Figma link; see exactly what is sent
+  (≤ 20k chars) and to which account; one hidden `claude -p` per click (haiku, sonnet optional) → product, feature,
+  intent, key points, open questions; related notes found locally (same ID / shared words); Save as note
+  (frontmatter `type: brief`). ⌘K, a button in the graph head, or drop.
+  _Leftovers done: PDFs (≤ 20 MB) are read on the Mac with PDFKit through `osascript` (no model, no new
+  dependency; scanned / locked PDFs say so); a **What is this?** button in the note editor head (page slot).
+  Left over: Figma read tools untested with a real account; scanned PDFs are read with OCR now (see "Notes: guide, hidden capture, OCR, cold index")._
+- [x] **T82 Document look** (`model/document.ts`, `readingMode.ts`, T82 block in `components.css`, doc tokens):
+  centred 720px column, type scale, title, folder · edited header, bullets by depth, drawn checkboxes, callout
+  cards, code cards (language + copy), table cards, wikilink pills; **Read** mode (⌘E) hides all syntax, links and
+  checkboxes still work.
+  _Left over: copy button, Korean IME and table Tab not checked by hand in reading mode._
+- [x] **Background verification**: `npm run smoke:hidden` / `perf:hidden` (`AQUILA_HIDDEN=1`): windows 1 %
+  opaque, click-through, never focused, no Dock icon — nothing on screen. Smoke polls the release notes and the daily
+  note's sessions; a view that opens while the shared snapshot is stale fetches at once; Enter in graph search before
+  results arrive takes the first match. Hidden runs never take focus: the app's activation policy is "prohibited"
+  and every web contents' `focus()` is DevTools focus emulation (a stray key typed in another app once landed in a
+  table cell); checked by sampling the front app every 0.25 s for a whole run (0 of 472 samples).
+- [x] **Smoke for T77–T82** (`electron/notesSmoke.ts`, `task/notes-smoke`): smoke covers T77 ⌥⇧↓ (bullet and
+  renumbered numbered list), the ⋮⋮ handle drag, `/할` through the IME (Enter while composing ignored) and `/todo`;
+  T78 panel edit, Table view sort / status chip / cell edit; T79 defined / duplicate / unknown marks, hover card,
+  ⌘-click, Link (confirmed), "Referenced in · FE-REQ-901"; T80 bar counts, diff, Revert hunk, Mark as seen; T81
+  email headers, canned reply, related note, Save as note (`type: brief`), editor head button; T82 header, cards,
+  ⌘E reading mode — each byte-exact on disk, screenshots `dist/smoke-{blocks,properties,table,ids,review,brief,look,look-reading}.png`.
+  Fixed on the way: reading mode left `readOnly` false (Backspace / ⌥⇧↓ still edited); the graph's default centre
+  could land on top of a search pick made before its effect ran (the "search + Enter" flake).
+  _Left over: PDF input (PDFKit) and the Referenced-in session / file rows aren't driven by smoke._
+
+### T83 · Note explorer: browse, create, rename and move notes while writing (2026-11-27)
+- [x] **Goal:** requirement specs live in repo folders (`requirements/specs/in-progress/FE-REQ-030.md`, checklists…);
+  browse them and create / rename / move folders and notes without leaving the editor, links kept working.
+- **Built** (`src/features/note-explorer/`, `electron/graph/note-fs.ts`, `electron/graph/link-rewrite.ts`, `noteFs:*` IPC,
+  design-system `Explorer` / `Tree*` + `.c-explorer` / `.c-tree`, tokens `--size-explorer` / `--size-tree-row` / `--size-tree-indent`):
+  - **Files** column left of the editor (▤ in the head, remembered; full window too). **Note explorer** in ⌘K and
+    **⌘⇧O** (Windows Ctrl+Shift+B; ⌘⇧E is quick select) opens the panel with no note: "Pick a note or make a new one".
+  - The tree of the tab in front's project's sources (same rule as the graph), a picker for the others. Built from
+    the index's file list (no disk walk); empty folders come from one readdir when a folder is expanded. Virtualized
+    (fixed rows); 4,000 notes build + flatten well under the test's 500 ms budget. Folders first, natural sort
+    (`FE-REQ-2` < `FE-REQ-030`, Korean collation), sort picker Name / Modified / Created (per source). Folder note
+    counts; `status:` dot; a "just changed" dot for notes written in the last 5 minutes. Open folders remembered per
+    source; the open note highlighted, its folders opened, **◎ Reveal active note**. **Pinned** and **Recent** at the
+    top, stored per source in `~/.aquila/explorer.json` (never in the repo).
+  - **Filter** box: fuzzy over the whole relative path and title (IDs, Korean), matched folders open, Enter opens the
+    best match.
+  - **Actions** (right-click native menu, hover buttons, keys): New note (the source's `newNotes` template, else
+    `# Title`; suggests the next ID when siblings share one: `FE-REQ-029`, `FE-REQ-030` → `FE-REQ-031`), New folder,
+    Rename (F2), Move (drag with a 4 px threshold, hover-to-open folders, drop outline, Esc cancels, same-folder drop
+    is a no-op; or **Move to…** with a folder search), Pin, Reveal in Finder, Open in default app, Copy path / relative
+    path, Move to Trash (`shell.trashItem`, always asks). ⌘ / ⇧-click multi-select for bulk move / Trash. Keys while
+    the tree has focus: ↑↓ ←→ Enter F2 ⌘⌫ ⌘N ⌘Z.
+  - **Undo** (⌘Z in the tree, kept in memory): move, rename, new folder (while empty), new note (while untouched). The
+    Trash isn't undoable — the confirm says so (Finder can put it back).
+  - **Links:** after a rename / move, the index's edges give the notes linking to what moved (plus the moved notes'
+    own relative links); "Fix the links in N notes?" lists them; on yes only the link spans change (`[[name]]`,
+    `[[name#h|alias]]`, path-form wikilinks, relative `[..](a/b.md)` with encoding / `<…>` kept), through the
+    refuse-if-changed write; code fences and inline code untouched, CRLF / BOM kept. Asked every time.
+  - **Safety (main):** every path checked: enabled source, no empty / `.` / `..` / hidden part, the deepest existing
+    folder resolved through symlinks must stay inside the source; names with `/ \ :` or a leading `.` refused; never
+    overwrites (a taken name is an inline error; case-only renames allowed). The open editor saves first and follows a
+    rename / move of its note (no "file deleted").
+- **Tests:** `note-fs.test.ts` (guards, `..`, symlink escape, bad names, collisions, template, rename → links → fix,
+  folder move, refused writes, trash / undo, prefs), `link-rewrite.test.ts` (alias / heading / path wikilinks, md links,
+  encoding, CRLF, code untouched), `tree.test.ts` (tree + empty folders, natural sort, filter, next ID, scoping,
+  4,000 notes), `vault.test.ts` (draft from the template). Smoke `explorer` (`electron/notesSmoke.ts`): ⌘⇧O empty
+  state, nested tree with counts, New folder, New note from the template with the next ID, F2 rename → confirm →
+  link spans rewritten exactly (CRLF), drag onto a folder → editor follows, links fixed again, ⌘Z undo, filter +
+  Enter, folder to the Trash; screenshots `dist/smoke-explorer.png`, `dist/smoke-explorer-links.png`.
+  _Final leftovers (`task/notes-final-a`): **Group by status** (☰ next to the filter, per source) — virtual folders
+  todo / draft → in progress → review → done → other values → "No status", notes by the chosen sort, actions on the
+  real files (drag is off there; Move to… works); **folder notes** (`index.md`, `README.md` or `<folder>/<folder>.md`)
+  open from the folder's name (dotted name + small marker, hidden from its notes, chevron toggles; per source,
+  default on); **sticky parent rows** (`.c-tree__sticky`, up to 5, a click scrolls back to the folder); **compact
+  chains** `a / b / c` (per source, default on; actions apply to the last folder); the links question has
+  **Always / Never**, remembered per source in `~/.aquila/explorer.json` and changeable in the ⋯ view menu next to the filter
+  (which also holds the view toggles); auto-scroll while dragging near the tree's top / bottom edge; right-click on
+  empty space (new note / folder at the root, Finder, copy path). The menus are data (`model/menu.ts`): unit tests
+  cover the items and enabled states per target (note / folder / multi-select / empty) and that each shown key runs
+  the same action (menu, keys and hover buttons all go through one `dispatch`). Smoke `explorer2`: compact chain,
+  folder note click + chevron, sticky row after scrolling a 60-note folder + click back, Always fixing links and
+  skipping the question, group by status order + F2 on the real file; screenshots `dist/smoke-explorer-status.png`,
+  `dist/smoke-explorer-sticky.png`. Left over: the Trash can't be undone from the app; auto-scroll isn't driven by
+  smoke (unit-tested speed); guide text / media not updated._
+  Follow-up: with the explorer, editor and side column in a ~990px panel the writing column was squeezed and the
+  properties head broke letter by letter: the side column now gives way below 720px (976px with the explorer), the
+  properties head stays on one line; the inline name field takes focus back if a click moved it.
+
+### Notes: guide, hidden capture, OCR, cold index (2026-11-27)
+- [x] **Guide**: items for block editing, properties + table view, requirement IDs, agent-change review, What is
+  this?, document look + reading mode (⌘E) and the note explorer (⌘⇧O), ko + en, each with captured media. The
+  shortcut sheet has a **Note editor** group for the editor's own keys (⌥⇧↑/↓, `/`, ⌘E; `SheetRow.editorKeys`, not in
+  the app's shortcut map). What's new for the next version: `release-notes/1.4.0.json` (the app version is not
+  bumped; notes newer than the running version stay hidden).
+- [x] **Hidden capture**: `npm run capture:hidden` (`AQUILA_HIDDEN=1`) records the guide media with nothing on
+  screen. The hide logic moved to `electron/hidden.ts` (smoke and capture import it; `smoke:hidden` unchanged, plus no
+  notification banners in hidden runs — a never-focused window would otherwise notify for every waiting demo session).
+  `capturePage` frames, the hidden encoder window's MediaRecorder (WebM) and canvas WebP work with the 1 %-opacity,
+  never-focused window and the "prohibited" activation policy. Capture scenes for the seven items above (demo specs
+  and a guide note in web-shop, `scripts/capture/demo_notes.py`; a localized canned brief reply
+  `electron/fixtures/brief/capture.<lang>.json`). Checked invisible: the front app sampled every 0.25 s during a full ko + en run was never Electron (0 of 1,898 samples).
+- [x] **Scanned PDFs (OCR)**: a PDF with no text layer is read with macOS Vision (`VNRecognizeTextRequest`, ko-KR +
+  en-US, accurate) through JXA — PDFKit renders each page (~2×, ≤ 3000 px); ≤ 30 pages, no page started after 45 s,
+  killed at 60 s; no dependency, no network, no model. The preview says "Read with OCR" (and when pages were cut).
+  Tests: parsing / capping / fallback with a canned runner, and a real OCR of an image-only PDF generated at test time
+  (skipped off macOS).
+- [x] **Cold index** (`electron/graph/similar.ts`, `build.ts`): profiled on two real repos (read only, nothing
+  written). Similar notes: notes get numbered slots, rough scores go into a number array and the best 30 are picked
+  without a full sort; the exact cosine merges two sorted word lists in the old summing order (same scores to the
+  bit); each note's vector length is kept between syncs. Title mentions (`contains`): a title must first pass cheap
+  lookups for the words a match needs (every word of an English title; inner words + the last word's first two
+  letters otherwise), titles filed under their rarest such word, cached with the mention cache. Cold index (min of 3):
+  1,533 notes 2.36 → 1.53 s, 4,071 notes 10.17 → 4.53 s; one edit 32 → 20 ms / 77 → 44 ms; similar-note pairs 100 %
+  the same (2,903 and 7,179 pairs), edges / labels / terms identical, also over a 40-step edit run.
+- Also fixed: the requirement-ID hover card and the project context menus were always Korean (their hooks ran in the
+  workspace page above its language provider, so `useT()` gave the default); they take the config's language now.
+  _Left over: guide media for the new items are captured in a demo state (stills + loops), not driven by smoke._
+- [x] **Review fixes**: every hidden `claude -p` (brief, graph extraction, Make with Claude, news summary) runs with
+  `--tools "" --strict-mcp-config` (the brief with Figma: only Aquila's Figma config and its two read tools; the apply
+  analysis: plan mode, `Read,Glob,Grep` only); rename/move finds linkers stored in either edge direction; a moved note
+  re-bases its own images and file links; What is this? cancels a running brief when the input changes and drops a
+  reply for another input (cache key also holds language + account); only the editor's real open records a note as
+  seen (helpers use `noteRead`); a `newNotes` pattern without `{{title}}` keeps the typed name / suffixes the rendered
+  stem; the table ignores a slow reply for the previous source; a disabled exact link rule beats a covering legacy
+  one; `--size-underline-offset` token.

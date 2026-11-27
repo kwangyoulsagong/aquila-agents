@@ -1,0 +1,315 @@
+import { ChangeSet } from '@codemirror/state';
+import { describe, expect, it } from 'vitest';
+import {
+  applyEdits,
+  deleteBlock,
+  duplicateBlock,
+  moveBlock,
+  slashInsert,
+  stepTarget,
+  turnInto,
+  type Side,
+  type TurnKind,
+} from './blockEdits';
+import { blockAtLine, parseBlocks } from './blocks';
+import { applyChanges, docOf } from './serialize';
+
+const at = (src: string, line: number) => {
+  const p = parseBlocks(src);
+  return { p, b: blockAtLine(p.blocks, line)!.block };
+};
+
+function move(src: string, line: number, targetLine: number, side: Side): string {
+  const p = parseBlocks(src);
+  const b = blockAtLine(p.blocks, line)!.block;
+  const t = blockAtLine(p.blocks, targetLine)!.block;
+  const r = moveBlock(p, b, t, side);
+  return r ? applyEdits(src, r.changes) : src;
+}
+
+function step(src: string, line: number, dir: -1 | 1): string {
+  const { p, b } = at(src, line);
+  const s = stepTarget(p, b, dir);
+  const r = s && moveBlock(p, b, s.target, s.side);
+  return r ? applyEdits(src, r.changes) : src;
+}
+
+const turn = (src: string, line: number, kind: TurnKind) => {
+  const { p, b } = at(src, line);
+  return applyEdits(src, turnInto(p, b, kind));
+};
+
+describe('moveBlock', () => {
+  it('swaps paragraphs, keeping the blank line between them', () => {
+    expect(move('A\n\nB\n\nC', 4, 0, 'before')).toBe('C\n\nA\n\nB');
+    expect(move('A\n\nB\n\nC\n', 0, 4, 'after')).toBe('B\n\nC\n\nA\n');
+    expect(move('A\n\nB\n\nC', 0, 2, 'after')).toBe('B\n\nA\n\nC');
+  });
+
+  it('moves a list item with its children inside a tight list', () => {
+    const src = '- a\n  - a1\n- b\n- c\n';
+    expect(move(src, 0, 3, 'after')).toBe('- b\n- c\n- a\n  - a1\n');
+    expect(move(src, 3, 0, 'before')).toBe('- c\n- a\n  - a1\n- b\n');
+  });
+
+  it('keeps a loose list loose and a tight list tight', () => {
+    expect(step('# H\n\n- a\n\n- b\n\n- c\n', 6, -1)).toBe('# H\n\n- a\n\n- c\n\n- b\n');
+    expect(step('# H\n\n- a\n- b\n', 3, -1)).toBe('# H\n\n- b\n- a\n');
+  });
+
+  it('moves nested items with CRLF', () => {
+    expect(step('- a\r\n  - x\r\n  - y\r\n', 2, -1)).toBe('- a\r\n  - y\r\n  - x\r\n');
+  });
+
+  it('reindents a block moved into or out of a nested list', () => {
+    expect(move('- a\n  - a1\n- b\n', 2, 1, 'after')).toBe('- a\n  - a1\n  - b\n');
+    expect(move('- a\n  - a1\n- b\n', 1, 2, 'after')).toBe('- a\n- b\n- a1\n');
+  });
+
+  it('keeps a list item apart from a paragraph it lands next to', () => {
+    expect(move('- x\n- y\n\nB', 1, 3, 'after')).toBe('- x\n\nB\n\n- y');
+    expect(move('para\n\n- x\n- y', 0, 3, 'after')).toBe('- x\n- y\n\npara');
+  });
+
+  it('is a no-op where the block already is, or into itself', () => {
+    expect(move('A\n\nB', 2, 0, 'after')).toBe('A\n\nB');
+    expect(move('A\n\nB', 0, 2, 'before')).toBe('A\n\nB');
+    expect(move('- a\n  - b', 0, 1, 'after')).toBe('- a\n  - b');
+  });
+
+  it('never moves frontmatter or puts a block above it', () => {
+    expect(move('---\nt: 1\n---\n\nA\n\nB', 6, 0, 'before')).toBe('---\nt: 1\n---\n\nA\n\nB');
+  });
+
+  it('keeps CRLF and leaves the rest byte-identical', () => {
+    const src = 'keep  \r\n\r\n# H\r\n\r\n- a\r\n- b\r\n\r\ntail\t\r\n';
+    const out = step(src, 5, -1);
+    expect(out).toBe('keep  \r\n\r\n# H\r\n\r\n- b\r\n- a\r\n\r\ntail\t\r\n');
+  });
+
+  it('round-trips through CodeMirror and the byte-exact save with CRLF', () => {
+    const original = 'one\r\n\r\ntwo\r\n\r\nthree\r\n';
+    const doc = docOf(original);
+    const src = doc.toString(); // CodeMirror's view of it: `\n`
+    const p = parseBlocks(src);
+    const r = moveBlock(p, blockAtLine(p.blocks, 4)!.block, blockAtLine(p.blocks, 0)!.block, 'before')!;
+    const saved = applyChanges(original, ChangeSet.of(r.changes, doc.length));
+    expect(saved).toBe('three\r\n\r\none\r\n\r\ntwo\r\n');
+  });
+
+  it('maps the cursor into the moved block', () => {
+    const src = 'A\n\nBcd\n\nE';
+    const p = parseBlocks(src);
+    const r = moveBlock(p, blockAtLine(p.blocks, 2)!.block, blockAtLine(p.blocks, 0)!.block, 'before')!;
+    const out = applyEdits(src, r.changes);
+    expect(out).toBe('Bcd\n\nA\n\nE');
+    expect(r.map(5)).toBe(2); // after "Bc"
+  });
+});
+
+describe('stepTarget (⌥⇧↑↓)', () => {
+  it('moves among siblings and stops at the edges', () => {
+    expect(step('- a\n- b\n- c', 1, -1)).toBe('- b\n- a\n- c');
+    expect(step('- a\n- b\n- c', 1, 1)).toBe('- a\n- c\n- b');
+    expect(step('- a\n- b', 0, -1)).toBe('- a\n- b');
+    expect(step('- a\n  - x\n  - y\n- b', 2, -1)).toBe('- a\n  - y\n  - x\n- b');
+  });
+});
+
+describe('duplicate / delete', () => {
+  it('duplicates under itself with the same gap', () => {
+    const a = at('# H\n\npara\n\nend', 2);
+    expect(applyEdits(a.p.src, duplicateBlock(a.p, a.b))).toBe('# H\n\npara\n\npara\n\nend');
+    const b = at('- a\n  - c\n- b', 0);
+    expect(applyEdits(b.p.src, duplicateBlock(b.p, b.b))).toBe('- a\n  - c\n- a\n  - c\n- b');
+    const c = at('only', 0);
+    expect(applyEdits(c.p.src, duplicateBlock(c.p, c.b))).toBe('only\n\nonly');
+  });
+
+  it('deletes with the smaller gap, so its neighbours stay apart', () => {
+    const a = at('A\n\n- x\n- y\n\nB', 3);
+    expect(applyEdits(a.p.src, deleteBlock(a.p, a.b))).toBe('A\n\n- x\n\nB');
+    const b = at('A\n\nB\n\nC', 4);
+    expect(applyEdits(b.p.src, deleteBlock(b.p, b.b))).toBe('A\n\nB');
+    const c = at('- a\n\n  - b\n\nP', 2);
+    expect(applyEdits(c.p.src, deleteBlock(c.p, c.b))).toBe('- a\n\nP');
+  });
+});
+
+describe('turnInto', () => {
+  it('swaps only the first line marker', () => {
+    expect(turn('Hello', 0, 'h2')).toBe('## Hello');
+    expect(turn('## Hello', 0, 'paragraph')).toBe('Hello');
+    expect(turn('## Hello', 0, 'h1')).toBe('# Hello');
+    expect(turn('* item', 0, 'task')).toBe('* [ ] item');
+    expect(turn('- [x] done', 0, 'bullet')).toBe('- done');
+    expect(turn('- [x] done', 0, 'ordered')).toBe('1. done');
+    expect(turn('3) item', 0, 'bullet')).toBe('- item');
+    expect(turn('  - nested', 0, 'h3')).toBe('  ### nested');
+  });
+
+  it('keeps children and other lines untouched', () => {
+    expect(turn('- a\n  - b\n\nrest', 0, 'task')).toBe('- [ ] a\n  - b\n\nrest');
+  });
+
+  it('quotes every line and unquotes them', () => {
+    expect(turn('one\ntwo', 0, 'quote')).toBe('> one\n> two');
+    expect(turn('# Title', 0, 'quote')).toBe('> Title');
+    expect(turn('> one\n> two', 0, 'paragraph')).toBe('one\ntwo');
+    expect(turn('> one\n>two', 0, 'bullet')).toBe('- one\ntwo');
+    expect(turn('> [!NOTE]\n> body', 0, 'paragraph')).toBe('body');
+    expect(turn('> [!TIP] Title\n> body', 0, 'quote')).toBe('> Title\n> body');
+  });
+
+  it('handles setext headings', () => {
+    expect(turn('Title\n===', 0, 'h2')).toBe('Title\n---');
+    expect(turn('Title\n===\n\nx', 0, 'paragraph')).toBe('Title\n\nx');
+    expect(turn('Title\n---', 0, 'h3')).toBe('### Title');
+  });
+
+  it('leaves code, tables and frontmatter alone', () => {
+    expect(turn('```\nx\n```', 0, 'h1')).toBe('```\nx\n```');
+    expect(turn('| a |\n| - |', 0, 'quote')).toBe('| a |\n| - |');
+  });
+
+  it('keeps CRLF on every line it touches', () => {
+    expect(turn('a\r\nb\r\n', 0, 'quote')).toBe('> a\r\n> b\r\n');
+    expect(turn('> a\r\n> b\r\n', 0, 'paragraph')).toBe('a\r\nb\r\n');
+  });
+});
+
+describe('slashInsert', () => {
+  const run = (src: string, kind: Parameters<typeof slashInsert>[4]) => {
+    const slash = src.indexOf('/');
+    const end = src.indexOf('|');
+    const clean = src.replace('|', '');
+    const p = parseBlocks(clean);
+    const r = slashInsert(clean, p.lines, slash, end, kind);
+    const out = applyEdits(clean, [r.change]);
+    return out.slice(0, r.cursor) + '|' + out.slice(r.cursor);
+  };
+
+  it('replaces only the /query', () => {
+    expect(run('a\n\n/he|\n\nb', 'h2')).toBe('a\n\n## |\n\nb');
+    expect(run('  /to|', 'task')).toBe('  - [ ] |');
+    expect(run('/|', 'link')).toBe('[[|');
+  });
+
+  it('inserts multi-line items with the file line ending', () => {
+    expect(run('x\r\n\r\n/code|', 'code')).toBe('x\r\n\r\n```\r\n|\r\n```');
+    expect(run('/c|', 'callout')).toBe('> [!NOTE]\n> |');
+    expect(run('/t|', 'table')).toBe('| | |  |\n| --- | --- |\n|  |  |');
+  });
+
+  it('keeps a divider from underlining the text above', () => {
+    expect(run('text\n/d|', 'divider')).toBe('text\n\n---\n|');
+    expect(run('text\n\n/d|', 'divider')).toBe('text\n\n---\n|');
+  });
+});
+describe('ordered lists are renumbered', () => {
+  const del = (src: string, line: number) => {
+    const { p, b } = at(src, line);
+    return applyEdits(src, deleteBlock(p, b));
+  };
+
+  it('after a move, keeping the start number and the delimiter', () => {
+    expect(move('1. a\n2. b\n3. c\n', 2, 0, 'before')).toBe('1. c\n2. a\n3. b\n');
+    expect(move('1. a\n2. b\n3. c\n', 0, 2, 'after')).toBe('1. b\n2. c\n3. a\n');
+    expect(step('5) a\n6) b\n7) c', 1, 1)).toBe('5) a\n6) c\n7) b');
+  });
+
+  it('touches only the number tokens', () => {
+    expect(move('1.  a\r\n2.  b\r\n\r\ntail 9. x\r\n', 1, 0, 'before')).toBe(
+      '1.  b\r\n2.  a\r\n\r\ntail 9. x\r\n',
+    );
+  });
+
+  it('keeps a list numbered 1. 1. 1. as it is', () => {
+    expect(move('1. a\n1. b\n1. c', 2, 0, 'before')).toBe('1. c\n1. a\n1. b');
+  });
+
+  it('after a delete and a duplicate', () => {
+    expect(del('1. a\n2. b\n3. c', 0)).toBe('1. b\n2. c');
+    expect(del('3. a\n4. b\n5. c', 1)).toBe('3. a\n4. c');
+    const d = at('1. a\n2. b', 0);
+    expect(applyEdits(d.p.src, duplicateBlock(d.p, d.b))).toBe('1. a\n2. a\n3. b');
+  });
+
+  it('after turning an item into another kind, or a paragraph into an item', () => {
+    expect(turn('1. a\n2. b\n3. c', 0, 'bullet')).toBe('- a\n1. b\n2. c');
+    expect(turn('1. a\n2. b\n\npara', 3, 'ordered')).toBe('1. a\n2. b\n\n3. para');
+  });
+
+  it('renumbers both lists when an item moves from one to another, nested lists too', () => {
+    expect(move('1. a\n2. b\n\npara\n\n1. x\n2. y', 0, 6, 'before')).toBe('1. b\n\npara\n\n1. x\n2. a\n3. y');
+    expect(move('- p\n  1. a\n  2. b\n  3. c', 3, 1, 'before')).toBe('- p\n  1. c\n  2. a\n  3. b');
+  });
+
+  it('leaves other lists alone', () => {
+    expect(move('1. a\n2. b\n\npara\n\n4. x\n9. y', 1, 0, 'before')).toBe('1. b\n2. a\n\npara\n\n4. x\n9. y');
+  });
+
+  it('maps the cursor past a number that got longer', () => {
+    const src = '8. a\n9. b\n10. c\n\nZ';
+    const p = parseBlocks(src);
+    const r = moveBlock(p, blockAtLine(p.blocks, 4)!.block, blockAtLine(p.blocks, 0)!.block, 'before')!;
+    const out = applyEdits(src, r.changes);
+    expect(out).toBe('Z\n\n8. a\n9. b\n10. c');
+    expect(r.map(src.indexOf('Z'))).toBe(0);
+  });
+});
+
+describe('a number that gains or loses a digit re-indents its item', () => {
+  it('9. → 10. adds a space to its continuation lines and nested blocks; 10. → 8. takes one away (CRLF)', () => {
+    expect(move('8. a\r\n9. b\r\n   cont b\r\n   - child\r\n10. c\r\n    more c\r\n', 4, 0, 'before')).toBe(
+      '8. c\r\n   more c\r\n9. a\r\n10. b\r\n    cont b\r\n    - child\r\n',
+    );
+  });
+
+  it('nested numbered lists and their own continuations move with the item, once', () => {
+    expect(move('9. a\n   1. x\n   2. y\n      deep\n10. b\n', 4, 0, 'before')).toBe(
+      '9. b\n10. a\n    1. x\n    2. y\n       deep\n',
+    );
+  });
+
+  it('lazy continuation lines and blank lines stay as they are', () => {
+    expect(move('9. a\n   text\nlazy\n\n   para\n10. b\n', 5, 0, 'before')).toBe(
+      '9. b\n10. a\n    text\nlazy\n\n    para\n',
+    );
+  });
+
+  it('a delete that shortens later numbers pulls their continuations back; each change is a small splice', () => {
+    const src = '1. a\n2. b\n3. c\n4. d\n5. e\n6. f\n7. g\n8. h\n9. i\n   cont i\n10. j\n    cont j\n11. k\n';
+    const { p, b } = at(src, 0);
+    const changes = deleteBlock(p, b);
+    expect(applyEdits(src, changes)).toBe(
+      '1. b\n2. c\n3. d\n4. e\n5. f\n6. g\n7. h\n8. i\n   cont i\n9. j\n   cont j\n10. k\n',
+    );
+    expect(changes.find((c) => c.from === src.indexOf('    cont j'))).toEqual({
+      from: src.indexOf('    cont j'),
+      to: src.indexOf('    cont j') + 1,
+      insert: '',
+    });
+  });
+});
+
+describe('moving into another container', () => {
+  it('a paragraph moved in as a list item first child gets a blank line, so it is not the item text', () => {
+    expect(move('- a\n  - c\n\nP', 3, 1, 'before')).toBe('- a\n\n  P\n  - c');
+  });
+
+  it('a paragraph between ordered items is kept apart by blank lines', () => {
+    expect(move('1. a\n2. b\n\nP', 3, 0, 'after')).toBe('1. a\n\nP\n\n2. b');
+  });
+});
+
+describe('mixed line endings', () => {
+  it('moved lines keep their own endings through the byte-exact save', () => {
+    const original = 'top\n\n> one\r\n> two\n\nend\r\n';
+    const doc = docOf(original);
+    const p = parseBlocks(doc.toString());
+    const r = moveBlock(p, blockAtLine(p.blocks, 2)!.block, blockAtLine(p.blocks, 0)!.block, 'before')!;
+    const saved = applyChanges(original, ChangeSet.of(r.changes, doc.length));
+    expect(saved).toBe('> one\r\n> two\n\ntop\n\nend\r\n');
+  });
+});

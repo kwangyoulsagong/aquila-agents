@@ -35,6 +35,8 @@ interface Deps {
   toggleGraph: () => void;
   /** ⌘O: find a note and open it in the editor (T67). */
   quickOpen: () => void;
+  /** T83: the editor panel with the file explorer, a note open or not. */
+  noteExplorer: () => void;
   togglePalette: () => void;
   toggleGuide: () => void;
   toggleHistory: () => void;
@@ -70,6 +72,7 @@ export function useShortcuts({
   toggleRun,
   toggleGraph,
   quickOpen,
+  noteExplorer,
   togglePalette,
   toggleGuide,
   toggleHistory,
@@ -110,6 +113,8 @@ export function useShortcuts({
           return toggleGraph();
         case 'quickOpen':
           return quickOpen();
+        case 'noteExplorer':
+          return noteExplorer();
         case 'history':
           return toggleHistory();
         case 'nextWaiting':
@@ -184,6 +189,7 @@ export function useShortcuts({
     toggleRun,
     toggleGraph,
     quickOpen,
+    noteExplorer,
     togglePalette,
     toggleGuide,
     toggleHistory,

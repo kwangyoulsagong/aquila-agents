@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@design-system/react';
-import { api, type SessionKind } from '@/shared/api';
+import { api, type GraphNode, type SessionKind } from '@/shared/api';
 import { I18nContext, translator } from '@/shared/i18n';
 import { withShortcut } from '@/shared/lib/shortcuts';
 import { preloadLazyComponents } from '@/shared/lib/lazyComponent';
@@ -20,10 +20,17 @@ import { GlobalShortcutDialog } from '@/features/global-shortcut';
 import { SourcesDialog } from '@/features/graph-sources';
 import { LinkSettingsDialog, LinkSuggestions } from '@/features/link-suggestions';
 import { NoteEditorPanel, QuickOpen } from '@/features/edit-note';
+import { NoteExplorer } from '@/features/note-explorer';
+import { ChangedNotes, NoteReviewBar } from '@/features/note-review';
+import { NoteReferences, useNoteIds } from '@/features/note-ids';
+import { MentionRow } from '@/features/link-mentions';
 import { VaultNoteSide, VaultNoteTop, VaultSettingsDialog, VaultViewModal } from '@/features/vault-settings';
+import { NoteProperties } from '@/features/note-properties';
+import { WhatIsThisButton, WhatIsThisDialog, type BriefSeed } from '@/features/what-is-this';
 import { copyLastReply, toggleQuickSelect } from '@/features/terminal-helpers';
 import { openFind } from '@/features/terminal-search';
 import { focusSession } from '@/entities/session';
+import { openSessionNode } from '@/entities/note';
 import { FirstRunChecklist, useFirstRun } from '@/features/first-run';
 import { GuideButton, GuideModal, GuideOffer, guideMedia, useGuide } from '@/features/guide';
 import { ReleaseNotesModal, useReleaseNotes } from '@/features/release-notes';
@@ -50,6 +57,7 @@ import { TrendsButton, TrendsModal, hasCliUpdate, useTrends } from '@/widgets/tr
 import { TrendApplyModal, type ApplyItem } from '@/widgets/trend-apply';
 import { pasteWhenReady } from '@/features/apply-trend';
 import { CommandPalette, type ActionId } from '@/widgets/command-palette';
+import { NoteTableModal } from '@/widgets/note-table';
 import { useWorkspace } from '../model/useWorkspace';
 import { useShortcuts } from '../model/useShortcuts';
 import { usePanelFit, type PanelId } from '../model/panels';
@@ -89,6 +97,14 @@ export default function WorkspacePage() {
   const [noteFullOn, setNoteFull] = useState(false);
   const [quickOpenOn, setQuickOpen] = useState(false);
   const quickOpen = useCallback(() => setQuickOpen(true), []);
+  // T83: the editor panel with the file explorer, also with no note open; the counter turns the explorer on.
+  const [explorerOnly, setExplorerOnly] = useState(false);
+  const [explorerRequest, setExplorerRequest] = useState(0);
+  const noteExplorer = useCallback(() => {
+    setExplorerOnly(true);
+    setExplorerRequest((n) => n + 1);
+  }, []);
+  const noteShown = !!notePath || explorerOnly;
   const [previewRequest, setPreviewRequest] = useState<{ url: string; at: number } | null>(null);
   const clearPreviewRequest = useCallback(() => setPreviewRequest(null), []);
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -146,6 +162,10 @@ export default function WorkspacePage() {
   // Folder settings (T69) and a source's board / table / list view.
   const [vaultOpen, setVaultOpen] = useState<{ source?: string } | null>(null);
   const [vaultView, setVaultView] = useState<{ sourceId: string; viewId: string } | null>(null);
+  // T78: the table view, opened from a note (its source and folder) or ⌘K.
+  const [noteTable, setNoteTable] = useState<{ path?: string } | null>(null);
+  // "What is this?" (T81): open with an optional dropped file / text.
+  const [briefOpen, setBriefOpen] = useState<{ seed?: BriefSeed } | null>(null);
   const summonRef = useRef({ sessions, focusedId, selectSession });
   summonRef.current = { sessions, focusedId, selectSession };
   useEffect(
@@ -201,6 +221,7 @@ export default function WorkspacePage() {
     toggleRun,
     toggleGraph,
     quickOpen,
+    noteExplorer,
     togglePalette,
     toggleGuide,
     toggleHistory,
@@ -212,15 +233,20 @@ export default function WorkspacePage() {
   });
 
   const { config, project, activeSessionId, openSession, closeSession, setConfig, showError } = ws;
+  // T79: requirement IDs in the editor (CodeMirror loads with the editor; this is only a loader).
+  const noteIds = useNoteIds(setNotePath, translator(config?.language ?? 'ko'));
   // The graph's project choice (T73): local projects only (a remote project's notes aren't on this machine).
   const graphProjects = useMemo(
-    () => (config?.projects ?? []).filter((p) => !p.remote).map((p) => ({ id: p.id, name: p.name, path: p.path })),
+    () =>
+      (config?.projects ?? [])
+        .filter((p) => !p.remote)
+        .map((p) => ({ id: p.id, name: p.name, path: p.path })),
     [config?.projects],
   );
   // Only while the preview is actually shown: a remote project or full window would otherwise leave nothing on screen.
   const previewFull = previewFullOn && previewOpen && !fullscreen.on && !!project && !project.remote;
   const graphFull = graphFullOn && graphOpen && !fullscreen.on && !previewFull;
-  const noteFull = noteFullOn && !!notePath && !fullscreen.on && !previewFull && !graphFull;
+  const noteFull = noteFullOn && noteShown && !fullscreen.on && !previewFull && !graphFull;
   // One panel alone in the window: the sidebar, the terminals and the other panels step aside.
   const panelFull = previewFull || graphFull || noteFull;
   // More side panels than the window holds: the oldest one closes (changes · run · preview).
@@ -234,6 +260,7 @@ export default function WorkspacePage() {
       setGraphFull(false);
     } else if (p === 'note') {
       setNotePath(null);
+      setExplorerOnly(false);
       setNoteFull(false);
     } else {
       setPreviewOpen(false);
@@ -247,7 +274,7 @@ export default function WorkspacePage() {
       extensions: extOpen,
       preview: previewOpen,
       graph: graphOpen,
-      note: !!notePath,
+      note: noteShown,
     },
     {
       changes: changesOpen && !fullscreen.on && !panelFull,
@@ -255,7 +282,7 @@ export default function WorkspacePage() {
       extensions: extOpen && !fullscreen.on && !panelFull,
       preview: previewOpen && !fullscreen.on && local && !graphFull && !noteFull,
       graph: graphOpen && !fullscreen.on && !previewFull && !noteFull,
-      note: !!notePath && !fullscreen.on && !previewFull && !graphFull,
+      note: noteShown && !fullscreen.on && !previewFull && !graphFull,
     },
     closePanel,
   );
@@ -323,6 +350,14 @@ export default function WorkspacePage() {
       if (id) void pasteWhenReady(id, prompt);
     });
   };
+  // "Referenced in" (T79): a session node → its tab to the front or resumed, as in the graph.
+  const openGraphSession = (n: GraphNode) =>
+    void openSessionNode(n, {
+      sessions: ws.sessions,
+      onShow: ws.selectSession,
+      onResumed: ws.adoptResumed,
+      onError: ws.showError,
+    });
   const { splitFocused, toggleZoom, paneCount } = ws.split;
   const paletteActions = useMemo(() => {
     const a: Partial<Record<ActionId, () => void>> = {
@@ -354,6 +389,7 @@ export default function WorkspacePage() {
     a.toggleExtensions = toggleExtensions;
     a.newExtension = () => setNewExtOpen(true);
     a.quickOpen = quickOpen;
+    a.noteExplorer = noteExplorer;
     if (activeSessionId) a.closeSession = () => closeSession(activeSessionId);
     // Edited in its tab, which full window hides.
     if (activeSessionId && !fullscreen.on) a.renameSession = () => renameTab(activeSessionId);
@@ -371,6 +407,8 @@ export default function WorkspacePage() {
     a.sources = () => setSourcesOpen(true);
     a.links = () => setLinksOpen(true);
     a.vault = () => setVaultOpen({});
+    a.noteTable = () => setNoteTable({ path: notePath ?? undefined });
+    a.whatIsThis = () => setBriefOpen({});
     a.firstRun = reopenFirstRun;
     a.guide = showGuide;
     a.whatsNew = showNotes;
@@ -401,6 +439,7 @@ export default function WorkspacePage() {
     toggleGraph,
     toggleExtensions,
     quickOpen,
+    noteExplorer,
     openWorktreeDialog,
     paletteWorktrees.length,
     openCleanup,
@@ -423,6 +462,7 @@ export default function WorkspacePage() {
     focusedSession,
     quickSelect,
     find,
+    notePath,
   ]);
 
   // ⌘K: each enabled extension's manifest commands open it and send the command.
@@ -443,8 +483,7 @@ export default function WorkspacePage() {
   const t = translator(config.language);
   // A new extension's folder joins the current local project's group and account (else the first ones).
   const extGroup = project && !project.remote ? project.group : (config.groups[0]?.id ?? '');
-  const extAccount =
-    project && !project.remote ? project.account : (Object.keys(config.accounts)[0] ?? '');
+  const extAccount = project && !project.remote ? project.account : (Object.keys(config.accounts)[0] ?? '');
 
   return (
     <I18nContext.Provider value={t}>
@@ -673,6 +712,24 @@ export default function WorkspacePage() {
             onOpenNote={setNotePath}
           />
         )}
+        {noteTable && (
+          <NoteTableModal
+            initialPath={noteTable.path}
+            onClose={() => setNoteTable(null)}
+            onOpenNote={setNotePath}
+          />
+        )}
+        {briefOpen && (
+          <WhatIsThisDialog
+            projectId={localProjectId ?? null}
+            seed={briefOpen.seed}
+            onClose={() => setBriefOpen(null)}
+            onOpenNote={(p) => {
+              setBriefOpen(null);
+              setNotePath(p);
+            }}
+          />
+        )}
         <QuickOpen open={quickOpenOn} onClose={() => setQuickOpen(false)} onPick={setNotePath} />
         {commandsOpen && focusedSession && (
           <SessionCommandsModal
@@ -714,28 +771,61 @@ export default function WorkspacePage() {
           />
         )}
         {/* Last column: the native preview view only has to follow its own size and the window. */}
-        {notePath && !fullscreen.on && !previewFull && !graphFull && (
+        {noteShown && !fullscreen.on && !previewFull && !graphFull && (
           <NoteEditorPanel
             path={notePath}
             full={noteFull}
             onToggleFull={() => setNoteFull((f) => !f)}
             onClose={() => {
               setNotePath(null);
+              setExplorerOnly(false);
               setNoteFull(false);
             }}
             onOpenNote={setNotePath}
+            explorerRequest={explorerRequest}
+            renderExplorer={({ flush }) => (
+              <NoteExplorer
+                currentPath={notePath}
+                projects={graphProjects}
+                activeProjectId={ws.activeProjectId}
+                onOpenNote={setNotePath}
+                beforeChange={flush}
+                onMoved={setNotePath}
+                onGone={() => {
+                  setExplorerOnly(true);
+                  setNotePath(null);
+                }}
+              />
+            )}
             renderLinks={(p) => (
               <LinkSuggestions {...p} variant="side" onOpen={(n) => n.path && setNotePath(n.path)} />
             )}
             renderTop={(slot) => (
-              <VaultNoteTop slot={slot} onOpenNote={setNotePath} onClaude={sendNoteToClaude} />
+              <>
+                <NoteReviewBar slot={slot} />
+                <VaultNoteTop slot={slot} onOpenNote={setNotePath} onClaude={sendNoteToClaude} />
+                <NoteProperties key={slot.path} slot={slot} onOpenTable={(path) => setNoteTable({ path })} />
+              </>
             )}
+            extension={noteIds}
+            renderMention={(p) => <MentionRow {...p} />}
+            renderActions={() => <WhatIsThisButton onOpen={(seed) => setBriefOpen({ seed })} />}
             renderSide={(slot) => (
-              <VaultNoteSide
-                slot={slot}
-                onOpenNote={setNotePath}
-                onOpenView={(sourceId, viewId) => setVaultView({ sourceId, viewId })}
-              />
+              <>
+                <ChangedNotes path={slot.path} onOpenNote={setNotePath} />
+                <NoteReferences
+                  path={slot.path}
+                  text={slot.version}
+                  onOpenNote={setNotePath}
+                  onOpenSession={openGraphSession}
+                  onOpenFile={(f) => f.path && void api.revealFile(f.path)}
+                />
+                <VaultNoteSide
+                  slot={slot}
+                  onOpenNote={setNotePath}
+                  onOpenView={(sourceId, viewId) => setVaultView({ sourceId, viewId })}
+                />
+              </>
             )}
             onClaude={sendNoteToClaude}
             onCreateNote={(name, sourceId) => {
@@ -773,6 +863,7 @@ export default function WorkspacePage() {
               setGraphFull(false);
             }}
             onSources={() => setSourcesOpen(true)}
+            onWhatIsThis={(seed) => setBriefOpen({ seed })}
           />
         )}
         {previewOpen && !fullscreen.on && !graphFull && !noteFull && project && !project.remote && (

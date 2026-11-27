@@ -359,8 +359,8 @@
   </section>
 
   <section>
-    <h2>Note editor · live preview, banner, outline / links (T67)</h2>
-    <div class="mock" style="display:flex; flex-direction:column; height:360px;">
+    <h2>Note editor · live preview as a document (T82), banner, outline / links (T67)</h2>
+    <div class="mock" style="display:flex; flex-direction:column; height:720px;">
       <div class="c-editor">
         <div class="c-editor__main">
           <div class="c-editor__banner" role="status" data-tone="warn">
@@ -369,15 +369,47 @@
             <button class="c-btn c-btn--ghost">내 것 유지</button>
             <button class="c-btn">다시 불러오기</button>
           </div>
+          <div class="c-editor__banner" role="status">
+            <span class="c-editor__banner-text">Claude가 이 노트를 바꿨어요 · <span class="c-review__counts"><span class="c-review__add">+12</span> <span class="c-review__del">−3</span> 줄</span> · <span class="c-review__meta">5분 전</span></span>
+            <button class="c-btn c-btn--ghost">변경 보기</button>
+            <button class="c-btn">봤어요</button>
+          </div>
           <div class="c-editor__host">
-            <div class="cm-editor"><div class="cm-scroller"><div class="cm-content">
-              <div class="cm-line cm-md-h cm-md-h1">릴리스 체크리스트</div>
-              <div class="cm-line cm-md-callout cm-md-callout-title"><span class="cm-md-callout-kind">note</span>이번 주</div>
-              <div class="cm-line cm-md-callout">표와 체크박스는 라이브 프리뷰로 보여요.</div>
-              <div class="cm-line"><span class="cm-md-listmark">-</span> <input type="checkbox" class="cm-md-checkbox"> 빌드 확인</div>
-              <div class="cm-line"><span class="cm-md-listmark">-</span> <input type="checkbox" class="cm-md-checkbox" checked> <span class="cm-md-done">노트 그래프 머지</span></div>
-              <div class="cm-md-table"><table><thead><tr><th>항목</th><th style="text-align:center">담당</th></tr></thead><tbody><tr><td>editor</td><td style="text-align:center">서연</td></tr></tbody></table></div>
-              <div class="cm-line">See <span class="cm-md-wikilink">session-restore</span>, <span class="cm-md-code">planRestore</span> and <span class="cm-md-strong">DB-12</span>.</div>
+            <!-- T82: the live preview as a document. Static copy of what CodeMirror renders (the cursor is on the last line). -->
+            <div class="cm-editor"><div class="cm-scroller" style="overflow:auto; height:100%"><div class="cm-content" style="white-space:pre-wrap">
+              <div class="cm-md-dochead"><div class="cm-md-docmeta">Plan · 11월 27일 14:02 수정</div></div>
+              <div class="cm-line cm-md-h cm-md-h1 cm-md-title">릴리스 체크리스트</div>
+              <div class="cm-line"><br></div>
+              <div class="cm-line">배포 전에 확인할 것들. 파일은 <span class="cm-md-strong">그냥 마크다운</span>이고 보기만 <span class="cm-md-em">문서처럼</span> 바뀌어요. See <span class="cm-md-wikilink">session-restore</span>, <span class="cm-md-link" data-url="#">docs</span> and <span class="cm-md-code">planRestore()</span>.</div>
+              <div class="cm-line cm-md-h cm-md-h2">할 일</div>
+              <div class="cm-line"><input type="checkbox" class="cm-md-checkbox">빌드 확인</div>
+              <div class="cm-line"><input type="checkbox" class="cm-md-checkbox" checked><span class="cm-md-done">노트 그래프 머지</span></div>
+              <div class="cm-line"><span class="cm-md-bullet" data-depth="0"></span> 일반 항목</div>
+              <div class="cm-line">&nbsp;&nbsp;<span class="cm-md-bullet" data-depth="1"></span> 중첩 항목</div>
+              <div class="cm-line"><span class="cm-md-listmark cm-md-ordered">1.</span> 첫째</div>
+              <div class="cm-line"><br></div>
+              <div class="cm-line cm-md-callout cm-md-callout-start cm-md-callout-title" data-callout="note"><span class="cm-md-callout-kind" data-callout="note"><span class="cm-md-callout-icon">i</span>note</span>이번 주</div>
+              <div class="cm-line cm-md-callout cm-md-callout-end" data-callout="note">표와 체크박스는 라이브 프리뷰로 보여요.</div>
+              <div class="cm-line"><br></div>
+              <div class="cm-line cm-md-callout cm-md-callout-start cm-md-callout-title" data-callout="warning"><span class="cm-md-callout-kind" data-callout="warning"><span class="cm-md-callout-icon">!</span>warning</span>주의</div>
+              <div class="cm-line cm-md-callout cm-md-callout-end" data-callout="warning">2MB 넘는 노트는 일부만 열려요.</div>
+              <div class="cm-line"><br></div>
+              <div class="cm-line cm-md-callout cm-md-callout-start cm-md-callout-title cm-md-callout-end" data-callout="tip"><span class="cm-md-callout-kind" data-callout="tip"><span class="cm-md-callout-icon">✓</span>tip</span>읽기 모드는 ⌘E</div>
+              <div class="cm-line"><br></div>
+              <div class="cm-line cm-md-callout cm-md-callout-start cm-md-callout-title cm-md-callout-end" data-callout="important"><span class="cm-md-callout-kind" data-callout="important"><span class="cm-md-callout-icon">!</span>important</span>머지 전에 리뷰</div>
+              <div class="cm-line"><br></div>
+              <div class="cm-line cm-md-callout cm-md-callout-start cm-md-callout-title cm-md-callout-end" data-callout="caution"><span class="cm-md-callout-kind" data-callout="caution"><span class="cm-md-callout-icon">×</span>caution</span>main에 직접 푸시 금지</div>
+              <div class="cm-line"><br></div>
+              <div class="cm-line cm-md-quote cm-md-quote-start cm-md-quote-end">인용문은 조용한 테두리.</div>
+              <div class="cm-line cm-md-h cm-md-h3">코드</div>
+              <div class="cm-line cm-md-codeblock cm-md-codeblock-start"><span class="cm-md-codehead"><span class="cm-md-codelang">TypeScript</span><button type="button" class="cm-md-codecopy">복사</button></span></div>
+              <div class="cm-line cm-md-codeblock">export function hello(name: string) {</div>
+              <div class="cm-line cm-md-codeblock">  return `hi ${name}`;</div>
+              <div class="cm-line cm-md-codeblock">}</div>
+              <div class="cm-line cm-md-codeblock cm-md-codeblock-end cm-md-codeblock-close"><br></div>
+              <div class="cm-md-table"><table><thead><tr><th>항목</th><th style="text-align:center">담당</th><th style="text-align:right">상태</th></tr></thead><tbody><tr><td>editor</td><td style="text-align:center">서연</td><td style="text-align:right">완료</td></tr><tr><td>graph</td><td style="text-align:center">민준</td><td style="text-align:right">진행</td></tr><tr><td>docs</td><td style="text-align:center">지우</td><td style="text-align:right">대기</td></tr></tbody></table></div>
+              <div class="cm-line cm-md-hr"><br></div>
+              <div class="cm-line cm-md-h cm-md-h4">마무리</div>
               <div class="cm-line">| raw | row | on the cursor line |</div>
             </div></div></div>
           </div>
@@ -401,6 +433,62 @@
             </ul>
           </section>
         </aside>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Note explorer · file tree beside the editor (T83)</h2>
+    <div class="mock" style="display:flex; height:360px;">
+      <div class="c-editor">
+        <div class="c-editor__explorer">
+          <section class="c-explorer" aria-label="파일">
+            <div class="c-explorer__head">
+              <span class="c-select"><select class="c-select__control" aria-label="노트 폴더"><option>requirements</option></select></span>
+              <span class="c-select"><select class="c-select__control" aria-label="정렬"><option>이름순</option><option>수정일순</option><option>생성일순</option></select></span>
+              <button class="c-btn c-btn--ghost c-btn--icon" title="새 노트">+</button>
+              <button class="c-btn c-btn--ghost c-btn--icon" title="새 폴더">⊞</button>
+              <button class="c-btn c-btn--ghost c-btn--icon" title="현재 노트 위치">◎</button>
+            </div>
+            <div class="c-explorer__filter"><input class="c-input" placeholder="이름·경로·ID로 거르기"><button class="c-btn c-btn--ghost c-btn--icon" title="상태별 보기" aria-pressed="false">☰</button><button class="c-btn c-btn--ghost c-btn--icon" title="보기 옵션">⋯</button></div>
+            <div class="c-explorer__note" role="status">링크 2개를 고쳤어요</div>
+            <div class="c-tree" role="tree" tabindex="0" aria-label="파일">
+              <div class="c-tree__spacer" style="height:264px">
+                <div class="c-tree__section" style="position:absolute; top:0; left:0; right:0">고정됨</div>
+                <div class="c-tree__row" role="treeitem" style="top:24px; --level:0" data-kind="file"><span class="c-tree__icon"></span><span class="c-tree__name">FE-REQ-030 login</span><i class="c-tree__dot" data-tone="active" title="상태: in-progress"></i></div>
+                <div class="c-tree__section" style="position:absolute; top:48px; left:0; right:0">파일</div>
+                <div class="c-tree__row" role="treeitem" aria-expanded="true" style="top:72px; --level:0" data-kind="folder"><span class="c-tree__twisty">›</span><span class="c-tree__name">specs</span><span class="c-tree__count">31</span></div>
+                <div class="c-tree__row" role="treeitem" aria-expanded="false" data-drop style="top:96px; --level:1" data-kind="folder"><span class="c-tree__twisty">›</span><span class="c-tree__name">done</span><span class="c-tree__count">12</span></div>
+                <div class="c-tree__row" role="treeitem" aria-expanded="true" style="top:120px; --level:1" data-kind="folder" data-cursor data-folder-note><span class="c-tree__twisty">›</span><span class="c-tree__name">in-progress</span><i class="c-tree__mark" title="폴더 노트: in-progress.md"></i><span class="c-tree__actions"><button class="c-tree__action" title="새 노트">+</button><button class="c-tree__action" title="새 폴더">⊞</button><button class="c-tree__action" title="더 보기">⋯</button></span><span class="c-tree__count">3</span></div>
+                <div class="c-tree__row" role="treeitem" style="top:144px; --level:2" data-kind="file"><span class="c-tree__icon"></span><span class="c-tree__name">FE-REQ-029</span><i class="c-tree__dot" data-tone="done" title="상태: done"></i></div>
+                <div class="c-tree__row" role="treeitem" aria-selected="true" data-current style="top:168px; --level:2" data-kind="file"><span class="c-tree__icon"></span><span class="c-tree__name">FE-REQ-<mark>030</mark> login</span><i class="c-tree__dot" data-tone="changed" title="방금 바뀜"></i></div>
+                <div class="c-tree__row" role="treeitem" style="top:192px; --level:2" data-kind="file"><span class="c-tree__icon"></span><input class="c-tree__input" value="FE-REQ-031" aria-label="노트 이름"></div>
+                <div class="c-tree__row" role="treeitem" aria-expanded="false" style="top:216px; --level:0" data-kind="folder"><span class="c-tree__twisty">›</span><span class="c-tree__name">checklists / 2026 / q4</span><span class="c-tree__count">9</span></div>
+                <div class="c-tree__row" role="treeitem" style="top:240px; --level:0" data-kind="file"><span class="c-tree__icon"></span><span class="c-tree__name">README</span></div>
+              </div>
+            </div>
+          </section>
+        </div>
+        <div class="c-editor__main"><div class="c-empty"><div class="c-empty__title">노트를 고르거나 새로 만드세요</div></div></div>
+      </div>
+      <div class="c-tree__ghost" style="position:absolute; left:120px; top:100px">FE-REQ-030 login</div>
+      <div class="c-editor__explorer" style="margin-left:var(--space-inset-md)">
+        <section class="c-explorer" aria-label="파일 · 상태별">
+          <div class="c-explorer__filter"><input class="c-input" placeholder="이름·경로·ID로 거르기"><button class="c-btn c-btn--ghost c-btn--icon" title="상태별 보기" aria-pressed="true">☰</button></div>
+          <div class="c-tree" role="tree" tabindex="0" aria-label="파일 · 상태별">
+            <div class="c-tree__sticky">
+              <div class="c-tree__row" role="treeitem" aria-expanded="true" data-virtual data-sticky style="top:0; --level:0" data-kind="folder"><span class="c-tree__twisty">›</span><span class="c-tree__name">in-progress</span><span class="c-tree__count">14</span></div>
+            </div>
+            <div class="c-tree__spacer" style="height:192px">
+              <div class="c-tree__row" role="treeitem" style="top:24px; --level:1" data-kind="file"><span class="c-tree__icon"></span><span class="c-tree__name">FE-REQ-030 login</span><i class="c-tree__dot" data-tone="active" title="상태: in-progress"></i></div>
+              <div class="c-tree__row" role="treeitem" style="top:48px; --level:1" data-kind="file"><span class="c-tree__icon"></span><span class="c-tree__name">FE-REQ-031</span><i class="c-tree__dot" data-tone="active" title="상태: in-progress"></i></div>
+              <div class="c-tree__row" role="treeitem" aria-expanded="true" data-virtual style="top:72px; --level:0" data-kind="folder"><span class="c-tree__twisty">›</span><span class="c-tree__name">review</span><span class="c-tree__count">2</span></div>
+              <div class="c-tree__row" role="treeitem" style="top:96px; --level:1" data-kind="file"><span class="c-tree__icon"></span><span class="c-tree__name">FE-REQ-027</span><i class="c-tree__dot" data-tone="active" title="상태: review"></i></div>
+              <div class="c-tree__row" role="treeitem" aria-expanded="false" data-virtual style="top:120px; --level:0" data-kind="folder"><span class="c-tree__twisty">›</span><span class="c-tree__name">done</span><span class="c-tree__count">12</span></div>
+              <div class="c-tree__row" role="treeitem" aria-expanded="false" data-virtual style="top:144px; --level:0" data-kind="folder"><span class="c-tree__twisty">›</span><span class="c-tree__name">상태 없음</span><span class="c-tree__count">5</span></div>
+            </div>
+          </div>
+        </section>
       </div>
     </div>
   </section>
@@ -443,11 +531,11 @@
       </div>
     </div>
     <div class="mock" style="display:block; padding:16px;">
-      <table class="c-table" aria-label="By priority">
-        <thead><tr><th scope="col">제목</th><th scope="col">labels</th><th scope="col">revised</th></tr></thead>
-        <tbody><tr class="c-table__group"><th colspan="3" scope="rowgroup">high <span class="c-board__count">1</span></th></tr>
-          <tr><td><button class="c-table__open">Search modal keeps the last query</button></td><td>search</td><td>2026-11-10</td></tr></tbody>
-      </table>
+      <div class="c-ntable" role="table" aria-label="By priority" style="--ntable-cols: 2; flex: none; height: 128px;">
+        <div class="c-ntable__head" role="row"><div class="c-ntable__th" role="columnheader" aria-sort="none"><button class="c-ntable__sort">제목<span class="c-ntable__arrow"></span></button></div><div class="c-ntable__th" role="columnheader" aria-sort="ascending"><button class="c-ntable__sort">labels<span class="c-ntable__arrow">↑</span></button></div><div class="c-ntable__th" role="columnheader" aria-sort="none"><button class="c-ntable__sort">revised<span class="c-ntable__arrow"></span></button></div></div>
+        <div class="c-ntable__group" role="row"><span role="rowheader">high <span class="c-ntable__count">1</span></span></div>
+        <div class="c-ntable__row" role="row"><div class="c-ntable__cell" role="cell"><button class="c-ntable__open">Search modal keeps the last query</button></div><div class="c-ntable__cell" role="cell">search</div><div class="c-ntable__cell" role="cell">2026-11-10</div></div>
+      </div>
       <textarea class="c-input c-input--multiline c-input--code" style="margin-top:12px; width:100%;">{ "v": 1, "views": [] }</textarea>
     </div>
   </section>

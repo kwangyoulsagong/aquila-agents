@@ -12,6 +12,7 @@ import type {
   GraphRuleOp,
   GraphSnapshot,
   GraphSourceState,
+  RelatedNote,
 } from '../../src/shared/api/types';
 import { buildGraph, mentionCache, noteId, type CodeName, type IndexedNote } from './build';
 import { collectCodeNames, SKIP_DIRS, yieldNow, type CodeProject } from './code';
@@ -19,6 +20,7 @@ import { Extractor, type ExtractorOptions, type RunPrompt } from './extract';
 import { parseNote } from './parse';
 import { applyRuleOp, decide, pairKey, proposals, readLinks, writeLinks, type LinkData } from './rules';
 import { SimilarIndex } from './similar';
+import { rankRelated, type RelatedCandidate } from './related';
 import { compileLinkRules, SHARED_FILE, type CompiledLinkRule, type VaultNote } from './vault';
 import type { VaultLinkRule } from '../../src/shared/api/types';
 
@@ -77,7 +79,8 @@ export const SAVER_DEBOUNCE_MS = 2000;
 const SAVE_DELAY_MS = 30_000;
 const MAX_FILES = 20_000;
 const MAX_NOTE_BYTES = 1024 * 1024;
-const INDEX_VERSION = 1;
+/** 2: IDs read whole (`FE-REQ-030`, T79) — older caches are parsed again. */
+const INDEX_VERSION = 2;
 
 interface SavedIndex {
   v: number;
@@ -109,7 +112,8 @@ const ignored = (rel: string) =>
 /** `rel` is in `set` or inside a folder in it. */
 const inSet = (rel: string, set: ReadonlySet<string>) => {
   if (!set.size) return false;
-  for (let i = rel.indexOf('/'); i > 0; i = rel.indexOf('/', i + 1)) if (set.has(rel.slice(0, i))) return true;
+  for (let i = rel.indexOf('/'); i > 0; i = rel.indexOf('/', i + 1))
+    if (set.has(rel.slice(0, i))) return true;
   return set.has(rel);
 };
 
@@ -122,7 +126,15 @@ export function gitIgnored(root: string): Promise<Set<string>> {
   return new Promise((resolve) => {
     execFile(
       'git',
-      ['ls-files', '-z', '--others', '--ignored', '--exclude-standard', '--directory', '--no-empty-directory'],
+      [
+        'ls-files',
+        '-z',
+        '--others',
+        '--ignored',
+        '--exclude-standard',
+        '--directory',
+        '--no-empty-directory',
+      ],
       { cwd: root, timeout: 10_000, maxBuffer: 64 * 1024 * 1024 },
       (err, stdout) => {
         if (err) return resolve(new Set());
@@ -325,6 +337,32 @@ export class GraphEngine {
           mtime: n.mtime,
         });
     return out.sort((a, b) => a.rel.localeCompare(b.rel));
+  }
+
+  /**
+   * T81: notes related to a text that isn't a note — its IDs (plus `extraIds` the model named) and the nearest by
+   * shared words. Uses the index as it is (the snapshot's similarity pass, built once per change); no rescan.
+   */
+  related(text: string, extraIds: readonly string[] = [], k = 6): RelatedNote[] {
+    this.snapshot();
+    const ids = [...new Set([...parseNote('brief.md', text).ids, ...extraIds])];
+    const similar = this.similar.query(text, k + 2);
+    const candidate = (id: string, n: IndexedNote): RelatedCandidate => ({
+      id,
+      abs: n.abs,
+      title: n.note.title,
+      rel: n.rel,
+      sourceId: n.sourceId,
+      ids: n.note.ids,
+    });
+    const notes: RelatedCandidate[] = [];
+    if (ids.length) for (const [id, n] of this.notes) notes.push(candidate(id, n));
+    else
+      for (const s of similar) {
+        const n = this.notes.get(s.id);
+        if (n) notes.push(candidate(s.id, n));
+      }
+    return rankRelated(ids, similar, notes, k);
   }
 
   /** Starts a first index that was paused in saver. */

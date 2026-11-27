@@ -93,13 +93,24 @@ describe('notePath', () => {
     const off = path.join(dir, 'off');
     fs.mkdirSync(notes);
     fs.mkdirSync(off);
-    for (const f of [path.join(notes, 'a.md'), path.join(notes, 'a.txt'), path.join(off, 'b.md'), path.join(dir, 'c.md')])
+    for (const f of [
+      path.join(notes, 'a.md'),
+      path.join(notes, 'a.txt'),
+      path.join(off, 'b.md'),
+      path.join(dir, 'c.md'),
+    ])
       fs.writeFileSync(f, '# x');
     writeSources(path.join(dir, 'sources.json'), [
       { id: 'notes', path: notes, enabled: true },
       { id: 'off', path: off, enabled: false },
     ]);
-    const g = new GraphService({ dir, workerFile: '/nope', saver: false, projects: () => [], onStatus: () => {} });
+    const g = new GraphService({
+      dir,
+      workerFile: '/nope',
+      saver: false,
+      projects: () => [],
+      onStatus: () => {},
+    });
     expect(g.notePath(path.join(notes, 'a.md'))).toBe(path.join(notes, 'a.md'));
     expect(g.notePath(path.join(notes, '..', 'c.md'))).toBeNull();
     expect(g.notePath(path.join(notes, 'a.txt'))).toBeNull();

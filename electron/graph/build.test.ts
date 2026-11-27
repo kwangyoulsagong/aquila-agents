@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import type { GraphSnapshot } from '../../src/shared/api/types';
-import { buildGraph, idGroups, noteId, type CodeName, type IndexedNote } from './build';
+import {
+  buildGraph,
+  idGroups,
+  mentionCache,
+  noteId,
+  titleNeeds,
+  type CodeName,
+  type IndexedNote,
+} from './build';
 import { parseNote } from './parse';
 import { compileLinkRules } from './vault';
 
@@ -17,6 +25,22 @@ const edge = (g: GraphSnapshot, a: string, b: string) =>
   g.edges.find((e) => (e.source === a && e.target === b) || (e.source === b && e.target === a));
 
 describe('buildGraph', () => {
+  it('T79: carries requirement IDs, frontmatter id and status on note nodes', () => {
+    const g = buildGraph(
+      [
+        note('s', 'FE-REQ-030-login.md', '---\nid: FE-REQ-030\nstatus: done\n---\nUses DB-12.'),
+        note('s', 'b.md', 'x'),
+      ],
+      new Map(),
+    );
+    expect(g.nodes.find((n) => n.id === noteId('s', 'FE-REQ-030-login.md'))).toMatchObject({
+      fmId: 'FE-REQ-030',
+      status: 'done',
+      refIds: ['DB-12', 'FE-REQ-030'],
+    });
+    expect(g.nodes.find((n) => n.id === noteId('s', 'b.md'))?.refIds).toBeUndefined();
+  });
+
   it('resolves [[Name]], folder/Name, relative links; unknown targets become missing nodes', () => {
     const g = buildGraph(
       [
@@ -87,6 +111,32 @@ describe('buildGraph', () => {
     expect(edge(g, noteId('s', 'e.md'), noteId('s', 'readme.md'))).toBeUndefined();
   });
 
+  it("titleNeeds: every word of an ASCII title; inner words and the last word's start of a Korean one", () => {
+    expect(titleNeeds('fe-req-030 login flow')).toEqual(['fe', 'req', '030', 'login', 'flow']);
+    expect(titleNeeds('2026 주간 회의록')).toEqual(['2026', '주간', '회의']);
+    expect(titleNeeds('주간회의')).toEqual(['주간']);
+    expect(titleNeeds('---')).toEqual([]);
+  });
+
+  it('title mentions: titles sharing a first word, same first word in title order, kept per note between builds', () => {
+    const notes = [
+      note('s', 'a.md', '# FE-REQ-001 Login flow'),
+      note('s', 'b.md', '# FE-REQ-002 Search page'),
+      note('s', 'c.md', '# FE-REQ-003 Export'),
+      note('s', 'd.md', 'See fe-req-002 search page, then fe-req-001 login flow. Not fe-req-003 exports.'),
+    ];
+    const cache = mentionCache();
+    const g = buildGraph(notes, new Map(), 0, { mentions: cache });
+    const from = noteId('s', 'd.md');
+    const mentioned = g.edges.filter((e) => e.source === from && e.reasons.some((r) => r.via === 'title'));
+    expect(mentioned.map((e) => e.target)).toEqual([noteId('s', 'a.md'), noteId('s', 'b.md')]);
+    expect(cache.byNote.get(from)?.targets).toEqual([noteId('s', 'a.md'), noteId('s', 'b.md')]);
+    // Same titles: the lookup index is reused.
+    const index = cache.index;
+    buildGraph(notes, new Map(), 1, { mentions: cache });
+    expect(cache.index).toBe(index);
+  });
+
   it('a repeated ID or URL links the notes; one in too many notes is noise', () => {
     const many = Array.from({ length: 21 }, (_, i) => note('s', `n${i}.md`, 'footer OPS-1'));
     const g = buildGraph(
@@ -148,6 +198,22 @@ describe('idGroups', () => {
     ]);
   });
 
+  it('T79: compound IDs group under their whole prefix and connect only notes sharing the whole ID', () => {
+    const g = buildGraph(
+      [
+        note('s', 'a.md', 'FE-REQ-030'),
+        note('s', 'b.md', 'see FE-REQ-030'),
+        note('s', 'c.md', 'SRV-REQ-030'),
+      ],
+      new Map(),
+    );
+    expect(edge(g, noteId('s', 'a.md'), noteId('s', 'b.md'))?.reasons).toEqual([
+      { via: 'id', label: 'FE-REQ-030' },
+    ]);
+    expect(edge(g, noteId('s', 'a.md'), noteId('s', 'c.md'))).toBeUndefined();
+    expect(g.idGroups).toEqual([{ prefix: 'FE-REQ', ids: ['FE-REQ-030'], notes: 2 }]);
+  });
+
   it('T69: a source’s link rules connect notes by file name or property, only inside that source', () => {
     const notes = [
       note('req', 'specs/done/DB-6891-downloads.md', '# Downloads'),
@@ -156,10 +222,13 @@ describe('idGroups', () => {
       note('other', 'x.md', 'DB-6891 again'),
     ];
     const rules = new Map([
-      ['req', compileLinkRules([
-        { pattern: '\\bDB-\\d+\\b', to: 'name' },
-        { pattern: 'owner: (\\w+)', to: 'property', key: 'handle' },
-      ])],
+      [
+        'req',
+        compileLinkRules([
+          { pattern: '\\bDB-\\d+\\b', to: 'name' },
+          { pattern: 'owner: (\\w+)', to: 'property', key: 'handle' },
+        ]),
+      ],
     ]);
     const g = buildGraph(notes, new Map(), 0, { vaultLinks: rules });
     const search = noteId('req', 'specs/to-do/DB-7100-search.md');
@@ -168,9 +237,12 @@ describe('idGroups', () => {
       source: search,
       reasons: expect.arrayContaining([{ via: 'rule', label: 'db-6891' }]),
     });
-    expect(edge(g, search, noteId('req', 'people/kim.md'))?.reasons).toContainEqual({ via: 'rule', label: 'kim' });
-    expect(edge(g, noteId('other', 'x.md'), noteId('req', 'specs/done/DB-6891-downloads.md'))?.reasons ?? []).not.toContainEqual(
-      expect.objectContaining({ via: 'rule' }),
-    );
+    expect(edge(g, search, noteId('req', 'people/kim.md'))?.reasons).toContainEqual({
+      via: 'rule',
+      label: 'kim',
+    });
+    expect(
+      edge(g, noteId('other', 'x.md'), noteId('req', 'specs/done/DB-6891-downloads.md'))?.reasons ?? [],
+    ).not.toContainEqual(expect.objectContaining({ via: 'rule' }));
   });
 });

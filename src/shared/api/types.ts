@@ -733,6 +733,11 @@ export interface GraphNode {
   url?: string;
   /** Notes (T75): the most telling words of the body (local TF-IDF), for naming groups of notes. */
   terms?: string[];
+  /** Notes (T79): requirement-like IDs the note mentions, whole prefix kept (`FE-REQ-030`, `DB-12`). */
+  refIds?: string[];
+  /** Notes (T79): frontmatter `id:` and `status:` (short scalars). */
+  fmId?: string;
+  status?: string;
 }
 
 /**
@@ -777,7 +782,7 @@ export interface GraphEdge {
   reasons: GraphEdgeReason[];
 }
 
-/** IDs (`[A-Z][A-Z0-9]+-\d+`) of one prefix seen in 2+ notes: offered as a group ("looks like an ID"). */
+/** IDs (`DB-12`, `FE-REQ-030`: read whole) of one prefix seen in 2+ notes: offered as a group ("looks like an ID"). */
 export interface GraphIdGroup {
   prefix: string;
   /** The IDs seen in 2+ notes, most notes first (≤20). */
@@ -911,6 +916,24 @@ export type NoteChange = NoteFile | { path: string; deleted: true };
 
 export type NoteWriteResult =
   { ok: true; mtime: number } | { ok: false; reason: 'changed' | 'refused' | 'failed' };
+
+/** T80: an open note differs on disk from the text the user last looked at (an agent, a terminal, git changed it). */
+export interface NoteSeenState {
+  /** The note as the user last saw it (opened / marked as seen). */
+  seenText: string;
+  seenAt: number;
+  /** The disk version's mtime (ms). */
+  changedAt: number;
+  /** A Claude session's turns touched the file; null: changed outside, nobody known. */
+  by: 'claude' | null;
+}
+
+/** T80: a note changed outside since the user last saw it (mtime only, no diff). */
+export interface NoteSeenChange {
+  path: string;
+  changedAt: number;
+  by: 'claude' | null;
+}
 
 // ---- Per-source settings (T69). Nothing about any repo's format is built in: a source is shaped by its config. ----
 
@@ -1055,6 +1078,87 @@ export type VaultEdit = { action: string } | { property: string; value: string |
 
 /** `projectId`: the local project the note is in (the Claude tab opens there). */
 export type VaultEditResult = { text: string } | { prompt: string; projectId?: string };
+
+/** T78: every note of a source from the index (rows of the table view) and the source's property types. */
+export interface NoteTableData {
+  sourceId: string;
+  notes: VaultCard[];
+  properties: VaultProperty[];
+}
+
+// ---- Note explorer (T83) ----
+
+/** A note as the explorer lists it (from the index, no disk walk). `rel` is `/`-separated inside the source. */
+export interface NoteFsEntry {
+  rel: string;
+  title: string;
+  mtime: number;
+  /** Creation time; only when asked for (`created`), one stat per note. */
+  ctime?: number;
+  /** Frontmatter `status:` (short scalar). */
+  status?: string;
+}
+
+export interface NoteFsList {
+  sourceId: string;
+  /** The source folder (absolute). */
+  root: string;
+  files: NoteFsEntry[];
+}
+
+export type NoteFsError = 'exists' | 'badName' | 'refused' | 'notFound' | 'notEmpty' | 'failed';
+
+export type NoteFsResult = { ok: true; rel: string; mtime?: number } | { ok: false; error: NoteFsError };
+
+/** A file or folder's path inside the source before and after a rename / move. */
+export interface NoteFsMove {
+  from: string;
+  to: string;
+}
+
+/** A note whose links to the renamed / moved notes can be fixed: where it is now, and how many links. */
+export interface NoteFsLinkNote {
+  rel: string;
+  count: number;
+}
+
+export type NoteFsMoveResult =
+  | {
+      ok: true;
+      /** The items asked for (a folder as one move). Empty: nothing to do (same folder, same name). */
+      moved: NoteFsMove[];
+      /** Every note that moved (a folder's notes one by one). */
+      files: NoteFsMove[];
+      /** Notes with links to fix (asked before anything is written). */
+      links: NoteFsLinkNote[];
+    }
+  | { ok: false; error: NoteFsError; moved?: NoteFsMove[] };
+
+export interface NoteFsLinkResult {
+  /** Links rewritten. */
+  fixed: number;
+  /** Notes left as they were (changed meanwhile, read-only, gone). */
+  failed: string[];
+}
+
+export type NoteFsSort = 'name' | 'modified' | 'created';
+
+/** What the explorer remembers per source in `~/.aquila/explorer.json` (never in the repo). */
+export interface NoteFsPrefs {
+  pins: string[];
+  recent: string[];
+  sort: NoteFsSort;
+  /** Folders as on disk (default) or virtual folders by frontmatter `status:`. */
+  group?: 'folder' | 'status';
+  /** A folder's `index.md` / `README.md` / `<folder>.md` opens from its name (default on). */
+  folderNotes?: boolean;
+  /** A chain of single-child folders shows as one row `a / b / c` (default on). */
+  compact?: boolean;
+  /** After a rename / move: ask to fix links (default), always fix them, or never. */
+  links?: NoteFsLinks;
+}
+
+export type NoteFsLinks = 'ask' | 'always' | 'never';
 
 export type VaultMoveResult =
   { ok: true; path: string } | { ok: false; reason: 'exists' | 'refused' | 'failed' };
@@ -1396,6 +1500,8 @@ export interface AquilaApi {
   /** Note editor (T67): reads a note of an enabled source and watches it until `noteClose`. Other paths → null. */
   noteOpen(path: string): Promise<NoteFile | null>;
   noteClose(path: string): void;
+  /** A plain read of a note (a table cell, a link mention, a conflict re-read): no watch, no "seen" baseline. */
+  noteRead(path: string): Promise<NoteFile | null>;
   /** Saves in place; refused (`changed`) when the file on disk isn't the one read at `baseMtime`. */
   noteWrite(path: string, text: string, bom: boolean, baseMtime: number): Promise<NoteWriteResult>;
   /** A note open in the editor changed on disk. */
@@ -1406,6 +1512,14 @@ export interface AquilaApi {
   noteOpenUrl(url: string): Promise<void>;
   /** T70: the local project a file is in (a note's "Handle with Claude" opens there), or null. */
   noteProject(path: string): Promise<string | null>;
+  /** T79: shows a file of a local project (or a note) in Finder — a changed file in "Referenced in". False if refused. */
+  revealFile(path: string): Promise<boolean>;
+  /** T80: the seen copy when the note on disk differs from what the user last looked at, else null. */
+  noteSeenState(path: string): Promise<NoteSeenState | null>;
+  /** T80: "Mark as seen" — the note as it is on disk now becomes the seen copy. */
+  noteSeenMark(path: string): Promise<boolean>;
+  /** T80: notes (of enabled sources) changed outside since last seen, newest first. */
+  noteSeenChanged(): Promise<NoteSeenChange[]>;
   /**
    * T70: today's sessions added to the day's note of a source (when null: one with a date template, else the first
    * enabled) — its date template when it has one, else `<date> sessions.md` — only lines it doesn't have yet. The note's path, or null.
@@ -1426,12 +1540,49 @@ export interface AquilaApi {
   /** T69: a card moved to another group: sets the property, or moves the file into that folder. */
   vaultMove(path: string, viewId: string, group: string): Promise<VaultMoveResult>;
   vaultNoteInfo(path: string): Promise<VaultNoteInfo | null>;
+  /** T78: a source's notes with their frontmatter, from the index (no disk scan); null for an unknown source. */
+  noteTable(sourceId: string): Promise<NoteTableData | null>;
   /** T69: the note's text after an action / a property change (not written), or a Claude prompt to send. */
   vaultEdit(path: string, text: string, edit: VaultEdit): Promise<VaultEditResult | null>;
   /** T69: a new note from a template (the source's `newNotes` one when null): its path, or null. */
   vaultCreateNote(sourceId: string, templateId: string | null, title: string): Promise<string | null>;
   /** T69: a source's settings changed (saved here, or the shared file changed on disk). */
   onVaultChanged(cb: (sourceId: string) => void): Unsubscribe;
+  /** T81 "What is this?": what would be sent (sanitized, capped) for this input — nothing runs. */
+  briefPrepare(input: BriefInput, projectId: string | null): Promise<BriefPrepared>;
+  /** T81: one hidden `claude -p` on the user's click (cached per input for the session). `id` is for cancel. */
+  briefRun(req: BriefRunRequest): Promise<BriefResult>;
+  briefCancel(id: string): void;
+  /** T81: the text of a dropped / picked PDF (≤ 20 MB), read on this Mac — nothing is sent anywhere. */
+  briefPdfText(data: Uint8Array): Promise<BriefPdfText>;
+  /** T81: note sources a brief can be saved into, the current project's first. */
+  briefTargets(projectId: string | null): Promise<BriefTargets>;
+  /** T81: writes the brief as a new note (only on "Save as note"): its path, or null. */
+  briefSave(req: BriefSaveRequest): Promise<string | null>;
+  /** T83 note explorer: an enabled source's notes from the index (`created`: also creation times), or null. */
+  noteFsList(sourceId: string, opts?: { created?: boolean }): Promise<NoteFsList | null>;
+  /** T83: empty sub-folders of a folder (a readdir when it's expanded; folders with notes come from the index). */
+  noteFsDirs(sourceId: string, rel: string): Promise<string[]>;
+  /** T83: a new folder (never over an existing one). */
+  noteFsMkdir(sourceId: string, parent: string, name: string): Promise<NoteFsResult>;
+  /** T83: a new note in a folder from the source's `newNotes` template (else `# Title`); never over a file. */
+  noteFsCreateNote(sourceId: string, folder: string, title: string): Promise<NoteFsResult>;
+  /** T83: renames a note or folder in place. Links to fix are returned, not written. */
+  noteFsRename(sourceId: string, rel: string, name: string): Promise<NoteFsMoveResult>;
+  /** T83: moves notes / folders into a folder (`''` = the top). Links to fix are returned, not written. */
+  noteFsMove(sourceId: string, rels: string[], folder: string): Promise<NoteFsMoveResult>;
+  /** T83: rewrites only the link spans in these notes (refused per note if it changed since read). */
+  noteFsFixLinks(sourceId: string, files: NoteFsMove[], notes: string[]): Promise<NoteFsLinkResult>;
+  /** T83: to the macOS Trash. Returns what was trashed. */
+  noteFsTrash(sourceId: string, rels: string[]): Promise<string[]>;
+  /** T83 undo: removes a note made here if it's untouched (same mtime; to the Trash), or an empty folder. */
+  noteFsUndoCreate(sourceId: string, rel: string, mtime?: number): Promise<boolean>;
+  /** T83: Reveal in Finder / open in the default app. */
+  noteFsShell(sourceId: string, rel: string, action: 'reveal' | 'open'): Promise<boolean>;
+  noteFsPrefs(sourceId: string): Promise<NoteFsPrefs>;
+  noteFsSetPrefs(sourceId: string, prefs: NoteFsPrefs): Promise<void>;
+  /** T81: notes related to a text from the local index (same IDs, shared words) — no model. */
+  graphRelated(text: string, ids?: string[]): Promise<RelatedNote[]>;
   /** Global shortcut (T41): the saved key and whether the OS gave it to us. */
   globalShortcut(): Promise<GlobalShortcutState>;
   /** Saves and registers a new key (null = off). A taken key keeps the old one and reports `taken`. */
@@ -1465,7 +1616,8 @@ export interface AquilaApi {
 }
 
 /** Extensions (T71): what an extension may ask for in its manifest (plus `network:<domain>` entries). */
-export type ExtensionPermission = 'system' | 'sessions:status' | 'usage' | 'storage' | 'notify' | 'background';
+export type ExtensionPermission =
+  'system' | 'sessions:status' | 'usage' | 'storage' | 'notify' | 'background';
 
 /** A manifest command, listed in ⌘K as "<extension>: <title>". */
 export interface ExtensionCommand {
@@ -1654,6 +1806,108 @@ export interface FigmaPlan {
   seat: string;
 }
 
+/** T81 "What is this?": raw input — a file's text (read in the renderer), pasted text or a Figma link. */
+export interface BriefInput {
+  text: string;
+  /** File name when it came from a file (decides email / HTML handling). */
+  name?: string;
+}
+
+export type BriefSourceKind = 'text' | 'markdown' | 'email' | 'html' | 'figma';
+/**
+ * T81: a PDF's text, read locally (macOS PDFKit; a scan without a text layer is OCR'd with macOS Vision), or why not:
+ * nothing found even by OCR, locked, not readable. With `ocr`: `pages` read, `totalPages` when pages were left out.
+ */
+export type BriefPdfText =
+  | { text: string; ocr?: true; pages?: number; totalPages?: number }
+  | { error: 'empty' | 'locked' | 'unreadable' | 'unsupported' };
+export type BriefModel = 'haiku' | 'sonnet';
+
+/** Exactly what goes to Claude, shown before the run. */
+export interface BriefPrepared {
+  /** Input hash (kind + text): the session cache key. */
+  hash: string;
+  kind: BriefSourceKind;
+  /** File name, email subject, Figma link or "" (pasted). */
+  label: string;
+  text: string;
+  chars: number;
+  /** Characters before sanitizing / the cap. */
+  originalChars: number;
+  cut: boolean;
+  /** Email: headers other than Subject / From / Date were removed. */
+  headersStripped?: boolean;
+  /** Figma link: whether Claude may read it through the account's existing Figma connection. */
+  figma?: { url: string; connected: boolean };
+  /** The Claude account that runs it (label). */
+  account: string;
+}
+
+export interface BriefRunRequest {
+  id: string;
+  input: BriefInput;
+  projectId: string | null;
+  model: BriefModel;
+}
+
+/** The fixed fields of the card. */
+export interface BriefFields {
+  product: string;
+  feature: string;
+  intent: string;
+  points: string[];
+  questions: string[];
+  terms: string[];
+}
+
+export interface BriefResult {
+  hash: string;
+  model: BriefModel;
+  /** null: the reply wasn't the JSON asked for — `raw` holds it. */
+  fields: BriefFields | null;
+  raw?: string;
+  at: number;
+  /** Came from this session's cache (no call made). */
+  cached: boolean;
+}
+
+/** A local note related to a text, and why. */
+export interface RelatedNote {
+  path: string;
+  title: string;
+  sourceId: string;
+  /** IDs of the text this note has (or is named by). */
+  ids: string[];
+  /** Weighty words they share. */
+  words: string[];
+  score: number;
+}
+
+export interface BriefTarget {
+  id: string;
+  /** Folder of the source (`~/…`). */
+  path: string;
+  /** Folder inside the source the new-note template writes to (`''` = top). */
+  folder: string;
+}
+
+export interface BriefTargets {
+  sources: BriefTarget[];
+  defaultId: string | null;
+}
+
+export interface BriefSaveRequest {
+  sourceId: string;
+  title: string;
+  /** Source line for the frontmatter (file name, subject, link). */
+  source: string;
+  kind: BriefSourceKind;
+  fields: BriefFields | null;
+  raw?: string;
+  /** Related notes the user chose to link. */
+  links: { path: string; why: string }[];
+}
+
 /** Cached result of "Connect" (T32), per local Claude account, in `~/.aquila/figma-profile.json`. */
 export interface FigmaProfile {
   /** needsAuth: the Figma server isn't logged in for this account yet (`/mcp` in a Claude tab). */
@@ -1784,11 +2038,16 @@ export const IPC = {
   graphExtractNow: 'graph:extract-now',
   noteOpen: 'note:open',
   noteClose: 'note:close',
+  noteRead: 'note:read',
   noteWrite: 'note:write',
   noteChanged: 'note:changed',
   noteAttach: 'note:attach',
   noteOpenUrl: 'note:open-url',
+  revealFile: 'file:reveal',
   noteProject: 'note:project',
+  noteSeenState: 'note:seen-state',
+  noteSeenMark: 'note:seen-mark',
+  noteSeenChanged: 'note:seen-changed',
   graphDailyNote: 'graph:daily-note',
   vaultGet: 'vault:get',
   vaultSave: 'vault:save',
@@ -1798,9 +2057,29 @@ export const IPC = {
   vaultView: 'vault:view',
   vaultMove: 'vault:move',
   vaultNoteInfo: 'vault:note-info',
+  noteTable: 'note:table',
   vaultEdit: 'vault:edit',
   vaultCreateNote: 'vault:create-note',
   vaultChanged: 'vault:changed',
+  briefPrepare: 'brief:prepare',
+  briefRun: 'brief:run',
+  briefCancel: 'brief:cancel',
+  briefPdfText: 'brief:pdf-text',
+  briefTargets: 'brief:targets',
+  briefSave: 'brief:save',
+  noteFsList: 'note-fs:list',
+  noteFsDirs: 'note-fs:dirs',
+  noteFsMkdir: 'note-fs:mkdir',
+  noteFsCreateNote: 'note-fs:create-note',
+  noteFsRename: 'note-fs:rename',
+  noteFsMove: 'note-fs:move',
+  noteFsFixLinks: 'note-fs:fix-links',
+  noteFsTrash: 'note-fs:trash',
+  noteFsUndoCreate: 'note-fs:undo-create',
+  noteFsShell: 'note-fs:shell',
+  noteFsPrefs: 'note-fs:prefs',
+  noteFsSetPrefs: 'note-fs:set-prefs',
+  graphRelated: 'graph:related',
   globalShortcutGet: 'global-shortcut:get',
   globalShortcutSet: 'global-shortcut:set',
   globalShortcutFired: 'global-shortcut:fired',

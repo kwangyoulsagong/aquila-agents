@@ -21,6 +21,13 @@ describe('shortcut sheet', () => {
     expect(shortcutKeys(['guide'], 'other')).toEqual(['Ctrl+/']);
   });
 
+  it("shows the note editor's own keys", () => {
+    const notes = buildSheet(en, 'mac').find((g) => g.title === en('guide.group.notes'));
+    expect(notes?.rows.map((r) => r.keys)).toEqual([['⌥⇧↑', '⌥⇧↓'], ['/'], ['⌘E']]);
+    const other = buildSheet(en, 'other').find((g) => g.title === en('guide.group.notes'));
+    expect(other?.rows[2]?.keys).toEqual(['Ctrl+E']);
+  });
+
   it('builds labels in both languages', () => {
     for (const t of [en, ko])
       for (const g of buildSheet(t)) {

@@ -1,0 +1,46 @@
+{
+  "version": "1.4.0",
+  "date": "2026-11-27",
+  "headlines": [
+    {
+      "guideId": "blocks",
+      "title": { "ko": "블록으로 편집하는 노트", "en": "Notes you edit in blocks" },
+      "body": {
+        "ko": "줄에 마우스를 올리면 ⋮⋮ 손잡이가 떠요. 끌어서 옮기고, 눌러서 바꾸기·복제·삭제를 해요. ⌥⇧↑/↓로 블록을 옮기고, 빈 줄에서 / 를 치면 제목·할 일·표를 골라 넣어요. 파일은 그대로 Markdown이고, 건드리지 않은 글자는 한 바이트도 바뀌지 않아요.",
+        "en": "Hover a line for a ⋮⋮ handle: drag to move the block, click to turn it into something else, duplicate or delete it. ⌥⇧↑/↓ moves a block, / on an empty line inserts a heading, to-do or table. The file stays plain Markdown, and what you didn't touch keeps every byte."
+      }
+    },
+    {
+      "guideId": "properties",
+      "title": { "ko": "속성과 표 보기", "en": "Properties and a table view" },
+      "body": {
+        "ko": "frontmatter가 노트 위에 고칠 수 있는 속성 줄로 보여요. ⌘K → \"표 보기\"는 노트를 표로 모아 정렬·필터·묶기를 하고, 칸을 더블클릭해서 바로 고쳐요.",
+        "en": "Frontmatter shows as editable property rows above the note. ⌘K → Table view lists notes as rows to sort, filter and group; double-click a cell to edit it."
+      }
+    },
+    {
+      "guideId": "noteIds",
+      "title": { "ko": "요구사항 ID를 알아봐요", "en": "Requirement IDs you can follow" },
+      "body": {
+        "ko": "FE-REQ-030 같은 ID에 밑줄이 생기고, 올리면 정의한 노트와 상태, 참조된 곳이 보여요. ⌘클릭으로 열고, 중복이나 모르는 ID는 다르게 표시돼요.",
+        "en": "IDs like FE-REQ-030 get an underline; hover for the defining note, its status and where it's referenced. ⌘-click opens it; duplicate and unknown IDs are marked."
+      }
+    },
+    {
+      "guideId": "noteReview",
+      "title": { "ko": "에이전트가 바꾼 노트를 한눈에", "en": "See what an agent changed in a note" },
+      "body": {
+        "ko": "마지막으로 본 뒤 Claude가 노트를 고치면 \"+12 −3\" 줄이 떠요. diff를 보고 부분만 되돌리거나 \"봤어요\"로 닫아요.",
+        "en": "When Claude changes a note after you last saw it, a \"+12 −3\" bar shows. Review the diff, revert a hunk, or mark it as seen."
+      }
+    },
+    {
+      "guideId": "explorer",
+      "title": { "ko": "노트 탐색기 (⌘⇧O)", "en": "Note explorer (⌘⇧O)" },
+      "body": {
+        "ko": "에디터 옆 파일 트리에서 노트와 폴더를 만들고, 이름을 바꾸고, 끌어서 옮겨요. 옮기거나 이름을 바꾸면 그 노트로 가는 링크를 고칠지 물어보고 링크만 바꿔요. 함께: \"이게 뭐야?\"는 스캔한 PDF도 Mac에서 OCR로 읽고, 읽기 모드(⌘E)는 Markdown 기호를 숨겨요.",
+        "en": "A file tree beside the editor: create, rename and drag notes and folders. After a move or rename it asks to fix the links to that note and changes only the links. Also new: What is this? reads scanned PDFs with OCR on your Mac, and reading mode (⌘E) hides the Markdown."
+      }
+    }
+  ]
+}

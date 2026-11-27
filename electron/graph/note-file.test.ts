@@ -70,9 +70,13 @@ describe('writeNote', () => {
 describe('attachments', () => {
   it('names them after the note and the time, numbered when taken', () => {
     const now = new Date(2026, 10, 23, 15, 30, 12);
-    expect(attachmentName('/n/주간 싱크.md', 'png', now, () => false)).toBe('attachments/주간-싱크-20261123-153012.png');
+    expect(attachmentName('/n/주간 싱크.md', 'png', now, () => false)).toBe(
+      'attachments/주간-싱크-20261123-153012.png',
+    );
     const taken = new Set(['attachments/a-20261123-153012.png']);
-    expect(attachmentName('/n/a.md', 'png', now, (r) => taken.has(r))).toBe('attachments/a-20261123-153012-2.png');
+    expect(attachmentName('/n/a.md', 'png', now, (r) => taken.has(r))).toBe(
+      'attachments/a-20261123-153012-2.png',
+    );
   });
 
   it('saves images next to the note and refuses other types', () => {

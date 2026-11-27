@@ -1,11 +1,12 @@
+import { idIndex, idIssues, idsWithNoWork } from '@/features/note-ids';
 import type { GraphView } from './view';
 
 // Lenses: the questions people actually open a whole-vault graph for (forum.obsidian.md threads on "what do you
 // use the graph view for": stragglers with no links, what's unfinished, what changed lately). Each lights the
 // nodes that answer it on the map; everything else fades.
 
-export type LensId = 'live' | 'orphans' | 'todos' | 'recent' | 'untouched';
-export const LENSES: readonly LensId[] = ['live', 'untouched', 'todos', 'orphans', 'recent'];
+export type LensId = 'live' | 'orphans' | 'todos' | 'recent' | 'untouched' | 'noWork' | 'idIssues';
+export const LENSES: readonly LensId[] = ['live', 'untouched', 'todos', 'noWork', 'idIssues', 'orphans', 'recent'];
 
 const DAY = 86_400_000;
 /** "Recent" sessions: this far back. */
@@ -29,7 +30,13 @@ export function lensHits(
     todos: new Set(),
     recent: new Set(),
     untouched: new Set(),
+    // T79: requirement notes no session touched; duplicate / unknown IDs.
+    noWork: new Set(),
+    idIssues: new Set(),
   };
+  const ids = idIndex(view.nodes, view.edges);
+  out.noWork = idsWithNoWork(ids);
+  out.idIssues = idIssues(ids);
   for (const n of view.nodes) {
     if (n.kind === 'note' && !linked.has(n.id)) out.orphans.add(n.id);
     if (n.kind === 'todo') out.todos.add(n.id);

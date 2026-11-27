@@ -30,9 +30,10 @@ import { usePowerSaver } from '@/shared/lib/usePowerSaver';
 import { onThemeChange } from '@/shared/lib/theme';
 
 import { readColors } from '../model/colors';
-import { sourceName, useGraphData } from '@/entities/note';
+import { sessionRef, sourceName, useGraphData } from '@/entities/note';
 import { LinkSuggestions } from '@/features/link-suggestions';
 import { HandleWithClaude, handleTarget } from '@/features/edit-note';
+import { WhatIsThisButton, type BriefSeed } from '@/features/what-is-this';
 import {
   DEFAULT_FILTER,
   TIME_WINDOWS,
@@ -92,6 +93,8 @@ export interface KnowledgeGraphPanelProps {
   activeProjectId?: string | null;
   /** The tab in front (T74: "This tab" lists its conversation's work). */
   activeSessionId?: string | null;
+  /** T81: opens "What is this?" (a file / text dropped on the button comes with it). */
+  onWhatIsThis?: (seed?: BriefSeed) => void;
 }
 
 type Mode = 'week' | 'focus' | 'map';
@@ -142,12 +145,6 @@ const store = (key: string, value: string) => {
   }
 };
 
-/** `session:<agent>:<id>` → the history ref it was made from. */
-function sessionRef(n: GraphNode): { agent: 'claude' | 'codex'; id: string } | null {
-  const m = /^session:(claude|codex):(.+)$/.exec(n.id);
-  return m ? { agent: m[1] as 'claude' | 'codex', id: m[2]! } : null;
-}
-
 /** `Meetings/2026-11-20 sync.md` for a note (source folder + path inside it); the path for anything else. */
 function notePlace(n: GraphNode, sources: readonly GraphSourceStatus[]): string | undefined {
   const m = /^note:([^:]+):(.+)$/.exec(n.id);
@@ -178,6 +175,7 @@ export default function KnowledgeGraphPanel({
   projects = [],
   activeProjectId = null,
   activeSessionId = null,
+  onWhatIsThis,
 }: KnowledgeGraphPanelProps) {
   const t = useT();
   const width = usePanelWidth('aquila.panel.graph');
@@ -396,7 +394,13 @@ export default function KnowledgeGraphPanel({
     }
     if (!center) {
       const first = activeId ?? defaultCenter(view);
-      if (first) recentreQuietly(first);
+      // Only while nothing is centred *now*: `center` here is this render's, and a pick can land between the commit
+      // and this (passive) effect — Enter in search right as the first snapshot draws its results. Pushing the
+      // default on top of that pick snapped the graph to another note (the smoke "search + Enter" flake).
+      if (first) {
+        setTrail((tr) => (tr.length ? tr : [first]));
+        setShown({});
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeId, follow, snapshot, center === null]);
@@ -432,6 +436,19 @@ export default function KnowledgeGraphPanel({
       .slice(0, RESULTS);
   }, [matches, byId, deferredQuery]);
   useEffect(() => setResultAt(0), [deferredQuery]);
+  // Enter pressed before anything matched: the first match once the snapshot has it (typing again cancels).
+  const [pendingEnter, setPendingEnter] = useState<string | null>(null);
+  useEffect(() => {
+    if (pendingEnter === null) return;
+    if (pendingEnter !== query) return setPendingEnter(null);
+    if (deferredQuery !== query || !results.length) return;
+    setPendingEnter(null);
+    recentre(results[0]!.id);
+    setQuery('');
+    setSearching(false);
+    // `recentre` reads state setters only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingEnter, query, deferredQuery, results]);
 
   const open = (n: GraphNode) => {
     if (n.kind === 'note' && n.path) onOpenNote(n.path);
@@ -526,6 +543,7 @@ export default function KnowledgeGraphPanel({
           </span>
         )}
         <div className="c-panel__actions">
+          {onWhatIsThis && <WhatIsThisButton onOpen={onWhatIsThis} />}
           {enabled.length > 0 && (
             <Button
               variant="ghost"
@@ -640,6 +658,9 @@ export default function KnowledgeGraphPanel({
               recentre(results[Math.min(resultAt, results.length - 1)]!.id);
               setQuery('');
               setSearching(false);
+            } else if (e.key === 'Enter' && query.trim()) {
+              // Nothing found yet (the snapshot is still coming): take the first match when it arrives.
+              setPendingEnter(query);
             } else if (e.key === 'Escape') {
               setQuery('');
               setSearching(false);
@@ -804,7 +825,9 @@ export default function KnowledgeGraphPanel({
               key={id}
               pressed={lens === id}
               count={lenses[id].size}
-              {...(id === 'untouched' ? { title: t('graph.lens.untouched.hint') } : {})}
+              {...(id === 'untouched' || id === 'noWork' || id === 'idIssues'
+                ? { title: t(`graph.lens.${id}.hint`) }
+                : {})}
               onClick={() => setLens((l) => (l === id ? null : id))}
             >
               {t(`graph.lens.${id}`)}

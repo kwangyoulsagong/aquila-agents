@@ -407,7 +407,7 @@ export function vars(title: string, now: Date, extra: Record<string, string> = {
     slug: slugify(title),
     date: isoDate(now),
     time: `${pad(now.getHours())}:${pad(now.getMinutes())}`,
-    id: /\b[A-Z][A-Z0-9]+-\d+\b/.exec(title)?.[0] ?? '',
+    id: /\b[A-Z][A-Z0-9]+(?:-[A-Z][A-Z0-9]*)*-\d+\b/.exec(title)?.[0] ?? '', // whole: `FE-REQ-030` (T79)
     ...extra,
   };
 }
@@ -426,6 +426,15 @@ export function renderTemplate(t: VaultTemplate, title: string, now: Date): { re
   if (!/\.md$/i.test(name)) name = `${name || 'note'}.md`;
   return { rel: t.folder ? `${t.folder}/${name}` : name, text: fill(t.body, v) };
 }
+
+/** Whether a template's file name changes with the title (`{{date}}.md` doesn't; `{{id}}` only for a title with an ID). */
+export function nameUsesTitle(file: string, title: string): boolean {
+  if (/\{\{\s*(?:title|slug)\s*\}\}/.test(file)) return true;
+  return /\{\{\s*id\s*\}\}/.test(file) && !!vars(title, new Date(0)).id;
+}
+
+/** `a/b.md` → `a/b 2.md`: a taken name's next try, on the rendered file's stem. */
+export const withSuffix = (rel: string, n: number) => (n < 2 ? rel : rel.replace(/(\.md)?$/i, ` ${n}$1`));
 
 // ---- companions ----
 
@@ -937,32 +946,69 @@ export class VaultService {
     return { text: applyAction(src, a, values) };
   }
 
-  /** A new note from a template; an existing note of that name is opened instead of overwritten. */
-  createNote(id: string, templateId: string | null, title: string): string | null {
+  /**
+   * A new note from a template; an existing note of that name is opened instead of overwritten. T81: with `body`
+   * (a brief saved as a note), that text replaces the template's, and a taken name gets ` 2`, ` 3`… — never the
+   * existing note.
+   */
+  createNote(id: string, templateId: string | null, title: string, body?: string): string | null {
     const root = this.opts.graph.sourceRoot(id);
     const v = this.read(id);
     const name = String(title ?? '').trim();
     if (!root || !v || !name) return null;
-    const t =
-      v.config.templates.find((x) => x.id === (templateId ?? v.config.newNotes)) ??
+    const t = this.templateOf(v.config, templateId);
+    const first = renderTemplate(t, name, this.now());
+    for (let n = 1; n <= (body === undefined ? 1 : 20); n++) {
+      // The suffix goes on the rendered name, so a pattern without the title (`{{date}}.md`) still gets a new one.
+      const rel = withSuffix(first.rel, n);
+      const text = first.text;
+      const file = path.join(root, ...rel.split('/'));
+      if (!path.resolve(file).startsWith(path.resolve(root) + path.sep)) return null;
+      if (fs.existsSync(file)) {
+        if (body === undefined) return file;
+        continue;
+      }
+      try {
+        fs.mkdirSync(path.dirname(file), { recursive: true });
+        fs.writeFileSync(file, body ?? text, { flag: 'wx' });
+        return file;
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * T83: a new note's file name and text from the source's `newNotes` template (else `# Title`), for a folder the
+   * user picked in the explorer (the template's own folder doesn't apply). Null for an unknown source.
+   */
+  draft(id: string, title: string): { name: string; text: string } | null {
+    const v = this.read(id);
+    if (!v) return null;
+    const t = this.templateOf(v.config, null);
+    const { rel, text } = renderTemplate({ ...t, folder: '' }, title, this.now());
+    // A pattern without the title (`{{date}}.md`) would drop the typed name: the typed name is the file name then.
+    return { name: nameUsesTitle(t.file, title) ? rel : /\.md$/i.test(title) ? title : `${title}.md`, text };
+  }
+
+  /** T81: the folder (inside the source) new notes go to — the `newNotes` template's, `''` = the top. */
+  newNoteFolder(id: string): string {
+    const v = this.read(id);
+    return v ? this.templateOf(v.config, null).folder : '';
+  }
+
+  private templateOf(config: VaultConfig, templateId: string | null): VaultTemplate {
+    return (
+      config.templates.find((x) => x.id === (templateId ?? config.newNotes)) ??
       ({
         id: '',
         name: '',
         folder: '',
         file: '{{title}}.md',
         body: '# {{title}}\n\n',
-      } satisfies VaultTemplate);
-    const { rel, text: body } = renderTemplate(t, name, this.now());
-    const file = path.join(root, ...rel.split('/'));
-    if (!path.resolve(file).startsWith(path.resolve(root) + path.sep)) return null;
-    if (fs.existsSync(file)) return file;
-    try {
-      fs.mkdirSync(path.dirname(file), { recursive: true });
-      fs.writeFileSync(file, body, { flag: 'wx' });
-      return file;
-    } catch {
-      return null;
-    }
+      } satisfies VaultTemplate)
+    );
   }
 
   /** T70: the source's template for a day's note (its file is named by `{{date}}` alone), or null. */

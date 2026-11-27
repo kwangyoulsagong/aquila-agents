@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Annotation, ChangeSet, EditorState } from '@codemirror/state';
+import { Annotation, ChangeSet, EditorState, type Extension, type StateEffect } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import { api, type NoteChange, type NoteFile } from '@/shared/api';
 import { editorExtensions, readOnly, readOnlyCompartment, type EditorOptions } from '../model/editor';
 import { imageSrc } from '../model/images';
+import { reading, readingCompartment } from '../model/readingMode';
 import { applyChanges, docOf } from '../model/serialize';
 
 /** Saves this long after typing stops (plus on blur, ⌘S, switching notes, closing). No timer otherwise. */
@@ -33,7 +34,12 @@ export interface NoteEditorState {
   text: string;
 }
 
-type Callbacks = Pick<EditorOptions, 'links' | 'onOpenLink'>;
+type Callbacks = Pick<EditorOptions, 'links' | 'onOpenLink' | 't'> & {
+  /** T79: more extensions from another feature (requirement IDs), loaded with the note. */
+  extension?: () => Promise<Extension>;
+  /** T82: open notes in reading mode (read when a note loads; `effects` switches it after). */
+  reading?: boolean;
+};
 
 /**
  * One CodeMirror view for the panel's lifetime; `path` swaps the note in it. Keeps the text as read plus every
@@ -98,8 +104,7 @@ export function useNoteEditor(host: HTMLElement | null, path: string, cb: Callba
           ui({ file: ss.file, saveState: ss.edits === edits || isClean(ss) ? 'saved' : 'unsaved' });
         } else if (res.reason === 'changed') {
           // Someone wrote first: show what's there now.
-          const disk = await api.noteOpen(path);
-          api.noteClose(path);
+          const disk = await api.noteRead(path);
           ss.conflict = disk ? { kind: 'changed', disk } : { kind: 'deleted' };
           ui({ conflict: ss.conflict, saveState: 'unsaved' });
         } else ui({ saveState: 'failed' });
@@ -150,10 +155,17 @@ export function useNoteEditor(host: HTMLElement | null, path: string, cb: Callba
     };
   }, [host]);
 
-  // The note: (re)opened on path change; the previous one is saved and released first.
+  // The note: (re)opened on path change; the previous one is saved and released first. No path (T83: the
+  // explorer open with no note): an empty, read-only view.
   useEffect(() => {
     const v = view.current;
     if (!v) return;
+    if (!path) {
+      s.current = { ...s.current, path: '', file: null, conflict: null, timer: null, textTimer: null, saving: null };
+      setState({ file: null, unavailable: false, saveState: 'saved', conflict: null, text: '' });
+      v.setState(EditorState.create({ doc: '', extensions: readOnly(true) }));
+      return;
+    }
     let alive = true;
     const session = {
       path,
@@ -171,6 +183,7 @@ export function useNoteEditor(host: HTMLElement | null, path: string, cb: Callba
 
     const extensions = editorExtensions({
       links: () => cbRef.current.links(),
+      t: () => cbRef.current.t(),
       onOpenLink: (t) => cbRef.current.onOpenLink(t),
       onOpenUrl: (url) => void api.noteOpenUrl(url),
       imageSrc: (target) => imageSrc(path, target),
@@ -195,7 +208,8 @@ export function useNoteEditor(host: HTMLElement | null, path: string, cb: Callba
       session.timer = setTimeout(() => void saveRef.current(), SAVE_AFTER_MS);
     });
 
-    void api.noteOpen(path).then((file) => {
+    const extra = cbRef.current.extension?.().catch((): Extension => []) ?? Promise.resolve<Extension>([]);
+    void Promise.all([api.noteOpen(path), extra]).then(([file, ext]) => {
       if (!alive) {
         if (file) api.noteClose(path);
         return;
@@ -207,10 +221,15 @@ export function useNoteEditor(host: HTMLElement | null, path: string, cb: Callba
       }
       session.file = file;
       session.original = file.text;
-      const st = EditorState.create({ doc: docOf(file.text), extensions: [extensions, listener] });
+      const st = EditorState.create({ doc: docOf(file.text), extensions: [extensions, ext, listener] });
       session.acc = ChangeSet.empty(st.doc.length);
       v.setState(st);
-      v.dispatch({ effects: readOnlyCompartment.reconfigure(readOnly(!!file.readOnly)) });
+      v.dispatch({
+        effects: [
+          readOnlyCompartment.reconfigure(readOnly(!!file.readOnly)),
+          readingCompartment.reconfigure(reading(!!cbRef.current.reading)),
+        ],
+      });
       patch({ file, text: file.text });
       if (!file.readOnly) v.focus();
     });
@@ -304,5 +323,8 @@ export function useNoteEditor(host: HTMLElement | null, path: string, cb: Callba
     v.dispatch({ changes: { from: a, to: cur.length - b, insert: want.slice(a, want.length - b) } });
   }, []);
 
-  return { ...state, save, resolve, goToLine, mine, replace };
+  /** T82: presentation-only effects (reading mode, the document header); never an edit. */
+  const effects = useCallback((e: StateEffect<unknown>[]) => view.current?.dispatch({ effects: e }), []);
+
+  return { ...state, save, resolve, goToLine, mine, replace, effects };
 }

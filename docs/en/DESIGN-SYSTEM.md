@@ -48,6 +48,7 @@ Check: `grep -rn -- '--p-' src design-system/components.css` returns only the ru
 | `--color-account-shared` / `-personal` | Claude account badge (`claude` / `claude-personal`) |
 | `--color-graph-note` / `-tag` / `-code` / `-missing` / `-other` / `-edge` / `-focus` | Knowledge graph canvas (T66): node kinds, links, the focused note. WebGL can't read CSS, so the panel resolves them with `getComputedStyle` and again on theme change |
 | `--color-graph-group-1` … `-8` | The Map coloured by group (T72): the eight biggest groups, biggest first (blue, peach, teal, violet, green, pink, yellow, red; `-300` dark / `-600`/`-700` light). Other groups use `--color-graph-missing` |
+| `--color-callout-note` / `-tip` / `-important` / `-warning` / `-caution` (+ `-bg`) | Note callout cards (T82, `> [!KIND]`): accent for the edge, icon and label; `-bg` is the card tint (blue, green, violet, orange, red; `-400`/`-300` dark, `-600` light) |
 | `--color-diff-*` | Diff add / del / hunk |
 | `--color-terminal-*` | xterm theme (read at runtime, re-read when the theme changes): bg, fg, cursor, selection, scrollbar (+ `-hover`), find matches `-match` / `-match-active` (opaque `#RRGGBB`, xterm decorations need it; amber). On light, xterm's `minimumContrastRatio` is 4.5 so CLI colors picked for a dark background stay readable |
 
@@ -72,11 +73,12 @@ A project row shows its most urgent session: `waiting > error > working > done >
 
 - UI: system font (SF Pro + Apple SD Gothic Neo). Mono: JetBrains Mono (bundled), D2Coding fallback.
 - `--font-size-caption` 11 (meta, labels) · `-label` 12 (tabs, buttons) · `-body` 13 (body, terminal) · `-title` 15 · `-heading-1/2/3` 20 / 17 / 15 (note editor headings, T67).
+- Note document (T82, the live preview read as a page): `--font-size-doc-body` 15 (`--line-height-doc` 1.6 → 24) · `-doc-code` 13 (`--line-height-code` 1.55) · `-doc-title` 28 (the first H1, or the name) · `-doc-h1/h2/h3/h4` 24 / 20 / 17 / 15 (`--line-height-heading` 1.3, letter-spacing -0.01em, title -0.02em).
 - Section label: 11 / 600 / uppercase / 0.06em / `--color-text-tertiary`.
 
 ## Spacing & radius (by role)
 
-`--space-inline-xs|sm` 4|8 (items in a row) · `--space-inset-sm|md` 8|12 (padding) · `--space-stack-md|lg` 16|24 (groups/sections).
+`--space-inline-xs|sm` 4|8 (items in a row) · `--space-inset-sm|md` 8|12 (padding) · `--space-stack-md|lg` 16|24 (groups/sections) · `--space-stack-xl` 32 (around a document: the note editor's text, T82).
 `--radius-badge` 4 · `--radius-control` 6 · `--radius-container` 10.
 
 ## Layout — one grid, aligned edges
@@ -109,6 +111,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `--size-badge` / `--size-dot` | 16 / 8 | |
 | `--size-ext-icon` | 16 | An extension's own picture (`icon` in its manifest) on its chip and panel name |
 | `--size-meter` | 4 | Bar of a meter (usage gauge) |
+| `--size-underline-offset` | 4 | Gap between text and a decorative underline (a folder note's name in the explorer tree) |
 | `--size-ring` | 12 | Ring meter in a tab (context gauge) |
 | `--size-sidebar` / `--size-panel` | 248 / 416 | |
 | `--size-panel-wide` | 720 | Changes panel in side-by-side mode (capped at half the window) |
@@ -122,11 +125,14 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `--size-modal` / `--size-modal-height` / `--size-modal-aside` | 760 / 520 / 240 | List + detail modal (guide, release notes) / its list column |
 | `--size-modal-wide` / `--size-modal-wide-height` / `--size-modal-wide-aside` | 960 / 640 / 320 | `.c-modal--wide` (session history: longer rows, a transcript) / its list column |
 | `--size-editor-measure` / `--size-editor-side` | 720 / 240 | Note editor (T67): longest text line in full window / outline + links column |
+| `--size-doc-check` | 16 | Note document (T82): a to-do checkbox, a callout icon |
+| `--size-explorer` / `--size-tree-row` / `--size-tree-indent` | 256 / 24 / 12 | Note explorer (T83): the file tree column / one tree row (dense, the list is virtualized) / indent per folder level |
 | `--size-card-list` | 224 | Graph card: suggested links before they scroll (T68) |
 | `--size-board-column` / `--size-code-input` | 256 / 224 | A board view's column / the height of settings edited as text (T69) |
 | `--size-focus-row` / `--size-focus-center` / `--size-focus-gap` | 40 / 208 / 48 | Graph focus view (T72): one item (label + meta line) / the centre card / room for links between two columns |
 | `--size-bubble-min` / `--size-bubble-max` | 24 / 64 | Graph Map groups (T73): bubble radius of the smallest / biggest group (by √members) |
 | `--size-bar-field` | 224 | A search field sharing a panel bar (T76): it takes the room left beside the buttons, a row of its own only below this |
+| `--size-props-key` / `--size-ntable-title` / `--size-ntable-col` | 128 / 288 / 160 | Properties panel key column / table view title column / a property column's least width (T78) |
 
 ## Components (`components.css`)
 
@@ -142,7 +148,9 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `.c-queue`, `__lead` `__text` `__title` `__meta` | A sidebar queue entry (review queue, T58): dot, title and a mono caption meta line, both ellipsised; same edges as `.c-row`; a button |
 | `.c-risk` | Warning glyph (⚠) in the error color for a possibly destructive command — on the reason line and the tab |
 | `.c-graph`, `__node[data-mark]` `__box` `__label` `__detail` `__mark` `__edge` `__column` | Static SVG node graph (repo skeleton, T64; the knowledge graph uses the same look): boxes placed by the caller, curved edges. Tone-filled boxes with no outline; colour only where something changes: add = green tint + filled dot, change = blue tint + ring dot, unfit = dashed outline + struck label. When any box is marked (`.c-graph[data-marked]`), unmarked labels step back to secondary. `data-dim` / `data-highlight` for a hovered step. No animation loop |
-| `.c-editor`, `__main` `__host` `__side` `__section` `__section-title` `__item` (`--level`) `__empty` `__banner[data-tone]` `__compare` | Note editor (T67): CodeMirror host + outline / links column; a banner across the top (warn = waiting-colour edge). CodeMirror's `.cm-*` and the live-preview marks `.cm-md-*` (headings, emphasis, code, links, `[[links]]`, checkboxes, quotes / callouts, rules, frontmatter, rendered tables) are styled under `.c-editor` with tokens only |
+| `.c-editor`, `__main` `__host` `__side` `__section` `__section-title` `__item` (`--level`) `__empty` `__banner[data-tone]` `__compare` | Note editor (T67): CodeMirror host + outline / links column; a banner across the top (warn = waiting-colour edge). CodeMirror's `.cm-*` and the live-preview marks `.cm-md-*` (headings, emphasis, code, links, `[[links]]`, checkboxes, quotes / callouts, rules, frontmatter, rendered tables) are styled under `.c-editor` with tokens only. **Document look (T82)**, its own block at the end of the section: a centred column (`--space-stack-xl` padding, `--space-stack-md` under 560px via the `note` container), header `.cm-md-dochead` (`__doctitle` when there's no H1, `__docmeta` folder · edited), `.cm-md-title` (first H1), bullets `.cm-md-bullet[data-depth]`, drawn checkboxes, callout cards `.cm-md-callout[data-callout]` `-start`/`-end` + `.cm-md-callout-kind`/`-icon`, quotes `-start`/`-end`, code cards `.cm-md-codeblock` `-start`/`-end`/`-close` with `.cm-md-codehead` (language + copy), table cards (header row, zebra, sideways scroll), wikilink pills. Reading mode adds `.cm-reading` (and `.cm-md-blank`: half-height blank lines) |
+| `.c-review__counts` `__add` `__del` `__meta` `__confirm` | Note review bar (T80): `+12 −3 lines` in the diff colours, a quiet time, the question before a hunk revert (inside an `EditorBanner` / `DiffView` hunk actions) |
+| `.c-noteid[data-state]` (defined · duplicate · unknown · loose), `.c-noteid-tip` `__title` `__meta` `__warn` `__link` `__status`, `.c-noteid-row` `__main` `__actions`, `.c-noteid-text` `__detail`, `.c-noteid-note[data-tone]` `__text` `__actions` | Requirement IDs (T79): an ID in the note text gets a quiet underline (unknown = dashed, duplicate = wavy waiting colour, loose = dotted) and a hover card; side-column rows for "Referenced in" and unlinked mentions with Link |
 | `.c-suggest`, `__item` `__line[data-line=dotted|dashed]` `__text` `__label` `__why` `__actions` `__proposal[data-tone=warn]` | Link suggestions (T68): one suggested connection per row (line sample, other end, why, ✓ / [[ / ×), a proposal or warning line on top (accent / waiting-colour edge). `GraphCard` takes `children` as a scrolling `__card-body` and `close` as a pinned top-right `__card-close` (actions wrap, the close never gets clipped); `GraphHint` (`.c-kgraph__hint`) is the dismissable how-to line in the same spot |
 | `.c-kfocus`, `__plane` `__links` `__link[data-line][data-state=hot|dim]` `__node[data-align=start|end|center][data-depth][data-state]` `__text` `__label` `__meta` `__head` `__more` | Graph focus view (T72): `FocusStage` (scrolling plane, SVG links underneath), `FocusNode` (dot on the column edge + one-line label and meta; `end` = dot right, text right-aligned for left columns; `center` = the bordered card), `FocusHead`, `FocusMore`. The caller places every box (`x`, `y`, `width`); moves animate with `--motion-medium`. Roving tabindex: only `current` is tabbable. `data-live=<status>`: a session open in a tab, its dot ringed in `--color-status-*` (working pulses) |
 | `.c-kgroups`, `__svg` `__link[data-lit|data-dim]` `__link-count` `__bubble[data-group=1–8][data-dim][data-selected]` `__disc` `__count` `__label` `__detail` `__hits` `__hint` | Graph Map groups (T73): `GraphGroups` — one bubble per group (placed and sized by the caller, `--size-bubble-min/max`), lines as thick as the links between groups, the lit ones show their count. A bubble is a button: click / Enter opens it, ⌘ / Shift picks it (`data-selected`). `hint`: one quiet line bottom-left |
@@ -194,6 +202,10 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `.c-dropzone[data-over]` | Dashed drop area; accent border + selected background while dragging over |
 | `.c-field` `__label` `__hint`, `.c-input` (`--multiline`, `--inline`), `.c-select` `__control` | Form field: label, text input / select (focus = blue border), monospace hint (`data-tone="warning"` = waiting orange). `--inline` edits a title in place inside a line (tab rename, T43): the line's font, no fixed height |
 | `.c-field__row`, `.c-field-grid` | A control with a button beside it (path + "Change…"); two short fields side by side |
+| `.c-props` `__head` `__toggle` `__count` `__actions` `__list` `__row` `__key` `__value` `__input` `__remove` `__chips` `__chip` `__raw` | A note's properties above its text (T78): a folding head, then key · value · remove rows; list values as chips; raw values in mono |
+| `.c-ntable` `__frame` `__bar` `__chips` `__chip[aria-pressed]` `__head` `__th[aria-sort]` `__sort` `__row` `__group` `__cell[data-editable\|data-editing]` `__open` `__input` `__empty` | Table view (T78): a virtualized grid, one `--size-row` per row; sticky sortable header, title column then property columns; filter / status chips above |
+| `.c-explorer` `__head` `__filter` `__note[data-tone]`, `.c-editor__explorer` | Note explorer column left of the editor (T83): source + sort + buttons, a filter field, a status line (warn = an error), then the tree |
+| `.c-tree` `__spacer` `__section` `__row` (`--level`, `aria-selected` `aria-expanded` `data-current` `data-cursor` `data-drop` `data-dragging` `data-kind` `data-folder-note` `data-virtual` `data-sticky`) `__twisty` `__icon` `__name` (`mark` = filter match) `__count` `__dot[data-tone=done\|active\|other\|changed]` `__actions` `__action` `__input[aria-invalid]` `__ghost` `__mark` `__sticky` | A virtualized file tree: fixed `--size-tree-row` rows placed absolutely, folders with a note count, notes with a status / "just changed" dot, hover buttons, a name typed in place, the label following a drag; the drop folder gets an accent outline. `__mark` + `data-folder-note`: the folder opens its own note from its name (the chevron toggles); `data-virtual`: a group of the by-status view; `__sticky` (height 0, `position: sticky`) holds copies of the folder rows the first row in view sits in |
 
 ## React components (`design-system/react/`)
 
@@ -236,10 +248,15 @@ from `src/` (ESLint enforces it). New primitive → add the class to `components
 | `CommandList` `label`, `CommandRow` `state` `stateLabel` `command` `time?` `marks?` | `.c-commands`, `.c-command` |
 | `RunList` `label`, `RunItem` `name` `status` `state` `current` `title?` `onClick` | `.c-runs`, `.c-runs__item` |
 | `Graph` `width` `height` `label` `nodes` `edges` `columns?` | `.c-graph` |
-| `NoteEditor` `hostRef` `top?` `side?`, `EditorBanner` `tone?` `actions?`, `EditorCompare`, `EditorSection` `title` `empty?`, `EditorItem` `label` `detail?` `level?` `onClick` | `.c-editor` |
+| `NoteEditor` `hostRef` `top?` `side?` `explorer?` `placeholder?`, `EditorBanner` `tone?` `actions?`, `EditorCompare`, `EditorSection` `title` `empty?`, `EditorItem` `label` `detail?` `level?` `onClick` | `.c-editor` |
+| `Explorer` `label` `head` `filter?` `note?`, `Tree` `label` `height` `scrollRef?` `onScroll?` `onKeyDown?` `onContextMenu?` `sticky?`, `TreeSection` `top`, `TreeRow` `top` `level` `kind` `name` `rel` `matches?` `open?` `selected?` `current?` `cursor?` `drop?` `dragging?` `count?` `dot?` `actions?` `editor?` `onToggle?` `folderNote?` `virtual?` `sticky?`, `TreeAction` `label` `onClick`, `TreeInput` `value` `label` `invalid?` `onChange` `onSubmit` `onCancel`, `TreeGhost` `x` `y` | `.c-explorer`, `.c-tree` |
+| `ReviewCounts` `added` `removed` `unit?`, `ReviewMeta`, `ReviewConfirm` `actions` | `.c-review` |
+| `NoteIdRow` `actions?`, `NoteIdText` `label` `detail?` `title?`, `NoteIdNote` `tone?` `actions?` | `.c-noteid-*` |
 | `StepList` `label`, `StepItem` `checked` `onToggle` `title` `checkLabel?` `tags?` `meta?` `onHover?` | `.c-steps` |
 | `Media` `src` `kind` `poster` `alt` `still` `placeholder` | `.c-media` (video → poster under reduced motion or `still`) |
 | `ShortcutSheet` `groups` | `.c-shortcuts` |
+| `PropPanel` `title` `count?` `open` `onToggle` `actions?`, `PropRow` `name` `onRemove?` `removeLabel?`, `PropChips`, `PropChip` `label` `onRemove?`, `PropInput`, `PropRaw` | `.c-props` |
+| `DataGrid` `label` `columns` `count` `renderRow(i)` `rowKey(i)` `empty?`, `GridRow`, `GridGroup` `title` `count`, `GridOpen` `label` `onOpen`, `GridCell` `text` `muted?` `onEdit?` `editing?` `editor?`, `GridInput`, `GridBar`, `GridChips` `label`, `GridChip` `label` `count?` `pressed` `onClick`, `GridFrame` | `.c-ntable` (only the rows on screen are rendered) |
 
 ## Copy
 

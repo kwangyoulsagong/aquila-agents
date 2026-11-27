@@ -41,6 +41,25 @@ describe('lensHits', () => {
   });
 });
 
+describe('lensHits: requirement IDs (T79)', () => {
+  it('lights requirement notes with no work, and duplicate / unknown IDs', () => {
+    const view = {
+      nodes: [
+        { ...n('worked', 'note'), fmId: 'FE-REQ-1' },
+        { ...n('idle', 'note'), fmId: 'FE-REQ-2' },
+        { ...n('dupA', 'note'), fmId: 'FE-REQ-3' },
+        { ...n('dupB', 'note'), fmId: 'FE-REQ-3' },
+        { ...n('typo', 'note'), refIds: ['FE-REQ-9'] },
+        n('s', 'session', now),
+      ],
+      edges: [e('worked', 's'), e('dupA', 's')],
+    };
+    const h = lensHits(view, now);
+    expect([...h.noWork].sort()).toEqual(['idle']);
+    expect([...h.idIssues].sort()).toEqual(['dupA', 'dupB', 'typo']);
+  });
+});
+
 describe('ago', () => {
   const t = (k: string, v?: Record<string, string>) => `${k}:${v?.n ?? ''}`;
   it('picks the unit', () => {

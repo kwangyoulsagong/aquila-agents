@@ -4,8 +4,13 @@ import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
 import { search, searchKeymap } from '@codemirror/search';
 import { Compartment, EditorState, Prec, type Extension } from '@codemirror/state';
 import { EditorView, keymap, type Command } from '@codemirror/view';
+import type { Translate } from '@/shared/i18n';
+import { blockHandle } from './blockHandle';
 import type { LinkOption } from './links';
 import { livePreview } from './livePreview';
+import { slashCompletion } from './slashMenu';
+import { documentHeader } from './document';
+import { reading, readingCompartment } from './readingMode';
 import { continueMarkup, newRow, nextCell, prevCell } from './tables';
 
 // The editor's extensions in one place. No closing brackets, no reindent on Enter beyond Markdown's list
@@ -22,6 +27,8 @@ export interface EditorOptions {
   /** A pasted image: save it and return the Markdown to insert (or null to drop it). */
   onPasteImage: (file: File) => Promise<string | null>;
   placeholder?: string;
+  /** The app's translate function (block menu, slash menu), read when a label is shown. */
+  t: () => Translate;
 }
 
 /** Wraps a table command (state → transaction) as a key command. Never runs while an IME is composing. */
@@ -68,9 +75,18 @@ export function editorExtensions(opts: EditorOptions): Extension {
     EditorView.lineWrapping,
     EditorView.contentAttributes.of({ spellcheck: 'false', autocorrect: 'off', autocapitalize: 'off' }),
     search({ top: true }),
-    autocompletion({ override: [linkCompletion(opts.links)], icons: false, activateOnTyping: true }),
+    autocompletion({
+      override: [linkCompletion(opts.links), slashCompletion(opts.t)],
+      icons: false,
+      activateOnTyping: true,
+      optionClass: (c) => (c.type === 'slash' ? 'c-editor__slash-item' : ''),
+    }),
     livePreview({ onOpenLink: opts.onOpenLink, onOpenUrl: opts.onOpenUrl, imageSrc: opts.imageSrc }),
+    blockHandle({ t: opts.t }),
     readOnlyCompartment.of(readOnly(false)),
+    // T82: reading mode (off until the panel turns it on) and the document header above the text.
+    readingCompartment.of(reading(false)),
+    documentHeader(),
     Prec.high(
       keymap.of([
         { key: 'Tab', run: tableKey(nextCell) },
@@ -88,7 +104,13 @@ export function editorExtensions(opts: EditorOptions): Extension {
       ]),
     ),
     // Plain newline: no reindent, no trailing-space cleanup on the line being left.
-    keymap.of([{ key: 'Enter', run: insertNewline }, ...defaultKeymap, ...historyKeymap, ...searchKeymap, indentWithTab]),
+    keymap.of([
+      { key: 'Enter', run: insertNewline },
+      ...defaultKeymap,
+      ...historyKeymap,
+      ...searchKeymap,
+      indentWithTab,
+    ]),
     EditorView.domEventHandlers({
       blur: () => {
         opts.onBlur();

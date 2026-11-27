@@ -1,12 +1,18 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { GraphEdge } from '../../src/shared/api/types';
 import {
   applyRuleOp,
   cleanPattern,
+  covers,
   decide,
   emptyLinks,
+  migrateLinks,
   patternsOf,
   proposals,
+  readLinks,
   ruleFor,
   withLink,
   type LinkData,
@@ -41,6 +47,9 @@ describe('patterns', () => {
     expect(cleanPattern({ kind: 'id', prefix: ' db-<n> ' })).toEqual({ kind: 'id', prefix: 'DB' });
     expect(cleanPattern({ kind: 'id', prefix: 'PROJ-12' })).toEqual({ kind: 'id', prefix: 'PROJ' });
     expect(cleanPattern({ kind: 'id', prefix: '1x' })).toBeNull();
+    expect(cleanPattern({ kind: 'id', prefix: 'fe-req-<n>' })).toEqual({ kind: 'id', prefix: 'FE-REQ' });
+    expect(cleanPattern({ kind: 'id', prefix: 'FE-REQ-030' })).toEqual({ kind: 'id', prefix: 'FE-REQ' });
+    expect(cleanPattern({ kind: 'id', prefix: 'FE--REQ' })).toBeNull();
     expect(cleanPattern({ kind: 'url', host: 'https://Linear.app/team/issue/1' })).toEqual({
       kind: 'url',
       host: 'linear.app',
@@ -101,5 +110,137 @@ describe('withLink', () => {
     expect(withLink('see [[spec#Plan|the spec]]', 'Spec')).toBeNull();
     expect(withLink('see [[Spec]]', 'Spec')).toBeNull();
     expect(withLink('see [[Specs]]', 'Spec')).not.toBeNull();
+  });
+});
+
+describe('T79: whole ID prefixes', () => {
+  const rule = (prefix: string, enabled = true) => ({
+    id: prefix,
+    pattern: { kind: 'id' as const, prefix },
+    enabled,
+    createdAt: 0,
+  });
+
+  it('a shared compound ID gives its whole prefix', () => {
+    expect(patternsOf(idEdge('a', 'b', 'FE-REQ-030'))).toEqual([{ kind: 'id', prefix: 'FE-REQ' }]);
+  });
+
+  it('a rule learned when IDs read as REQ-030 still covers FE-REQ-<n> and SRV-REQ-<n>, at segment boundaries', () => {
+    expect(covers({ kind: 'id', prefix: 'REQ' }, { kind: 'id', prefix: 'FE-REQ' })).toBe(true);
+    expect(covers({ kind: 'id', prefix: 'REQ' }, { kind: 'id', prefix: 'REQ' })).toBe(true);
+    expect(covers({ kind: 'id', prefix: 'REQ' }, { kind: 'id', prefix: 'FREQ' })).toBe(false);
+    expect(covers({ kind: 'id', prefix: 'FE-REQ' }, { kind: 'id', prefix: 'REQ' })).toBe(false);
+    expect(covers({ kind: 'url', host: 'a.com' }, { kind: 'url', host: 'a.com' })).toBe(true);
+    const r = { via: 'id' as const, label: 'FE-REQ-030' };
+    expect(ruleFor(r, [rule('REQ')])?.id).toBe('REQ');
+    expect(ruleFor(r, [rule('REQ'), rule('FE-REQ')])?.id).toBe('FE-REQ');
+    expect(ruleFor(r, [rule('REQ', false)])).toBeUndefined();
+    expect(ruleFor({ via: 'id', label: 'FREQ-1' }, [rule('REQ')])).toBeUndefined();
+    // A disabled exact rule decides: the covering legacy REQ doesn't turn FE-REQ back on.
+    expect(ruleFor(r, [rule('REQ'), rule('FE-REQ', false)])).toBeUndefined();
+    expect(ruleFor({ via: 'id', label: 'SRV-REQ-1' }, [rule('REQ'), rule('FE-REQ', false)])?.id).toBe('REQ');
+  });
+
+  it('no proposal for a prefix an older rule already covers', () => {
+    let d: LinkData = { ...emptyLinks(), rules: [rule('REQ')] };
+    for (const [a, b] of [
+      ['a', 'b'],
+      ['a', 'c'],
+      ['b', 'c'],
+    ])
+      d = decide(d, { source: a, target: b, accept: true }, idEdge(a, b, 'FE-REQ-1'), 0);
+    expect(proposals(d)).toEqual([]);
+    expect(proposals({ ...d, rules: [] })).toEqual([
+      { key: 'id:FE-REQ', pattern: { kind: 'id', prefix: 'FE-REQ' }, accepts: 3 },
+    ]);
+  });
+});
+
+describe('T79: accepts under the old short prefix count with the whole one', () => {
+  const acc = (a: string, b: string, ...patterns: string[]) => ({ a, b, patterns, at: 0 });
+
+  it('two old id:REQ accepts and one new id:FE-REQ accept propose FE-REQ (3), not REQ', () => {
+    const d: LinkData = {
+      ...emptyLinks(),
+      accepted: [acc('a', 'b', 'id:REQ'), acc('a', 'c', 'id:REQ'), acc('b', 'c', 'id:FE-REQ')],
+    };
+    expect(proposals(d)).toEqual([
+      { key: 'id:FE-REQ', pattern: { kind: 'id', prefix: 'FE-REQ' }, accepts: 3 },
+    ]);
+  });
+
+  it('an accept with both keys counts once; other families and plain prefixes stay apart', () => {
+    const d: LinkData = {
+      ...emptyLinks(),
+      accepted: [
+        acc('a', 'b', 'id:REQ', 'id:FE-REQ'),
+        acc('a', 'c', 'id:REQ'),
+        acc('x', 'y', 'id:FREQ'),
+        acc('x', 'z', 'id:FREQ'),
+        acc('y', 'z', 'id:DB'),
+      ],
+    };
+    expect(proposals(d)).toEqual([]);
+    const more = { ...d, accepted: [...d.accepted, acc('b', 'c', 'id:FE-REQ')] };
+    expect(proposals(more).map((p) => [p.key, p.accepts])).toEqual([['id:FE-REQ', 3]]);
+  });
+
+  it('with no whole prefix accepted yet, old REQ accepts still propose REQ', () => {
+    const d: LinkData = {
+      ...emptyLinks(),
+      accepted: [acc('a', 'b', 'id:REQ'), acc('a', 'c', 'id:REQ'), acc('b', 'c', 'id:REQ')],
+    };
+    expect(proposals(d).map((p) => p.key)).toEqual(['id:REQ']);
+  });
+
+  it('migration: a short key with one whole family becomes it (accepts and Not now); ambiguous ones stay', () => {
+    const one = migrateLinks({
+      ...emptyLinks(),
+      v: 1,
+      accepted: [acc('a', 'b', 'id:REQ', 'url:a.com'), acc('a', 'c', 'id:FE-REQ', 'id:REQ')],
+      dismissed: ['id:REQ'],
+    });
+    expect(one.v).toBe(2);
+    expect(one.accepted.map((a) => a.patterns)).toEqual([['id:FE-REQ', 'url:a.com'], ['id:FE-REQ']]);
+    expect(one.dismissed).toEqual(['id:FE-REQ']);
+    const two = migrateLinks({
+      ...emptyLinks(),
+      accepted: [acc('a', 'b', 'id:REQ'), acc('a', 'c', 'id:FE-REQ'), acc('b', 'c', 'id:SRV-REQ')],
+    });
+    expect(two.accepted.map((a) => a.patterns)).toEqual([['id:REQ'], ['id:FE-REQ'], ['id:SRV-REQ']]);
+    // Ambiguous: the old accept counts toward both families.
+    const counts = proposals({
+      ...two,
+      accepted: [...two.accepted, acc('d', 'e', 'id:FE-REQ'), acc('d', 'f', 'id:SRV-REQ')],
+    }).map((p) => [p.key, p.accepts]);
+    expect(counts).toEqual([
+      ['id:FE-REQ', 3],
+      ['id:SRV-REQ', 3],
+    ]);
+  });
+
+  it('a v1 links.json is migrated on load; unknown versions start empty', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'aquila-links-'));
+    const file = path.join(dir, 'links.json');
+    fs.writeFileSync(
+      file,
+      JSON.stringify({
+        v: 1,
+        accepted: [
+          acc('a', 'b', 'id:REQ'),
+          acc('a', 'c', 'id:FE-REQ'),
+          { a: 'x', b: 'y', patterns: 3, at: 0 },
+        ],
+        rejected: [],
+        rules: [],
+        dismissed: [],
+      }),
+    );
+    const d = readLinks(file);
+    expect(d.v).toBe(2);
+    expect(d.accepted.map((a) => a.patterns)).toEqual([['id:FE-REQ'], ['id:FE-REQ'], []]);
+    fs.writeFileSync(file, JSON.stringify({ v: 9, accepted: [acc('a', 'b', 'id:DB')] }));
+    expect(readLinks(file).accepted).toEqual([]);
+    fs.rmSync(dir, { recursive: true, force: true });
   });
 });

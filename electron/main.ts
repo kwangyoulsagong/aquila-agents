@@ -74,7 +74,22 @@ import {
 import { LIVE_SOURCES, ratio, refreshDue, UsageTracker } from './usage';
 import { ContextWatcher, statusLineSources, userHasStatusLine } from './context';
 import { listRemoteDirs } from './remote/browse';
-import { connect as figmaConnect, FIGMA_DOCS_URL, readProfiles as figmaProfiles } from './figma';
+import {
+  connect as figmaConnect,
+  ensureMcpConfig as ensureFigmaMcp,
+  FIGMA_DOCS_URL,
+  readProfiles as figmaProfiles,
+} from './figma';
+import {
+  BRIEF_MAX_CHARS,
+  BriefService,
+  briefNote,
+  fixtureBrief,
+  prepareBrief,
+  runClaudeBrief,
+} from './brief';
+import { pdfText } from './pdf-text';
+import { cleanIds } from './graph/related';
 import { PowerWatcher, type PowerSource } from './power';
 import { FIXTURE_NOW, fixtureFetcher, NewsService, readHead } from './news';
 import {
@@ -100,6 +115,7 @@ import { TurnFiles } from './graph/turn-files';
 import { WorkScanner, type WorkScanOut } from './graph/history-worker';
 import { linkable, withLink } from './graph/rules';
 import { VaultService } from './graph/vault';
+import { NoteFs } from './graph/note-fs';
 import { runClaudeHaiku } from './graph/extract';
 import {
   IMAGE_FILE,
@@ -110,6 +126,8 @@ import {
   saveAttachment,
   writeNote,
 } from './graph/note-file';
+import { noteReaders } from './graph/note-open';
+import { NoteSeen, NoteSeenStore } from './graph/note-seen';
 import { DevUrlTracker, orderTargets, PreviewViews, readLaunchJson } from './preview';
 import { EXT_SCHEME, ExtensionHost } from './extensions';
 import { SessionManager } from './sessions';
@@ -133,7 +151,7 @@ import {
   writeState,
   type SavedTab,
 } from './state';
-import { isSmoke, runSmoke, SMOKE_BUFFER_BYTES, smokeLinks, watchOutput } from './smoke';
+import { isHidden, isSmoke, runSmoke, SMOKE_BUFFER_BYTES, smokeLinks, watchOutput } from './smoke';
 import { openInBrowser } from './browser';
 import { defaultRunCommands, readSavedRuns, RunManager, writeSavedRuns } from './runs';
 import { accountLabel, translator } from '../src/shared/i18n/dictionary';
@@ -165,8 +183,15 @@ import {
   type GraphRuleOp,
   type VaultConfig,
   type VaultEdit,
+  type NoteTableData,
+  type NoteFsMove,
+  type VaultProperty,
   type VaultPresetId,
   type VaultScope,
+  type BriefInput,
+  type BriefRunRequest,
+  type BriefSaveRequest,
+  type BriefTargets,
   type ToolId,
   type StatusUpdate,
   type ExtensionViewState,
@@ -206,6 +231,8 @@ function createWindow(): void {
     minWidth: 900,
     minHeight: 560,
     backgroundColor: windowBackground(), // avoids a flash of the wrong color before CSS loads
+    // Background smoke / perf (AQUILA_HIDDEN): never shown or focused; smoke.ts shows it inactive and transparent.
+    ...(isHidden ? { show: false, opacity: 0.01 } : {}),
     ...(isWindows
       ? { titleBarStyle: 'hidden' as const, titleBarOverlay: titleBarOverlay() }
       : { titleBarStyle: 'hiddenInset' as const, trafficLightPosition: { x: 16, y: 14 } }),
@@ -216,12 +243,14 @@ function createWindow(): void {
       sandbox: false,
     },
   });
+  if (isHidden) win.showInactive();
   // Links (terminal URLs, Claude's OSC 8 links): the default browser, never a window of ours (see links.ts).
   const wc = win.webContents;
   const openLink = (url: string) => {
     const target = externalTarget(url);
     if (!target) return;
-    if (isSmoke) smokeLinks.push(target); // smoke checks where it went; no browser opens
+    if (isSmoke)
+      smokeLinks.push(target); // smoke checks where it went; no browser opens
     else void shell.openExternal(target);
   };
   wc.setWindowOpenHandler(({ url }) => {
@@ -565,7 +594,9 @@ app.whenReady().then(async () => {
   };
   // Extensions (T71): folders under ~/.aquila/extensions (smoke: a temp folder of its own). Nothing runs until the
   // panel shows one, or the user allowed one in the background.
-  const extDir = isSmoke ? path.join(app.getPath('temp'), `aquila-smoke-ext-${process.pid}`) : path.join(APP_DIR, 'extensions');
+  const extDir = isSmoke
+    ? path.join(app.getPath('temp'), `aquila-smoke-ext-${process.pid}`)
+    : path.join(APP_DIR, 'extensions');
   extensions = new ExtensionHost({
     dir: extDir,
     prefsPath: isSmoke ? path.join(extDir, '.prefs.json') : path.join(APP_DIR, 'extensions.json'),
@@ -632,7 +663,13 @@ app.whenReady().then(async () => {
       let projectId = projectForPath(config, created.dir);
       if (!projectId) {
         config = appMenu.refresh(
-          editProjects({ op: 'addProject', path: created.dir, name: String(name ?? '').trim(), group, account }),
+          editProjects({
+            op: 'addProject',
+            path: created.dir,
+            name: String(name ?? '').trim(),
+            group,
+            account,
+          }),
         );
         graph.projectsChanged(); // T73: its folder joins the graph
         projectId = projectForPath(config, created.dir);
@@ -1091,8 +1128,14 @@ app.whenReady().then(async () => {
   // Note editor (T67): only notes of enabled sources; watched only while open in the editor.
   const noteWatcher = new NoteWatcher((c) => send(IPC.noteChanged, c));
   notesWatched = noteWatcher;
+  // T80: the text each opened note had when the user last looked (~/.aquila/notes-seen, never in the repo).
+  const seenStore = new NoteSeenStore(
+    isSmoke ? path.join(graphDir, 'notes-seen') : path.join(APP_DIR, 'notes-seen'),
+  );
+  const noteSeen = new NoteSeen({ store: seenStore, read: (f) => readNote(f), turnFiles: () => turns.all() });
   app.on('will-quit', () => {
     noteWatcher.close();
+    seenStore.flush();
     graph.close();
     turns.flush();
     if (isSmoke) fs.rmSync(graphDir, { recursive: true, force: true });
@@ -1130,21 +1173,35 @@ app.whenReady().then(async () => {
     const file = graph.notePath(String(p));
     return !!file && (await shell.openPath(file)) === '';
   });
-  ipcMain.handle(IPC.noteOpen, (_e, p: string) => {
-    const file = graph.notePath(String(p));
-    const note = file ? readNote(file) : null;
-    if (file && note) noteWatcher.watch(file);
-    return note;
+  const notes = noteReaders({
+    notePath: (p) => graph.notePath(p),
+    read: (f) => readNote(f),
+    watch: (f) => noteWatcher.watch(f),
+    opened: (f, n) => noteSeen.opened(f, n),
   });
+  ipcMain.handle(IPC.noteOpen, (_e, p: string) => notes.open(p));
+  ipcMain.handle(IPC.noteRead, (_e, p: string) => notes.read(p));
   ipcMain.on(IPC.noteClose, (_e, p: string) => noteWatcher.unwatch(path.resolve(String(p))));
   ipcMain.handle(
     IPC.noteWrite,
     (_e, a: { path: string; text: string; bom: boolean; baseMtime: number }): NoteWriteResult => {
       const file = graph.notePath(String(a.path));
       if (!file || typeof a.text !== 'string') return { ok: false, reason: 'refused' };
-      return writeNote(file, a.text, !!a.bom, Number(a.baseMtime));
+      const res = writeNote(file, a.text, !!a.bom, Number(a.baseMtime));
+      // T80: the user's own edit isn't an outside change.
+      if (res.ok) noteSeen.saved(file, a.text, !!a.bom, Number(a.baseMtime), res.mtime);
+      return res;
     },
   );
+  ipcMain.handle(IPC.noteSeenState, (_e, p: string) => {
+    const file = graph.notePath(String(p));
+    return file ? noteSeen.state(file) : null;
+  });
+  ipcMain.handle(IPC.noteSeenMark, (_e, p: string) => {
+    const file = graph.notePath(String(p));
+    return !!file && noteSeen.mark(file);
+  });
+  ipcMain.handle(IPC.noteSeenChanged, () => noteSeen.changed((f) => !!graph.notePath(f)));
   ipcMain.handle(IPC.noteOpenUrl, (_e, url: string) => {
     if (typeof url === 'string' && isWebUrl(url)) void shell.openExternal(url);
   });
@@ -1152,6 +1209,13 @@ app.whenReady().then(async () => {
     IPC.noteProject,
     (_e, p: string) => (typeof p === 'string' && p ? projectOfFile(p) : null) ?? null,
   );
+  ipcMain.handle(IPC.revealFile, (_e, p: unknown) => {
+    if (typeof p !== 'string' || !path.isAbsolute(p)) return false;
+    const file = projectOfFile(p) ? path.resolve(p) : graph.notePath(p);
+    if (!file || !fs.existsSync(file)) return false;
+    shell.showItemInFolder(file);
+    return true;
+  });
   protocol.handle('aquila-note', (req) => {
     const p = imageUrlPath(req.url);
     const file = p ? graph.sourceFile(p, IMAGE_FILE) : null;
@@ -1177,11 +1241,189 @@ app.whenReady().then(async () => {
     vault.move(String(a.path), String(a.viewId), String(a.group)),
   );
   ipcMain.handle(IPC.vaultNoteInfo, (_e, p: string) => vault.noteInfo(String(p)));
+  // T78: the table view's rows straight from the index; property types from the source's settings when it has some.
+  ipcMain.handle(IPC.noteTable, async (_e, id: string): Promise<NoteTableData | null> => {
+    const sid = String(id);
+    if (!graph.sourceRoot(sid)) return null;
+    const notes = await graph.notes(sid);
+    let properties: VaultProperty[] = [];
+    try {
+      properties = vault.state(sid).config.properties;
+    } catch {
+      // settings unreadable: plain text columns
+    }
+    return {
+      sourceId: sid,
+      notes: notes.map((n) => ({
+        path: n.abs,
+        rel: n.rel,
+        title: n.title,
+        props: n.frontmatter,
+        mtime: n.mtime,
+      })),
+      properties,
+    };
+  });
   ipcMain.handle(IPC.vaultEdit, (_e, a: { path: string; text: string; edit: VaultEdit }) =>
     a?.edit && typeof a.edit === 'object' ? vault.edit(String(a.path), a.text, a.edit) : null,
   );
   ipcMain.handle(IPC.vaultCreateNote, (_e, a: { id: string; templateId: string | null; title: string }) =>
     vault.createNote(String(a.id), a.templateId ? String(a.templateId) : null, String(a.title ?? '')),
+  );
+  // Note explorer (T83): folder / note / rename / move / Trash inside enabled sources only (paths checked in
+  // note-fs.ts); links are rewritten only after the user's yes. Pins and recent notes in ~/.aquila/explorer.json.
+  const noteFs = new NoteFs({
+    graph,
+    draft: (id, title) => vault.draft(id, title),
+    trash: (abs) => shell.trashItem(abs),
+    prefsFile: isSmoke ? path.join(graphDir, 'explorer.json') : path.join(APP_DIR, 'explorer.json'),
+  });
+  type FsArgs = { id: string; rel: string; name: string; parent: string; folder: string; title: string };
+  ipcMain.handle(IPC.noteFsList, (_e, a: { id: string; created?: boolean }) =>
+    noteFs.list(String(a?.id), !!a?.created),
+  );
+  ipcMain.handle(IPC.noteFsDirs, (_e, a: FsArgs) => noteFs.dirs(String(a?.id), String(a?.rel ?? '')));
+  ipcMain.handle(IPC.noteFsMkdir, (_e, a: FsArgs) =>
+    noteFs.mkdir(String(a?.id), String(a?.parent ?? ''), String(a?.name ?? '')),
+  );
+  ipcMain.handle(IPC.noteFsCreateNote, (_e, a: FsArgs) =>
+    noteFs.createNote(String(a?.id), String(a?.folder ?? ''), String(a?.title ?? '')),
+  );
+  ipcMain.handle(IPC.noteFsRename, (_e, a: FsArgs) =>
+    noteFs.rename(String(a?.id), String(a?.rel ?? ''), String(a?.name ?? '')),
+  );
+  ipcMain.handle(IPC.noteFsMove, (_e, a: { id: string; rels: string[]; folder: string }) =>
+    noteFs.move(String(a?.id), Array.isArray(a?.rels) ? a.rels.map(String) : [], String(a?.folder ?? '')),
+  );
+  ipcMain.handle(IPC.noteFsFixLinks, (_e, a: { id: string; files: NoteFsMove[]; notes: string[] }) =>
+    noteFs.fixLinks(String(a?.id), a?.files, a?.notes),
+  );
+  ipcMain.handle(IPC.noteFsTrash, (_e, a: { id: string; rels: string[] }) =>
+    noteFs.trash(String(a?.id), Array.isArray(a?.rels) ? a.rels.map(String) : []),
+  );
+  ipcMain.handle(IPC.noteFsUndoCreate, (_e, a: { id: string; rel: string; mtime?: number }) =>
+    noteFs.undoCreate(
+      String(a?.id),
+      String(a?.rel ?? ''),
+      typeof a?.mtime === 'number' ? a.mtime : undefined,
+    ),
+  );
+  ipcMain.handle(IPC.noteFsShell, async (_e, a: { id: string; rel: string; action: string }) => {
+    const abs = noteFs.existing(String(a?.id), String(a?.rel ?? ''));
+    if (!abs) return false;
+    if (a.action === 'reveal') {
+      shell.showItemInFolder(abs);
+      return true;
+    }
+    return (await shell.openPath(abs)) === '';
+  });
+  ipcMain.handle(IPC.noteFsPrefs, (_e, id: string) => noteFs.prefs(String(id)));
+  ipcMain.handle(IPC.noteFsSetPrefs, (_e, a: { id: string; prefs: unknown }) =>
+    noteFs.setPrefs(String(a?.id), a?.prefs),
+  );
+  // "What is this?" (T81): prepare = sanitize + cap, shown before anything is sent; run = one hidden `claude -p` on
+  // the click (the project's account, cached per input); save = a new note only on "Save as note". Smoke: canned.
+  const briefs = new BriefService({
+    run: isSmoke
+      ? fixtureBrief(
+          path.join(
+            __dirname,
+            '..',
+            '..',
+            'electron',
+            'fixtures',
+            'brief',
+            // The guide capture (T24): the demo shop's reply, in the capture's language.
+            process.env.AQUILA_CAPTURE ? `capture.${loadConfig().language}.json` : 'reply.json',
+          ),
+        )
+      : runClaudeBrief(binaryFor('claude')),
+  });
+  const briefAccount = (projectId: unknown) => {
+    const config = loadConfig();
+    // The project's account; none (no local project selected) = the shared account, like the graph's Claude runs.
+    const account = config.projects.find((p) => p.id === projectId && !p.remote)?.account;
+    const a = account ? config.accounts[account] : undefined;
+    return {
+      config,
+      account,
+      label: account ? accountLabel(translator(config.language), account, a) : '',
+      configDir: a?.claudeConfigDir && account ? claudeConfigDir(config, account) : undefined,
+      figma: !!account && figmaProfiles()[account]?.state === 'connected',
+    };
+  };
+  const briefPrepare = (input: BriefInput, projectId: unknown) => {
+    const acc = briefAccount(projectId);
+    const text = typeof input?.text === 'string' ? input.text : '';
+    const name = typeof input?.name === 'string' ? input.name : undefined;
+    return { acc, prepared: prepareBrief({ text, name }, { figmaConnected: acc.figma, account: acc.label }) };
+  };
+  ipcMain.handle(
+    IPC.briefPrepare,
+    (_e, a: { input: BriefInput; projectId: string | null }) => briefPrepare(a?.input, a?.projectId).prepared,
+  );
+  ipcMain.handle(IPC.briefRun, (_e, req: BriefRunRequest) => {
+    const { acc, prepared } = briefPrepare(req?.input, req?.projectId);
+    return briefs.run(String(req?.id), prepared, {
+      model: req?.model === 'sonnet' ? 'sonnet' : 'haiku',
+      language: acc.config.language,
+      configDir: acc.configDir,
+      ...(prepared.figma?.connected ? { figmaMcp: ensureFigmaMcp() } : {}),
+    });
+  });
+  ipcMain.on(IPC.briefCancel, (_e, id: string) => briefs.cancel(String(id)));
+  ipcMain.handle(IPC.briefPdfText, (_e, data: unknown) =>
+    data instanceof Uint8Array ? pdfText(data) : { error: 'unreadable' as const },
+  );
+  ipcMain.handle(IPC.briefTargets, (_e, projectId: string | null): BriefTargets => {
+    const enabled = graph.status().sources.filter((x) => x.enabled);
+    const root = (() => {
+      const p = loadConfig().projects.find((x) => x.id === projectId && !x.remote);
+      return p ? path.resolve(expand(p.path)) : null;
+    })();
+    const inside = (a: string, b: string) => a === b || a.startsWith(b + path.sep);
+    const sources = enabled.map((x) => ({ id: x.id, path: x.path, folder: vault.newNoteFolder(x.id) }));
+    const own = root
+      ? enabled
+          .filter((x) => {
+            const r = graph.sourceRoot(x.id);
+            return !!r && (inside(root, path.resolve(r)) || inside(path.resolve(r), root));
+          })
+          .sort((a, b) => b.path.length - a.path.length)[0]
+      : undefined;
+    return { sources, defaultId: own?.id ?? sources.find((x) => x.folder)?.id ?? sources[0]?.id ?? null };
+  });
+  ipcMain.handle(IPC.briefSave, (_e, req: BriefSaveRequest) => {
+    if (typeof req?.sourceId !== 'string' || !graph.enabledIds().includes(req.sourceId)) return null;
+    const title = String(req.title ?? '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 120);
+    if (!title) return null;
+    const t = translator(loadConfig().language);
+    const body = briefNote(
+      {
+        ...req,
+        title,
+        source: String(req.source ?? '').slice(0, 300),
+        links: Array.isArray(req.links)
+          ? req.links.filter((l) => typeof l?.path === 'string' && !!graph.notePath(l.path))
+          : [],
+      },
+      new Date(),
+      {
+        intent: t('brief.intent'),
+        points: t('brief.points'),
+        questions: t('brief.questions'),
+        terms: t('brief.terms'),
+        related: t('brief.related'),
+        reply: t('brief.raw'),
+      },
+    );
+    return vault.createNote(req.sourceId, null, title, body);
+  });
+  ipcMain.handle(IPC.graphRelated, (_e, a: { text: string; ids?: string[] }) =>
+    typeof a?.text === 'string' ? graph.related(a.text.slice(0, BRIEF_MAX_CHARS), cleanIds(a.ids)) : [],
   );
   ipcMain.handle(IPC.sessionRestore, () => restoreSessions());
   ipcMain.handle(IPC.sessionStart, (_e, id: string) => s.wake(loadConfig(), id));
@@ -1441,7 +1683,9 @@ app.whenReady().then(async () => {
     safe('updater', () => startUpdater(() => translator(loadConfig().language)));
   if (isSmoke && win) {
     const w = win;
-    w.webContents.once('did-finish-load', () => runSmoke(w, s, loadConfig(), smokeOutput, previews, runs, extensions));
+    w.webContents.once('did-finish-load', () =>
+      runSmoke(w, s, loadConfig(), smokeOutput, previews, runs, extensions),
+    );
   }
   app.on('activate', () => BrowserWindow.getAllWindows().length === 0 && createWindow());
 });

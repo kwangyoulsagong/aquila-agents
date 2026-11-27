@@ -6,6 +6,7 @@ import { execFile, spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { NO_TOOLS } from './claude-args';
 import { APP_DIR } from './config';
 import { binaryFor, parseVersion } from './detect';
 import { isTechnical, itemScore } from './newsFilter';
@@ -924,6 +925,19 @@ export function summaryPrompt(items: NewsItem[], language: Language): string {
 
 const SUMMARY_TIMEOUT_MS = 90_000;
 
+/** Argv of the hidden summary run: articles are untrusted text, so no tools and no MCP servers. */
+export const SUMMARY_ARGS: readonly string[] = [
+  '-p',
+  '--no-session-persistence',
+  '--max-turns',
+  '1',
+  '--model',
+  'haiku',
+  '--output-format',
+  'text',
+  ...NO_TOOLS,
+];
+
 function runClaude(prompt: string, configDir: string | undefined): Promise<string> {
   const env: NodeJS.ProcessEnv = { ...process.env };
   delete env.CLAUDE_CONFIG_DIR;
@@ -932,11 +946,11 @@ function runClaude(prompt: string, configDir: string | undefined): Promise<strin
   if (configDir) env.CLAUDE_CONFIG_DIR = configDir;
   return new Promise((resolve, reject) => {
     // Prompt on stdin (it's long); no session file, one turn, the small model.
-    const child = spawn(
-      binaryFor('claude'),
-      ['-p', '--no-session-persistence', '--max-turns', '1', '--model', 'haiku', '--output-format', 'text'],
-      { cwd: os.homedir(), env, stdio: ['pipe', 'pipe', 'pipe'] },
-    );
+    const child = spawn(binaryFor('claude'), [...SUMMARY_ARGS], {
+      cwd: os.homedir(),
+      env,
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
     let out = '';
     let err = '';
     child.stdout.on('data', (d: Buffer) => (out += d.toString('utf8')));

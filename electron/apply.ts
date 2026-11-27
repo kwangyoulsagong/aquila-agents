@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { APP_DIR, slugify } from './config';
+import { READ_ONLY_TOOLS } from './claude-args';
 import { plainText } from './news';
 import type {
   ApplyArticle,
@@ -555,6 +556,24 @@ export type RunClaude = (prompt: string, cwd: string, configDir: string | undefi
 
 const ANALYSE_TIMEOUT_MS = 4 * 60_000;
 
+/**
+ * Argv of the hidden analysis: plan mode, and only the read-only file tools (it may read the repo to check facts;
+ * no Bash, Edit, Write or WebFetch — the article is untrusted), no MCP servers.
+ */
+export const PLAN_ARGS: readonly string[] = [
+  '-p',
+  '--permission-mode',
+  'plan',
+  '--model',
+  'sonnet',
+  '--no-session-persistence',
+  '--max-turns',
+  '12',
+  '--output-format',
+  'text',
+  ...READ_ONLY_TOOLS,
+];
+
 /** Hidden `claude -p` in plan mode (reads, never writes), sonnet, no session file. */
 export const runClaudePlan =
   (binary: string): RunClaude =>
@@ -567,22 +586,7 @@ export const runClaudePlan =
     let child: ChildProcess | null = null;
     let cancelled = false;
     const done = new Promise<string>((resolve, reject) => {
-      child = spawn(
-        binary,
-        [
-          '-p',
-          '--permission-mode',
-          'plan',
-          '--model',
-          'sonnet',
-          '--no-session-persistence',
-          '--max-turns',
-          '12',
-          '--output-format',
-          'text',
-        ],
-        { cwd, env, stdio: ['pipe', 'pipe', 'pipe'] },
-      );
+      child = spawn(binary, [...PLAN_ARGS], { cwd, env, stdio: ['pipe', 'pipe', 'pipe'] });
       let out = '';
       let err = '';
       child.stdout?.on('data', (d: Buffer) => (out += d.toString('utf8')));

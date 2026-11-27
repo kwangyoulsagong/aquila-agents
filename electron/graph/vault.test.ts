@@ -100,6 +100,9 @@ describe('templates', () => {
       rel: 'meetings/2026-11-23 DB-12 sync- plan-b.md',
       text: 'date: 2026-11-23 09:05 DB-12 {{nope}}',
     });
+    expect(renderTemplate(t, 'FE-REQ-030 login', NOW).text).toBe(
+      'date: 2026-11-23 09:05 FE-REQ-030 {{nope}}',
+    );
     expect(renderTemplate({ ...t, folder: '', file: '{{slug}}' }, '로그인 Flow', NOW).rel).toBe(
       '로그인-flow.md',
     );
@@ -383,6 +386,43 @@ describe('files and the service', () => {
     expect(svc.createNote('req', null, 'DB-7200 export')).toBe(p);
     expect(fs.readFileSync(p!, 'utf8')).toBe('mine');
     expect(svc.createNote('nope', null, 'x')).toBeNull();
+  });
+
+  it('T83: a draft is the newNotes template without its folder (the explorer picks the folder)', () => {
+    const d = svc.draft('req', 'DB-7200 export');
+    expect(d?.name).toBe('DB-7200-db-7200-export.md');
+    expect(d?.text).toContain('id: DB-7200');
+    expect(svc.draft('nope', 'x')).toBeNull();
+  });
+
+  it('T81: with a body, writes it in the new-note folder and never reuses a taken name', () => {
+    const a = svc.createNote('req', null, 'Brief login', '---\ntype: brief\n---\n# A\n');
+    expect(path.dirname(a!)).toBe(path.join(root, 'specs', 'to-do'));
+    expect(fs.readFileSync(a!, 'utf8')).toBe('---\ntype: brief\n---\n# A\n');
+    const b = svc.createNote('req', null, 'Brief login', '# B\n');
+    expect(b).not.toBe(a);
+    expect(fs.readFileSync(b!, 'utf8')).toBe('# B\n');
+    expect(fs.readFileSync(a!, 'utf8')).toContain('# A');
+    expect(svc.newNoteFolder('req')).toBe('specs/to-do');
+  });
+
+  it('a newNotes pattern without the title: the draft keeps the typed name; a body gets `name 2.md`', () => {
+    svc.save(
+      'req',
+      {
+        templates: [{ id: 'day', name: 'Day', folder: 'daily', file: '{{date}}.md', body: '# {{title}}\n' }],
+        newNotes: 'day',
+      },
+      'personal',
+    );
+    expect(svc.draft('req', 'Login idea')).toEqual({ name: 'Login idea.md', text: '# Login idea\n' });
+    const a = svc.createNote('req', null, 'Brief A', '# A\n');
+    const b = svc.createNote('req', null, 'Brief B', '# B\n');
+    const c = svc.createNote('req', null, 'Brief C', '# C\n');
+    expect(a).toBe(path.join(root, 'daily', '2026-11-23.md'));
+    expect(b).toBe(path.join(root, 'daily', '2026-11-23 2.md'));
+    expect(c).toBe(path.join(root, 'daily', '2026-11-23 3.md'));
+    expect(fs.readFileSync(b!, 'utf8')).toBe('# B\n');
   });
 
   it('turns a Claude action into a prompt with the note', () => {

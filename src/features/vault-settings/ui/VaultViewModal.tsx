@@ -1,8 +1,22 @@
-import { useCallback, useEffect, useState, type KeyboardEvent } from 'react';
-import { Board, BoardCard, BoardColumn, DataTable, EmptyState, Modal, ModalNote } from '@design-system/react';
+import { useCallback, useEffect, useMemo, useState, type KeyboardEvent } from 'react';
+import {
+  Board,
+  BoardCard,
+  BoardColumn,
+  DataGrid,
+  EmptyState,
+  GridCell,
+  GridFrame,
+  GridGroup,
+  GridOpen,
+  GridRow,
+  Modal,
+  ModalNote,
+  type GridColumn,
+} from '@design-system/react';
 import { api, type VaultCard, type VaultViewData } from '@/shared/api';
 import { useT } from '@/shared/i18n';
-import { cellText, DRAG_TYPE, neighbor } from '../model/config';
+import { cellText, DRAG_TYPE, FILE, gridItems, neighbor, nextSort, TITLE, type Sort } from '../model/config';
 
 /** The index moves often while indexing: ask again at most this often. */
 const GAP_MS = 800;
@@ -140,27 +154,13 @@ export default function VaultViewModal({
         ))}
       </Board>
     );
-  else {
-    const columns = view.kind === 'table' ? (view.columns ?? []) : [];
+  else
     body = (
-      <DataTable
-        label={view.name}
-        columns={[t('vault.view.title'), ...columns, ...(view.kind === 'list' ? [t('vault.view.file')] : [])]}
-        groups={data.groups
-          .filter((g) => g.cards.length)
-          .map((g) => ({
-            key: g.key,
-            title: label(g.key),
-            rows: g.cards.map((c) => ({
-              key: c.path,
-              title: c.title,
-              cells: view.kind === 'list' ? [c.rel] : columns.map((k) => cellText(c.props[k])),
-              onOpen: () => open(c.path),
-            })),
-          }))}
-      />
+      <GridFrame>
+        {problem && <ModalNote warn>{problem}</ModalNote>}
+        <ViewGrid data={data} view={view} label={label} onOpen={open} />
+      </GridFrame>
     );
-  }
 
   return (
     <Modal
@@ -172,8 +172,62 @@ export default function VaultViewModal({
       closeLabel={t('action.close')}
       footer={view?.kind === 'board' ? t('vault.view.boardHint') : undefined}
     >
-      {problem && <ModalNote warn>{problem}</ModalNote>}
+      {problem && view?.kind === 'board' && <ModalNote warn>{problem}</ModalNote>}
       {body}
     </Modal>
+  );
+}
+
+/** A table or list view on the shared grid (T78): sortable columns, group headings, virtualized rows. */
+function ViewGrid({
+  data,
+  view,
+  label,
+  onOpen,
+}: {
+  data: VaultViewData;
+  view: VaultViewData['view'];
+  label: (key: string) => string;
+  onOpen: (path: string) => void;
+}) {
+  const t = useT();
+  const [sort, setSort] = useState<Sort>(null);
+  const keys = view.kind === 'table' ? (view.columns ?? []) : [];
+  const ids = [TITLE, ...keys, ...(view.kind === 'list' ? [FILE] : [])];
+  const cellOf = useCallback(
+    (c: VaultCard, key: string) => (key === TITLE ? c.title : key === FILE ? c.rel : cellText(c.props[key])),
+    [],
+  );
+  const items = useMemo(() => gridItems(data, cellOf, sort), [data, cellOf, sort]);
+  const columns: GridColumn[] = ids.map((id) => ({
+    id,
+    label: id === TITLE ? t('vault.view.title') : id === FILE ? t('vault.view.file') : id,
+    sort: sort?.key === id ? (sort.dir === 1 ? 'ascending' : 'descending') : undefined,
+    onSort: () => setSort((s) => nextSort(s, id)),
+  }));
+  return (
+    <DataGrid
+      label={view.name}
+      columns={columns}
+      count={items.length}
+      rowKey={(i) => {
+        const it = items[i]!;
+        return it.kind === 'group' ? `g:${it.key}` : it.card.path;
+      }}
+      renderRow={(i) => {
+        const it = items[i]!;
+        if (it.kind === 'group') return <GridGroup title={label(it.key)} count={it.count} />;
+        const c = it.card;
+        return (
+          <GridRow>
+            <GridOpen label={c.title} title={c.rel} onOpen={() => onOpen(c.path)} />
+            {ids.slice(1).map((k) => (
+              <GridCell key={k} text={cellOf(c, k)} muted={k === FILE} />
+            ))}
+          </GridRow>
+        );
+      }}
+      empty={t('vault.view.empty')}
+    />
   );
 }

@@ -19,6 +19,8 @@ import { runPerf } from './perf';
 import type { SessionManager } from './sessions';
 import { checkRemoteSession } from './remote/smoke';
 import { checkRealHost } from './remote/realHostSmoke';
+import { checkNoteFeatures } from './notesSmoke';
+import { runRealCheck } from './realSmoke';
 import { readHookBody } from './hooks';
 import { applyAction, isoDate } from './graph/vault';
 import { IPC, type Config, type ConnectionUpdate, type ContextMenuItem } from '../src/shared/api/types';
@@ -54,6 +56,8 @@ const RUN_LIMIT_MS = 15 * 60_000;
 const MAX_GPU = 12;
 
 export const isSmoke = process.env.AQUILA_SMOKE === '1';
+/** `AQUILA_HIDDEN=1`: nothing on screen (hidden.ts; capture shares it). */
+export { isHidden } from './hidden';
 // Keep painting behind other windows (set before app ready, at import): macOS occlusion stops requestAnimationFrame,
 // which the palette and pointer-driven UI rely on — a covered smoke window failed at random steps. Same as perf.
 if (isSmoke) {
@@ -111,6 +115,9 @@ export async function runSmoke(
 ) {
   if (process.env.AQUILA_PERF === '1') return runPerf(win, sessions);
   if (process.env.AQUILA_CAPTURE) return runCapture(win, sessions, config, previews);
+  // Local-only: a real note folder (a copy), see realSmoke.ts.
+  if (process.env.AQUILA_SMOKE_REAL)
+    return runRealCheck(win, config, { press, paletteRun }, process.env.AQUILA_SMOKE_REAL);
   let failed = false;
   const fail = (why: string) => {
     if (failed) return;
@@ -251,6 +258,9 @@ export async function runSmoke(
     stage = 'checkAppGraph';
     const appGraphError = await checkAppGraph(win, config, outDir);
     if (appGraphError) return fail(appGraphError);
+    stage = 'checkNoteFeatures';
+    const noteFeaturesError = await checkNoteFeatures(win, config, outDir, { press, paletteRun });
+    if (noteFeaturesError) return fail(noteFeaturesError);
     stage = 'checkIme';
     const imeError = await checkIme(win);
     if (imeError) return fail(imeError);
@@ -1540,7 +1550,9 @@ async function checkGraphView(win: BrowserWindow, config: Config, outDir: string
     return null;
   };
   const centerLabel = () =>
-    js<string>(`document.querySelector('aside .c-kfocus__node[data-align=center] .c-kfocus__label')?.textContent ?? ''`);
+    js<string>(
+      `document.querySelector('aside .c-kfocus__node[data-align=center] .c-kfocus__label')?.textContent ?? ''`,
+    );
   await js(`(() => { localStorage.removeItem('aquila.graph.mode'); window.__graphSettled = null; })()`);
   press(win, 'N', ['meta', 'shift']);
   // T74: it opens on "This week": the fixture notes changed lately are listed, or it says nothing changed (the
@@ -1643,7 +1655,9 @@ async function checkGraphView(win: BrowserWindow, config: Config, outDir: string
   const groups = await js<number>(`document.querySelectorAll('aside .c-kgroups__bubble').length`);
   if (groups) return `graph: ${groups} group bubbles for a ${whole.nodes}-node map (small maps show dots)`;
   fs.writeFileSync(path.join(outDir, 'smoke-graph-map.png'), (await win.webContents.capturePage()).toPNG());
-  await js(`(() => { localStorage.removeItem('aquila.graph.mode'); localStorage.removeItem('aquila.graph.project'); })()`);
+  await js(
+    `(() => { localStorage.removeItem('aquila.graph.mode'); localStorage.removeItem('aquila.graph.project'); })()`,
+  );
   press(win, 'N', ['meta', 'shift']);
   await wait(400);
   const left = await js<number>(`document.querySelectorAll('.c-kgraph').length`);
@@ -1871,7 +1885,8 @@ async function checkLinkSuggestions(
     // Graph foot card: centre the meeting note, open "Suggested links": the spec is listed with a dotted line;
     // "[[" accepts and writes the link.
     press(win, 'N', ['meta', 'shift']);
-    if (!(await until(`!!document.querySelector('aside .c-kgraph')`))) return 'links: graph panel did not open';
+    if (!(await until(`!!document.querySelector('aside .c-kgraph')`)))
+      return 'links: graph panel did not open';
     await js(`(() => {
       const input = document.querySelector('aside .c-panel__bar input[type=search]');
       const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
@@ -1881,8 +1896,12 @@ async function checkLinkSuggestions(
     })()`);
     await wait(300);
     press(win, 'Enter', []);
-    if (!(await until(`document.querySelector('aside .c-kgraph__foot-title')?.textContent === '2026-11-18 Planning'`)))
-      return 'links: search + Enter did not centre the meeting note';
+    if (
+      !(await until(
+        `document.querySelector('aside .c-kgraph__foot-title')?.textContent === '2026-11-18 Planning'`,
+      ))
+    )
+      return `links: search + Enter did not centre the meeting note (foot: ${await js<string>(`document.querySelector('aside .c-kgraph__foot-title')?.textContent ?? 'none'`)})`;
     await js(`document.querySelector('aside .c-kgraph__foot button[aria-expanded=false]')?.click()`);
     const row = `[...document.querySelectorAll('.c-kgraph__foot .c-suggest__item')].find((r) => r.textContent.includes('Printable reports'))`;
     if (!(await until(`!!${row}?.querySelector('.c-suggest__line[data-line=dotted]')`)))
@@ -2262,7 +2281,9 @@ async function checkAppGraph(win: BrowserWindow, config: Config, outDir: string)
     }
     const dailyFile = path.join(journal, dailyName);
     const heading = config.language === 'ko' ? '## 세션' : '## Sessions';
-    await wait(500);
+    // The file is made first, the sessions are added after the history scan (seconds when cold): poll.
+    for (let i = 0; i < 100 && !fs.readFileSync(dailyFile, 'utf8').includes(heading); i++) await wait(100);
+    await wait(300);
     const once = fs.readFileSync(dailyFile, 'utf8');
     if (!once.includes(heading))
       return `app graph: the daily note has no "${heading}": ${JSON.stringify(once.slice(0, 200))}`;
@@ -2606,7 +2627,14 @@ async function checkWhatsNew(win: BrowserWindow, config: Config, out: string): P
   const t = translator(config.language);
   const clicked = await paletteRun(win, t('notes.title'));
   if (!clicked) return `palette has no "${t('notes.title')}" action`;
-  await wait(600);
+  // Poll, not a fixed wait: an unfocused (background, AQUILA_HIDDEN) window gets frames later.
+  for (let i = 0; i < 50; i++) {
+    const n: number = await win.webContents.executeJavaScript(
+      `document.querySelector('.c-modal[open]')?.querySelectorAll('.c-modal__item').length ?? 0`,
+    );
+    if (n >= 3) break;
+    await wait(100);
+  }
   const seen: { items: number; groups: number; media: boolean; heading: string } = await win.webContents
     .executeJavaScript(`(() => {
       const m = document.querySelector('.c-modal[open]');
