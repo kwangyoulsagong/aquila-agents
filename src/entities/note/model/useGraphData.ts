@@ -40,6 +40,8 @@ const store = (() => {
     let timer: ReturnType<typeof setTimeout> | null = null;
     let firstWanted = 0;
     let inFlight = false;
+    /** A view opened while a fetch was running: the newer version right after it, not after the quiet wait. */
+    let urgent = false;
     const fetchNow = () => {
       timer = null;
       if (inFlight || wanted === fetched) return;
@@ -60,7 +62,11 @@ const store = (() => {
         })
         .finally(() => {
           inFlight = false;
-          if (alive && wanted !== fetched) schedule();
+          if (!alive || wanted === fetched) urgent = false;
+          else if (urgent) {
+            urgent = false;
+            fetchNow();
+          } else schedule();
         });
     };
     const schedule = () => {
@@ -93,7 +99,11 @@ const store = (() => {
     };
     document.addEventListener('visibilitychange', onVisible);
     kick = () => {
-      if (!alive || inFlight || fetched < 0 || wanted === fetched) return;
+      if (!alive || fetched < 0 || wanted === fetched) return;
+      if (inFlight) {
+        urgent = true;
+        return;
+      }
       if (timer) clearTimeout(timer);
       fetchNow();
     };

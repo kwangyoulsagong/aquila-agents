@@ -432,6 +432,19 @@ export default function KnowledgeGraphPanel({
       .slice(0, RESULTS);
   }, [matches, byId, deferredQuery]);
   useEffect(() => setResultAt(0), [deferredQuery]);
+  // Enter pressed before anything matched: the first match once the snapshot has it (typing again cancels).
+  const [pendingEnter, setPendingEnter] = useState<string | null>(null);
+  useEffect(() => {
+    if (pendingEnter === null) return;
+    if (pendingEnter !== query) return setPendingEnter(null);
+    if (deferredQuery !== query || !results.length) return;
+    setPendingEnter(null);
+    recentre(results[0]!.id);
+    setQuery('');
+    setSearching(false);
+    // `recentre` reads state setters only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingEnter, query, deferredQuery, results]);
 
   const open = (n: GraphNode) => {
     if (n.kind === 'note' && n.path) onOpenNote(n.path);
@@ -640,6 +653,9 @@ export default function KnowledgeGraphPanel({
               recentre(results[Math.min(resultAt, results.length - 1)]!.id);
               setQuery('');
               setSearching(false);
+            } else if (e.key === 'Enter' && query.trim()) {
+              // Nothing found yet (the snapshot is still coming): take the first match when it arrives.
+              setPendingEnter(query);
             } else if (e.key === 'Escape') {
               setQuery('');
               setSearching(false);

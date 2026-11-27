@@ -54,6 +54,27 @@ const RUN_LIMIT_MS = 15 * 60_000;
 const MAX_GPU = 12;
 
 export const isSmoke = process.env.AQUILA_SMOKE === '1';
+/**
+ * `AQUILA_HIDDEN=1` (`npm run smoke:hidden` / `perf:hidden`): the run happens with nothing on the screen — every
+ * window fully transparent and click-through, never focused (input goes to the page directly), no Dock icon. The page
+ * still paints (the switches below), so rendering, timing and screenshots are as on screen.
+ */
+export const isHidden = isSmoke && process.env.AQUILA_HIDDEN === '1';
+if (isHidden) {
+  app.on('browser-window-created', (_e, w) => hideWindow(w));
+  void app.whenReady().then(() => app.dock?.hide());
+}
+/** Makes `w` invisible and keeps it from taking focus: `show` / `focus` only reach the page. */
+function hideWindow(w: BrowserWindow): void {
+  // 1 %, not 0: macOS stops drawing a fully transparent window (requestAnimationFrame stalls); 1 % reads as nothing.
+  w.setOpacity(0.01);
+  w.setIgnoreMouseEvents(true);
+  w.show = () => w.showInactive();
+  w.focus = () => {
+    if (!w.isVisible()) w.showInactive();
+    w.webContents.focus();
+  };
+}
 // Keep painting behind other windows (set before app ready, at import): macOS occlusion stops requestAnimationFrame,
 // which the palette and pointer-driven UI rely on — a covered smoke window failed at random steps. Same as perf.
 if (isSmoke) {
@@ -2262,7 +2283,9 @@ async function checkAppGraph(win: BrowserWindow, config: Config, outDir: string)
     }
     const dailyFile = path.join(journal, dailyName);
     const heading = config.language === 'ko' ? '## 세션' : '## Sessions';
-    await wait(500);
+    // The file is made first, the sessions are added after the history scan (seconds when cold): poll.
+    for (let i = 0; i < 100 && !fs.readFileSync(dailyFile, 'utf8').includes(heading); i++) await wait(100);
+    await wait(300);
     const once = fs.readFileSync(dailyFile, 'utf8');
     if (!once.includes(heading))
       return `app graph: the daily note has no "${heading}": ${JSON.stringify(once.slice(0, 200))}`;
@@ -2606,7 +2629,14 @@ async function checkWhatsNew(win: BrowserWindow, config: Config, out: string): P
   const t = translator(config.language);
   const clicked = await paletteRun(win, t('notes.title'));
   if (!clicked) return `palette has no "${t('notes.title')}" action`;
-  await wait(600);
+  // Poll, not a fixed wait: an unfocused (background, AQUILA_HIDDEN) window gets frames later.
+  for (let i = 0; i < 50; i++) {
+    const n: number = await win.webContents.executeJavaScript(
+      `document.querySelector('.c-modal[open]')?.querySelectorAll('.c-modal__item').length ?? 0`,
+    );
+    if (n >= 3) break;
+    await wait(100);
+  }
   const seen: { items: number; groups: number; media: boolean; heading: string } = await win.webContents
     .executeJavaScript(`(() => {
       const m = document.querySelector('.c-modal[open]');

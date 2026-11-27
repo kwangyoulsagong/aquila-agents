@@ -133,7 +133,7 @@ import {
   writeState,
   type SavedTab,
 } from './state';
-import { isSmoke, runSmoke, SMOKE_BUFFER_BYTES, smokeLinks, watchOutput } from './smoke';
+import { isHidden, isSmoke, runSmoke, SMOKE_BUFFER_BYTES, smokeLinks, watchOutput } from './smoke';
 import { openInBrowser } from './browser';
 import { defaultRunCommands, readSavedRuns, RunManager, writeSavedRuns } from './runs';
 import { accountLabel, translator } from '../src/shared/i18n/dictionary';
@@ -206,6 +206,8 @@ function createWindow(): void {
     minWidth: 900,
     minHeight: 560,
     backgroundColor: windowBackground(), // avoids a flash of the wrong color before CSS loads
+    // Background smoke / perf (AQUILA_HIDDEN): never shown or focused; smoke.ts shows it inactive and transparent.
+    ...(isHidden ? { show: false, opacity: 0.01 } : {}),
     ...(isWindows
       ? { titleBarStyle: 'hidden' as const, titleBarOverlay: titleBarOverlay() }
       : { titleBarStyle: 'hiddenInset' as const, trafficLightPosition: { x: 16, y: 14 } }),
@@ -216,6 +218,7 @@ function createWindow(): void {
       sandbox: false,
     },
   });
+  if (isHidden) win.showInactive();
   // Links (terminal URLs, Claude's OSC 8 links): the default browser, never a window of ours (see links.ts).
   const wc = win.webContents;
   const openLink = (url: string) => {
