@@ -27,13 +27,8 @@ export interface ParsedNote {
   frontmatterRefs: FrontmatterRef[];
   /** http(s) links, normalized (lowercase host, no trailing slash or `#`). */
   urls: string[];
-  /** Ticket-like tokens: `DB-12`, `PROJ-104`. */
+  /** Ticket-like tokens, read whole: `DB-12`, `PROJ-104`, `FE-REQ-030` (every prefix segment kept, T79). */
   ids: string[];
-  /**
-   * T79: requirement-like IDs as written, compound prefixes kept (`FE-REQ-030`, `DB-12`; `ids` above sees `REQ-030`
-   * in the first). For the editor's ID awareness; links and groups keep using `ids`.
-   */
-  refIds: string[];
   /** T79: frontmatter `id:` / `status:` when they're short scalars. */
   fmId?: string;
   status?: string;
@@ -50,10 +45,11 @@ const MD_LINK = /\[([^\]\n]*)\]\(\s*<?([^)\s>]+)>?(?:\s+["'(][^)]*["')])?\s*\)/g
 // `#tag` after a space or line start, with at least one non-digit (`#12` is an issue number, not a tag).
 const TAG = /(^|[\s(,])#([\p{L}\p{N}_/-]*[\p{L}_][\p{L}\p{N}_/-]*)/gu;
 const URL_RE = /https?:\/\/[^\s<>()[\]"'`]+/g;
-const ID = /\b[A-Z][A-Z0-9]+-\d+\b/g;
-/** T79: an ID with its whole prefix (`FE-REQ-030`). Same shape as the renderer's `ID_RE` (features/note-ids). */
-const REF_ID = /\b[A-Z][A-Z0-9]+(?:-[A-Z][A-Z0-9]*)*-\d+\b/g;
-const MAX_REF_IDS = 200;
+/**
+ * An ID with its whole prefix (`DB-12`, `FE-REQ-030`; T79 — before, `FE-REQ-030` read as `REQ-030`). Same shape as
+ * the renderer's `ID_RE` (features/note-ids).
+ */
+const ID = /\b[A-Z][A-Z0-9]+(?:-[A-Z][A-Z0-9]*)*-\d+\b/g;
 const IDENT = /[A-Za-z_$][\w$]*(?:\.[A-Za-z0-9]+)?/g;
 /** Prefixes that look like IDs but are versions / standards. */
 const NOT_IDS = new Set([
@@ -239,12 +235,7 @@ export function parseNote(fileName: string, src: string): ParsedNote {
   const fmText = frontmatterRefs.map((r) => r.value).join('\n');
   const noFences = [proseText, inline.join('\n'), fmText].join('\n');
   const ids = new Set<string>();
-  for (const m of noFences.matchAll(ID)) if (!NOT_IDS.has(m[0].split('-')[0])) ids.add(m[0]);
-  const refIds = new Set<string>();
-  for (const m of noFences.matchAll(REF_ID)) {
-    if (refIds.size >= MAX_REF_IDS) break;
-    if (!NOT_IDS.has(m[0].split('-')[0])) refIds.add(m[0]);
-  }
+  for (const m of noFences.matchAll(ID)) if (!NOT_IDS.has(m[0].split('-')[0]!)) ids.add(m[0]);
   const scalar = (key: string): string | undefined => {
     const k = Object.keys(frontmatter).find((x) => x.toLowerCase() === key);
     const v = k ? frontmatter[k] : undefined;
@@ -274,7 +265,6 @@ export function parseNote(fileName: string, src: string): ParsedNote {
     frontmatterRefs,
     urls: [...urls],
     ids: [...ids],
-    refIds: [...refIds],
     ...(fmId ? { fmId } : {}),
     ...(status ? { status } : {}),
     idents: [...idents],

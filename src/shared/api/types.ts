@@ -782,7 +782,7 @@ export interface GraphEdge {
   reasons: GraphEdgeReason[];
 }
 
-/** IDs (`[A-Z][A-Z0-9]+-\d+`) of one prefix seen in 2+ notes: offered as a group ("looks like an ID"). */
+/** IDs (`DB-12`, `FE-REQ-030`: read whole) of one prefix seen in 2+ notes: offered as a group ("looks like an ID"). */
 export interface GraphIdGroup {
   prefix: string;
   /** The IDs seen in 2+ notes, most notes first (≤20). */

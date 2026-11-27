@@ -70,7 +70,7 @@ export function cleanPattern(p: GraphRulePattern): GraphRulePattern | null {
       .trim()
       .toUpperCase()
       .replace(/-(<n>|\d+)?$/i, '');
-    return /^[A-Z][A-Z0-9]+$/.test(prefix) ? { kind: 'id', prefix } : null;
+    return /^[A-Z][A-Z0-9]+(?:-[A-Z][A-Z0-9]*)*$/.test(prefix) ? { kind: 'id', prefix } : null;
   }
   const raw = String(p.host ?? '').trim();
   const host = (/^https?:\/\//i.test(raw) ? hostOf(raw) : raw.toLowerCase().replace(/\/.*$/, '')) ?? '';
@@ -96,24 +96,35 @@ export function patternsOf(edge: Pick<GraphEdge, 'reasons'>): GraphRulePattern[]
   return [...out.values()];
 }
 
-/** The enabled rule a reason falls under, if any. */
+/**
+ * A rule's pattern covers `p`: the same pattern, or (T79) an ID prefix that ends in the rule's prefix at a segment
+ * boundary. IDs used to be read without their leading segments (`FE-REQ-030` as `REQ-030`), so a rule learned
+ * then (`REQ`) keeps covering `FE-REQ-<n>` and `SRV-REQ-<n>` now that IDs are read whole.
+ */
+export function covers(rule: GraphRulePattern, p: GraphRulePattern): boolean {
+  if (rule.kind !== p.kind) return false;
+  if (rule.kind === 'url' || p.kind === 'url') return patternKey(rule) === patternKey(p);
+  return p.prefix === rule.prefix || p.prefix.endsWith(`-${rule.prefix}`);
+}
+
+/** The enabled rule a reason falls under, if any (its own pattern first, then one that covers it). */
 export function ruleFor(r: GraphEdgeReason, rules: readonly GraphRule[]): GraphRule | undefined {
   const p = reasonPattern(r);
   if (!p) return undefined;
   const key = patternKey(p);
-  return rules.find((x) => x.enabled && patternKey(x.pattern) === key);
+  const on = rules.filter((x) => x.enabled);
+  return on.find((x) => patternKey(x.pattern) === key) ?? on.find((x) => covers(x.pattern, p));
 }
 
 /** Patterns accepted PROPOSE_AFTER+ times that have no rule and weren't dismissed. */
 export function proposals(data: LinkData): GraphRuleProposal[] {
-  const ruled = new Set(data.rules.map((r) => patternKey(r.pattern)));
   const count = new Map<string, number>();
   for (const a of data.accepted) for (const k of a.patterns) count.set(k, (count.get(k) ?? 0) + 1);
   const out: GraphRuleProposal[] = [];
   for (const [key, accepts] of count) {
-    if (accepts < PROPOSE_AFTER || ruled.has(key) || data.dismissed.includes(key)) continue;
+    if (accepts < PROPOSE_AFTER || data.dismissed.includes(key)) continue;
     const pattern = patternOfKey(key);
-    if (pattern) out.push({ key, pattern, accepts });
+    if (pattern && !data.rules.some((r) => covers(r.pattern, pattern))) out.push({ key, pattern, accepts });
   }
   return out.sort((x, y) => y.accepts - x.accepts || x.key.localeCompare(y.key));
 }

@@ -5,7 +5,7 @@ import type { GraphEdge, GraphNode } from '@/shared/api';
 // is built in: an ID is `PREFIX-<n>` (prefix segments allowed: `FE-REQ-030`), and a prefix counts once the index
 // has seen it defined by a note, or used for 2+ IDs / in 2+ notes.
 
-/** An ID with its whole prefix. Same shape as the index's `REF_ID` (electron/graph/parse.ts). */
+/** An ID with its whole prefix. Same shape as the index's `ID` (electron/graph/parse.ts). */
 export const ID_RE = /\b[A-Z][A-Z0-9]+(?:-[A-Z][A-Z0-9]*)*-\d+\b/g;
 const LEADING_ID = /^([A-Z][A-Z0-9]+(?:-[A-Z][A-Z0-9]*)*-\d+)(?![A-Za-z0-9])/;
 

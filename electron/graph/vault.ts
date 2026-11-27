@@ -407,7 +407,7 @@ export function vars(title: string, now: Date, extra: Record<string, string> = {
     slug: slugify(title),
     date: isoDate(now),
     time: `${pad(now.getHours())}:${pad(now.getMinutes())}`,
-    id: /\b[A-Z][A-Z0-9]+-\d+\b/.exec(title)?.[0] ?? '',
+    id: /\b[A-Z][A-Z0-9]+(?:-[A-Z][A-Z0-9]*)*-\d+\b/.exec(title)?.[0] ?? '', // whole: `FE-REQ-030` (T79)
     ...extra,
   };
 }

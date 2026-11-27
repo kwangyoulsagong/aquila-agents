@@ -201,6 +201,9 @@ class EdgeSet {
   }
 }
 
+/** IDs a note node carries for the editor's ID awareness (T79). */
+const MAX_REF_IDS = 200;
+
 /** Notes in 2..MAX_SHARED notes per key → pairwise mention edges. */
 function shared(edges: EdgeSet, byKey: Map<string, string[]>, via: 'id' | 'url'): void {
   for (const [key, ids] of byKey) {
@@ -241,7 +244,7 @@ export function buildGraph(
       path: n.abs,
       mtime: n.mtime,
       ...(n.note.tags.length ? { tags: n.note.tags } : {}),
-      ...(n.note.refIds?.length ? { refIds: n.note.refIds } : {}),
+      ...(n.note.ids.length ? { refIds: n.note.ids.slice(0, MAX_REF_IDS) } : {}),
       ...(n.note.fmId ? { fmId: n.note.fmId } : {}),
       ...(n.note.status ? { status: n.note.status } : {}),
     });

@@ -100,6 +100,9 @@ describe('templates', () => {
       rel: 'meetings/2026-11-23 DB-12 sync- plan-b.md',
       text: 'date: 2026-11-23 09:05 DB-12 {{nope}}',
     });
+    expect(renderTemplate(t, 'FE-REQ-030 login', NOW).text).toBe(
+      'date: 2026-11-23 09:05 FE-REQ-030 {{nope}}',
+    );
     expect(renderTemplate({ ...t, folder: '', file: '{{slug}}' }, '로그인 Flow', NOW).rel).toBe(
       '로그인-flow.md',
     );

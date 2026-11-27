@@ -79,7 +79,8 @@ export const SAVER_DEBOUNCE_MS = 2000;
 const SAVE_DELAY_MS = 30_000;
 const MAX_FILES = 20_000;
 const MAX_NOTE_BYTES = 1024 * 1024;
-const INDEX_VERSION = 1;
+/** 2: IDs read whole (`FE-REQ-030`, T79) — older caches are parsed again. */
+const INDEX_VERSION = 2;
 
 interface SavedIndex {
   v: number;

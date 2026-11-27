@@ -3,6 +3,7 @@ import type { GraphEdge } from '../../src/shared/api/types';
 import {
   applyRuleOp,
   cleanPattern,
+  covers,
   decide,
   emptyLinks,
   patternsOf,
@@ -41,6 +42,9 @@ describe('patterns', () => {
     expect(cleanPattern({ kind: 'id', prefix: ' db-<n> ' })).toEqual({ kind: 'id', prefix: 'DB' });
     expect(cleanPattern({ kind: 'id', prefix: 'PROJ-12' })).toEqual({ kind: 'id', prefix: 'PROJ' });
     expect(cleanPattern({ kind: 'id', prefix: '1x' })).toBeNull();
+    expect(cleanPattern({ kind: 'id', prefix: 'fe-req-<n>' })).toEqual({ kind: 'id', prefix: 'FE-REQ' });
+    expect(cleanPattern({ kind: 'id', prefix: 'FE-REQ-030' })).toEqual({ kind: 'id', prefix: 'FE-REQ' });
+    expect(cleanPattern({ kind: 'id', prefix: 'FE--REQ' })).toBeNull();
     expect(cleanPattern({ kind: 'url', host: 'https://Linear.app/team/issue/1' })).toEqual({
       kind: 'url',
       host: 'linear.app',
@@ -101,5 +105,45 @@ describe('withLink', () => {
     expect(withLink('see [[spec#Plan|the spec]]', 'Spec')).toBeNull();
     expect(withLink('see [[Spec]]', 'Spec')).toBeNull();
     expect(withLink('see [[Specs]]', 'Spec')).not.toBeNull();
+  });
+});
+
+describe('T79: whole ID prefixes', () => {
+  const rule = (prefix: string, enabled = true) => ({
+    id: prefix,
+    pattern: { kind: 'id' as const, prefix },
+    enabled,
+    createdAt: 0,
+  });
+
+  it('a shared compound ID gives its whole prefix', () => {
+    expect(patternsOf(idEdge('a', 'b', 'FE-REQ-030'))).toEqual([{ kind: 'id', prefix: 'FE-REQ' }]);
+  });
+
+  it('a rule learned when IDs read as REQ-030 still covers FE-REQ-<n> and SRV-REQ-<n>, at segment boundaries', () => {
+    expect(covers({ kind: 'id', prefix: 'REQ' }, { kind: 'id', prefix: 'FE-REQ' })).toBe(true);
+    expect(covers({ kind: 'id', prefix: 'REQ' }, { kind: 'id', prefix: 'REQ' })).toBe(true);
+    expect(covers({ kind: 'id', prefix: 'REQ' }, { kind: 'id', prefix: 'FREQ' })).toBe(false);
+    expect(covers({ kind: 'id', prefix: 'FE-REQ' }, { kind: 'id', prefix: 'REQ' })).toBe(false);
+    expect(covers({ kind: 'url', host: 'a.com' }, { kind: 'url', host: 'a.com' })).toBe(true);
+    const r = { via: 'id' as const, label: 'FE-REQ-030' };
+    expect(ruleFor(r, [rule('REQ')])?.id).toBe('REQ');
+    expect(ruleFor(r, [rule('REQ'), rule('FE-REQ')])?.id).toBe('FE-REQ');
+    expect(ruleFor(r, [rule('REQ', false)])).toBeUndefined();
+    expect(ruleFor({ via: 'id', label: 'FREQ-1' }, [rule('REQ')])).toBeUndefined();
+  });
+
+  it('no proposal for a prefix an older rule already covers', () => {
+    let d: LinkData = { ...emptyLinks(), rules: [rule('REQ')] };
+    for (const [a, b] of [
+      ['a', 'b'],
+      ['a', 'c'],
+      ['b', 'c'],
+    ])
+      d = decide(d, { source: a, target: b, accept: true }, idEdge(a, b, 'FE-REQ-1'), 0);
+    expect(proposals(d)).toEqual([]);
+    expect(proposals({ ...d, rules: [] })).toEqual([
+      { key: 'id:FE-REQ', pattern: { kind: 'id', prefix: 'FE-REQ' }, accepts: 3 },
+    ]);
   });
 });
