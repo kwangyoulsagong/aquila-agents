@@ -8,7 +8,11 @@ import {
   type BriefTargets,
   type RelatedNote,
 } from '@/shared/api';
-import { termIds, type BriefSeed } from './brief';
+import { termIds, type BriefOcr, type BriefSeed } from './brief';
+
+/** Only what main prepares goes over IPC (not the OCR note). */
+const inputOf = (s: BriefInput): BriefInput =>
+  s.name === undefined ? { text: s.text } : { text: s.text, name: s.name };
 
 export type BriefPhase = 'idle' | 'running' | 'done' | 'error';
 
@@ -19,7 +23,8 @@ const PREPARE_DELAY_MS = 250;
  * notes locally; Claude runs only on `run()`, once, cancellable. Nothing is written until `save()`.
  */
 export function useWhatIsThis(projectId: string | null, seed: BriefSeed | undefined) {
-  const [input, setInput] = useState<BriefInput | null>(seed && 'text' in seed ? seed : null);
+  const [input, setInput] = useState<BriefInput | null>(seed && 'text' in seed ? inputOf(seed) : null);
+  const [ocr, setOcr] = useState<BriefOcr | null>((seed && 'text' in seed && seed.ocr) || null);
   const [seedError, setSeedError] = useState<string | null>(seed && 'error' in seed ? seed.error : null);
   const [prepared, setPrepared] = useState<BriefPrepared | null>(null);
   const [related, setRelated] = useState<RelatedNote[]>([]);
@@ -112,18 +117,24 @@ export function useWhatIsThis(projectId: string | null, seed: BriefSeed | undefi
       return;
     }
     setSeedError(null);
-    setInput(s);
+    setOcr(s.ocr ?? null);
+    setInput(inputOf(s));
   }, []);
 
   return {
     input,
-    setText: (text: string) => setInput(text ? { text } : null),
+    setText: (text: string) => {
+      setOcr(null);
+      setInput(text ? { text } : null);
+    },
     setSeed,
     clear: () => {
       setSeedError(null);
+      setOcr(null);
       setInput(null);
     },
     seedError,
+    ocr,
     prepared,
     related,
     model,

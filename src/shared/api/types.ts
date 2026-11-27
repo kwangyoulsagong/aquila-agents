@@ -1802,8 +1802,13 @@ export interface BriefInput {
 }
 
 export type BriefSourceKind = 'text' | 'markdown' | 'email' | 'html' | 'figma';
-/** T81: a PDF's text, read locally (macOS PDFKit), or why not: no text layer (scanned), locked, not readable. */
-export type BriefPdfText = { text: string } | { error: 'empty' | 'locked' | 'unreadable' | 'unsupported' };
+/**
+ * T81: a PDF's text, read locally (macOS PDFKit; a scan without a text layer is OCR'd with macOS Vision), or why not:
+ * nothing found even by OCR, locked, not readable. With `ocr`: `pages` read, `totalPages` when pages were left out.
+ */
+export type BriefPdfText =
+  | { text: string; ocr?: true; pages?: number; totalPages?: number }
+  | { error: 'empty' | 'locked' | 'unreadable' | 'unsupported' };
 export type BriefModel = 'haiku' | 'sonnet';
 
 /** Exactly what goes to Claude, shown before the run. */

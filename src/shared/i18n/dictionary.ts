@@ -990,6 +990,31 @@ const ko = {
   'guide.graph.title': '노트 그래프',
   'guide.graph.body':
     '앱에 넣은 프로젝트 폴더의 Markdown이 설정 없이 그래프에 들어와요. 레포마다 노트를 어디에 두든 다 찾아요(숨김·빌드 폴더만 빼요). 맨 위에서 프로젝트를 고르고(기본은 지금 탭의 프로젝트), "이번 주"는 최근 7일에 바뀐 노트·세션·파일을 날짜별 목록으로 보여주고(체크아웃처럼 한꺼번에 바뀐 건 한 줄로 접혀요), "지금 탭"을 누르면 앞에 있는 탭의 작업만 남아요. "전체 지도"는 폴더·종류별 묶음 원으로 시작해요. 원 크기는 노트 수, 선 굵기는 묶음 사이 연결 수, 아래 숫자는 이번 주에 바뀐 노트예요. 원을 누르면 하위 폴더로 내려가고 작아지면 점으로 펼쳐져요. ⌘클릭으로 여러 개를 골라 "같이 보기"를 누르면 이름이 같은 폴더끼리 합쳐 보여요(두 레포의 requirements → 한 묶음). "묶음 편집"으로 path:specs 같은 검색식 묶음도 만들어요. "주변"에서는 에디터에서 연 노트가 가운데에 오고 왼쪽에 연결된 노트, 오른쪽에 세션·할 일·바뀐 파일이 놓여요. 실선은 직접 적은 링크, 파선은 본문에서 찾은 연결, 점선은 제안이에요. ⌘클릭이나 ⌘O로 노트를 에디터에서 열고, [[ 를 치면 노트 이름이 나와요. ⤢로 창 전체에 띄워요.',
+  'guide.group.notes': '노트 편집기',
+  'guide.key.blockMove': '블록 위·아래로 옮기기',
+  'guide.key.slash': '블록 메뉴 (빈 줄에서)',
+  'guide.key.reading': '읽기 모드',
+  'guide.blocks.title': '블록 편집',
+  'guide.blocks.body':
+    '노트의 문단·목록·제목이 블록이에요. 줄에 마우스를 올리면 왼쪽에 ⋮⋮ 손잡이가 떠요. 끌어서 옮기고, 누르면 바꾸기·복제·삭제·Markdown으로 복사 메뉴가 나와요. ⌥⇧↑/↓는 커서가 있는 블록을 옮기고, 빈 줄에서 / 를 치면 제목·할 일·표 같은 블록을 골라 넣어요(한국어로도 찾아요: /할). 번호 목록은 옮기면 번호가 다시 매겨지고, 파일은 그대로 Markdown이에요.',
+  'guide.properties.title': '속성 · 표 보기',
+  'guide.properties.body':
+    '노트 맨 위의 frontmatter(status, owner, 날짜…)가 속성 줄로 보여요. 그 자리에서 고치거나 더하고 빼면 그 줄만 바뀌어요. ⌘K → "표 보기"는 노트를 표로 모아 열을 고르고, 정렬·필터(글자, 폴더, 속성, 상태 칩)·묶기를 해요. 칸을 더블클릭하면 바로 고쳐요(그 사이 파일이 바뀌었으면 거절해요).',
+  'guide.noteIds.title': '요구사항 ID',
+  'guide.noteIds.body':
+    'FE-REQ-030 같은 ID에 밑줄이 생겨요. 정의됨, 중복, 모르는 ID가 다르게 보여요. 올리면 정의한 노트·상태·참조된 노트·세션·파일 수가 카드로 뜨고, ⌘클릭하면 그 노트가 열려요. 정의한 노트 옆 칸의 "참조된 곳"에 그 ID를 쓴 노트가 모이고, 링크 없이 이름만 적힌 곳은 "링크로 바꾸기"로 [[이름]]을 걸어요(확인 후).',
+  'guide.noteReview.title': '에이전트가 바꾼 노트 보기',
+  'guide.noteReview.body':
+    '마지막으로 본 뒤 Claude나 다른 앱이 노트를 고치면 위에 "Claude가 이 노트를 바꿨어요 · +12 −3" 줄이 떠요(다른 앱이면 "밖에서 바뀌었어요"). "변경 보기"로 diff를 보고, 부분마다 "되돌리기"(확인 후) 하거나 "봤어요"로 닫아요. 본 내용은 ~/.aquila에만 저장돼요.',
+  'guide.whatIsThis.title': '이게 뭐야?',
+  'guide.whatIsThis.body':
+    '받은 기획 문서, 메일, HTML, PDF, Figma 링크를 끌어다 놓거나 붙여 넣으면 무엇에 관한 건지 정리해 줘요: 제품, 기능, 의도, 요점, 열린 질문. 보내기 전에 보낼 내용(최대 2만 자)과 계정을 그대로 보여 주고, 누를 때만 Claude를 한 번 불러요. 관련 노트는 내 컴퓨터에서 찾고, "노트로 저장"하면 type: brief 노트가 돼요. 스캔한 PDF는 Mac에서 OCR로 읽어요. ⌘K, 그래프·에디터 머리의 버튼, 또는 끌어다 놓기로 열어요.',
+  'guide.reading.title': '문서 모양 · 읽기 모드',
+  'guide.reading.body':
+    '에디터는 노트를 문서처럼 보여 줘요: 가운데 단, 제목과 폴더·수정일, 콜아웃·코드·표 카드, 체크박스, [[링크]] 알약. 읽기 모드(⌘E)는 Markdown 기호를 모두 숨기고 편집을 잠가요. 링크와 체크박스는 그대로 눌러져요. 한 번 더 누르면 편집으로 돌아와요.',
+  'guide.explorer.title': '노트 탐색기',
+  'guide.explorer.body':
+    '에디터 왼쪽 "파일 목록" 칸(머리의 ▤, 또는 ⌘⇧O)에서 지금 탭 프로젝트의 노트를 폴더 트리로 봐요. 새 노트(형제 ID 다음 번호를 제안: FE-REQ-031), 새 폴더, 이름 바꾸기(F2), 끌어서 옮기기, 고정, Finder에서 보기, 휴지통(항상 물어봐요)을 해요. 이름을 바꾸거나 옮기면 그 노트로 가는 링크를 고칠지 물어보고, 링크 부분만 바꿔요. ⌘Z로 되돌려요. 위 필터는 경로·제목·ID로 찾아요.',
   'guide.preview.title': '미리보기 + 요소 선택',
   'guide.preview.body':
     '실행 중인 앱을 오른쪽에서 봐요. 주소는 .claude/launch.json과 터미널에 나온 localhost 주소에서 찾아요. 390·768·1440 너비로 바꿔 보고, 요소 선택으로 클릭하면 선택자·텍스트·스타일·컴포넌트 이름과 스크린샷이 선택한 Claude·Codex 탭에 붙어요(답을 기다리는 탭이면 클립보드로). ↗는 Chrome(없으면 기본 브라우저)으로 열고, ⛶는 프리뷰만 크게 보여 줘요. Figma를 켠 프로젝트는 디자이너 보기로 앱과 Figma를 함께 봐요(디자이너 비교 항목).',
@@ -1319,7 +1344,7 @@ const ko = {
   'brief.clearFile': '지우기',
   'brief.unsupported': '{name}: 아직 읽을 수 없는 형식이에요. 내용을 복사해 붙여넣어 주세요',
   'brief.tooBig': '{name}: 파일이 너무 커요 (텍스트 5MB, PDF 20MB까지)',
-  'brief.pdf.empty': '{name}: 글자가 없는 PDF예요 (스캔한 문서). 내용을 복사해 붙여넣어 주세요',
+  'brief.pdf.empty': '{name}: PDF에서 글자를 찾지 못했어요 (OCR로도). 내용을 복사해 붙여넣어 주세요',
   'brief.pdf.locked': '{name}: 암호가 걸린 PDF예요. 열어서 내용을 복사해 붙여넣어 주세요',
   'brief.pdf.unreadable': '{name}: PDF를 읽지 못했어요. 내용을 복사해 붙여넣어 주세요',
   'brief.pdf.unsupported': '{name}: 이 컴퓨터에서는 PDF를 읽을 수 없어요. 내용을 복사해 붙여넣어 주세요',
@@ -1329,6 +1354,8 @@ const ko = {
   'brief.kind.html': 'HTML',
   'brief.kind.figma': 'Figma 링크',
   'brief.chars': '{n}자',
+  'brief.ocr': 'OCR로 읽음',
+  'brief.ocrCut': '스캔한 PDF라 앞 {n}쪽만 OCR로 읽었어요 (전체 {total}쪽)',
   'brief.cut': '앞 {n}자만 보내요 (전체 {total}자)',
   'brief.headers': '메일 헤더는 제목·보낸 사람·날짜만 남겼어요',
   'brief.figmaOn': 'Figma 연결됨: Claude가 이 파일을 Figma에서 읽어요 (읽기만)',
@@ -2371,6 +2398,31 @@ const en = {
   'guide.graph.title': 'Notes graph',
   'guide.graph.body':
     "Markdown in your projects' folders joins the graph with no setup, wherever each repo keeps it (hidden and build folders are skipped). Pick the project at the top (the current tab's by default). This week lists the notes, sessions and files changed in the last 7 days by day (a checkout's worth of changes folds into one row); This tab keeps only the front tab's work. The Map starts as groups by folder and kind: bubble size is notes, line width is links between groups, the number under it is notes changed this week. Click a bubble to go into its sub-folders; small enough, it opens into dots. ⌘-click several and See together merges folders of the same name (two repos' requirements → one group). Edit groups makes your own from a query like path:specs. In Around, the note open in the editor sits in the middle with linked notes on the left and sessions, to-dos and changed files on the right. Solid lines are links you wrote, dashed ones were found in the text, dotted ones are suggestions. ⌘-click or ⌘O opens a note in the editor; type [[ for note names. ⤢ fills the window.",
+  'guide.group.notes': 'Note editor',
+  'guide.key.blockMove': 'Move a block up / down',
+  'guide.key.slash': 'Block menu (on an empty line)',
+  'guide.key.reading': 'Reading mode',
+  'guide.blocks.title': 'Block editing',
+  'guide.blocks.body':
+    "A note's paragraphs, lists and headings are blocks. Hover a line and a ⋮⋮ handle shows on its left: drag it to move the block, click it for Turn into, Duplicate, Delete and Copy as Markdown. ⌥⇧↑/↓ moves the block at the cursor; / on an empty line inserts a heading, to-do, table and more (Korean names work too). Numbered lists renumber as items move, and the file stays plain Markdown.",
+  'guide.properties.title': 'Properties · Table view',
+  'guide.properties.body':
+    "A note's frontmatter (status, owner, dates…) shows as property rows at the top. Edit, add or remove one there and only that line changes. ⌘K → Table view lists notes as rows: pick columns, sort, filter (text, folder, property, status chips) and group. Double-click a cell to edit it (refused if the file changed meanwhile).",
+  'guide.noteIds.title': 'Requirement IDs',
+  'guide.noteIds.body':
+    'IDs like FE-REQ-030 get an underline: defined, duplicate and unknown IDs look different. Hover one for a card with the note that defines it, its status and how many notes, sessions and files refer to it; ⌘-click opens that note. Beside the defining note, Referenced in lists the notes using the ID, and Link turns a plain mention of its name into [[name]] (after you confirm).',
+  'guide.noteReview.title': 'Review agent changes to a note',
+  'guide.noteReview.body':
+    'When Claude or another app changes a note after you last saw it, a "Claude changed this note · +12 −3" bar shows on top ("Changed outside" for another app). Review shows the diff; Revert hunk (after you confirm) or Mark as seen. What you saw is kept in ~/.aquila only.',
+  'guide.whatIsThis.title': 'What is this?',
+  'guide.whatIsThis.body':
+    "Drop or paste a spec, email, HTML page, PDF or Figma link you were sent and get what it's about: product, feature, intent, key points, open questions. Before sending you see exactly what goes (up to 20k characters) and to which account; Claude runs once, only when you click. Related notes are found on your Mac, and Save as note writes a type: brief note. Scanned PDFs are read with OCR on your Mac. Open it from ⌘K, the button in the graph and editor heads, or by dropping a file.",
+  'guide.reading.title': 'Document look · Reading mode',
+  'guide.reading.body':
+    'The editor shows a note like a document: a centred column, the title with its folder and edit date, callout, code and table cards, checkboxes and [[link]] pills. Reading mode (⌘E) hides all Markdown and locks editing; links and checkboxes still work. Press it again to edit.',
+  'guide.explorer.title': 'Note explorer',
+  'guide.explorer.body':
+    "The Files column left of the editor (▤ in its head, or ⌘⇧O) shows the current tab's project notes as a folder tree. New note (suggests the next ID after its siblings: FE-REQ-031), New folder, Rename (F2), drag to move, Pin, Reveal in Finder, Move to Trash (always asks). After a rename or move it asks to fix the links to that note and changes only the links. ⌘Z undoes. The filter on top finds by path, title or ID.",
   'guide.preview.title': 'Preview + select element',
   'guide.preview.body':
     'See the running app on the right. The address comes from .claude/launch.json and the localhost addresses your terminals print. Switch between 390, 768 and 1440 wide; Select element and click: its selector, text, style, component name and a screenshot are pasted into the focused Claude or Codex tab (copied instead when that tab is waiting for an answer). ↗ opens the page in Chrome (else your default browser); ⛶ shows only the preview. With Figma on, Designer shows the app and Figma together (see Designer compare).',
@@ -2704,7 +2756,7 @@ const en = {
   'brief.clearFile': 'Clear',
   'brief.unsupported': "{name}: can't read this format yet. Copy the text and paste it",
   'brief.tooBig': '{name}: file is too big (text up to 5 MB, PDF up to 20 MB)',
-  'brief.pdf.empty': '{name}: this PDF has no text (a scan). Copy the text and paste it',
+  'brief.pdf.empty': '{name}: no text found in this PDF (even with OCR). Copy the text and paste it',
   'brief.pdf.locked': '{name}: this PDF is locked. Open it, copy the text and paste it',
   'brief.pdf.unreadable': "{name}: couldn't read this PDF. Copy the text and paste it",
   'brief.pdf.unsupported': "{name}: PDFs can't be read on this computer. Copy the text and paste it",
@@ -2714,6 +2766,8 @@ const en = {
   'brief.kind.html': 'HTML',
   'brief.kind.figma': 'Figma link',
   'brief.chars': '{n} chars',
+  'brief.ocr': 'Read with OCR',
+  'brief.ocrCut': 'Scanned PDF: only the first {n} pages were read with OCR (of {total})',
   'brief.cut': 'Only the first {n} chars are sent (of {total})',
   'brief.headers': 'Email headers removed except Subject, From and Date',
   'brief.figmaOn': 'Figma connected: Claude reads this file from Figma (read only)',

@@ -177,7 +177,13 @@ export default function WhatIsThisDialog({ projectId, seed, onClose, onOpenNote 
             <BriefMeta label={prepared.label || undefined}>
               <span>{t(`brief.kind.${prepared.kind}`)}</span>
               <span>{t('brief.chars', { n: formatCount(prepared.chars) })}</span>
+              {b.ocr && <span>{t('brief.ocr')}</span>}
             </BriefMeta>
+            {b.ocr?.totalPages ? (
+              <BriefNotice>
+                {t('brief.ocrCut', { n: String(b.ocr.pages), total: String(b.ocr.totalPages) })}
+              </BriefNotice>
+            ) : null}
             {prepared.cut && (
               <BriefNotice>
                 {t('brief.cut', {

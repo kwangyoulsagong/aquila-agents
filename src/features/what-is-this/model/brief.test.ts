@@ -1,7 +1,12 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { translator } from '@/shared/i18n';
 import type { BriefFields, RelatedNote } from '@/shared/api';
-import { checkFile, defaultTitle, isEmpty, MAX_FILE_BYTES, MAX_PDF_BYTES, termIds, whyLabel } from './brief';
+
+const mocks = vi.hoisted(() => ({ briefPdfText: vi.fn() }));
+vi.mock('@/shared/api', () => ({ api: mocks }));
+
+const { checkFile, defaultTitle, isEmpty, MAX_FILE_BYTES, MAX_PDF_BYTES, readFile, termIds, whyLabel } =
+  await import('./brief');
 
 const fields = (over: Partial<BriefFields> = {}): BriefFields => ({
   product: '',
@@ -65,5 +70,28 @@ describe('card helpers', () => {
   it('an empty card', () => {
     expect(isEmpty(fields())).toBe(true);
     expect(isEmpty(fields({ terms: ['x'] }))).toBe(false);
+  });
+});
+
+describe('readFile (PDF)', () => {
+  const t = translator('en');
+  const pdf = () => new File([new Uint8Array([37, 80, 68, 70, 45])], 'scan.pdf', { type: 'application/pdf' });
+
+  it('a text PDF has no OCR note; a scanned one carries the pages read', async () => {
+    mocks.briefPdfText.mockResolvedValueOnce({ text: 'spec' });
+    expect(await readFile(pdf(), t)).toEqual({ name: 'scan.pdf', text: 'spec' });
+    mocks.briefPdfText.mockResolvedValueOnce({ text: 'HELLO', ocr: true, pages: 30, totalPages: 45 });
+    expect(await readFile(pdf(), t)).toEqual({
+      name: 'scan.pdf',
+      text: 'HELLO',
+      ocr: { pages: 30, totalPages: 45 },
+    });
+    mocks.briefPdfText.mockResolvedValueOnce({ text: 'HELLO', ocr: true, pages: 1 });
+    expect(await readFile(pdf(), t)).toEqual({ name: 'scan.pdf', text: 'HELLO', ocr: { pages: 1 } });
+  });
+
+  it('nothing found even by OCR is said so', async () => {
+    mocks.briefPdfText.mockResolvedValueOnce({ error: 'empty' });
+    expect(await readFile(pdf(), t)).toEqual({ error: t('brief.pdf.empty', { name: 'scan.pdf' }) });
   });
 });

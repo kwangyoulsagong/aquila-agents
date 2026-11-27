@@ -19,8 +19,14 @@ export function checkFile(name: string, type: string, size: number): FileCheck {
   return { ok: true, pdf };
 }
 
-/** What was dropped / picked: an input to prepare, or why it can't be one. */
-export type BriefSeed = BriefInput | { error: string };
+/** A scanned PDF read with OCR: pages read, and the page count when some were left out. */
+export interface BriefOcr {
+  pages: number;
+  totalPages?: number;
+}
+
+/** What was dropped / picked: an input to prepare (`ocr` when a scan was OCR'd), or why it can't be one. */
+export type BriefSeed = (BriefInput & { ocr?: BriefOcr }) | { error: string };
 
 export async function readFile(file: File, t: Translate): Promise<BriefSeed> {
   const check = checkFile(file.name, file.type, file.size);
@@ -30,9 +36,10 @@ export async function readFile(file: File, t: Translate): Promise<BriefSeed> {
     };
   if (!check.pdf) return { name: file.name, text: await file.text() };
   const r = await api.briefPdfText(new Uint8Array(await file.arrayBuffer()));
-  return 'text' in r
-    ? { name: file.name, text: r.text }
-    : { error: t(`brief.pdf.${r.error}`, { name: file.name }) };
+  if (!('text' in r)) return { error: t(`brief.pdf.${r.error}`, { name: file.name }) };
+  if (!r.ocr) return { name: file.name, text: r.text };
+  const ocr: BriefOcr = { pages: r.pages ?? 0, ...(r.totalPages ? { totalPages: r.totalPages } : {}) };
+  return { name: file.name, text: r.text, ocr };
 }
 
 /** A drop: the first file, else dropped text (a link dragged from a browser, a selection). */
