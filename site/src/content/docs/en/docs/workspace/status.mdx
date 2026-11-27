@@ -1,0 +1,135 @@
+---
+title: Status and attention
+description: Read the status dots, jump to the session that needs you, and choose how Aquila gets your attention.
+sidebar:
+  order: 3
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+import Shot from '~/components/docs/Shot.astro';
+
+With many agents running, the question is always *who needs me now?* Aquila answers it with a status dot on every
+session, a jump key, a review list, notifications and a Dock badge.
+
+## Status dots
+
+Every tab, pane head and palette entry has a dot for its session. Each project row shows a dot per session, plus one
+for the project as a whole.
+
+| Dot | Status | Meaning |
+|---|---|---|
+| <span class="sdot" data-s="working"></span> | **Working** (blue, pulsing) | The agent is busy. |
+| <span class="sdot" data-s="waiting"></span> | **Needs input** (orange, with a halo) | It's waiting for you: a permission prompt or a question. |
+| <span class="sdot" data-s="error"></span> | **Error** (red, `!`) | Something failed. Hover the dot for the reason. |
+| <span class="sdot" data-s="done"></span> | **Done** (green, check) | It finished its turn. |
+| <span class="sdot" data-s="estimated"></span> | **Estimated done** (faded green) | Probably done: the output went quiet. A guess, not a report. |
+| a hollow ring | **Stopped** | You interrupted it (<kbd>Esc</kbd>, <kbd>⌃C</kbd>) or the program exited normally. |
+| <span class="sdot"></span> | **Idle** (grey) | Nothing going on. |
+
+A green dot turns grey once you've seen the session, so green always means *finished and not looked at yet*.
+
+The **project dot** shows its most urgent session, in this order: needs input, error, working, done, stopped, idle.
+
+<Shot id="status" caption="Status on tabs and project rows: orange waits for you, blue works, green is done." />
+
+<Aside type="tip">
+  Status has a shape as well as a colour, so you can tell the dots apart without telling colours apart: a halo, a
+  `!`, a check, a ring. When motion is off (Reduce motion, or [battery saver](/en/docs/workspace/restore-and-power/#battery-saver)),
+  working shows as a half-filled disc instead of pulsing.
+</Aside>
+
+### Where the status comes from
+
+- **Claude Code** (2.1.295 or later) and **Codex** (0.170 or later) report their status to Aquila directly, so the dot
+  is exact.
+- **Older Claude Code** reports through hooks Aquila passes with `--settings`. Also exact.
+- **Older Codex and plain shells** don't report, so Aquila watches the output: more than 3 seconds of output means
+  working, then 3 seconds of quiet means **estimated done**. A program you run in a shell tab can report its own
+  status too.
+
+### Error reasons
+
+Hover a red dot to see why it failed: **Rate limited**, **Log in needed**, **Check plan or billing**,
+**API server problem**, or **Exited with an error**. The error stays until a new turn starts.
+
+### Waiting time and reason
+
+A waiting tab shows how long it has waited (`12m`). A project row shows its longest wait, and under it a line with
+what that session is asking for, like `Bash: npm install`. Click the line to go to the session.
+
+If the request looks destructive (`rm -rf`, `push --force`, `reset --hard`, `DROP TABLE`…), it gets a ⚠ in red:
+**Possibly destructive command**. It's a hint to read carefully, not a guard. The CLI's own prompt still decides.
+
+## Go to the next waiting session
+
+Press <kbd>⌘J</kbd> (or <kbd>⌘K</kbd> → **Go to next waiting session**). Aquila switches to the session that needs you,
+in any project, and focuses it.
+
+Press it again to go through the rest. The order is:
+
+1. sessions that **need input**, then
+2. sessions with an **error**, then
+3. sessions that are **done** and unseen,
+
+and within each, the longest wait first.
+
+## To review
+
+When a session finishes while you're looking elsewhere, it joins **To review** in the sidebar, oldest first, with its
+project, the number of changed files and the branch.
+
+<Shot id="review" caption="To review: finished sessions you haven't looked at yet." />
+
+- Click an entry to open its tab. It leaves the list.
+- It also leaves on its own if the session starts working again, asks a question or fails.
+- <kbd>⌘K</kbd> → **Go to next to review** steps through the list.
+
+To read what the agent changed, open the [changes panel](/en/docs/agents/changes-panel/) with <kbd>⇧⌘G</kbd>.
+
+## Notifications and the Dock badge
+
+Aquila sends a macOS notification when a session **needs input** or hits an **error** while you aren't looking at it:
+the window isn't focused, or the session isn't the active tab or in a visible pane. Sessions you're watching never
+notify.
+
+- The title is the project (and the worktree branch); the body says the agent and what it needs, for example
+  `Claude · Needs input — Bash: npm install`.
+- Click it to bring the window up on that exact session.
+- If you still haven't answered after 10 minutes, you get one reminder: **Still waiting after 10 min**.
+- When you look at the session, its notification is removed from Notification Center.
+
+The **Dock badge** shows how many sessions are waiting for input. It's empty at zero.
+
+### Notify when done
+
+**Done** is a quiet dot by default. To be notified when a session finishes too, click **⚙ Settings** at the bottom
+left and turn on **Notify when done**.
+
+<Aside type="note">
+  If no notifications appear, check that notifications are allowed for Aquila Agents in macOS
+  **System Settings → Notifications**.
+</Aside>
+
+## Bring Aquila up from any app
+
+A **global shortcut** works while you're in another app: press it and Aquila comes to the front on the session that
+has waited longest. It's off until you choose a key.
+
+<Steps>
+
+1. Click **⚙ Settings → Global shortcut…** (or <kbd>⌘K</kbd> → **Global shortcut…**).
+
+2. Click the field and press a key combo. It must include <kbd>⌘</kbd>, <kbd>⌃</kbd> or <kbd>⌥</kbd>, and can't be
+   one Aquila already uses in the window.
+
+3. Click **Save**.
+
+</Steps>
+
+If another app or macOS already holds that key, you're told so and your previous key stays. **Turn off** removes it.
+
+What it does when you press it:
+
+- **From another app:** shows Aquila on the session at the head of the queue (the same order as <kbd>⌘J</kbd>).
+- **From Aquila:** goes to the next one, like <kbd>⌘J</kbd>.
+- **Nothing waiting:** just shows the window.

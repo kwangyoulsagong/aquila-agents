@@ -1,0 +1,355 @@
+---
+/**
+ * The intro film: the app's own capture loops played back to back as chapters, with captions and
+ * a progress bar per chapter. Localised for free (ko/en captures), sharp at any DPI, no encoding step.
+ */
+import { ui, type Lang } from '../i18n/ui';
+import { media } from '../lib/media';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = ui[lang].film;
+const chapters = t.chapters.map((c) => ({ ...c, ...media(c.id, lang) }));
+---
+
+<section class="section film" id="tour" aria-labelledby="film-title">
+  <div class="container">
+    <div class="head-center" data-reveal>
+      <span class="eyebrow">{t.eyebrow}</span>
+      <h2 id="film-title" class="h2 grad">{t.title}</h2>
+      <p class="lead">{t.sub}</p>
+    </div>
+
+    <div class="film__player" data-film data-reveal style="--i:1">
+      <div class="film__screen frame">
+        {
+          chapters.map((c, i) => (
+            <video
+              class:list={['film__video', { 'is-active': i === 0 }]}
+              src={c.src}
+              poster={c.poster}
+              muted
+              playsinline
+              preload={i === 0 ? 'metadata' : 'none'}
+              aria-label={c.title}
+              data-chapter-video={i}
+            />
+          ))
+        }
+        <div class="film__caption" aria-live="polite">
+          <span class="film__count" data-film-count>01 / {String(chapters.length).padStart(2, '0')}</span>
+          <span data-film-caption>{chapters[0].caption}</span>
+        </div>
+        <button class="film__toggle" type="button" data-film-toggle data-play={t.play} data-pause={t.pause}>
+          <svg class="film__icon-pause" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
+            ><rect x="6" y="5" width="4" height="14" rx="1"></rect><rect x="14" y="5" width="4" height="14" rx="1"
+            ></rect></svg
+          >
+          <svg class="film__icon-play" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
+            ><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5Z"></path></svg
+          >
+          <span class="sr-only" data-film-label>{t.pause}</span>
+        </button>
+      </div>
+
+      <ol class="film__chapters" role="tablist" aria-label={t.eyebrow}>
+        {
+          chapters.map((c, i) => (
+            <li>
+              <button
+                type="button"
+                role="tab"
+                class="film__chapter"
+                aria-selected={i === 0 ? 'true' : 'false'}
+                data-chapter={i}
+                data-caption={c.caption}
+              >
+                <span class="film__bar">
+                  <i />
+                </span>
+                <span class="film__num">{String(i + 1).padStart(2, '0')}</span>
+                <span class="film__name">{c.title}</span>
+              </button>
+            </li>
+          ))
+        }
+      </ol>
+    </div>
+  </div>
+</section>
+
+<style>
+  .film__player {
+    margin-top: clamp(2.5rem, 2rem + 2vw, 4rem);
+  }
+  .film__screen {
+    aspect-ratio: 16 / 10;
+    border-radius: var(--site-radius-xl);
+    box-shadow:
+      0 1px 0 0 color-mix(in oklab, white 6%, transparent) inset,
+      0 3rem 6rem -2rem rgb(0 0 0 / 0.7),
+      0 0 10rem -3rem var(--site-glow);
+  }
+  .film__video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top left;
+    opacity: 0;
+    transform: scale(1.02);
+    transition:
+      opacity 0.6s var(--site-ease-out),
+      transform 1.2s var(--site-ease-out);
+  }
+  .film__video.is-active {
+    opacity: 1;
+    transform: none;
+  }
+  .film__caption {
+    position: absolute;
+    left: 50%;
+    bottom: clamp(0.75rem, 2vw, 1.5rem);
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    max-width: calc(100% - 6rem);
+    padding: 0.625rem 1rem;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--color-bg-canvas) 78%, transparent);
+    border: 1px solid var(--site-line);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    font-size: clamp(0.8125rem, 0.75rem + 0.3vw, 1rem);
+    font-weight: 500;
+    white-space: nowrap;
+    box-shadow: 0 1rem 2rem -1rem rgb(0 0 0 / 0.6);
+  }
+  .film__caption span:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .film__count {
+    font-family: var(--font-family-mono);
+    font-size: 0.75rem;
+    color: var(--color-text-tertiary);
+    flex: none;
+  }
+  .film__toggle {
+    position: absolute;
+    right: clamp(0.75rem, 2vw, 1.5rem);
+    bottom: clamp(0.75rem, 2vw, 1.5rem);
+    width: 2.75rem;
+    height: 2.75rem;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    border: 1px solid var(--site-line);
+    background: color-mix(in oklab, var(--color-bg-canvas) 78%, transparent);
+    backdrop-filter: blur(14px);
+    cursor: pointer;
+    transition: transform var(--motion-fast) var(--motion-ease);
+  }
+  .film__toggle:active {
+    transform: scale(var(--motion-press-scale));
+  }
+  .film__toggle svg {
+    width: 1rem;
+    height: 1rem;
+  }
+  .film__icon-play,
+  [data-paused] .film__icon-pause {
+    display: none;
+  }
+  [data-paused] .film__icon-play {
+    display: block;
+  }
+
+  .film__chapters {
+    list-style: none;
+    margin: 1.25rem 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+  .film__chapter {
+    width: 100%;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: 0.5rem;
+    row-gap: 0.625rem;
+    padding: 0 0 0.25rem;
+    border: 0;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+    color: var(--color-text-tertiary);
+    transition: color var(--motion-medium) var(--motion-ease);
+  }
+  .film__chapter:hover,
+  .film__chapter[aria-selected='true'] {
+    color: var(--color-text-primary);
+  }
+  .film__bar {
+    grid-column: 1 / -1;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--color-border-subtle);
+    overflow: hidden;
+  }
+  .film__bar i {
+    display: block;
+    height: 100%;
+    width: 100%;
+    background: var(--color-text-primary);
+    transform-origin: left;
+    transform: scaleX(var(--p, 0));
+  }
+  .film__num {
+    font-family: var(--font-family-mono);
+    font-size: 0.75rem;
+  }
+  .film__name {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 56rem) {
+    .film__chapters {
+      display: flex;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: none;
+      margin-inline: calc(var(--site-gutter) * -1);
+      padding-inline: var(--site-gutter);
+      gap: 1rem;
+    }
+    .film__chapters::-webkit-scrollbar {
+      display: none;
+    }
+    .film__chapters li {
+      flex: 0 0 8.5rem;
+      scroll-snap-align: start;
+    }
+  }
+  @media (max-width: 36rem) {
+    .film__caption {
+      max-width: calc(100% - 5rem);
+      left: 0.75rem;
+      transform: none;
+    }
+    .film__count {
+      display: none;
+    }
+  }
+</style>
+
+<script>
+  const CHAPTER_MS = 6500;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  document.querySelectorAll<HTMLElement>('[data-film]').forEach((root) => {
+    const videos = [...root.querySelectorAll<HTMLVideoElement>('[data-chapter-video]')];
+    const tabs = [...root.querySelectorAll<HTMLButtonElement>('[data-chapter]')];
+    const caption = root.querySelector<HTMLElement>('[data-film-caption]')!;
+    const count = root.querySelector<HTMLElement>('[data-film-count]')!;
+    const toggle = root.querySelector<HTMLButtonElement>('[data-film-toggle]')!;
+    const label = root.querySelector<HTMLElement>('[data-film-label]')!;
+    const total = String(videos.length).padStart(2, '0');
+
+    let index = 0;
+    let elapsed = 0;
+    let last = 0;
+    let raf = 0;
+    let visible = false;
+    let paused = reduce; // reduced motion: stills only, user can still step through chapters
+
+    const bar = (i: number) => tabs[i]?.querySelector<HTMLElement>('.film__bar i');
+
+    function show(i: number) {
+      index = (i + videos.length) % videos.length;
+      elapsed = 0;
+      videos.forEach((v, k) => {
+        const on = k === index;
+        v.classList.toggle('is-active', on);
+        if (on) {
+          v.preload = 'auto';
+          v.currentTime = 0;
+          if (!paused && visible) void v.play().catch(() => {});
+        } else {
+          v.pause();
+        }
+      });
+      // Warm the next chapter.
+      const next = videos[(index + 1) % videos.length];
+      if (next.preload === 'none') next.preload = 'metadata';
+      tabs.forEach((tab, k) => {
+        tab.setAttribute('aria-selected', String(k === index));
+        bar(k)?.style.setProperty('--p', k < index ? '1' : '0');
+      });
+      caption.textContent = tabs[index].dataset.caption ?? '';
+      count.textContent = `${String(index + 1).padStart(2, '0')} / ${total}`;
+    }
+
+    function tick(now: number) {
+      const dt = last ? now - last : 0;
+      last = now;
+      if (!paused && visible) {
+        elapsed += dt;
+        bar(index)?.style.setProperty('--p', String(Math.min(1, elapsed / CHAPTER_MS)));
+        if (elapsed >= CHAPTER_MS) show(index + 1);
+      }
+      raf = requestAnimationFrame(tick);
+    }
+
+    function setPaused(p: boolean) {
+      paused = p;
+      root.toggleAttribute('data-paused', p);
+      label.textContent = p ? toggle.dataset.play! : toggle.dataset.pause!;
+      const v = videos[index];
+      if (p) v.pause();
+      else if (visible) void v.play().catch(() => {});
+    }
+
+    tabs.forEach((tab, i) =>
+      tab.addEventListener('click', () => {
+        show(i);
+        if (!reduce) setPaused(false);
+      }),
+    );
+    toggle.addEventListener('click', () => setPaused(!paused));
+    root.addEventListener('keydown', (e) => {
+      if (!(e.target as HTMLElement).closest('[role="tab"]')) return;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+        e.preventDefault();
+        const i = index + (e.key === 'ArrowRight' ? 1 : -1);
+        show(i);
+        tabs[index].focus();
+      }
+    });
+
+    new IntersectionObserver(
+      ([e]) => {
+        visible = e.isIntersecting;
+        last = 0;
+        const v = videos[index];
+        if (visible && !paused) void v.play().catch(() => {});
+        else v.pause();
+      },
+      { threshold: 0.35 },
+    ).observe(root);
+
+    setPaused(paused);
+    show(0);
+    raf = requestAnimationFrame(tick);
+    window.addEventListener('pagehide', () => cancelAnimationFrame(raf));
+  });
+</script>

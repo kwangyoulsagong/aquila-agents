@@ -1,0 +1,16 @@
+---
+interface Props {
+  size?: number;
+}
+const { size = 28 } = Astro.props;
+import { href } from '../lib/links';
+---
+
+<img src={href('/icon.svg')} width={size} height={size} alt="" decoding="async" class="logo" />
+
+<style>
+  .logo {
+    border-radius: 22%;
+    flex: none;
+  }
+</style>

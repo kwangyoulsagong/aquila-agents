@@ -1,0 +1,128 @@
+---
+import { ui, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = ui[lang].principles;
+const icons = [
+  // terminal
+  '<path d="M4 6.5 9 12l-5 5.5M12 18h8"/>',
+  // shield
+  '<path d="M12 3 5 6v5.5c0 4.2 2.9 7.9 7 9.5 4.1-1.6 7-5.3 7-9.5V6l-7-3Z"/><path d="m9 12 2 2 4-4"/>',
+  // laptop
+  '<rect x="4" y="5" width="16" height="11" rx="1.5"/><path d="M2.5 19h19"/>',
+];
+---
+
+<section class="section principles" id="features" aria-labelledby="principles-title">
+  <div class="container principles__grid">
+    <div class="principles__head" data-reveal>
+      <span class="eyebrow">{t.eyebrow}</span>
+      <h2 id="principles-title" class="h2 grad">{t.title}</h2>
+      <p class="lead">{t.sub}</p>
+      <pre class="principles__term" aria-hidden="true"><span class="c">$</span> claude <span class="d">--settings ~/.aquila/claude-hooks.json</span>
+<span class="ok">✓</span> CLAUDE.md · hooks · MCP · /commands
+<span class="ok">✓</span> ~/.claude <span class="d">untouched</span></pre>
+    </div>
+    <ul class="principles__list">
+      {
+        t.items.map((it, i) => (
+          <li class="card spot principles__item" data-reveal data-spot style={`--i:${i + 1}`}>
+            <span class="principles__icon">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+                set:html={icons[i]}
+              />
+            </span>
+            <h3>{it.title}</h3>
+            <p>{it.body}</p>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>
+
+<style>
+  .principles__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+    gap: clamp(2.5rem, 2rem + 4vw, 6rem);
+    align-items: start;
+  }
+  .principles__head {
+    position: sticky;
+    top: calc(var(--site-nav-h) + 3rem);
+  }
+  .principles__term {
+    margin: 2rem 0 0;
+    padding: 1.125rem 1.25rem;
+    border-radius: var(--radius-container);
+    border: 1px solid var(--site-line);
+    background: var(--color-bg-surface);
+    font-family: var(--font-family-mono);
+    font-size: 0.8125rem;
+    line-height: 1.8;
+    color: var(--color-text-primary);
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .principles__term .c {
+    color: var(--color-action-primary);
+  }
+  .principles__term .d {
+    color: var(--color-text-tertiary);
+  }
+  .principles__term .ok {
+    color: var(--color-status-done);
+  }
+  .principles__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 1rem;
+  }
+  .principles__item {
+    padding: clamp(1.5rem, 1.25rem + 1vw, 2.25rem);
+  }
+  .principles__icon {
+    display: grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--site-line);
+    background: var(--color-bg-hover);
+    color: var(--color-action-primary);
+  }
+  .principles__icon svg {
+    width: 1.375rem;
+    height: 1.375rem;
+  }
+  .principles__item h3 {
+    margin: 1.25rem 0 0;
+    font-size: var(--site-text-h3);
+    letter-spacing: -0.02em;
+  }
+  .principles__item p {
+    margin: 0.5rem 0 0;
+    color: var(--color-text-secondary);
+  }
+  @media (max-width: 56rem) {
+    .principles__grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .principles__head {
+      position: static;
+    }
+  }
+</style>

@@ -1,0 +1,96 @@
+---
+title: Changes panel
+description: Review an agent's diff live, comment on lines, and stage or revert what it changed.
+sidebar:
+  order: 3
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+import Shot from '~/components/docs/Shot.astro';
+
+The changes panel shows what the agent changed in the project's git working tree, next to the session doing the
+work. It updates as files are saved, so you can follow along and send feedback without leaving the window.
+
+<Shot id="changes" caption="The live diff, risky files first, with a line comment ready to paste." />
+
+## Open the panel
+
+Press <kbd>⇧⌘G</kbd>, or click **± Changes** in the tab bar. Press it again to close.
+
+The panel follows the **focused tab**: for a tab running in a [worktree](/en/docs/agents/worktrees/), it shows
+that worktree's changes. The bar at the bottom says what you're looking at and when it last refreshed (for example
+"git working tree · updated 5s ago").
+
+## Read the diff
+
+- The top lists the branch, ahead/behind counts and the changed files. Click a file to jump to it; press
+  <kbd>j</kbd> / <kbd>k</kbd> to move between files.
+- **View**: **Unified** or **Side by side**.
+- **Compare with**:
+  - **Working tree** — uncommitted changes against `HEAD` (new, untracked files included).
+  - **Since session start** — everything since the commit the session started on, so work the agent already
+    committed shows too.
+
+The panel refreshes on its own while it's open. **Refresh** forces it.
+
+### Files worth a second look
+
+Some files get a badge and move to the top of the list, with a **n to check** count in the header:
+
+| Badge | Files |
+|---|---|
+| **Migration** | anything in a `migrations/` folder, `*.sql`, `schema.prisma` |
+| **Lockfile** | `package-lock.json`, `pnpm-lock.yaml`, `yarn.lock`, `Cargo.lock`, `go.sum`, … |
+| **env** | `.env`, `.env.*` |
+| **Prompt** | `CLAUDE.md`, `AGENTS.md`, `*.prompt.*`, `prompts/`, `.claude/agents`, `commands` and `skills` |
+| **CI** | `.github/workflows/`, `.gitlab-ci.yml`, `.circleci/` |
+
+## Send line comments to the agent
+
+<Steps>
+
+1. Click a line in the diff. A comment box opens under it.
+
+2. Write what should change and press <kbd>⌘Enter</kbd> to add it. Repeat for as many lines as you like.
+
+3. Click **Paste comments (n)**. Aquila builds one prompt — each comment with its `file:line` and the quoted
+   code — and pastes it into the focused session's input.
+
+4. Read it over and press <kbd>Enter</kbd> in the terminal yourself.
+
+</Steps>
+
+<Aside type="tip">
+  Nothing is ever sent for you: every paste from this panel waits for your Enter. **Commit message** and **PR
+  description** work the same way — they paste a ready-made prompt asking the agent to write one.
+</Aside>
+
+## Stage or revert
+
+Each file and each hunk has its own buttons:
+
+- **Stage** / **Unstage** a whole file.
+- **Revert** a whole file.
+- **Stage** or **Revert** a single hunk.
+
+Every revert asks first, and backs up before touching anything:
+
+- Changes to tracked files are saved to a `git stash` entry first. The panel then says **Backed up to git stash
+  (…)**; find it later with `git stash list`.
+- An untracked file is moved to the macOS **Trash**, not deleted.
+
+<Aside type="caution">
+  Hunk stage and revert are offered for a plain modified file that has nothing staged yet. For new, renamed or
+  partly staged files, use the file-level actions.
+</Aside>
+
+## Copy a summary as Markdown
+
+**Copy Markdown** copies a summary of the changes: the changed files with their status and line counts, the files to
+check first, and your open review comments. Paste it into a PR body or a chat.
+
+## Projects on an SSH host
+
+The panel works for [remote projects](/en/docs/agents/remote-ssh/) too. It refreshes every 10 seconds (and on
+window focus or **Refresh**) and shows the host and round-trip time in the bottom bar. A reverted untracked file
+moves to `~/.aquila/trash` on the host.

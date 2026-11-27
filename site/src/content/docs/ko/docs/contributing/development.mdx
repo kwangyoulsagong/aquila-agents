@@ -1,0 +1,180 @@
+---
+title: 개발 환경
+description: 소스에서 Aquila Agents를 빌드하고 실행하는 법과, 모든 변경이 따르는 규칙이에요.
+sidebar:
+  order: 1
+---
+
+import { Steps, Aside, FileTree } from '@astrojs/starlight/components';
+
+Aquila Agents는 TypeScript로 쓴 Electron 앱이고, 화면은 React로 그려요. 이 페이지는 클론부터 개발 빌드 실행까지,
+그리고 변경을 합치기 전에 거쳐야 할 검사와 규칙을 정리해요.
+
+## 필요한 것
+
+- Mac. 배포 빌드는 macOS(Apple Silicon)만 있고, 스크립트·스모크 테스트·가이드 캡처도 macOS를 전제로 해요.
+- Node.js 22(CI가 쓰는 버전)와 npm.
+- `git`, 그리고 네이티브 모듈 `node-pty`를 빌드할 Xcode 명령행 도구.
+- 진짜 세션을 띄워 보려면(선택): [Claude Code](https://docs.anthropic.com/en/docs/claude-code)나
+  [Codex CLI](https://github.com/openai/codex)를 설치하고 로그인해 두세요.
+
+## 실행하기
+
+<Steps>
+
+1. 레포를 클론해요.
+
+   ```sh
+   git clone https://github.com/kwangyoulsagong/aquila-agents.git
+   cd aquila-agents
+   ```
+
+2. 의존성을 설치해요. `postinstall`이 Electron의 Node 버전에 맞춰 `node-pty`도 다시 빌드해요.
+
+   ```sh
+   npm install
+   ```
+
+3. 화면 코드가 바로 반영되는 개발 모드로 앱을 띄워요.
+
+   ```sh
+   npm run dev
+   ```
+
+</Steps>
+
+<Aside type="caution">
+  `node-pty`는 Electron ABI에 맞춰 빌드하는 네이티브 모듈이에요. Electron 버전을 바꾼 뒤에는 `npm install`을 다시
+  실행해 다시 빌드해요. 예전 빌드가 남아 있으면 첫 터미널을 열 때 실패해요.
+</Aside>
+
+## 스크립트
+
+| 명령 | 하는 일 |
+|---|---|
+| `npm run dev` | Vite + `tsc` 감시 + Electron, 화면 코드 핫 리로드 |
+| `npm run check` | 타입 검사 + 린트(Feature-Sliced Design 경계 포함) + 테스트. **끝내기 전에 꼭 통과해야 해요** |
+| `npm run typecheck` | tsconfig 두 개(화면, Electron)와 스크립트 |
+| `npm run lint` | ESLint |
+| `npm test` | Vitest |
+| `npm run smoke` | 빌드, 실행, 진짜 pty 세션을 열어 왕복 확인, `dist/smoke.png` 스크린샷. 종료 코드 0 또는 1 |
+| `npm run smoke:hidden` | 창을 화면 밖에 둔 채로 같은 스모크 실행 |
+| `npm run capture` | 데모 픽스처로 앱 가이드의 스크린샷·영상(`src/features/guide/media/`)을 한국어·영어로 다시 만들어요(약 3분) |
+| `npm run capture:hidden` | 화면에 아무것도 띄우지 않고 같은 캡처 |
+| `npm run build` | 배포용 빌드 |
+| `npm run dist` | `release/Aquila Agents-<버전>-arm64.dmg`와 `.zip` 패키징(서명 안 됨) |
+
+`npm run smoke`는 시작 점검, 가이드, 여러 기능 패널도 열어서 `dist/smoke.png` 옆에 스크린샷을 남겨요. 화면 작업이라면
+끝났다고 하기 전에 그 스크린샷이나 실행 중인 개발 앱을 직접 봐요.
+
+`npm run capture`는 데모 프로젝트와 정해진 출력만 하는 가짜 `claude`·`codex`가 있는 임시 홈 폴더에서 앱을 띄워요.
+그래서 가이드 영상에 실제 데이터가 들어갈 일이 없어요. 가이드 항목을 새로 만들면 `electron/capture.ts`에 캡처
+시나리오도 더해요.
+
+## 규칙
+
+전체 규칙은 [`AGENTS.md`](https://github.com/kwangyoulsagong/aquila-agents/blob/main/AGENTS.md)에 있어요. 코딩
+에이전트(Claude Code는 `CLAUDE.md`를 거쳐, Codex는 직접)와 사람이 똑같이 따라요. 요약하면:
+
+### 코드
+
+- **어디서나 TypeScript strict.** 이유를 주석으로 적지 않은 `any`는 안 돼요. `.js`·`.jsx` 소스 파일도 안 돼요.
+- **IPC는 `src/shared/api/types.ts`를 거쳐요.** 새 채널은 `IPC`에, 메서드는 `AquilaApi`에 더하고
+  `electron/preload.ts`와 `electron/main.ts`에 구현해요. 화면 코드는 `@/shared/api`의 `api`만 써요.
+- **`src/`는 Feature-Sliced Design:** `app → pages → widgets → features → entities → shared`. 아래 층만 가져오고,
+  다른 슬라이스는 `index.ts`를 통해서만, `@/` 별칭으로 가져와요. ESLint가 검사해요.
+- **단축키는 모두 `src/shared/lib/shortcuts.ts`에.** 키 조합을 문자열로 직접 쓰지 않아요.
+
+### 화면
+
+- **디자인 토큰은 의미 토큰만.** `--color-*`, `--font-*`, `--space-*`, `--radius-*`, `--size-*`, `--motion-*`만 쓰고
+  `--p-*` 원시 토큰이나 hex·px 값은 직접 쓰지 않아요. 새 값은 `design-system/tokens.css`에 원시 토큰과 의미 토큰을
+  더하고 디자인 시스템 문서에 적어요.
+- **모든 것은 4px 격자 위에**, 영역끼리 가장자리를 맞춰요.
+- **컴포넌트는 디자인 시스템에서**(`design-system/react/`). 새 기본 요소는 `components.css`의 `.c-*` 클래스와 React
+  컴포넌트로 만들어요. `design-system/preview.html`에서 모든 토큰과 컴포넌트를 볼 수 있어요.
+- **작은 움직임**은 `--motion-*` 토큰으로, 320ms 이하로, `prefers-reduced-motion`에서는 꺼지게 해요.
+
+### 글
+
+- **화면 문구는 한국어와 영어로.** 모든 문자열은 `src/shared/i18n/dictionary.ts`에 `ko`·`en` 둘 다 넣어요. 하나라도
+  빠지면 타입 검사가 실패해요. 짧고 있는 그대로 써요.
+- **문서도 두 언어로.** `docs/en/`과 `docs/ko/`는 함께 맞춰요. 하나를 바꾸면 다른 하나도 바꿔요.
+- 코드, 주석, 커밋 메시지는 영어로 써요.
+
+### 사용자의 CLI 설정은 건드리지 않아요
+
+Claude 훅은 앱이 띄우는 세션에만 `--settings ~/.aquila/claude-hooks….json`으로 넣어요. 코드는 `~/.claude*`,
+`~/.codex`, 셸 rc 파일에 절대 쓰지 않아요. 예외는 계정 설정에서 사용자가 확인한 `~/.zshrc` 한 줄뿐이에요. 세션 기록은
+읽기만 해요.
+
+## 브랜치와 커밋
+
+- 브랜치 하나에 작업 하나: `task/<id>-<slug>`.
+- [Conventional Commits](https://www.conventionalcommits.org/): `feat(split): …`, `fix(sessions): …`, `chore: …`.
+- 내 작업의 파일 안에서만 고쳐요([`docs/ko/TASKS.md`](https://github.com/kwangyoulsagong/aquila-agents/blob/main/docs/ko/TASKS.md)의
+  담당 파일). 공유 파일(`src/shared/api/types.ts`, `src/shared/i18n/dictionary.ts`, `electron/main.ts`,
+  `electron/preload.ts`, `components.css`, `pages/workspace/*`)은 작게, 더하는 쪽으로만 고쳐요.
+
+### 끝났다는 건
+
+- `npm run check`가 통과해요.
+- `npm run smoke`가 통과하고, 화면 작업이라면 스크린샷이나 실행 중인 앱을 직접 봤어요.
+- `docs/en/TASKS.md`와 `docs/ko/TASKS.md` 둘 다에서 내 작업에 체크하고, 남은 일이 있으면 한 줄로 적었어요.
+
+## 릴리스 노트와 패키징
+
+사용자에게 나가는 버전마다 릴리스 노트가 있고, 앱은 업데이트 뒤 한 번 보여줘요.
+
+<Steps>
+
+1. `package.json`의 `version`을 올려요.
+
+2. 지난 태그 이후의 Conventional Commits로 초안을 만들어요.
+
+   ```sh
+   npm run release-notes -- draft
+   ```
+
+   `release-notes/<버전>.json`이 생겨요.
+
+3. 한국어·영어로 마무리해요. 헤드라인 3–5개(패치 릴리스, 즉 `x.y.z`에서 `z`가 0보다 크면 1–5개), 각각 앱 가이드의
+   한 항목을 가리켜요.
+
+4. 패키징해요.
+
+   ```sh
+   npm run dist
+   ```
+
+   노트가 없거나 덜 됐거나 `TODO`가 남아 있으면 패키징하지 않아요.
+
+5. `release/`의 `.dmg`, `.zip`, `latest-mac.yml`을 `v<버전>` 태그의 GitHub 릴리스에 올려요. 설치된 앱이 알아채고
+   사용자에게 알려요.
+
+</Steps>
+
+아직 서명·공증 전이라, 테스트하는 사람은 [설치](/ko/docs/start/install/)의 첫 실행 단계를 거쳐야 해요.
+
+## 프로젝트 구조
+
+<FileTree>
+
+- electron/ 메인 프로세스: pty, 설정, 훅, 상태, IPC 핸들러, 노트 색인, 스모크
+- src/ React 화면, Feature-Sliced Design
+  - app/ 진입점, 전역 스타일
+  - pages/ workspace (상태와 단축키)
+  - widgets/ 사이드바, 탭, 화면 분할, 패널
+  - features/ 사용자 동작
+  - entities/ 세션, 프로젝트, 노트
+  - shared/ api (타입, IPC 이름, 브리지), i18n, lib
+- design-system/ tokens.css, components.css, react/, preview.html
+- docs/
+  - en/ README, ARCHITECTURE, DESIGN-SYSTEM, TASKS
+  - ko/ 같은 문서의 한국어판
+- release-notes/ 버전마다 JSON 하나, ko + en
+- scripts/ 릴리스 노트, 캡처
+
+</FileTree>
+
+다음: [구조](/ko/docs/contributing/architecture/).

@@ -1,0 +1,144 @@
+---
+title: Notes graph
+description: See how the Markdown in your projects connects to each other and to the work your agents did.
+sidebar:
+  order: 1
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+import Shot from '~/components/docs/Shot.astro';
+
+The notes graph collects the Markdown files in your projects — specs, meeting notes, checklists, READMEs — and shows
+how they link to each other and to the sessions, to-dos and files your agents worked on.
+
+<Shot id="graph" caption="This week, the Map of groups, and Around with the open note in the middle." />
+
+## Open the graph
+
+- Press <kbd>⇧⌘N</kbd>, or click **Graph** in the tab bar. It opens as a panel on the right.
+- Click **⤢** in the panel head to fill the window (**Graph only, full window**). Click it again to go back.
+
+## No setup needed
+
+Every local project in the sidebar is indexed automatically. Aquila finds every `.md` file wherever each repo keeps
+it; you don't need a special folder layout. Hidden folders, build folders and anything in the project's `.gitignore`
+are skipped.
+
+- Indexing runs in the background and only re-reads files that changed.
+- Your files are only read for the index. The graph itself never edits them.
+- Nothing runs until you first open the graph or another notes feature.
+
+### Add folders outside your projects
+
+To include notes that don't live in a project (a meeting-notes folder, a personal wiki), open **⚙ Settings ▸ Note
+sources…** and choose **Add folder…**. The same dialog lets you turn a project folder off (**Turn off**) and shows
+how many notes each source has. **Remove** only takes a folder out of the index; the files stay where they are.
+
+<Aside type="note">
+  On battery saver, the first index of a very large folder pauses until you click **Index now**.
+</Aside>
+
+## Pick a project
+
+The **Project** menu at the top of the panel scopes everything to one project. By default it's **Current project**,
+the project of the tab in front, so the graph follows you as you switch tabs. Pick **All projects** or a specific
+project to look elsewhere.
+
+## This week
+
+**This week** lists what changed in the last 7 days, newest first, grouped by day (Today, Yesterday, then dates):
+notes, sessions and files.
+
+- Many files that changed at once — a checkout or a pull — fold into one row you can open.
+- Hover a row and choose **Around** to put it in the middle of the graph.
+- Turn on **This tab** to keep only the work of the tab in front: its conversation and the notes and files it
+  touched, at any time.
+
+## Map
+
+**Map** gives you the shape of a project as bubbles, one per group of notes — folders, kinds (code, files, sessions)
+and your own groups.
+
+| What you see | What it means |
+|---|---|
+| Bubble size | How many notes are in the group |
+| Line width | How many links run between two groups |
+| Number under a bubble | Notes changed this week |
+
+### Drill down
+
+Click a bubble to go into its sub-folders. Once a group is small enough, it opens into individual dots. Use **Back**
+or the trail above the map to go up again.
+
+### See groups together
+
+Hold <kbd>⌘</kbd> and click several bubbles, then choose **See N together**. Folders with the same name are merged —
+for example, the `requirements` folders of two repos become one group.
+
+### Make your own groups
+
+Choose **Edit groups** to add groups from a name and a query, such as `path:specs`, `tag:auth` or `kind:session`.
+Groups higher in the list win when a note matches more than one.
+
+### Questions
+
+The **Questions** chips light up the dots that answer a question and fade the rest — for example **To-dos**,
+**Unlinked notes**, **Sessions, last 7 days**, **Open sessions**, **Notes the work moved past** (a session worked on the
+note after its last edit) and, for requirement IDs, **IDs with no work** and **Unknown · duplicate IDs**. A chip only
+appears when it has answers.
+
+## Around
+
+**Around** puts one note in the middle and lays out what's connected to it:
+
+- **Left:** linked notes (and tags, people, decisions), with one more step further out.
+- **Right:** sessions, to-dos and changed files, with one more step further out.
+
+With **Follow editor** on, the middle is always the note open in the editor. Turn it off to stay on the current
+note while you edit others.
+
+| Action | How |
+|---|---|
+| Move the middle to another item | Click it |
+| Go back | **Back**, or <kbd>⌫</kbd> |
+| Move between items | Arrow keys |
+| Put the selected item in the middle | <kbd>↩</kbd> |
+| Open in the editor | Double-click, <kbd>⌘</kbd>-click, or <kbd>⌘↩</kbd> |
+
+Each column shows the most relevant few items with a **+N more** for the rest.
+
+### Line styles
+
+| Line | Meaning |
+|---|---|
+| Solid | A link you wrote: a `[[link]]`, a Markdown link, a tag or a frontmatter value |
+| Dashed | Found in the text: a shared ID, a mention of another note's title, a code name or a shared URL |
+| Dotted | A suggestion: the notes share telling words |
+
+### Suggested links
+
+Select a note and open **Suggested links** in the card at the bottom. For each suggestion:
+
+- **Link** keeps it as a solid line in the graph, without touching any file.
+- **Add `[[link]]`** also writes `[[name]]` at the end of the note.
+- **Not related** drops it for good.
+
+Accept the same kind of link three times and Aquila proposes a rule to always link them. Manage rules in
+**⚙ Settings ▸ Link suggestions…**.
+
+## Open a note in the editor
+
+- <kbd>⌘</kbd>-click or double-click a note in the graph.
+- Press <kbd>⌘O</kbd> anywhere and type part of a note's name.
+- Select a note and click **Open** in the card.
+
+See [Note editor](/en/docs/notes/editor/) for what you can do there.
+
+## Link notes as you type
+
+In the editor, type `[[` and a list of note names appears. Pick one and Aquila inserts a link the index resolves.
+
+<Aside type="tip">
+  On a note or a to-do, **Handle with Claude** opens a Claude tab in that note's project with the note pasted as an
+  `@path` reference. Nothing is sent until you press Enter.
+</Aside>

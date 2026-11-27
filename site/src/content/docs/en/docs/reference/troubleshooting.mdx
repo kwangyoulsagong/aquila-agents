@@ -1,0 +1,139 @@
+---
+title: Troubleshooting
+description: Fixes for first-launch blocks, CLIs not found, status dots that don't update, and how to report a problem.
+sidebar:
+  order: 4
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+
+## macOS won't open the app
+
+Builds aren't signed or notarized yet, so the first launch is blocked with an "unidentified developer" message. Do
+one of these once:
+
+- In Finder, **right-click** the app → **Open** → **Open**.
+- Or run this in Terminal:
+
+  ```sh
+  xattr -dr com.apple.quarantine "/Applications/Aquila Agents.app"
+  ```
+
+See [Install](/en/docs/start/install/).
+
+## Claude or Codex isn't found
+
+Aquila runs the CLIs installed on your Mac. The **Setup checklist** shows what it found.
+
+<Steps>
+
+1. Open it from <kbd>⌘K</kbd> → **Setup checklist**.
+
+2. Check the first row. **Shell PATH loaded** means Aquila read the `PATH` your login shell sets up (including what
+   `~/.zshrc`, fnm, nvm and similar add). **Couldn't read your shell's PATH** means it fell back to the system `PATH`.
+
+3. For a CLI marked **Not found**, the row shows an install command — copy it and run it in a terminal. Then click
+   **Check again**: Aquila reads your shell's `PATH` again before checking.
+
+4. If the CLI is installed somewhere unusual, click **Choose…** and pick the executable. It's accepted only if it runs
+   `--version`; Aquila then uses that exact file for new sessions.
+
+</Steps>
+
+<Aside type="note">
+  Aquila finds each tool on `PATH` only, not through shell aliases. If `claude` is an alias in your shell, point
+  **Choose…** at the real file. `git` is needed for the changes panel and worktrees; on a fresh Mac, install Apple's
+  command line tools first (`xcode-select --install`).
+</Aside>
+
+Sessions themselves start in a login, interactive shell in the project folder, so the same `PATH`, version managers
+and aliases you have in Terminal apply inside every tab.
+
+## The CLI asks me to log in
+
+That's expected the first time: Claude asks you to `/login`, Codex asks you to sign in. Log in inside the tab.
+Aquila never sees or stores your tokens.
+
+For the second Claude account, use **Set up** next to the account switch. See
+[Claude accounts](/en/docs/agents/claude-accounts/).
+
+## Status dots don't update
+
+How a session reports its status depends on the CLI and its version:
+
+| Session | How status arrives |
+|---|---|
+| Claude Code 2.1.295 or later | Claude reports it directly, plus Aquila's hooks |
+| Older Claude Code | Aquila's hooks only (an older hook format is used automatically) |
+| Codex 0.170 or later, or anything that reports it in a shell | Reported directly |
+| Older Codex, plain shell commands | Guessed from output: busy for over 3 s → working, then quiet for 3 s → done. The dot is faded |
+| Remote (SSH) sessions | Guessed from output, like above |
+
+If dots stay wrong:
+
+- **Update your CLI.** A recent Claude Code or Codex reports status precisely; older versions fall back to hooks or
+  guessing.
+- **Open the session from Aquila.** Hooks are only added to sessions Aquila starts. Running `claude` by hand inside a
+  shell tab works for status only on versions that report it directly.
+- **A faded dot is a guess.** It means "probably done", based on output going quiet.
+- **Look at the status log.** `~/.aquila/status.log` records each status report and hook event as it arrives. If
+  nothing appears there while Claude works, the hooks aren't reaching Aquila.
+
+Note that **done** turns into a quiet dot once you look at the session, and notifications only fire for sessions
+you're not looking at. **Notify when done** is off by default; turn it on in **⚙ Settings**. See
+[Status](/en/docs/workspace/status/).
+
+<Aside type="tip">
+  No banners at all? Check that Aquila Agents is allowed to send notifications in macOS **System Settings →
+  Notifications**.
+</Aside>
+
+## A session didn't come back after relaunch
+
+Claude and Codex conversations resume when you reopen the app. A Claude tab where you never sent a message has no
+conversation to resume yet, so it starts fresh. If resuming fails, the tab shows the saved output with **Couldn't
+resume the session · previous output · read-only** and drops to a shell in the same folder. Start the CLI again, or
+find the conversation in [Session history](/en/docs/agents/session-history/) (<kbd>⌘Y</kbd>).
+
+## Korean input
+
+Hangul composition is handled in every terminal: a syllable you're composing is shown in place, and Enter, Tab, Esc
+or <kbd>⌃C</kbd> pressed mid-syllable arrive after the syllable instead of being lost. App shortcuts follow the
+physical key, so they work with the Korean input source on. In the note editor, the `/` menu waits until the syllable
+is committed.
+
+If you still see doubled or missing characters, please [report it](#report-an-issue) with the exact keys you typed.
+
+## Settings were reset or projects disappeared
+
+If `~/.aquila/config.json` isn't valid JSON, Aquila shows **Couldn't read config.json: …** and starts with defaults.
+Your file is kept: project edits fail instead of overwriting it. Quit the app, fix the JSON (the error message names
+the problem), and reopen. See [Config](/en/docs/reference/config/).
+
+## A note won't open or is read-only
+
+- Only `.md` files inside an enabled note source open in the editor. Turn the folder on in **⚙ Settings ▸ Note
+  sources…**.
+- Files that aren't valid UTF-8 open read-only, so saving can't change their bytes.
+- Files over 2 MB show only their start, read-only.
+
+## Where the logs are
+
+| File | What's in it |
+|---|---|
+| `~/.aquila/status.log` | Status reports and Claude hook events per session. Rotated at 512 KB (the previous one is `status.log.1`) |
+| `~/.aquila/config.json` | Your projects and settings |
+
+## Report an issue
+
+Open an issue on [GitHub](https://github.com/kwangyoulsagong/aquila-agents/issues) with:
+
+- the Aquila version (**Aquila → About Aquila**) and your macOS version,
+- your CLI versions: `claude --version`, `codex --version`,
+- what you did, what you expected, and what happened — a screenshot helps,
+- for status problems, the relevant lines from `~/.aquila/status.log`.
+
+<Aside type="caution">
+  Logs and screenshots can contain project names, paths and terminal output. Look them over and remove anything
+  private before you post.
+</Aside>

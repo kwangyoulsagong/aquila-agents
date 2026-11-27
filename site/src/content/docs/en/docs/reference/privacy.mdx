@@ -1,0 +1,116 @@
+---
+title: Privacy and what Aquila touches
+description: Which files Aquila reads and writes, what it never changes, and every time it goes on the network.
+sidebar:
+  order: 3
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Aquila is a host for the CLIs you already use. It runs them as they are, keeps its own data in `~/.aquila`, and stays
+out of your CLI setup. This page lists exactly what it touches.
+
+## Your CLI setup is left alone
+
+### Claude Code
+
+Status dots need Claude's hooks. Aquila adds them **only to sessions it starts**, by launching Claude with its own
+settings file:
+
+```sh
+claude --settings ~/.aquila/claude-hooks….json
+```
+
+- Your `~/.claude/settings.json`, your own hooks, `CLAUDE.md`, MCP servers and slash commands are not changed, and
+  they all still apply.
+- The hooks report to a receiver on your own Mac (`127.0.0.1`) and nowhere else.
+- If you have your own Claude status line, Aquila keeps it and simply shows no context gauge for that tab. It only
+  reads your settings to find out.
+- `claude` in your regular Terminal is unaffected.
+
+### Files Aquila never writes
+
+- `~/.claude`, `~/.claude-*` and their contents
+- `~/.codex`
+- Your shell rc files (`~/.zshrc` and friends)
+
+…with two exceptions, both only on your explicit click, for the [second Claude account](/en/docs/agents/claude-accounts/):
+
+1. **Set up** for an account that isn't logged in creates its config folder (only a `~/.claude-*` folder, such as
+   `~/.claude-personal`) and opens a Claude session there. Claude then writes its own login into it, as it always does.
+2. **Use `claude-personal` in your terminal too** shows a preview, then appends one function line to `~/.zshrc` when you
+   click **Add to ~/.zshrc**. It's skipped if your shell already defines the name.
+
+<Aside type="note">
+  Aquila never stores your Claude or Codex tokens. You log in inside the CLI, and the CLI keeps the login as usual.
+</Aside>
+
+### Read-only
+
+These are read and never written, renamed or deleted:
+
+- **Session history** — Claude transcripts under each account's config folder and Codex's session files and database.
+- **Usage gauge** — the same Claude transcripts and Codex session files, to estimate usage.
+- **Account status** — whether each account's Claude config has a login.
+
+## Your project files
+
+| What | When it writes |
+|---|---|
+| Your repos | Only when you act: stage or revert in the [changes panel](/en/docs/agents/changes-panel/) (reverts are backed up first — a `git stash` entry for tracked files, the Trash for untracked ones), or a worktree you create |
+| Notes graph | Never. It only reads your Markdown to build the index |
+| Note editor | Only your edits, saved byte-for-byte; property and table edits change one line |
+| Note links | Only when you click **Add `[[link]]`**, **Link**, or **Fix links** after a rename or move |
+| Note explorer | New, rename, move and Trash — each on your action; Trash always asks |
+| What is this? | Only **Save as note** writes a file |
+| Shared folder settings | Only if you choose **Shared**: `.aquila-vault.json` in that note folder |
+
+Everything else Aquila keeps — the notes index, what each note looked like when you last saw it, tab layout,
+scrollback for restore — is in `~/.aquila`. See [Config](/en/docs/reference/config/) for the full list.
+
+## Network
+
+Aquila has no analytics or telemetry. These are the only times it goes online on its own behalf:
+
+| What | When | Where to |
+|---|---|---|
+| Update check | At launch and every 6 hours | GitHub releases of this project. Nothing is downloaded; it only tells you a version is out |
+| [AI trends](/en/docs/agents/ai-trends/) | Only when you open the panel (cached 30 min) or click ↻ | Public feeds: GitHub releases, RSS/Atom blogs, Hacker News, Hugging Face papers and similar |
+| Applying a trend | When you click it | The article you chose |
+
+Your CLIs, of course, talk to their own services as usual. Sessions on [remote hosts](/en/docs/agents/remote-ssh/) use
+`ssh` with your own `~/.ssh/config`, and the [preview](/en/docs/agents/preview/) loads your local dev server.
+
+### When Aquila calls Claude itself
+
+A few features run a hidden, one-turn `claude -p` with your Claude account. Each uses your plan's usage like any
+other Claude request:
+
+| Feature | When |
+|---|---|
+| [What is this?](/en/docs/notes/what-is-this/) | Once per click on **Ask Claude**, after showing you exactly what's sent |
+| AI trends summary | Only when you click it |
+| Folder settings → **Make with Claude** | Only when you click it. Sends an outline of the folder (folder and sample file names, counts, frontmatter keys, common headings), never note bodies |
+| Apply a trend | Only when you click it |
+| Figma → **Check connection** | Only when you click it |
+| AI extraction (link suggestions) | **Off by default.** Once you turn it on for a note source, it runs in the background on changed notes, sending their text (up to 4,000 characters each) with the shared account — at most 40 notes per source per day, never on battery saver |
+
+These runs get no tools, so they can't read or change your repos. Two exceptions get only what they need: the Figma
+check may call Figma's `whoami`, and applying a trend may read (not edit) the project you apply it to. What is this?
+runs in an empty temporary folder.
+
+<Aside type="note">
+  The usage gauge also runs `claude -p /usage` for each logged-in account every few minutes. That's a local CLI
+  command that reads your limits; it doesn't call a model or use quota.
+</Aside>
+
+## Local storage
+
+Everything Aquila stores is on your Mac, in `~/.aquila`. Two things to be aware of:
+
+- **Scrollback for restore:** the last output of each open tab (up to 2,000 lines, plain text) is saved in
+  `~/.aquila/scrollback/` so it can come back after a relaunch. Closing a tab deletes its file.
+- **Status log:** `~/.aquila/status.log` records status events and hook event names (rotated at 512 KB), for
+  troubleshooting.
+
+To remove everything Aquila stored, quit the app and delete `~/.aquila`.

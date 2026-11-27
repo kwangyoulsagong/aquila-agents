@@ -1,0 +1,68 @@
+---
+title: Command palette
+description: Press ⌘K to find any session or project, or run any action, by typing part of its name.
+sidebar:
+  order: 5
+---
+
+import { Aside } from '@astrojs/starlight/components';
+import Shot from '~/components/docs/Shot.astro';
+
+The command palette is the fastest way around Aquila. Press <kbd>⌘K</kbd>, type a few letters, press Enter.
+
+<Shot id="palette" caption="The palette: waiting sessions first, then projects, then actions." />
+
+## Open and use it
+
+| Keys | Action |
+|---|---|
+| <kbd>⌘K</kbd> | Open or close the palette |
+| <kbd>↑</kbd> <kbd>↓</kbd> (or <kbd>⌃N</kbd> <kbd>⌃P</kbd>) | Move through the list |
+| <kbd>↩</kbd> | Go there, or run it |
+| <kbd>Esc</kbd> | Close (clicking outside closes it too) |
+
+After you pick something, the palette closes and the keyboard goes straight to the terminal it shows.
+
+## What's in the list
+
+With nothing typed, the palette lists, in this order:
+
+1. **Open sessions**, most urgent first: needs input, error, done, working, stopped, idle. So the session waiting for
+   you is always at the top; press <kbd>⌘K</kbd> <kbd>↩</kbd> to go to it.
+2. **Projects**, in sidebar order, each with its status dot.
+3. **Actions** that apply right now, with their shortcut when they have one.
+4. **Worktrees** of the current project: open Claude, Codex or a shell in each.
+
+Actions that don't apply aren't listed: with no project selected there are no "open" actions, and with no session
+there's no **Close session**.
+
+## Search
+
+Type any part of a name. The letters must appear in order, but not next to each other, and case doesn't matter:
+`spr` finds **Split right**, `nwt` finds **Go to next waiting session**. Matches at the start of words and runs of
+consecutive letters rank higher, and the matched letters are highlighted.
+
+A project also matches on its group and folder path, ranked below matches on its name.
+
+<Aside type="tip">
+  Typing works with the Korean input source on. The palette ignores keys while a Korean syllable is still being
+  composed, so Enter doesn't fire early.
+</Aside>
+
+## Things you can run
+
+A selection of the actions, grouped by what they're for. Labels are as the app shows them.
+
+| Area | Actions |
+|---|---|
+| Sessions | **Open Claude**, **Open Codex**, **Open shell**, **Open in worktree**, **Close session**, **Rename session**, **Session history** |
+| Attention | **Go to next waiting session**, **Go to next to review** |
+| Panes | **Split right**, **Split down**, **Zoom pane / restore**, **Full window / restore** |
+| Panels | **Show changes**, **Show preview**, **Show run panel** |
+| Projects | **Add project**, **Add remote server…**, **Project settings…**, **Open in Finder** (or your editor) |
+| Terminal | **Copy last response**, **Pick URL / path**, **Find in terminal** |
+| App | **Switch to 한국어**, **Global shortcut…**, **Setup checklist**, **Guide**, **What's new** |
+
+The palette also lists actions for notes and extensions; see the [Notes](/en/docs/notes/graph/) pages.
+
+For the shortcut behind each action, see [Keyboard shortcuts](/en/docs/reference/shortcuts/).

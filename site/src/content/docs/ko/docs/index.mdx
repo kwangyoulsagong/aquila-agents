@@ -1,0 +1,42 @@
+---
+title: Aquila Agents 문서
+description: 여러 프로젝트의 Claude Code, Codex, 셸 세션을 macOS 창 하나에서 돌려요.
+tableOfContents: false
+---
+
+import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
+import Shot from '~/components/docs/Shot.astro';
+
+Aquila Agents는 여러 프로젝트의 **실제 터미널 세션**(`claude`, `codex`, 셸)을 창 하나에 모으는 macOS 앱이에요.
+상태 점으로 어떤 에이전트가 일하는지, 끝났는지, 나를 기다리는지 보여 주고, 입력이 필요하면 알림으로 불러요.
+
+이미 설치한 CLI를 그대로 품어요. 로그인, `CLAUDE.md`, 훅, MCP 서버, 슬래시 명령이 터미널에서와 똑같이 동작하고,
+Aquila는 채팅이나 권한 확인을 다시 만들지 않아요.
+
+<Shot id="sessions" caption="왼쪽은 프로젝트, 위는 세션 탭, 점마다 상태." />
+
+## 여기서 시작하세요
+
+<CardGrid>
+  <LinkCard title="설치" description="앱을 내려받고 첫 실행 경고를 넘어가요." href="/ko/docs/start/install/" />
+  <LinkCard title="첫 실행" description="시작 점검: CLI, PATH, 첫 프로젝트." href="/ko/docs/start/first-run/" />
+  <LinkCard title="빠른 둘러보기" description="빈 창에서 에이전트 세 개를 나란히 돌리기까지 10분." href="/ko/docs/start/quick-tour/" />
+  <LinkCard title="단축키" description="모든 단축키를 한 페이지에." href="/ko/docs/reference/shortcuts/" />
+</CardGrid>
+
+## 할 수 있는 것
+
+<CardGrid>
+  <Card title="누가 나를 기다리는지" icon="warning">
+    주황 점은 입력을 기다리는 에이전트예요. <kbd>⌘J</kbd>로 오래 기다린 순서대로 바로 가요.
+  </Card>
+  <Card title="나란히 일하기" icon="seti:pipeline">
+    최대 4개 분할에 각각 다른 세션을, 프로젝트를 섞어서 띄워요.
+  </Card>
+  <Card title="바뀐 코드 리뷰" icon="document">
+    변경사항 패널이 에이전트의 diff를 실시간으로 보여 주고, 줄 코멘트를 세션에 다시 붙여 넣어요.
+  </Card>
+  <Card title="코드 옆의 노트" icon="pencil">
+    레포의 Markdown이 그래프와 에디터가 되고, 에이전트가 고친 부분은 diff로 보여요.
+  </Card>
+</CardGrid>

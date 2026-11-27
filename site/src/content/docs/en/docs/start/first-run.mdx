@@ -1,0 +1,99 @@
+---
+title: First run
+description: Use the setup checklist to find your CLIs, load your shell's PATH and add your first project.
+sidebar:
+  order: 2
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+import Shot from '~/components/docs/Shot.astro';
+
+The first time you open Aquila Agents, it shows **Before you start**, a short checklist. It checks what the app
+needs on this Mac and helps you add your first project folder. It takes about a minute.
+
+<Shot id="firstRun" caption="The setup checklist: shell PATH, CLIs, git and project folders." />
+
+## What the checklist checks
+
+| Row | What it means | If it's missing |
+|---|---|---|
+| **Shell PATH loaded** | Aquila read the `PATH` from your login shell, so tools installed with Homebrew, fnm, nvm and similar are found. | You see **Couldn't read your shell's PATH**. Aquila falls back to the system PATH; pick any CLI it can't find by hand (below). |
+| **Claude Code** | The `claude` command, with its version and path. | Copy the install command shown, run it in a terminal, and come back. |
+| **Codex** | The `codex` command. Marked **Optional**. | Same as above, or ignore it if you only use Claude. |
+| **git** | Needed for the changes panel and worktrees. | Copy `xcode-select --install` and run it. |
+| **Project folders** | How many projects are in the sidebar. | Add one (see below). |
+| **Log in inside the CLI** | A reminder, not a check. | Claude asks you to `/login` the first time it opens; Codex asks you to sign in. |
+
+The checklist checks again on its own when you switch back to the window, so you can install a CLI in Terminal and
+just return. **Check again** does it on demand and reads your shell's PATH again first.
+
+<Aside type="note">
+  Aquila never stores tokens. Your agents log in the way they always do, inside the CLI, and use whatever account and
+  plan that CLI is logged in to.
+</Aside>
+
+## Fix a CLI that isn't found
+
+Aquila looks for each tool in your PATH. Shell **aliases** and functions don't count: it needs a real file.
+
+If a CLI is installed but shows **Not found**, or **Doesn't run**:
+
+<Steps>
+
+1. Click **Choose…** next to it.
+
+2. Pick the binary (for example `~/.local/bin/claude`).
+
+3. Aquila runs it with `--version`. If that works, it's marked **chosen** and new sessions use that exact file.
+   If it doesn't run, you see **This file doesn't run** and nothing is saved.
+
+</Steps>
+
+**Use PATH** goes back to finding the tool by name.
+
+## Add your first project
+
+A project is a folder on your Mac, usually a git repository. Sessions open in that folder.
+
+In the **Project folders** row, either:
+
+- drag one or more folders from Finder onto the drop zone, or
+- click **Add folder…** and pick a folder.
+
+Each folder is added to the first group in the sidebar with the Shared Claude account. You can rename it, move it
+and change its settings later; see [Projects](/en/docs/workspace/projects/).
+
+## Finish
+
+Click **Start**. **Skip for now** and <kbd>Esc</kbd> also close the checklist, and it won't open by itself again.
+Anything optional you didn't set up simply stays off.
+
+To open it again later, press <kbd>⌘K</kbd> and run **Setup checklist**. It checks everything again.
+
+When the checklist closes, Aquila offers a short tour of the in-app guide once (**Take a tour** / **Skip**). You can
+open the guide any time with **?** at the bottom of the sidebar or <kbd>⌘/</kbd>.
+
+## Where your settings live
+
+Everything Aquila keeps is in `~/.aquila` in your home folder. The ones you'll care about:
+
+| File | What it holds |
+|---|---|
+| `~/.aquila/config.json` | Projects, groups, accounts, language and other settings |
+| `~/.aquila/state.json` | Open tabs and the split layout, for [restore on relaunch](/en/docs/workspace/restore-and-power/) |
+| `~/.aquila/first-run.json` | Whether the checklist is finished, and any CLI paths you chose |
+
+To open `config.json`, click **⚙ Settings** at the bottom left of the sidebar and choose **Open settings file**.
+You rarely need to: everything in it can be changed from the app. See [Config](/en/docs/reference/config/) for the
+full format.
+
+<Aside type="caution">
+  Aquila doesn't change your CLI setup. It never writes to `~/.claude`, `~/.codex` or your shell's rc files on its
+  own. The one exception is adding a `claude-personal` function to `~/.zshrc`, and only when you click to confirm it
+  while setting up a [second Claude account](/en/docs/agents/claude-accounts/).
+</Aside>
+
+## Next
+
+Take the [quick tour](/en/docs/start/quick-tour/): open two agents, split the window and handle your first waiting
+session.

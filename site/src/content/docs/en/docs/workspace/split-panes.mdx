@@ -1,0 +1,101 @@
+---
+title: Split panes
+description: Watch up to four sessions side by side, from any projects, and move, zoom and resize the panes.
+sidebar:
+  order: 4
+---
+
+import { Aside } from '@astrojs/starlight/components';
+import Shot from '~/components/docs/Shot.astro';
+
+Split the window to watch several sessions at once: Claude writing code next to Codex reviewing it, or an agent next
+to the shell running your tests. You can have up to **four panes**, and each one shows one session.
+
+<Shot id="split" caption="Two panes side by side. The focused pane's session is the active tab." />
+
+## Split a pane
+
+| Keys | Action |
+|---|---|
+| <kbd>⌘D</kbd> | Split right |
+| <kbd>⇧⌘D</kbd> | Split down |
+
+The focused pane splits in two and the new, empty pane gets focus. Open a session in it with <kbd>⌘T</kbd>,
+<kbd>⇧⌘T</kbd> or <kbd>⌥⌘T</kbd>, or click one of the buttons in the empty pane. With four panes, splitting does
+nothing.
+
+<kbd>⌘K</kbd> → **Split right** / **Split down** work too.
+
+### Split by dragging a tab
+
+Drag a tab from the tab bar onto the terminal area:
+
+- drop it on a pane's **edge** (left, right, top or bottom) to split that pane there, or
+- drop it in the **middle** of a pane to show that session in it instead.
+
+If the session was already showing in another pane, it moves, and its old pane closes.
+
+## Mix projects
+
+The split layout belongs to the whole window, not to one project, so panes can show sessions from different projects.
+When you focus a pane from another project, the sidebar and the tab bar switch to that project.
+
+Selecting a project in the sidebar focuses a pane that already shows it; otherwise the focused pane shows that
+project's last session.
+
+## Move between panes
+
+Click a pane, or press <kbd>⌥⌘</kbd> plus an arrow key:
+
+| Keys | Moves focus |
+|---|---|
+| <kbd>⌥⌘←</kbd> | Left |
+| <kbd>⌥⌘→</kbd> | Right |
+| <kbd>⌥⌘↑</kbd> | Up |
+| <kbd>⌥⌘↓</kbd> | Down |
+
+The focused pane's session is the active tab, and that's where your typing goes.
+
+Each pane has a head with the session's status dot, its title, the project (and the branch for a worktree), and
+buttons to zoom and close it.
+
+## Zoom one pane
+
+Press <kbd>⇧⌘↩</kbd>, double-click the pane's head, or click **⤢** in it. The pane fills the stage while the others
+wait in place. Press it again (or click **⤡**) to go back. Opening a new split also ends the zoom.
+
+### Full window
+
+Press <kbd>⇧⌘F</kbd> to hide the sidebar and tabs too and show only the focused pane. Press <kbd>⇧⌘F</kbd> again to
+leave.
+
+<Aside type="note">
+  <kbd>Esc</kbd> doesn't leave zoom or full window. It belongs to the CLI, which uses it to interrupt the agent. Use the
+  same shortcut you entered with.
+</Aside>
+
+<Shot id="zoom" caption="One pane zoomed to fill the stage." />
+
+## Resize panes
+
+- Drag the divider between two panes.
+- Or press <kbd>⌥⇧⌘</kbd> plus an arrow key to move the focused pane's divider.
+- **Double-click a divider** to split the space evenly again.
+
+## Close a pane
+
+Click **×** in the pane's head, or press <kbd>⌘W</kbd> in an empty pane. Closing a pane only removes it from the
+layout: the session it showed keeps running as a tab. To end the session itself, close its tab with <kbd>⌘W</kbd>.
+
+## All split shortcuts
+
+| Keys | Action |
+|---|---|
+| <kbd>⌘D</kbd> / <kbd>⇧⌘D</kbd> | Split right / down (up to 4 panes) |
+| <kbd>⌥⌘←</kbd> <kbd>⌥⌘→</kbd> <kbd>⌥⌘↑</kbd> <kbd>⌥⌘↓</kbd> | Move focus between panes |
+| <kbd>⇧⌘↩</kbd> | Zoom pane / restore |
+| <kbd>⇧⌘F</kbd> | Full window / restore |
+| <kbd>⌥⇧⌘←</kbd> <kbd>⌥⇧⌘→</kbd> <kbd>⌥⇧⌘↑</kbd> <kbd>⌥⇧⌘↓</kbd> | Resize the pane |
+| <kbd>⌘W</kbd> | Close session (in an empty pane: close the pane) |
+
+The layout is saved and comes back when you relaunch; see [Restore and power](/en/docs/workspace/restore-and-power/).

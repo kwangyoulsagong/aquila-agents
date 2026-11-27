@@ -1,0 +1,36 @@
+---
+/** Docs header title: logo + name links back to the marketing page in the same language, plus a "Docs" tag. */
+import { href } from '../../lib/links';
+const lang = Astro.currentLocale === 'ko' ? 'ko' : 'en';
+---
+
+<a class="title" href={href(`/${lang}/`)}>
+  <img src={href('/icon.svg')} width="28" height="28" alt="" />
+  <span>Aquila Agents</span>
+</a>
+<a class="tag" href={href(`/${lang}/docs/`)}>Docs</a>
+
+<style>
+  .title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.625rem;
+    font-weight: 700;
+    font-size: var(--sl-text-h4);
+    color: var(--sl-color-white);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .title img {
+    border-radius: 22%;
+  }
+  .tag {
+    margin-left: 0.625rem;
+    padding: 0.125rem 0.5rem;
+    border-radius: 999px;
+    border: 1px solid var(--sl-color-hairline);
+    font-size: var(--sl-text-xs);
+    color: var(--sl-color-gray-2);
+    text-decoration: none;
+  }
+</style>

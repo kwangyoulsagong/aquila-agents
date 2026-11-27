@@ -1,0 +1,90 @@
+---
+title: Remote servers (SSH)
+description: Run agents on an SSH host as a project in the sidebar, kept alive in tmux across dropped connections.
+sidebar:
+  order: 8
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+import Shot from '~/components/docs/Shot.astro';
+
+A project can live on another machine you reach over SSH — a dev box, a cloud VM. Its sessions run on that host
+inside tmux, so the agent keeps working when your Wi-Fi drops or you close the lid, and Aquila reattaches when the
+connection comes back.
+
+<Shot id="remote" caption="Add remote project: the host is checked before it's added." />
+
+## Before you start
+
+- The host has an entry in your `~/.ssh/config` and you can log in with a key (your ssh-agent is used). Aquila
+  stores no passwords or keys.
+- `tmux` is installed on the host. Install `claude` and/or `codex` there too, and log in to them on the host.
+
+<Aside type="tip">
+  If ssh asks for a password or to accept a new host key, run `ssh <host>` once in Terminal first. After that the
+  host check can get through.
+</Aside>
+
+## Add a remote project
+
+<Steps>
+
+1. Press <kbd>⌘K</kbd> → **Add remote server…**, or in the sidebar click **+ Add project** → **Remote server (SSH)…**.
+
+2. **SSH host**: type the host alias from `~/.ssh/config` (suggestions come from that file).
+
+3. Click **Check host** to see what's there (details below). Adding runs the same check if you skip it.
+
+4. **Folder on the host**: type a path (`~/…` is the remote home) or click **Browse…** to pick one. Folders that are
+   git repositories are marked **git**.
+
+5. Optional: a **Name**, and a **Claude config folder on the host** if Claude there uses a non-default
+   `CLAUDE_CONFIG_DIR` (empty means `~/.claude`).
+
+6. Click **Add**. The project goes into the sidebar's Remote group.
+
+</Steps>
+
+Adding stops with a message if the host can't be reached, tmux is missing, or the folder doesn't exist.
+
+### What the host check shows
+
+| Line | Meaning |
+|---|---|
+| **System** | The host's OS and architecture. |
+| **claude / codex / tmux / git found** or **missing** | Each tool and its version. A missing one comes with an install command to copy (it's shown, never run). |
+| **Claude logged in** / **Claude needs a login** | Whether Claude on the host is logged in. If not, open a session and log in there. |
+| `KillUserProcesses=yes` warning | On some Linux hosts, tmux sessions end when your last ssh login does. Run `loginctl enable-linger` on the host to prevent it. |
+
+## Working with remote sessions
+
+Open Claude, Codex or a shell in a remote project as usual. Each tab is its own tmux session on the host.
+
+- **Tabs** and pane heads show a host badge with a connection dot: **Connecting**, **Connected**,
+  **Reconnecting** or **Connection lost**.
+- **Dropped connection:** Aquila retries on its own (after 3, 6, 12 seconds, then every minute). While it's lost, a
+  banner over the terminal counts down to the next try, with **Reconnect now**. The agent keeps running in tmux on
+  the host the whole time.
+- **Closing a tab** ends its tmux session on the host. **Quitting the app** doesn't: next launch reattaches to the
+  running agents.
+- **Status dots** for remote tabs are guessed from terminal activity and shown as estimated
+  (<span class="sdot" data-s="estimated"></span>), because Claude's hooks can't reach your Mac from the host.
+
+<Aside type="note" title="tmux on the host">
+  Aquila runs its own tmux server (`tmux -L aquila`) with its own config at `~/.aquila/tmux.conf` on the host —
+  the only file it writes there. Your own tmux sessions and config are not touched.
+</Aside>
+
+## What works remotely
+
+Works over SSH:
+
+- the [changes panel](/en/docs/agents/changes-panel/), including stage and revert,
+- [session history](/en/docs/agents/session-history/) for the host's Claude and Codex sessions, with resume.
+
+Local projects only: [worktrees](/en/docs/agents/worktrees/), the [preview](/en/docs/agents/preview/), the
+[Run slot](/en/docs/agents/run/), [Figma](/en/docs/agents/figma-designer/), **Open in**, copy last response, the
+port base and setup script, and the [account switch](/en/docs/agents/claude-accounts/) (use the Claude config
+folder setting instead).
+
+To change the host, folder or Claude config folder later, right-click the project → **Project settings…**.

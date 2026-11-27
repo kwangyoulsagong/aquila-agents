@@ -1,0 +1,109 @@
+---
+title: 구조
+description: Aquila Agents가 어떻게 짜여 있는지 — 메인 프로세스와 화면, pty, IPC, 상태, 설정, 노트 색인.
+sidebar:
+  order: 2
+---
+
+import { Aside, LinkCard } from '@astrojs/starlight/components';
+
+Aquila는 진짜 터미널 세션 여러 개를 담는 Electron 창 하나예요. 핵심 원칙은 **진짜 CLI를 pty에 그대로 넣고, 다시 만들지
+않는다**예요. 채팅, 권한 확인, 슬래시 명령은 CLI의 것이고, Aquila는 터미널 하나로는 안 되는 것 — 여러 프로젝트에 걸친
+여러 세션, 상태, 알림, 그 둘레의 패널 — 을 더해요.
+
+이 페이지는 짧은 안내예요. 자세한 전체 문서는 레포에 있어요.
+
+<LinkCard
+  title="docs/ko/ARCHITECTURE.md"
+  description="세션, 상태, 복원, 워크트리, 그래프, 에디터, 확장, 빌드까지 모든 부분을 자세히."
+  href="https://github.com/kwangyoulsagong/aquila-agents/blob/main/docs/ko/ARCHITECTURE.md"
+/>
+
+## 두 프로세스
+
+```
+┌──── Renderer (src/, React) ────┐   IPC    ┌──── Main (electron/, Node) ─────────┐
+│ sidebar, tabs, split view,     │◀────────▶│ window, IPC handlers                │
+│ panels, xterm terminals,       │ preload  │ one node-pty per session            │
+│ graph, note editor             │          │ config, state, hook receiver,       │
+│                                │          │ status engine, git, notes index     │
+└────────────────────────────────┘          └─────────────────────────────────────┘
+                                                   │ spawns (login + interactive shell)
+                                                   ▼
+                       claude --settings ~/.aquila/claude-hooks….json  |  codex  |  $SHELL
+```
+
+- **메인 프로세스**(`electron/`, Node, CommonJS로 컴파일)는 부작용이 있는 일을 모두 맡아요. pty, `~/.aquila`의 파일,
+  git, 로컬 훅 수신기, 알림, 메뉴 막대, 노트 색인.
+- **렌더러**(`src/`, React)는 화면을 그려요. Node나 파일 시스템을 직접 건드리지 않아요.
+- **프리로드**(`electron/preload.ts`)가 둘 사이의 유일한 다리예요.
+
+## 세션과 pty
+
+세션을 열면 메인이 프로젝트 폴더에서 로그인 셸을 띄우고 그 안에서 CLI를 실행해요:
+`$SHELL -l -i -c "<cmd>; exec $SHELL -l -i"`. 그래서 `PATH`, 버전 관리자, 별칭이 그대로 적용되고, 에이전트가 끝나면
+탭이 셸로 돌아가요.
+
+세션마다 `AQUILA_TAB_ID` 같은 변수를 받고, 개인 계정의 Claude 세션은 `CLAUDE_CONFIG_DIR`도 받아요. pty 출력은 묶어서
+보내고(한 프레임에 한 번, 화면 밖 세션은 더 느리게) 흐름을 조절해요. 렌더러가 xterm이 그린 만큼 확인을 보내고, 너무
+앞서 나간 pty는 메인이 잠시 멈춰요. 그래서 출력이 쏟아져도 메가바이트씩 쌓이지 않고 <kbd>⌃C</kbd>가 바로 먹혀요.
+
+## IPC는 파일 하나를 거쳐요
+
+모든 채널은 `src/shared/api/types.ts`에 선언해요: `IPC` 이름과 `AquilaApi` 인터페이스. 메인이 핸들러를 구현하고,
+프리로드가 열어 주고, 렌더러는 `@/shared/api`의 `api`로 불러요. `window.aquila`나 `ipcRenderer`를 직접 쓰지 않아요.
+`types.ts`와 `src/shared/i18n/dictionary.ts`는 두 프로세스에 모두 컴파일돼서 의존성 없이 유지해요.
+
+## 상태: 누가 나를 기다리나
+
+세션 상태는 메인이 정해서 렌더러로 보내요. 믿을 만한 순서대로:
+
+| 출처 | 대상 |
+|---|---|
+| pty 출력의 OSC 7501 상태 보고 | Claude Code 2.1.295+, Codex 0.170+, 셸 탭에서 상태를 알리는 프로그램 |
+| `127.0.0.1` 수신기로 오는 Claude 훅 | 로컬 Claude 세션 |
+| 세션에 입력한 키 | 모든 세션 (예: 기다리는 중에 입력 → 작업 중) |
+| 출력 활동 | 알리지 않는 CLI: 바쁘면 작업 중, 조용하면 완료(추정으로 표시) |
+| 종료 코드 | 모든 세션 |
+
+훅은 Aquila가 띄운 세션에만 `claude --settings ~/.aquila/claude-hooks….json`으로 넣어요. 사용자의 Claude 설정에는
+절대 쓰지 않아요. 실행 중인 앱마다 자기 포트를 넣은 설정 파일을 따로 쓰고, 종료할 때 지워요. 오래된 Claude 버전에는
+`curl`을 쓰는 예전 형식을 줘요.
+
+상태를 바탕으로 `electron/notify.ts`가 알림, Dock 배지, "다음 대기 세션" 순서를 움직여요.
+
+## 설정과 상태 파일
+
+| 파일 | 내용 |
+|---|---|
+| `~/.aquila/config.json` | 프로젝트, 그룹, 계정, 언어, 화면 모드. `electron/config.ts`의 테스트된 순수 함수로 고쳐요. 읽지 못한 파일은 프로젝트 수정이 덮어쓰지 않아요 |
+| `~/.aquila/state.json` | 열린 탭과 분할 배치. 바뀔 때마다 다시 써서 앱이 죽어도 남아요 |
+| `~/.aquila/scrollback/` | 복원용으로 탭마다 저장한 출력(일반 텍스트) |
+
+Aquila가 저장하는 건 모두 `~/.aquila` 아래에 있어요. 전체 목록은 [설정](/ko/docs/reference/config/)을 보세요.
+
+## 노트 그래프와 에디터
+
+- **색인**(`electron/graph/`): 노트 소스가 켜져 있을 때만 `worker_thread`에서 돌아요. 바뀐 `.md` 파일을 파싱하고(제목,
+  헤딩, 링크, 태그, frontmatter, ID) 노드와 엣지를 만들어 `~/.aquila/graph/`에 캐시하고, 소스마다 재귀 `fs.watch`
+  하나로 지켜봐요. 노트에는 절대 쓰지 않아요.
+- **그래프 보기**(`src/widgets/knowledge-graph`): 필요할 때 불러와요. 주변 보기는 DOM + SVG이고, 전체 지도의 점은
+  sigma.js로 그리며 배치는 잠깐 뜨는 워커에서 계산해요.
+- **에디터**(`src/features/edit-note`): CodeMirror 6, 필요할 때 불러와요. 원래 글과 그 뒤의 변경을 모두 들고 있다가
+  저장할 때 그 변경만 적용해서, 건드리지 않은 바이트와 줄 끝 문자는 그대로예요. 읽은 뒤 파일이 바뀌었으면 쓰기를
+  거절해요.
+
+## 렌더러 구조
+
+`src/`는 Feature-Sliced Design을 따라요: `app → pages → widgets → features → entities → shared`. 각 층은 아래 층만
+가져오고, 다른 슬라이스는 공개 `index.ts`로만 가져와요. ESLint가 검사해서 어기면 `npm run lint`가 실패해요.
+
+화면은 `design-system/`의 디자인 시스템으로 만들어요. 의미 토큰은 `tokens.css`, 컴포넌트 스타일은 `components.css`,
+React 컴포넌트는 `design-system/react/`에 있어요. 모든 문자열은 `src/shared/i18n/dictionary.ts`에서 한국어·영어로
+가져와요.
+
+<Aside type="tip">
+  레포에는 [디자인 시스템 문서](https://github.com/kwangyoulsagong/aquila-agents/blob/main/docs/ko/DESIGN-SYSTEM.md)와
+  무엇을 왜 만들었고 무엇이 남았는지 적은 [작업 목록](https://github.com/kwangyoulsagong/aquila-agents/blob/main/docs/ko/TASKS.md)도
+  있어요.
+</Aside>

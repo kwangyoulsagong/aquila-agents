@@ -1,0 +1,93 @@
+---
+title: Projects
+description: Add project folders to the sidebar, set each one up, and keep them in order.
+sidebar:
+  order: 1
+---
+
+import { Aside } from '@astrojs/starlight/components';
+import Shot from '~/components/docs/Shot.astro';
+
+A **project** is a folder, usually a git repository. It's a row in the sidebar, and every session you open in it
+starts in that folder. Projects sit in **groups** (Work and Personal to start with).
+
+<Shot id="projects" caption="Projects in groups, each row with its sessions' dots." />
+
+## Add a project
+
+There are three ways. All of them end in the same small dialog where you confirm the **Name** (the folder's name by
+default), the **Group** and the **Claude account**, then click **Add**.
+
+- **Sidebar:** click **+ Add project** under the project list and choose **Folder on this Mac…**.
+- **Drag and drop:** drag a folder from Finder anywhere onto the sidebar. If you drop several, the first one is used.
+- **Command palette:** press <kbd>⌘K</kbd> and run **Add project**. **File ▸ Add project…** in the menu bar works too.
+
+The new project is selected right away.
+
+<Aside type="tip">
+  **+ Add project → Remote server (SSH)…** adds a folder on another machine instead. See
+  [Remote servers (SSH)](/en/docs/agents/remote-ssh/).
+</Aside>
+
+## Switch between projects
+
+- Click a project in the sidebar.
+- Press <kbd>⌘1</kbd> through <kbd>⌘9</kbd> to jump to one of the first nine. **Window ▸ Projects** in the menu bar
+  lists which number goes to which project.
+- Press <kbd>⌘K</kbd> and type part of the name. A project also matches on its group and path.
+
+Selecting a project shows its tabs. If one of your split panes already shows that project, that pane is focused.
+
+## Change a project's settings
+
+Right-click the project and choose **Project settings…** (or <kbd>⌘K</kbd> → **Project settings…** for the current
+project). Changes apply when you click **Save**.
+
+| Setting | What it does |
+|---|---|
+| **Name** | The label in the sidebar, tabs and notifications. |
+| **Folder** | Where sessions start. **Change…** picks a new folder. Open sessions keep running in the old folder; new ones use the new one. Two projects can't share a folder. |
+| **Group** | Which sidebar group it's in. |
+| **Claude account** | Which Claude login new Claude sessions use. See [Claude accounts](/en/docs/agents/claude-accounts/). |
+| **Default agent** | Claude, Codex or Shell. What **+** in the tab bar and the empty state open first. |
+| **Default branch** | New worktree branches start here. Empty means the current branch. |
+| **Port base** | Passed to sessions as `PORT`, plus 10 for each worktree, so dev servers in parallel worktrees don't collide. A number from 1024 to 65000. |
+| **Setup script** | Runs once when a new worktree is made, before the agent starts. For example `npm ci`. |
+| **Run commands** | Dev servers and watchers for the run panel, one `name: command` per line. See [Run](/en/docs/agents/run/). |
+| **Open in** | The app for **Open in …** in the project's menu: Finder (default), Visual Studio Code, Cursor, Zed, WebStorm, IntelliJ IDEA, Sublime Text, Xcode, Terminal or iTerm. |
+
+Default branch, setup script and port base matter once you use [worktrees](/en/docs/agents/worktrees/). Remote
+projects don't have them: worktrees, preview and Open in are local-only.
+
+## Open the folder in your editor
+
+Right-click the project and choose **Open in Finder** (or **Open in Cursor**, and so on, depending on the **Open in**
+setting). <kbd>⌘K</kbd> lists the same action for the current project.
+
+## Rename, regroup or remove
+
+Right-click a project:
+
+- **Rename…** changes its name.
+- **Group ▸** moves it to another group, or **New group…** to a new one.
+- **Claude account ▸** switches the account for new Claude sessions.
+- **Remove from sidebar…** takes it out of Aquila. Its open sessions close. **The folder and its files stay**;
+  nothing on disk is touched.
+
+Right-click a group label to **Rename…** it, **Move up** / **Move down**, add a **New group…**, or **Remove group**
+(only when it's empty).
+
+## Reorder
+
+Drag a project row up or down. Drop it on another row to put it before or after that one, or on a group label (or an
+empty group) to put it last in that group. Empty groups stay visible so you can drop into them.
+
+<Aside type="note">
+  <kbd>⌘1</kbd>–<kbd>⌘9</kbd> follow the order projects are stored in `config.json`. Within a group that's the order
+  you see; with several groups, check **Window ▸ Projects** if a number doesn't go where you expect.
+</Aside>
+
+## Where it's saved
+
+Projects and groups are stored in `~/.aquila/config.json`. Paths under your home folder are saved as `~/…`. You don't
+need to edit the file by hand, but you can: see [Config](/en/docs/reference/config/).

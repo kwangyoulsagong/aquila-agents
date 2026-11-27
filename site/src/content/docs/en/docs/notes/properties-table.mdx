@@ -1,0 +1,93 @@
+---
+title: Properties and Table view
+description: Edit a note's frontmatter as property rows, and see a whole folder of notes as a sortable, filterable table.
+sidebar:
+  order: 3
+---
+
+import { Aside } from '@astrojs/starlight/components';
+import Shot from '~/components/docs/Shot.astro';
+
+Many notes start with YAML frontmatter — `status`, `owner`, dates, tags. Aquila shows it as editable property rows
+at the top of the note, and can list a folder's notes as a table built from those properties.
+
+<Shot id="properties" caption="Frontmatter as property rows, and the same notes in Table view." />
+
+## Properties
+
+When a note has frontmatter, its keys show as **Properties** above the text:
+
+```md
+---
+status: in progress
+owner: mina
+due: 2026-12-05
+tags: [auth, login]
+---
+```
+
+Each value gets a fitting field:
+
+| Value | Field |
+|---|---|
+| Plain text | Text field |
+| `YYYY-MM-DD` | Date |
+| A list | Chips — add one with **Add…**, remove one with its × |
+| A property your folder settings declare as a choice | A select with the declared options |
+
+### Edit, add, remove
+
+- Click a value to change it.
+- **+ Add property** adds a new row: type a **Name** and a **Value**.
+- Remove a row with its remove button.
+
+Only the frontmatter line you changed is rewritten; every other byte of the file stays exactly as it was.
+
+<Aside type="note">
+  A name that's already there, or can't be used as a YAML key, is refused with a short message.
+</Aside>
+
+## Table view
+
+Table view lists the notes of one note source as rows, with their properties as columns.
+
+Open it from <kbd>⌘K</kbd> → **Table view**, or with the **Table view** button in a note's properties ("See this
+folder's notes as a table").
+
+### Pick what you see
+
+- **Source** — which note folder to list.
+- **Columns** — choose and order the columns. **Title**, **Folder** and **Modified** are always available, plus every
+  property the notes use. **Default columns** resets them.
+- **Sort** — click a column header.
+
+Columns, sort and grouping are remembered per source on this Mac.
+
+### Filter
+
+- The search box matches titles, paths and values.
+- **Folder** narrows to one folder (**All folders** by default).
+- **Filter by property** picks a property and a **Value** (or **Any value**).
+- Status chips (**Count by status**) show how many notes have each value; click one to filter by it.
+
+### Group
+
+**Group** puts rows under headings: **Group by folder**, or by any property (for example **Group by status**).
+**No grouping** turns it off.
+
+### Open and edit
+
+- Click a title to open the note in the editor.
+- Double-click a cell, or press <kbd>↩</kbd> on it, to edit the value in place.
+
+The change is written to that note's frontmatter the same way as in the properties panel: one line, nothing else.
+
+<Aside type="caution">
+  If the file changed on disk since the table loaded it (an agent or another app wrote to it), the edit is refused
+  with "The file changed meanwhile, so it wasn't saved". Reopen the table and try again.
+</Aside>
+
+## Related
+
+- [Requirement IDs](/en/docs/notes/requirement-ids/) — the `status` property shows up in an ID's hover card.
+- [Note editor](/en/docs/notes/editor/) — **Group by status** in the explorer uses the same `status:` property.

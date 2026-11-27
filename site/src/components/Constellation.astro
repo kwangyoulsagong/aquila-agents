@@ -1,0 +1,156 @@
+---
+/**
+ * The Aquila constellation (the app's namesake) behind the hero. Star positions come from real
+ * RA/Dec (x = (20.4h − RA)·15°, y = 16° − Dec, ×20), so the shape is the actual eagle; Altair glows.
+ */
+const STARS = {
+  eps: [424, 19, 1.6],
+  zeta: [394, 43, 2.2],
+  gamma: [190, 108, 2.6], // Tarazed
+  alpha: [165, 143, 4.2], // Altair
+  beta: [144, 192, 2.2], // Alshain
+  delta: [294, 258, 2.4],
+  eta: [159, 300, 2],
+  theta: [63, 336, 2],
+  lambda: [390, 418, 2],
+  iota: [237, 346, 1.6],
+} as const;
+type Star = keyof typeof STARS;
+const LINES: [Star, Star][] = [
+  ['eps', 'zeta'],
+  ['zeta', 'gamma'],
+  ['gamma', 'alpha'],
+  ['alpha', 'beta'],
+  ['zeta', 'delta'],
+  ['delta', 'lambda'],
+  ['delta', 'iota'],
+  ['iota', 'eta'],
+  ['eta', 'theta'],
+  ['beta', 'eta'],
+];
+
+// Deterministic background dust (same on every build, no hydration).
+let seed = 7;
+const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+const dust = Array.from({ length: 70 }, () => ({
+  x: Math.round(rand() * 1000) / 10,
+  y: Math.round(rand() * 1000) / 10,
+  r: Math.round((0.4 + rand() * 1.1) * 10) / 10,
+  d: Math.round(rand() * 60) / 10,
+}));
+---
+
+<div class="sky" data-sky>
+  <svg class="sky__dust" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+    {dust.map((s) => <circle cx={s.x} cy={s.y} r={s.r / 10} style={`--tw:${s.d}s`} />)}
+  </svg>
+  <svg class="sky__eagle" viewBox="-20 -20 480 480" aria-hidden="true" data-eagle>
+    <defs>
+      <radialGradient id="altair-glow">
+        <stop offset="0" stop-color="var(--color-action-primary-hover)" stop-opacity="0.9"></stop>
+        <stop offset="1" stop-color="var(--color-action-primary)" stop-opacity="0"></stop>
+      </radialGradient>
+    </defs>
+    {
+      LINES.map(([a, b], i) => (
+        <line
+          x1={STARS[a][0]}
+          y1={STARS[a][1]}
+          x2={STARS[b][0]}
+          y2={STARS[b][1]}
+          pathLength="1"
+          style={`--i:${i}`}
+        />
+      ))
+    }
+    <circle cx={STARS.alpha[0]} cy={STARS.alpha[1]} r="28" fill="url(#altair-glow)" class="sky__halo"></circle>
+    {
+      Object.entries(STARS).map(([, [x, y, r]], i) => (
+        <circle cx={x} cy={y} r={r} class="sky__star" style={`--i:${i}`} />
+      ))
+    }
+  </svg>
+</div>
+
+<style>
+  .sky {
+    position: absolute;
+    inset: 0;
+  }
+  .sky__dust {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 70%;
+    fill: var(--color-text-primary);
+    mask-image: linear-gradient(black 40%, transparent);
+    -webkit-mask-image: linear-gradient(black 40%, transparent);
+  }
+  .sky__dust circle {
+    opacity: 0.35;
+    animation: twinkle 4s ease-in-out infinite;
+    animation-delay: calc(var(--tw) * -1);
+  }
+  @keyframes twinkle {
+    50% {
+      opacity: 0.08;
+    }
+  }
+  .sky__eagle {
+    position: absolute;
+    width: clamp(18rem, 34vw, 30rem);
+    top: calc(var(--site-nav-h) + 1rem);
+    right: max(-4rem, calc(50% - 44rem));
+    opacity: 0.55;
+    overflow: visible;
+  }
+  .sky__eagle line {
+    stroke: color-mix(in oklab, var(--color-action-primary) 70%, transparent);
+    stroke-width: 1;
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: draw 1.4s var(--site-ease-out) forwards;
+    animation-delay: calc(0.6s + var(--i) * 0.12s);
+  }
+  @keyframes draw {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+  .sky__star {
+    fill: var(--color-text-primary);
+    opacity: 0;
+    animation: star-in 0.8s var(--site-ease-out) forwards;
+    animation-delay: calc(0.3s + var(--i) * 0.08s);
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  @keyframes star-in {
+    from {
+      opacity: 0;
+      transform: scale(0);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  .sky__halo {
+    animation: halo 4s ease-in-out infinite;
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  @keyframes halo {
+    50% {
+      transform: scale(1.25);
+      opacity: 0.6;
+    }
+  }
+  @media (max-width: 48rem) {
+    .sky__eagle {
+      opacity: 0.3;
+      right: -6rem;
+      top: calc(var(--site-nav-h) - 1rem);
+    }
+  }
+</style>

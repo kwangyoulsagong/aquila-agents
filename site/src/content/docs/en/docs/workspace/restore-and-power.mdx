@@ -1,0 +1,82 @@
+---
+title: Restore, power and language
+description: What comes back when you relaunch, how battery saver works, and how to switch between Korean and English.
+sidebar:
+  order: 6
+---
+
+import { Aside } from '@astrojs/starlight/components';
+import Shot from '~/components/docs/Shot.astro';
+
+## Back where you left off
+
+Quit Aquila, restart your Mac, or even have the app crash: when you open it again, your workspace comes back.
+
+<Shot id="restore" caption="After a relaunch: the same tabs and splits, conversations resumed." />
+
+What's restored:
+
+| | After relaunch |
+|---|---|
+| **Tabs** | Every tab, in the same order, with its name and Claude account. |
+| **Split layout** | The same panes, and the same pane focused. |
+| **Claude** | Resumes the same conversation (`claude --resume`). This follows `/clear` too. |
+| **Codex** | Resumes the same conversation (`codex resume`). |
+| **Shell** | A fresh shell in the same folder, with the previous output shown above it, dimmed, under a **Previous output · time · read-only** line. |
+| **Worktree tabs** | Reopen in their worktree. |
+
+The saved state is rewritten on every change, so a crash loses nothing.
+
+### Only what's on screen starts right away
+
+To open quickly, Aquila starts only the sessions in your visible panes. The other tabs are listed but wait; each one
+starts the first time you show it.
+
+### Things to know
+
+- A Claude tab where you never sent a message has no conversation yet, so it opens as a new Claude session.
+- If a conversation can't be resumed, the tab shows its previous output with **Couldn't resume the session** and
+  drops to a shell in that folder. You can still find the conversation in
+  [Session history](/en/docs/agents/session-history/).
+- Commands you were running by hand in a shell (a dev server, a watcher) don't restart. Commands in the
+  [run panel](/en/docs/agents/run/) do.
+- Tabs of projects you removed are dropped, and so are worktree tabs whose folder no longer exists. If a tab's Claude
+  account was removed, it uses the project's account.
+
+<Aside type="note">
+  The state lives in `~/.aquila/state.json`, and shell output snapshots in `~/.aquila/scrollback/`. Closing a tab
+  deletes its snapshot.
+</Aside>
+
+## Battery saver
+
+When your Mac is **on battery**, **throttled** (the CPU speed is limited) or **running hot**, Aquila switches to a
+lighter profile by itself. There's no setting: it switches back as soon as the condition ends.
+
+In battery saver:
+
+- Looping animations stop. A working dot shows a half-filled disc instead of pulsing; the waiting halo stops pulsing.
+- The terminal cursor stops blinking.
+- Sessions you can't see update their screen less often (once a second instead of five times).
+- Background checks such as the changes panel and Claude account status poll less often.
+- Guide videos show a still frame.
+- Some background note work pauses, such as indexing note sources and automatic link suggestions.
+
+Terminals on screen still update every frame, and <kbd>⌃C</kbd> is still instant.
+
+<Shot id="power" caption="Battery saver: still dots, no blinking, quieter background work." />
+
+## Switch the language
+
+Aquila's interface is in Korean and English.
+
+To switch, click **⚙ Settings** at the bottom left of the sidebar, then **Language**, and choose **한국어** or
+**English**. Or press <kbd>⌘K</kbd> and run **Switch to 한국어** (in the Korean UI: **English로 바꾸기**).
+
+The whole app switches immediately, including the menu bar. Your sessions keep running; the CLIs'
+own language isn't affected.
+
+<Shot id="language" caption="⚙ Settings → Language." />
+
+The same **⚙ Settings** menu also has **Appearance** (Match system, Light or Dark), **Notify when done**,
+**Global shortcut…** and **Open settings file**.

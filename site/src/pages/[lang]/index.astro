@@ -1,0 +1,42 @@
+---
+import Base from '../../layouts/Base.astro';
+import Nav from '../../components/Nav.astro';
+import Hero from '../../components/Hero.astro';
+import Marquee from '../../components/Marquee.astro';
+import Film from '../../components/Film.astro';
+import Principles from '../../components/Principles.astro';
+import StatusStory from '../../components/StatusStory.astro';
+import Showcase from '../../components/Showcase.astro';
+import Notes from '../../components/Notes.astro';
+import FeatureGrid from '../../components/FeatureGrid.astro';
+import Shortcuts from '../../components/Shortcuts.astro';
+import Compare from '../../components/Compare.astro';
+import Faq from '../../components/Faq.astro';
+import Download from '../../components/Download.astro';
+import Footer from '../../components/Footer.astro';
+import { LANGS, type Lang } from '../../i18n/ui';
+
+export function getStaticPaths() {
+  return LANGS.map((lang) => ({ params: { lang } }));
+}
+const lang = Astro.params.lang as Lang;
+---
+
+<Base lang={lang}>
+  <Nav lang={lang} />
+  <main id="main">
+    <Hero lang={lang} />
+    <Marquee lang={lang} />
+    <Film lang={lang} />
+    <Principles lang={lang} />
+    <StatusStory lang={lang} />
+    <Showcase lang={lang} />
+    <Notes lang={lang} />
+    <Shortcuts lang={lang} />
+    <FeatureGrid lang={lang} />
+    <Compare lang={lang} />
+    <Faq lang={lang} />
+    <Download lang={lang} />
+  </main>
+  <Footer lang={lang} />
+</Base>

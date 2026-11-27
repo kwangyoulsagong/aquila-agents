@@ -1,0 +1,58 @@
+# Build the homepage + docs (site/) and publish them to GitHub Pages.
+# Runs when the site or the guide media it shows changes on main, or by hand from the Actions tab.
+# Pages must be enabled (Settings → Pages → Source: GitHub Actions). With a custom domain, set the repo
+# variables SITE_URL to it and SITE_BASE to "/".
+name: site
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - 'design-system/tokens.css'
+      - 'src/features/guide/media/**'
+      - 'build/icon.svg'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: site
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # docs "last updated" dates come from git history
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - run: npm ci
+      - run: npm run build
+        env:
+          SITE_URL: ${{ vars.SITE_URL || format('https://{0}.github.io', github.repository_owner) }}
+          SITE_BASE: ${{ vars.SITE_BASE || format('/{0}', github.event.repository.name) }}
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

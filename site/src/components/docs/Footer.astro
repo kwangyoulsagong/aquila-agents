@@ -1,0 +1,26 @@
+---
+/** Starlight's footer (edit link, last updated, pager) plus the creator credit. */
+import Default from '@astrojs/starlight/components/Footer.astro';
+import { AUTHOR, AUTHOR_URL, AUTHOR_LINKEDIN } from '../../lib/links';
+---
+
+<Default><slot /></Default>
+<p class="credit">
+  © {new Date().getFullYear()} <a href={AUTHOR_URL} rel="author noopener">{AUTHOR}</a> · Aquila Agents
+  {AUTHOR_LINKEDIN && <> · <a href={AUTHOR_LINKEDIN} rel="author noopener">LinkedIn</a></>}
+</p>
+
+<style>
+  .credit {
+    margin-top: 2rem;
+    font-size: var(--sl-text-xs);
+    color: var(--sl-color-gray-3);
+  }
+  .credit a {
+    color: var(--sl-color-gray-2);
+    text-decoration: none;
+  }
+  .credit a:hover {
+    color: var(--sl-color-white);
+  }
+</style>

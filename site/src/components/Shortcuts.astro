@@ -1,0 +1,114 @@
+---
+import { ui, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = ui[lang].shortcuts;
+---
+
+<section class="keys" aria-labelledby="keys-title">
+  <div class="container">
+    <h2 id="keys-title" class="keys__title" data-reveal>{t.title}</h2>
+    <ul class="keys__list" data-keys>
+      {
+        t.items.map((s, i) => (
+          <li class="keys__item" data-reveal style={`--i:${i}`} data-key-item>
+            <span class="keys__caps">
+              {s.keys.map((k) => (
+                <kbd class="keys__cap">{k}</kbd>
+              ))}
+            </span>
+            <span class="keys__label">{s.label}</span>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>
+
+<style>
+  .keys {
+    padding-block: clamp(4rem, 3rem + 4vw, 7rem);
+    border-block: 1px solid var(--site-line);
+    background:
+      radial-gradient(60% 100% at 50% 0%, color-mix(in oklab, var(--color-action-primary) 7%, transparent), transparent),
+      color-mix(in oklab, var(--color-bg-surface) 40%, transparent);
+  }
+  .keys__title {
+    margin: 0;
+    text-align: center;
+    font-size: clamp(1.5rem, 1.2rem + 1.4vw, 2.25rem);
+    letter-spacing: -0.03em;
+  }
+  .keys__list {
+    list-style: none;
+    margin: 2.5rem 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 1rem;
+  }
+  .keys__item {
+    display: grid;
+    justify-items: center;
+    gap: 0.875rem;
+    text-align: center;
+  }
+  .keys__caps {
+    display: flex;
+    gap: 0.375rem;
+  }
+  .keys__cap {
+    display: grid;
+    place-items: center;
+    min-width: 3rem;
+    height: 3rem;
+    padding: 0 0.75rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--color-border-default);
+    background: linear-gradient(180deg, var(--color-bg-hover), var(--color-bg-surface));
+    box-shadow:
+      0 1px 0 0 color-mix(in oklab, white 8%, transparent) inset,
+      0 3px 0 0 var(--color-border-subtle),
+      0 6px 12px -4px rgb(0 0 0 / 0.5);
+    font-family: var(--font-family-mono);
+    font-size: 1.0625rem;
+    color: var(--color-text-primary);
+    transition:
+      transform var(--motion-fast) var(--motion-ease),
+      box-shadow var(--motion-fast) var(--motion-ease),
+      color var(--motion-fast) var(--motion-ease);
+  }
+  /* motion.ts presses one shortcut at a time */
+  .keys__item.is-pressed .keys__cap,
+  .keys__item:hover .keys__cap {
+    transform: translateY(2px);
+    box-shadow:
+      0 1px 0 0 color-mix(in oklab, white 8%, transparent) inset,
+      0 1px 0 0 var(--color-border-subtle),
+      0 0 1.25rem -2px var(--site-glow);
+    color: var(--color-action-primary-hover);
+  }
+  .keys__label {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+  }
+  @media (max-width: 64rem) {
+    .keys__list {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      row-gap: 2rem;
+    }
+  }
+  @media (max-width: 30rem) {
+    .keys__list {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .keys__cap {
+      min-width: 2.5rem;
+      height: 2.5rem;
+      font-size: 0.9375rem;
+    }
+  }
+</style>

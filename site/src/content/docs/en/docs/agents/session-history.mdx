@@ -1,0 +1,88 @@
+---
+title: Session history
+description: Find a past Claude or Codex session, resume it in a new tab or export it, and see the commands it ran.
+sidebar:
+  order: 7
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+import Shot from '~/components/docs/Shot.astro';
+
+Session history lists the Claude and Codex sessions you've had on this Mac — including ones started outside Aquila
+— grouped by the folder they ran in. Find the one you want, pick up where you left off, or save it as Markdown.
+
+<Shot id="history" caption="Past sessions by folder, with the selected one's details and conversation." />
+
+## Open session history
+
+Press <kbd>⌘Y</kbd>, or <kbd>⌘K</kbd> → **Session history**.
+
+The list is grouped by folder, most recent first. Selecting a session shows its details: agent and account, start
+and last activity, project, folder, branch, message count, session ID, and the start of the conversation.
+
+## Find a session
+
+- Type in the search field to match names, first messages, folders, branches and IDs. The search also looks
+  inside conversations; when a hit is only in the conversation, a **Match:** line shows the snippet.
+- Use **Show** to filter: **All**, **Favorites**, **Claude** or **Codex**.
+- Click **Favorite** to star a session, and **Rename** to give it a name you'll recognize. Names and favorites are
+  saved in Aquila only; leave the name empty to go back to the original.
+
+## Resume a session
+
+<Steps>
+
+1. Select the session.
+
+2. Press <kbd>↵</kbd> or click **Resume**.
+
+3. A new tab opens in the right project and folder and runs `claude --resume <id>` (with the account that holds
+   the session) or `codex resume <id>`.
+
+</Steps>
+
+If the session ran in a [worktree](/en/docs/agents/worktrees/), the new tab runs in that worktree. If its folder
+isn't a project yet, the button reads **Add project and resume** and adds it first. If the folder no longer exists,
+the session can't be resumed.
+
+## Export as Markdown
+
+Click **Export as Markdown** and choose where to save. The file has the whole conversation, re-read from disk —
+the in-app preview shows only the start of long sessions.
+
+<Aside type="caution" title="Claude deletes old transcripts">
+  Claude Code removes transcripts after `cleanupPeriodDays` (30 days by default). The footer shows your setting, and
+  a session close to deletion gets an orange note. Export it if you want to keep it.
+</Aside>
+
+## See the commands a session ran
+
+For Claude sessions, Aquila lists the shell commands the agent ran, oldest first. Use it to check what an agent did
+while you were away.
+
+- **Current tab:** focus a Claude tab and press <kbd>⌘K</kbd> → **Commands in this session**.
+- **Past sessions:** select one in session history; the commands appear under **n commands run**.
+
+<Shot id="commands" caption="Commands in this session: how each ended, with badges on the ones worth a look." />
+
+Each command shows how it ended — **OK**, **Failed**, **Interrupted**, or **Running or no result** — and the time.
+Some get a mark:
+
+| Mark | For commands like |
+|---|---|
+| ⚠ **Possibly destructive command** | `rm -rf`, `git push --force`, `git reset --hard`, `DROP TABLE`, `terraform destroy` |
+| **Test** | `npm test`, `vitest`, `jest`, `pytest`, `go test`, `cargo test` |
+| **Migration** | `prisma migrate`, `alembic`, `rails db:…`, `drizzle-kit push`, `supabase db` |
+
+<Aside type="note" title="Privacy">
+  Only the commands are shown — their output is never read or kept. Values that look secret are masked as `•••`:
+  `TOKEN=…` or `API_KEY=…`, `--password …` style flags, `Authorization:` headers, and passwords in URLs.
+</Aside>
+
+## What Aquila reads
+
+Session history reads Claude's transcripts (for every account) and Codex's session files. It never writes, renames
+or deletes anything in `~/.claude*` or `~/.codex`.
+
+Sessions from [remote projects](/en/docs/agents/remote-ssh/) are listed too, grouped per host and folder. They're
+fetched over SSH when you open history, and resuming opens them on that host.

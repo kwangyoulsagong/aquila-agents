@@ -1,0 +1,52 @@
+---
+title: 설치
+description: macOS용 Aquila Agents를 내려받고 처음 열어요.
+sidebar:
+  order: 1
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+
+## 필요한 것
+
+- **Apple Silicon**(M1 이상) Mac. Intel Mac, Windows, Linux는 아직 지원하지 않아요.
+- 설치되고 로그인된 에이전트 CLI 하나 이상:
+  - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) — `claude` 명령
+  - [Codex CLI](https://github.com/openai/codex) — `codex` 명령
+
+Aquila는 이 CLI를 그대로 실행해요. 세션은 CLI에 로그인된 계정과 요금제를 그대로 써요.
+
+## 내려받고 설치하기
+
+<Steps>
+
+1. [릴리스 페이지](https://github.com/kwangyoulsagong/aquila-agents/releases/latest)에서 최신
+   `Aquila.Agents-<버전>-arm64.dmg`를 내려받아요.
+
+2. `.dmg`를 열고 **Aquila Agents**를 **응용 프로그램**으로 끌어다 놓아요.
+
+3. 응용 프로그램에서 Aquila Agents를 열어요.
+
+</Steps>
+
+## 처음 열 때 "확인되지 않은 개발자"
+
+아직 **서명·공증 전**이라 macOS가 첫 실행을 막아요. 아래 중 하나를 한 번만 하면 돼요.
+
+- Finder에서 앱을 **우클릭** → **열기** → **열기**.
+- 또는 터미널에서:
+
+  ```sh
+  xattr -dr com.apple.quarantine "/Applications/Aquila Agents.app"
+  ```
+
+그다음부터는 평소처럼 열려요.
+
+<Aside type="tip">
+  첫 창에서 [시작 점검](/ko/docs/start/first-run/)이 떠요. CLI를 찾고 첫 프로젝트 추가를 도와줘요.
+</Aside>
+
+## 업데이트
+
+새 버전이 나오면 앱이 알려 주고 릴리스 노트를 보여줘요. 위와 같은 방법으로 앱을 바꿔 넣으면 돼요. 프로젝트와 설정은
+`~/.aquila`에 있어서 그대로 남아요.

@@ -1,0 +1,110 @@
+---
+title: Worktrees
+description: Give each agent its own branch and folder with git worktrees, then clean them up when merged.
+sidebar:
+  order: 2
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+import Shot from '~/components/docs/Shot.astro';
+
+Two agents editing the same checkout step on each other. A **git worktree** gives each one its own folder and
+branch from the same repository, so you can run several agents on one project in parallel and review each branch
+separately.
+
+Aquila creates worktrees next to your repo:
+
+```text
+~/code/shop            ← your main checkout
+~/code/shop-wt/feat/login
+~/code/shop-wt/fix/cart
+```
+
+That is `../<repo>-wt/<branch>`, relative to the main worktree.
+
+<Shot id="worktree" caption="Open in worktree: type a branch, pick the agent." />
+
+## Open a session in a new worktree
+
+<Steps>
+
+1. Right-click **+** in the tab bar → **Open in worktree…**, or press <kbd>⌘K</kbd> and run **Open in worktree**.
+
+2. Type a branch name, for example `feat/login`. Local branches are suggested as you type.
+
+3. Check the line under the field. It says what will happen and where:
+   - **New branch (from …)** — the branch doesn't exist yet and is created.
+   - **Existing branch** — the branch exists and is checked out in a new worktree.
+   - **Existing worktree** — the branch is already checked out somewhere; that folder is reused.
+
+4. Pick the **Agent** (Claude, Codex or Shell; the project's default agent is preselected) and click **Open**.
+
+</Steps>
+
+The tab shows the branch name, and so do the pane head, the command palette and notifications. If git refuses
+(for example, an invalid branch name), its own error is shown in the dialog.
+
+A new branch starts from the project's **Default branch** (Project settings). If that's empty, it starts from the
+current branch.
+
+## Open a session in a worktree you already have
+
+- Right-click **+** in the tab bar → **Worktrees** → pick a branch → Claude, Codex or Shell.
+- Or press <kbd>⌘K</kbd>: the palette lists entries like "Claude · feat/login" for the current project's worktrees.
+
+This works for any linked worktree of the repo, including ones you made yourself with `git worktree add`.
+
+## Copy `.env` and other ignored files
+
+A fresh worktree only has tracked files, so things like `.env` are missing. List what to copy in a
+`.worktreeinclude` file at the repo root, using gitignore syntax:
+
+```txt title=".worktreeinclude"
+.env
+.env.local
+config/secrets.json
+```
+
+When Aquila creates a worktree, it copies the matching files from the main worktree. Only files that git also
+ignores are copied, and existing files are never overwritten.
+
+## Run setup in each new worktree
+
+For anything else a new checkout needs (installing dependencies, generating code), set a **Setup script** in
+**Project settings…**. It runs once, visibly, in the new worktree before the agent starts. The agent still starts if
+the script fails.
+
+<Aside type="tip" title="Ports per worktree">
+  With a **Port base** in Project settings, sessions get a `PORT` variable, offset by 10 for each worktree. Two dev
+  servers from two branches then don't fight over the same port.
+</Aside>
+
+## What follows the worktree
+
+When the focused tab runs in a worktree, these panels show that worktree, not the main checkout:
+
+- the [changes panel](/en/docs/agents/changes-panel/) (its diff and stage/revert),
+- the [preview](/en/docs/agents/preview/) (its own addresses and remembered URL),
+- the [Run slot](/en/docs/agents/run/) (its own commands and logs).
+
+Worktree tabs come back in their worktree when you relaunch the app. If the folder is gone, the tab is dropped.
+
+## Clean up worktrees
+
+<Steps>
+
+1. Right-click **+** in the tab bar → **Clean up worktrees…** (or <kbd>⌘K</kbd> → **Clean up worktrees**).
+
+2. Each worktree is marked **merged** or **not merged**, **has changes**, or **open in a tab**. Worktrees that are
+   merged, clean and not open are **Suggested**.
+
+3. Click **Remove** on one and confirm. Any clean worktree that isn't open in a tab can be removed.
+
+</Steps>
+
+<Aside type="note" title="What removal does">
+  Removing runs a plain `git worktree remove` — never `--force` — so a worktree with uncommitted changes can't be
+  removed by accident. Only the folder goes; **the branch and its commits stay**.
+</Aside>
+
+Worktrees are available for local projects only, not for projects on an SSH host.

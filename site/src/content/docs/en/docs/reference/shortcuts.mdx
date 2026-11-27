@@ -1,0 +1,127 @@
+---
+title: Keyboard shortcuts
+description: Every keyboard shortcut in Aquila Agents, grouped by where you use it.
+sidebar:
+  order: 1
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Every app shortcut is also listed in the in-app guide (<kbd>⌘/</kbd> → **All shortcuts**) and in the macOS menu bar,
+so you can always look one up from inside the app.
+
+<Aside type="tip">
+  Shortcuts follow the physical key, not the character, so they keep working with the Korean input source on —
+  <kbd>⌘T</kbd> works even when that key types `ㅅ`.
+</Aside>
+
+## General
+
+| Keys | Action |
+|---|---|
+| <kbd>⌘K</kbd> | Command palette: jump to a project or session, or run any action |
+| <kbd>⌘/</kbd> | Guide · shortcuts |
+| <kbd>⌘J</kbd> | Go to next waiting session (waiting, then error, then done; longest wait first) |
+| <kbd>⌘Y</kbd> | Session history |
+| <kbd>⌘,</kbd> | Settings (the ⚙ menu) |
+
+## Sessions and projects
+
+| Keys | Action |
+|---|---|
+| <kbd>⌘T</kbd> | Open Claude in the current project |
+| <kbd>⇧⌘T</kbd> | Open Codex |
+| <kbd>⌥⌘T</kbd> | Open shell |
+| <kbd>⌘W</kbd> | Close session (in an empty pane: close the pane) |
+| <kbd>⌘1</kbd> – <kbd>⌘9</kbd> | Go to project 1–9 in the sidebar |
+
+Right-click **+** in the tab bar for a new Claude, Codex or shell, or a session in a worktree. See
+[Sessions](/en/docs/workspace/sessions/) and [Worktrees](/en/docs/agents/worktrees/).
+
+## Terminal
+
+| Keys | Action |
+|---|---|
+| <kbd>⇧⌘C</kbd> | Copy last response |
+| <kbd>⇧⌘E</kbd> | Pick URL / path: copy a URL, path or commit on screen by its label |
+| <kbd>⌘F</kbd> | Find in terminal |
+| <kbd>⌘V</kbd> | Paste; an image or copied files are pasted as their paths |
+
+See [Terminal helpers](/en/docs/agents/terminal-helpers/).
+
+## Split view
+
+| Keys | Action |
+|---|---|
+| <kbd>⌘D</kbd> | Split right (up to 4 panes) |
+| <kbd>⇧⌘D</kbd> | Split down |
+| <kbd>⌥⌘←</kbd> <kbd>⌥⌘→</kbd> <kbd>⌥⌘↑</kbd> <kbd>⌥⌘↓</kbd> | Move to the next pane |
+| <kbd>⇧⌘↩</kbd> | Zoom pane / restore (or double-click the pane head) |
+| <kbd>⇧⌘F</kbd> | Full window / restore: hide the sidebar and tabs, show only the focused pane |
+| <kbd>⌥⇧⌘←</kbd> <kbd>⌥⇧⌘→</kbd> <kbd>⌥⇧⌘↑</kbd> <kbd>⌥⇧⌘↓</kbd> | Resize the pane |
+
+Dragging a divider resizes too; double-click it for an even split. <kbd>Esc</kbd> doesn't leave a zoomed pane or full
+window — it stays with the CLI. See [Split panes](/en/docs/workspace/split-panes/).
+
+## Panels
+
+| Keys | Action |
+|---|---|
+| <kbd>⇧⌘G</kbd> | Show changes |
+| <kbd>⇧⌘P</kbd> | Show preview |
+| <kbd>⇧⌘R</kbd> | Show run panel |
+| <kbd>⇧⌘N</kbd> | Show graph |
+| <kbd>⌘O</kbd> | Quick open note |
+| <kbd>⇧⌘O</kbd> | Note explorer |
+
+## Note editor
+
+These work while the cursor is in a note.
+
+| Keys | Action |
+|---|---|
+| <kbd>⌥⇧↑</kbd> / <kbd>⌥⇧↓</kbd> | Move a block up / down |
+| <kbd>/</kbd> | Block menu (on an empty line) |
+| <kbd>⌘E</kbd> | Reading mode on / off |
+| <kbd>⌘S</kbd> | Save now (notes also save on their own) |
+| <kbd>⌘F</kbd> | Find in the note |
+| <kbd>⌘D</kbd> | Select the next match |
+| <kbd>⌘Z</kbd> / <kbd>⇧⌘Z</kbd> | Undo / redo |
+| <kbd>Tab</kbd> / <kbd>⇧Tab</kbd> | In a table: next / previous cell |
+| <kbd>↩</kbd> | In a table: add a row |
+| `[[` | Suggest note names to link |
+
+<Aside type="note">
+  In the note editor and in text fields, <kbd>⌘W</kbd> never closes your session. In the note editor, <kbd>⌘F</kbd>
+  and <kbd>⌘D</kbd> belong to the editor, so they don't search the terminal or split the view.
+</Aside>
+
+## Note explorer
+
+These work while the Files tree has focus.
+
+| Keys | Action |
+|---|---|
+| <kbd>↑</kbd> <kbd>↓</kbd> | Move through the tree |
+| <kbd>←</kbd> <kbd>→</kbd> | Close / open a folder |
+| <kbd>↩</kbd> | Open the note |
+| <kbd>⌘N</kbd> | New note |
+| <kbd>F2</kbd> | Rename |
+| <kbd>⌘⌫</kbd> | Move to Trash (asks first) |
+| <kbd>⌘Z</kbd> | Undo the last move, rename, new folder or new note |
+
+## Graph (Around view)
+
+| Keys | Action |
+|---|---|
+| Arrow keys | Move between items |
+| <kbd>↩</kbd> | Put the selected item in the middle |
+| <kbd>⌘↩</kbd> | Open the selected item |
+| <kbd>⌫</kbd> | Back |
+| <kbd>⌘</kbd>-click | Open (in Around) · pick several bubbles (in Map) |
+
+## Global shortcut
+
+You can set one key that works from any app: it brings Aquila to the front on the session that has waited longest.
+It's off until you record a key in **⚙ Settings → Global shortcut…**. The key needs <kbd>⌘</kbd>, <kbd>⌃</kbd> or
+<kbd>⌥</kbd>, and can't be one of the shortcuts above.

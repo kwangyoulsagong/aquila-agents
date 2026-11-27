@@ -1,0 +1,81 @@
+---
+title: Run slot
+description: Keep dev servers and watchers running next to your agents, with status, logs and a link to the preview.
+sidebar:
+  order: 4
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+import Shot from '~/components/docs/Shot.astro';
+
+The Run slot runs the long-lived commands a project needs — a dev server, a test watcher, a type checker — apart
+from your agent tabs. You see at a glance whether each one is up, read its log, and open its address in the
+[preview](/en/docs/agents/preview/).
+
+<Shot id="run" caption="One row per command, its log below, the address one click from the preview." />
+
+## Open the Run panel
+
+Press <kbd>⇧⌘R</kbd>, click **▶ Run** in the tab bar, or press <kbd>⌘K</kbd> → **Show run panel**.
+
+Each command has a row with a status dot. Select a row to see its log below. **Run** starts the selected command; while
+it's up, **Restart** and **Stop** take its place.
+
+## What the dot means
+
+| Dot | State | Meaning |
+|---|---|---|
+| Green disc | **Running** | The command is up. |
+| Ring | **Exited** | It ended normally (exit 0) or you stopped it. |
+| `!` square | **Error** | It exited with a non-zero code, or printed an error line. The line is shown. |
+
+An error line is one with `Error`, `EADDRINUSE`, `OOM`, `out of memory` or `NaN`. A watcher that is still running
+turns back to **Running** when it prints a "healthy again" line, such as `compiled successfully`, `Found 0 errors`,
+`ready in …` or `hmr update`.
+
+## Choose what to run
+
+With no setup, the slot offers the project's `dev` script from `package.json`, run with the package manager the
+project uses (`pnpm dev`, `yarn dev`, `bun run dev`, else `npm run dev`).
+
+To set your own commands:
+
+<Steps>
+
+1. Right-click the project → **Project settings…**.
+
+2. In **Run commands**, write one command per line as `name: command`:
+
+   ```text
+   web: npm run dev
+   api: go run ./cmd/api  # ready: Listening on
+   types: npx tsc --noEmit --watch
+   ```
+
+3. Save. Each line becomes its own row in the Run panel.
+
+</Steps>
+
+### Say which line means "healthy"
+
+If your tool prints its own message when it recovers, end the line with `# ready: <text>`. After an error, a line
+containing that text (case doesn't matter) turns the run back to **Running**. Because it's a shell comment, the
+command itself is unchanged.
+
+## Open the app in the preview
+
+When a run prints a local address (`http://localhost:5173`, `http://0.0.0.0:3000`, …), it becomes the run's address and
+**Open in preview** opens the preview panel on it. The address also joins the preview's list of dev servers.
+
+## Per worktree, and across restarts
+
+- The panel follows the **focused tab**. Each [worktree](/en/docs/agents/worktrees/) has its own runs and logs,
+  so two branches can each run their own dev server.
+- Runs get a `PORT` variable when the project has a **Port base** (offset by 10 per worktree); the panel head shows it.
+- Runs that are up when you quit start again the next time you open the app, as long as the project, the command
+  and the folder still exist.
+
+<Aside type="note">
+  Stopping a run stops its whole process group, so child processes (like the server a `npm run dev` started) don't
+  linger. Quitting the app stops every run. The Run slot is for local projects only.
+</Aside>

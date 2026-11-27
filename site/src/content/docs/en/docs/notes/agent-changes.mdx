@@ -1,0 +1,67 @@
+---
+title: Agent changes to notes
+description: See what Claude or another app changed in a note since you last looked, review the diff, and revert parts of it.
+sidebar:
+  order: 5
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+import Shot from '~/components/docs/Shot.astro';
+
+Agents edit your notes too — they tick off checklists, update a spec's status, rewrite a section. Aquila remembers
+what each note looked like when you last saw it, so you can see exactly what changed while you were away.
+
+<Shot id="noteReview" caption="The change bar on top of a note, with the diff open." />
+
+## The change bar
+
+When you open a note that changed since you last saw it, a bar appears above the text:
+
+- **Claude changed this note · +12 −3** — a Claude session wrote to it.
+- **Changed outside · +12 −3** — something else did: another editor, a script, `git pull`.
+
+The numbers are the lines added and removed since your last look.
+
+## Review the changes
+
+<Steps>
+
+1. Click **Review** in the bar. The diff between what you last saw and the file now opens below it.
+
+2. For a part you don't want, click **Revert hunk**, then confirm **Revert this part?**. Only that part goes back to
+   what you saw; the rest of the agent's edit stays.
+
+3. When you're happy with the note, click **Mark as seen**. The bar goes away until the next outside change.
+
+</Steps>
+
+A revert is a normal edit in the editor, saved like your own typing.
+
+## Notes that changed elsewhere
+
+The editor's side column has a **Changed outside** list: other notes that changed since you last looked, with who
+changed them (**Claude** or **outside**) and when. Click one to open it and review. The list is hidden when there's
+nothing to show.
+
+## What counts as "seen"
+
+Aquila records a note as seen when:
+
+- you open it in the editor and nothing outside has changed it since your last look,
+- you save your own edits on top of the version you saw, or
+- you click **Mark as seen**.
+
+A write from an agent, a terminal or git never counts as seen — that difference is what the bar shows.
+
+<Aside type="note">
+  Aquila decides "Claude" from what its Claude sessions report. It can occasionally name an earlier session than the
+  one that made the edit.
+</Aside>
+
+## Where this is stored
+
+The copies of what you saw are kept only in `~/.aquila/notes-seen/` on your Mac — never next to the note and never in
+your repo. Up to 2,000 notes (50 MB) are kept; the least recently used are dropped first. Notes larger than 2 MB aren't
+tracked.
+
+Nothing is polled in the background: the check happens when you open a note.

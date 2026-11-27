@@ -1,0 +1,228 @@
+---
+import { ui, type Lang } from '../i18n/ui';
+import { LATEST, REPO, DOWNLOAD_DMG, VERSION } from '../lib/links';
+import AppMock from './AppMock.astro';
+import Constellation from './Constellation.astro';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = ui[lang].hero;
+---
+
+<section class="hero" aria-labelledby="hero-title">
+  <div class="hero__sky" aria-hidden="true">
+    <div class="hero__aurora"></div>
+    <div class="hero__grid"></div>
+    <Constellation />
+  </div>
+
+  <div class="container hero__inner">
+    <a class="hero__pill" href={LATEST} rel="noopener" data-intro style="--d:0">
+      <span class="hero__pill-tag">New</span>
+      <span>{t.pill}</span>
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"
+        ><path d="M6 3.5 10.5 8 6 12.5"></path></svg
+      >
+    </a>
+
+    <h1 id="hero-title" class="hero__title">
+      <span class="hero__line" data-intro style="--d:1"><span class="grad">{t.titleA}</span></span>
+      <span class="hero__line" data-intro style="--d:2"><span class="grad-accent">{t.titleB}</span></span>
+    </h1>
+
+    <p class="hero__sub" data-intro style="--d:3">{t.sub}</p>
+
+    <div class="hero__ctas" data-intro style="--d:4">
+      <a class="btn btn--primary btn--lg" href={DOWNLOAD_DMG} download>
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
+          ><path
+            d="M16.37 12.6c-.02-2.3 1.88-3.4 1.97-3.46-1.07-1.57-2.74-1.78-3.33-1.8-1.42-.15-2.77.83-3.49.83-.72 0-1.83-.81-3.01-.79-1.55.02-2.98.9-3.78 2.29-1.61 2.8-.41 6.94 1.16 9.21.77 1.11 1.68 2.36 2.88 2.31 1.16-.05 1.6-.75 3-.75s1.79.75 3.01.72c1.25-.02 2.04-1.13 2.8-2.25.88-1.29 1.24-2.54 1.26-2.6-.03-.01-2.42-.93-2.47-3.71ZM14.07 5.85c.64-.78 1.07-1.85.95-2.93-.92.04-2.03.61-2.69 1.38-.59.68-1.11 1.78-.97 2.83 1.02.08 2.07-.52 2.71-1.28Z"
+          ></path></svg
+        >
+        {t.ctaMac}
+      </a>
+      <a class="btn btn--lg hero__gh" href={REPO} rel="noopener">{t.ctaGithub} ↗</a>
+    </div>
+
+    <p class="hero__meta" data-intro style="--d:5">v{VERSION} · {t.meta}</p>
+  </div>
+
+  <div class="container hero__stage" data-hero-stage>
+    <div class="hero__mock" data-hero-mock>
+      <AppMock lang={lang} />
+    </div>
+    <div class="hero__floor" aria-hidden="true"></div>
+  </div>
+</section>
+
+<style>
+  .hero {
+    position: relative;
+    padding-top: calc(var(--site-nav-h) + clamp(3rem, 2rem + 6vw, 7rem));
+    padding-bottom: clamp(3rem, 2rem + 4vw, 6rem);
+    overflow: clip;
+  }
+  .hero__sky {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+  }
+  .hero__aurora {
+    position: absolute;
+    inset: -20% -10% auto;
+    height: 90%;
+    background:
+      radial-gradient(40% 50% at 30% 30%, color-mix(in oklab, var(--color-action-primary) 26%, transparent), transparent 70%),
+      radial-gradient(35% 45% at 72% 22%, color-mix(in oklab, var(--color-account-personal) 20%, transparent), transparent 70%),
+      radial-gradient(30% 40% at 55% 60%, color-mix(in oklab, var(--color-agent-codex) 10%, transparent), transparent 70%);
+    filter: blur(40px);
+    animation: aurora 18s ease-in-out infinite alternate;
+  }
+  @keyframes aurora {
+    to {
+      transform: translate3d(2%, 4%, 0) scale(1.08) rotate(3deg);
+    }
+  }
+  .hero__grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(to right, color-mix(in oklab, var(--color-border-subtle) 55%, transparent) 1px, transparent 1px),
+      linear-gradient(to bottom, color-mix(in oklab, var(--color-border-subtle) 55%, transparent) 1px, transparent 1px);
+    background-size: 4rem 4rem;
+    mask-image: radial-gradient(70% 55% at 50% 30%, black, transparent 75%);
+    -webkit-mask-image: radial-gradient(70% 55% at 50% 30%, black, transparent 75%);
+  }
+
+  .hero__inner {
+    display: grid;
+    justify-items: center;
+    text-align: center;
+  }
+  .hero__pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.3125rem 0.75rem 0.3125rem 0.3125rem;
+    border-radius: 999px;
+    border: 1px solid var(--site-line);
+    background: color-mix(in oklab, var(--color-bg-surface) 60%, transparent);
+    backdrop-filter: blur(8px);
+    font-size: 0.8125rem;
+    color: var(--color-text-secondary);
+    max-width: 100%;
+    transition:
+      border-color var(--motion-medium) var(--motion-ease),
+      color var(--motion-medium) var(--motion-ease);
+  }
+  .hero__pill:hover {
+    border-color: var(--color-border-default);
+    color: var(--color-text-primary);
+  }
+  .hero__pill span:nth-child(2) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .hero__pill svg {
+    width: 0.875rem;
+    height: 0.875rem;
+    flex: none;
+    transition: transform var(--motion-medium) var(--motion-ease);
+  }
+  .hero__pill:hover svg {
+    transform: translateX(2px);
+  }
+  .hero__pill-tag {
+    padding: 0.125rem 0.5rem;
+    border-radius: 999px;
+    background: var(--color-bg-selected);
+    color: var(--color-action-primary);
+    font-weight: 600;
+    font-size: 0.75rem;
+    flex: none;
+  }
+
+  .hero__title {
+    margin: 1.75rem 0 0;
+    font-size: var(--site-text-hero);
+    line-height: 1.02;
+    letter-spacing: -0.045em;
+    font-weight: 800;
+  }
+  .hero__line {
+    display: block;
+    padding-bottom: 0.06em; /* descenders under background-clip:text */
+  }
+  .hero__sub {
+    margin: 1.5rem 0 0;
+    max-width: 40rem;
+    font-size: var(--site-text-lead);
+    color: var(--color-text-secondary);
+    text-wrap: pretty;
+  }
+  .hero__ctas {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-top: 2.25rem;
+  }
+  .hero__meta {
+    margin: 1.25rem 0 0;
+    font-size: var(--site-text-small);
+    color: var(--color-text-tertiary);
+    font-family: var(--font-family-mono);
+  }
+
+  .hero__stage {
+    margin-top: clamp(3rem, 2rem + 4vw, 5.5rem);
+    perspective: 1800px;
+    position: relative;
+  }
+  .hero__mock {
+    transform-origin: 50% 0%;
+    will-change: transform;
+  }
+  .hero__floor {
+    position: absolute;
+    left: 10%;
+    right: 10%;
+    bottom: -3rem;
+    height: 6rem;
+    background: radial-gradient(50% 50% at 50% 50%, var(--site-glow), transparent 70%);
+    filter: blur(30px);
+    z-index: -1;
+  }
+
+  /* Intro: staggered rise on first paint (CSS only, so it never waits for JS) */
+  [data-intro] {
+    animation: intro 1s var(--site-ease-out) both;
+    animation-delay: calc(var(--d) * 90ms + 100ms);
+  }
+  .hero__stage {
+    animation: intro-stage 1.4s var(--site-ease-out) both 0.55s;
+  }
+  @keyframes intro {
+    from {
+      opacity: 0;
+      transform: translateY(1.25rem);
+      filter: blur(6px);
+    }
+  }
+  @keyframes intro-stage {
+    from {
+      opacity: 0;
+      transform: translateY(3rem);
+    }
+  }
+
+  @media (max-width: 40rem) {
+    .hero__ctas .btn {
+      flex: 1 1 100%;
+    }
+  }
+</style>

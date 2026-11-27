@@ -1,0 +1,84 @@
+---
+title: Requirement IDs
+description: IDs like FE-REQ-030 become live references — see where each is defined, who uses it and what work touched it.
+sidebar:
+  order: 4
+---
+
+import { Aside } from '@astrojs/starlight/components';
+import Shot from '~/components/docs/Shot.astro';
+
+If your specs carry IDs — `FE-REQ-030`, `API-12`, `DB-7` — Aquila recognizes them in every note, underlines them in
+the editor, and tracks which note defines each one and which notes, sessions and files refer to it. Nothing about
+your ID format is built in; it learns the prefixes from your notes.
+
+<Shot id="noteIds" caption="Hover an ID for its card; the defining note lists where it's referenced." />
+
+## What counts as an ID
+
+An ID is an uppercase prefix, a dash and a number: `REQ-12`, `FE-REQ-030`. Prefixes can have several segments.
+
+A prefix starts being tracked once a note defines an ID with it, or once it shows up for two or more IDs or in two or
+more notes — so a stray `UTF-8` doesn't turn into a requirement.
+
+### Where an ID is defined
+
+A note **defines** an ID when:
+
+- its frontmatter has `id: FE-REQ-030`, or
+- its file name or title starts with the ID, like `FE-REQ-030-login.md` or `# FE-REQ-030 Login`.
+
+Every other place the ID appears is a **mention**.
+
+## ID states
+
+Underlines look different depending on the ID's state:
+
+| State | Meaning |
+|---|---|
+| Defined | Exactly one note defines it |
+| Duplicate | Two or more notes define it — usually a copy-paste mistake |
+| Unknown | No note defines it, though other IDs with the same prefix are defined — often a typo or a deleted spec |
+| Loose | A prefix the index knows but no note defines, like ticket numbers from another tool |
+
+## Hover card
+
+Hover an ID in the editor to see a card with:
+
+- the note that defines it (or a warning for unknown and duplicate IDs, with the other defining notes),
+- that note's `status` property,
+- how many notes, sessions and files refer to it: **Referenced in N notes · M sessions · K files**.
+
+<kbd>⌘</kbd>-click the ID to open the note that defines it.
+
+## Referenced in
+
+When you open a note that defines an ID, the side column shows **Referenced in** for it:
+
+| Section | What's listed | Click |
+|---|---|---|
+| **Notes** | Notes that mention the ID | Opens the note |
+| **Sessions** | Sessions that worked on it — they touched the defining note or have the ID in their title | Goes to its tab, or resumes it |
+| **Changed files** | Files those sessions changed | Shows the file in Finder |
+
+If the note has to-dos, a **Checklist** meter shows how many are done.
+
+### Turn a mention into a link
+
+Next to a note that mentions the name without linking it, **Link** turns its first plain mention into
+`[[name]]`. Aquila asks **Edit "…"?** first and changes only those characters in that note. Mentions inside code or
+existing links are left alone.
+
+## Find gaps in the graph
+
+In the [graph's](/en/docs/notes/graph/) Map, two **Questions** chips help keep requirements honest:
+
+- **IDs with no work** — notes that define an ID no session has worked on yet.
+- **Unknown · duplicate IDs** — two notes define the same ID, or a note names an ID nobody defines.
+
+Notes that share an ID are also connected by a dashed line, even when neither links the other.
+
+<Aside type="tip">
+  Creating a note in the [note explorer](/en/docs/notes/editor/#note-explorer) next to `FE-REQ-029` and `FE-REQ-030`
+  suggests `FE-REQ-031` as its name.
+</Aside>

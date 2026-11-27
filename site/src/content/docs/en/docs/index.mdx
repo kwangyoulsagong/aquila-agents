@@ -1,0 +1,43 @@
+---
+title: Aquila Agents documentation
+description: Run every Claude Code, Codex and shell session across your projects from one macOS window.
+tableOfContents: false
+---
+
+import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
+import Shot from '~/components/docs/Shot.astro';
+
+Aquila Agents is a macOS app that holds many **real terminal sessions** — `claude`, `codex` and your shell — across
+many projects, in one window. Status dots show which agent is working, done, or waiting for you, and notifications
+bring you back when one needs input.
+
+It embeds the CLIs you already installed. Your login, `CLAUDE.md`, hooks, MCP servers and slash commands work
+exactly as they do in Terminal; Aquila never rebuilds chat or permission prompts.
+
+<Shot id="sessions" caption="Projects on the left, sessions as tabs, status on every dot." />
+
+## Start here
+
+<CardGrid>
+  <LinkCard title="Install" description="Download the app and get past the first-launch prompt." href="/en/docs/start/install/" />
+  <LinkCard title="First run" description="The setup checklist: CLIs, PATH and your first project." href="/en/docs/start/first-run/" />
+  <LinkCard title="Quick tour" description="Ten minutes from an empty window to three agents in parallel." href="/en/docs/start/quick-tour/" />
+  <LinkCard title="Keyboard shortcuts" description="Every shortcut on one page." href="/en/docs/reference/shortcuts/" />
+</CardGrid>
+
+## What you can do
+
+<CardGrid>
+  <Card title="See who needs you" icon="warning">
+    Orange means an agent waits for input. <kbd>⌘J</kbd> jumps there, longest wait first.
+  </Card>
+  <Card title="Work side by side" icon="seti:pipeline">
+    Split into up to four panes, each its own session, across projects.
+  </Card>
+  <Card title="Review what changed" icon="document">
+    The changes panel shows the agent's diff live; comment on a line and paste it back.
+  </Card>
+  <Card title="Keep notes next to code" icon="pencil">
+    Markdown in your repos becomes a graph and an editor, with agent edits shown as diffs.
+  </Card>
+</CardGrid>
