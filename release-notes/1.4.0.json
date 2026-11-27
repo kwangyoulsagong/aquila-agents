@@ -4,42 +4,45 @@
   "headlines": [
     {
       "guideId": "blocks",
-      "title": { "ko": "블록으로 편집하는 노트", "en": "Notes you edit in blocks" },
+      "title": {
+        "ko": "블록으로 편집하고, 문서처럼 읽는 노트",
+        "en": "Edit notes in blocks, read them like a page"
+      },
       "body": {
-        "ko": "줄에 마우스를 올리면 ⋮⋮ 손잡이가 떠요. 끌어서 옮기고, 눌러서 바꾸기·복제·삭제를 해요. ⌥⇧↑/↓로 블록을 옮기고, 빈 줄에서 / 를 치면 제목·할 일·표를 골라 넣어요. 파일은 그대로 Markdown이고, 건드리지 않은 글자는 한 바이트도 바뀌지 않아요.",
-        "en": "Hover a line for a ⋮⋮ handle: drag to move the block, click to turn it into something else, duplicate or delete it. ⌥⇧↑/↓ moves a block, / on an empty line inserts a heading, to-do or table. The file stays plain Markdown, and what you didn't touch keeps every byte."
+        "ko": "줄에 마우스를 올리면 ⋮⋮ 손잡이가 떠요. 끌어서 옮기고, 눌러서 바꾸기·복제·삭제를 하고, 빈 줄에서 / 를 치면 제목·할 일·표를 넣어요. 노트는 콜아웃·코드·표 카드로 정돈된 문서처럼 보이고, 읽기 모드(⌘E)는 Markdown 기호를 숨겨요. 파일은 그대로 Markdown이고, 건드리지 않은 글자는 한 바이트도 바뀌지 않아요.",
+        "en": "Hover a line for a ⋮⋮ handle: drag to move the block, click to turn it into something else, duplicate or delete it; / on an empty line inserts a heading, to-do or table. Notes read like a finished page with callout, code and table cards, and reading mode (⌘E) hides the Markdown. The file stays plain Markdown, and what you didn't touch keeps every byte."
       }
     },
     {
       "guideId": "properties",
-      "title": { "ko": "속성과 표 보기", "en": "Properties and a table view" },
+      "title": { "ko": "속성, 표 보기, 요구사항 ID", "en": "Properties, a table view and requirement IDs" },
       "body": {
-        "ko": "frontmatter가 노트 위에 고칠 수 있는 속성 줄로 보여요. ⌘K → \"표 보기\"는 노트를 표로 모아 정렬·필터·묶기를 하고, 칸을 더블클릭해서 바로 고쳐요.",
-        "en": "Frontmatter shows as editable property rows above the note. ⌘K → Table view lists notes as rows to sort, filter and group; double-click a cell to edit it."
-      }
-    },
-    {
-      "guideId": "noteIds",
-      "title": { "ko": "요구사항 ID를 알아봐요", "en": "Requirement IDs you can follow" },
-      "body": {
-        "ko": "FE-REQ-030 같은 ID에 밑줄이 생기고, 올리면 정의한 노트와 상태, 참조된 곳이 보여요. ⌘클릭으로 열고, 중복이나 모르는 ID는 다르게 표시돼요.",
-        "en": "IDs like FE-REQ-030 get an underline; hover for the defining note, its status and where it's referenced. ⌘-click opens it; duplicate and unknown IDs are marked."
-      }
-    },
-    {
-      "guideId": "noteReview",
-      "title": { "ko": "에이전트가 바꾼 노트를 한눈에", "en": "See what an agent changed in a note" },
-      "body": {
-        "ko": "마지막으로 본 뒤 Claude가 노트를 고치면 \"+12 −3\" 줄이 떠요. diff를 보고 부분만 되돌리거나 \"봤어요\"로 닫아요.",
-        "en": "When Claude changes a note after you last saw it, a \"+12 −3\" bar shows. Review the diff, revert a hunk, or mark it as seen."
+        "ko": "frontmatter가 노트 위에 고칠 수 있는 속성 줄로 보여요. ⌘K → \"표 보기\"는 노트를 표로 모아 정렬·필터·묶기를 하고 칸을 바로 고쳐요. FE-REQ-030 같은 ID에는 밑줄이 생겨서, 올리면 정의한 노트와 참조된 곳이 보이고 ⌘클릭으로 열려요.",
+        "en": "Frontmatter shows as editable property rows above the note. ⌘K → Table view lists notes to sort, filter, group and edit in place. IDs like FE-REQ-030 get an underline: hover for the defining note and where it's referenced, ⌘-click to open it."
       }
     },
     {
       "guideId": "explorer",
       "title": { "ko": "노트 탐색기 (⌘⇧O)", "en": "Note explorer (⌘⇧O)" },
       "body": {
-        "ko": "에디터 옆 파일 트리에서 노트와 폴더를 만들고, 이름을 바꾸고, 끌어서 옮겨요. 옮기거나 이름을 바꾸면 그 노트로 가는 링크를 고칠지 물어보고 링크만 바꿔요. 함께: \"이게 뭐야?\"는 스캔한 PDF도 Mac에서 OCR로 읽고, 읽기 모드(⌘E)는 Markdown 기호를 숨겨요.",
-        "en": "A file tree beside the editor: create, rename and drag notes and folders. After a move or rename it asks to fix the links to that note and changes only the links. Also new: What is this? reads scanned PDFs with OCR on your Mac, and reading mode (⌘E) hides the Markdown."
+        "ko": "에디터 옆 파일 트리에서 노트와 폴더를 만들고, 이름을 바꾸고, 끌어서 옮겨요. 새 노트는 다음 ID를 제안하고, 옮기거나 이름을 바꾸면 그 노트로 가는 링크만 고쳐요. 상태별 보기, 고정·최근, ⌘Z 되돌리기도 있어요.",
+        "en": "A file tree beside the editor: create, rename and drag notes and folders. New notes suggest the next ID, and a move or rename fixes only the links to that note. Also: group by status, pinned and recent, and ⌘Z to undo."
+      }
+    },
+    {
+      "guideId": "noteReview",
+      "title": { "ko": "에이전트와 함께 쓰는 노트", "en": "Notes you write alongside agents" },
+      "body": {
+        "ko": "마지막으로 본 뒤 Claude가 노트를 고치면 \"+12 −3\" 줄이 떠서 diff를 보고 부분만 되돌릴 수 있어요. \"이게 뭐야?\"는 가이드·메일·Figma 링크·PDF(스캔본은 Mac에서 OCR)를 넣으면 어떤 제품의 어떤 기능인지, 기획 의도와 관련 노트를 정리해요. 누를 때만 한 번 물어봐요.",
+        "en": "When Claude changes a note after you last saw it, a \"+12 −3\" bar lets you review the diff and revert a hunk. What is this? takes a guide, email, Figma link or PDF (scans read with OCR on your Mac) and says which product and feature it is, the intent, and the related notes — one question, only when you click."
+      }
+    },
+    {
+      "guideId": "graph",
+      "title": { "ko": "그래프가 가볍고 빨라졌어요", "en": "A lighter, faster graph" },
+      "body": {
+        "ko": "그래프를 열어 둬도 타자와 터미널이 끊기지 않아요. 바뀐 게 있을 때만 모아서 다시 그리고, .gitignore에 있는 파일은 색인하지 않아요. 노트 4천 개의 첫 색인이 45초에서 5초 안쪽으로 줄었고, 노트를 열면 \"이 노트 주변\"으로 시작해요.",
+        "en": "Typing and terminals no longer stutter with the graph open: it redraws only when something changed, and files in .gitignore aren't indexed. The first index of 4,000 notes went from 45 s to under 5 s, and opened beside a note the graph starts on Around this note."
       }
     }
   ]
