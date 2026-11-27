@@ -406,6 +406,25 @@ describe('files and the service', () => {
     expect(svc.newNoteFolder('req')).toBe('specs/to-do');
   });
 
+  it('a newNotes pattern without the title: the draft keeps the typed name; a body gets `name 2.md`', () => {
+    svc.save(
+      'req',
+      {
+        templates: [{ id: 'day', name: 'Day', folder: 'daily', file: '{{date}}.md', body: '# {{title}}\n' }],
+        newNotes: 'day',
+      },
+      'personal',
+    );
+    expect(svc.draft('req', 'Login idea')).toEqual({ name: 'Login idea.md', text: '# Login idea\n' });
+    const a = svc.createNote('req', null, 'Brief A', '# A\n');
+    const b = svc.createNote('req', null, 'Brief B', '# B\n');
+    const c = svc.createNote('req', null, 'Brief C', '# C\n');
+    expect(a).toBe(path.join(root, 'daily', '2026-11-23.md'));
+    expect(b).toBe(path.join(root, 'daily', '2026-11-23 2.md'));
+    expect(c).toBe(path.join(root, 'daily', '2026-11-23 3.md'));
+    expect(fs.readFileSync(b!, 'utf8')).toBe('# B\n');
+  });
+
   it('turns a Claude action into a prompt with the note', () => {
     svc.save('req', { actions: [{ name: 'Ask', kind: 'claude', prompt: 'Review {{title}}' }] }, 'personal');
     const file = path.join(root, 'specs', 'done', 'DB-6891-downloads.md');

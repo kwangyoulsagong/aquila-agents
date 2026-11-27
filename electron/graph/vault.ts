@@ -427,6 +427,15 @@ export function renderTemplate(t: VaultTemplate, title: string, now: Date): { re
   return { rel: t.folder ? `${t.folder}/${name}` : name, text: fill(t.body, v) };
 }
 
+/** Whether a template's file name changes with the title (`{{date}}.md` doesn't; `{{id}}` only for a title with an ID). */
+export function nameUsesTitle(file: string, title: string): boolean {
+  if (/\{\{\s*(?:title|slug)\s*\}\}/.test(file)) return true;
+  return /\{\{\s*id\s*\}\}/.test(file) && !!vars(title, new Date(0)).id;
+}
+
+/** `a/b.md` → `a/b 2.md`: a taken name's next try, on the rendered file's stem. */
+export const withSuffix = (rel: string, n: number) => (n < 2 ? rel : rel.replace(/(\.md)?$/i, ` ${n}$1`));
+
 // ---- companions ----
 
 const under = (rel: string, folder: string) => !folder || rel.startsWith(`${folder}/`);
@@ -948,8 +957,11 @@ export class VaultService {
     const name = String(title ?? '').trim();
     if (!root || !v || !name) return null;
     const t = this.templateOf(v.config, templateId);
+    const first = renderTemplate(t, name, this.now());
     for (let n = 1; n <= (body === undefined ? 1 : 20); n++) {
-      const { rel, text } = renderTemplate(t, n === 1 ? name : `${name} ${n}`, this.now());
+      // The suffix goes on the rendered name, so a pattern without the title (`{{date}}.md`) still gets a new one.
+      const rel = withSuffix(first.rel, n);
+      const text = first.text;
       const file = path.join(root, ...rel.split('/'));
       if (!path.resolve(file).startsWith(path.resolve(root) + path.sep)) return null;
       if (fs.existsSync(file)) {
@@ -974,12 +986,10 @@ export class VaultService {
   draft(id: string, title: string): { name: string; text: string } | null {
     const v = this.read(id);
     if (!v) return null;
-    const { rel, text } = renderTemplate(
-      { ...this.templateOf(v.config, null), folder: '' },
-      title,
-      this.now(),
-    );
-    return { name: rel, text };
+    const t = this.templateOf(v.config, null);
+    const { rel, text } = renderTemplate({ ...t, folder: '' }, title, this.now());
+    // A pattern without the title (`{{date}}.md`) would drop the typed name: the typed name is the file name then.
+    return { name: nameUsesTitle(t.file, title) ? rel : /\.md$/i.test(title) ? title : `${title}.md`, text };
   }
 
   /** T81: the folder (inside the source) new notes go to — the `newNotes` template's, `''` = the top. */
