@@ -33,6 +33,7 @@ import { readColors } from '../model/colors';
 import { sourceName, useGraphData } from '@/entities/note';
 import { LinkSuggestions } from '@/features/link-suggestions';
 import { HandleWithClaude, handleTarget } from '@/features/edit-note';
+import { WhatIsThisButton, type BriefSeed } from '@/features/what-is-this';
 import {
   DEFAULT_FILTER,
   TIME_WINDOWS,
@@ -92,6 +93,8 @@ export interface KnowledgeGraphPanelProps {
   activeProjectId?: string | null;
   /** The tab in front (T74: "This tab" lists its conversation's work). */
   activeSessionId?: string | null;
+  /** T81: opens "What is this?" (a file / text dropped on the button comes with it). */
+  onWhatIsThis?: (seed?: BriefSeed) => void;
 }
 
 type Mode = 'week' | 'focus' | 'map';
@@ -178,6 +181,7 @@ export default function KnowledgeGraphPanel({
   projects = [],
   activeProjectId = null,
   activeSessionId = null,
+  onWhatIsThis,
 }: KnowledgeGraphPanelProps) {
   const t = useT();
   const width = usePanelWidth('aquila.panel.graph');
@@ -539,6 +543,7 @@ export default function KnowledgeGraphPanel({
           </span>
         )}
         <div className="c-panel__actions">
+          {onWhatIsThis && <WhatIsThisButton onOpen={onWhatIsThis} />}
           {enabled.length > 0 && (
             <Button
               variant="ghost"

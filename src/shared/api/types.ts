@@ -1470,6 +1470,17 @@ export interface AquilaApi {
   vaultCreateNote(sourceId: string, templateId: string | null, title: string): Promise<string | null>;
   /** T69: a source's settings changed (saved here, or the shared file changed on disk). */
   onVaultChanged(cb: (sourceId: string) => void): Unsubscribe;
+  /** T81 "What is this?": what would be sent (sanitized, capped) for this input — nothing runs. */
+  briefPrepare(input: BriefInput, projectId: string | null): Promise<BriefPrepared>;
+  /** T81: one hidden `claude -p` on the user's click (cached per input for the session). `id` is for cancel. */
+  briefRun(req: BriefRunRequest): Promise<BriefResult>;
+  briefCancel(id: string): void;
+  /** T81: note sources a brief can be saved into, the current project's first. */
+  briefTargets(projectId: string | null): Promise<BriefTargets>;
+  /** T81: writes the brief as a new note (only on "Save as note"): its path, or null. */
+  briefSave(req: BriefSaveRequest): Promise<string | null>;
+  /** T81: notes related to a text from the local index (same IDs, shared words) — no model. */
+  graphRelated(text: string, ids?: string[]): Promise<RelatedNote[]>;
   /** Global shortcut (T41): the saved key and whether the OS gave it to us. */
   globalShortcut(): Promise<GlobalShortcutState>;
   /** Saves and registers a new key (null = off). A taken key keeps the old one and reports `taken`. */
@@ -1503,7 +1514,8 @@ export interface AquilaApi {
 }
 
 /** Extensions (T71): what an extension may ask for in its manifest (plus `network:<domain>` entries). */
-export type ExtensionPermission = 'system' | 'sessions:status' | 'usage' | 'storage' | 'notify' | 'background';
+export type ExtensionPermission =
+  'system' | 'sessions:status' | 'usage' | 'storage' | 'notify' | 'background';
 
 /** A manifest command, listed in ⌘K as "<extension>: <title>". */
 export interface ExtensionCommand {
@@ -1692,6 +1704,101 @@ export interface FigmaPlan {
   seat: string;
 }
 
+/** T81 "What is this?": raw input — a file's text (read in the renderer), pasted text or a Figma link. */
+export interface BriefInput {
+  text: string;
+  /** File name when it came from a file (decides email / HTML handling). */
+  name?: string;
+}
+
+export type BriefSourceKind = 'text' | 'markdown' | 'email' | 'html' | 'figma';
+export type BriefModel = 'haiku' | 'sonnet';
+
+/** Exactly what goes to Claude, shown before the run. */
+export interface BriefPrepared {
+  /** Input hash (kind + text): the session cache key. */
+  hash: string;
+  kind: BriefSourceKind;
+  /** File name, email subject, Figma link or "" (pasted). */
+  label: string;
+  text: string;
+  chars: number;
+  /** Characters before sanitizing / the cap. */
+  originalChars: number;
+  cut: boolean;
+  /** Email: headers other than Subject / From / Date were removed. */
+  headersStripped?: boolean;
+  /** Figma link: whether Claude may read it through the account's existing Figma connection. */
+  figma?: { url: string; connected: boolean };
+  /** The Claude account that runs it (label). */
+  account: string;
+}
+
+export interface BriefRunRequest {
+  id: string;
+  input: BriefInput;
+  projectId: string | null;
+  model: BriefModel;
+}
+
+/** The fixed fields of the card. */
+export interface BriefFields {
+  product: string;
+  feature: string;
+  intent: string;
+  points: string[];
+  questions: string[];
+  terms: string[];
+}
+
+export interface BriefResult {
+  hash: string;
+  model: BriefModel;
+  /** null: the reply wasn't the JSON asked for — `raw` holds it. */
+  fields: BriefFields | null;
+  raw?: string;
+  at: number;
+  /** Came from this session's cache (no call made). */
+  cached: boolean;
+}
+
+/** A local note related to a text, and why. */
+export interface RelatedNote {
+  path: string;
+  title: string;
+  sourceId: string;
+  /** IDs of the text this note has (or is named by). */
+  ids: string[];
+  /** Weighty words they share. */
+  words: string[];
+  score: number;
+}
+
+export interface BriefTarget {
+  id: string;
+  /** Folder of the source (`~/…`). */
+  path: string;
+  /** Folder inside the source the new-note template writes to (`''` = top). */
+  folder: string;
+}
+
+export interface BriefTargets {
+  sources: BriefTarget[];
+  defaultId: string | null;
+}
+
+export interface BriefSaveRequest {
+  sourceId: string;
+  title: string;
+  /** Source line for the frontmatter (file name, subject, link). */
+  source: string;
+  kind: BriefSourceKind;
+  fields: BriefFields | null;
+  raw?: string;
+  /** Related notes the user chose to link. */
+  links: { path: string; why: string }[];
+}
+
 /** Cached result of "Connect" (T32), per local Claude account, in `~/.aquila/figma-profile.json`. */
 export interface FigmaProfile {
   /** needsAuth: the Figma server isn't logged in for this account yet (`/mcp` in a Claude tab). */
@@ -1843,6 +1950,12 @@ export const IPC = {
   vaultEdit: 'vault:edit',
   vaultCreateNote: 'vault:create-note',
   vaultChanged: 'vault:changed',
+  briefPrepare: 'brief:prepare',
+  briefRun: 'brief:run',
+  briefCancel: 'brief:cancel',
+  briefTargets: 'brief:targets',
+  briefSave: 'brief:save',
+  graphRelated: 'graph:related',
   globalShortcutGet: 'global-shortcut:get',
   globalShortcutSet: 'global-shortcut:set',
   globalShortcutFired: 'global-shortcut:fired',

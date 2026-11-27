@@ -1,7 +1,13 @@
 // Knowledge graph (T65): the worker thread that owns the index, so parsing and graph building never run on the
 // main process. Started by `index.ts` on the first graph call; talks in `ToWorker` / `FromWorker` messages.
 import { parentPort, workerData } from 'node:worker_threads';
-import type { GraphDecision, GraphRuleOp, GraphSnapshot, VaultLinkRule } from '../../src/shared/api/types';
+import type {
+  GraphDecision,
+  GraphRuleOp,
+  GraphSnapshot,
+  RelatedNote,
+  VaultLinkRule,
+} from '../../src/shared/api/types';
 import type { CodeProject } from './code';
 import { GraphEngine, type EngineSource, type EngineStatus } from './engine';
 import { fixtureRun, runClaudeHaiku } from './extract';
@@ -26,12 +32,14 @@ export type ToWorker =
   | { type: 'extractNow'; id: string }
   | { type: 'vaultLinks'; rules: Record<string, VaultLinkRule[]> }
   | { type: 'notes'; req: number; id: string }
+  | { type: 'related'; req: number; text: string; ids: string[] }
   | { type: 'stop' };
 
 export type FromWorker =
   | { type: 'status'; status: EngineStatus }
   | { type: 'snapshot'; req: number; snapshot: GraphSnapshot }
   | { type: 'notes'; req: number; notes: VaultNote[] }
+  | { type: 'related'; req: number; related: RelatedNote[] }
   | { type: 'vaultFile'; id: string };
 
 export interface WorkerInit {
@@ -65,6 +73,8 @@ if (parentPort) {
     if (m.type === 'indexNow') return engine.indexNow(m.id);
     if (m.type === 'vaultLinks') return engine.setVaultLinks(m.rules);
     if (m.type === 'notes') return post({ type: 'notes', req: m.req, notes: engine.sourceNotes(m.id) });
+    if (m.type === 'related')
+      return post({ type: 'related', req: m.req, related: engine.related(m.text, m.ids) });
     if (m.type === 'decide') return engine.decide(m.d);
     if (m.type === 'rule') return engine.ruleOp(m.op);
     if (m.type === 'extractNow') return void engine.extractNow(m.id);

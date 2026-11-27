@@ -25,6 +25,7 @@ import { NoteReferences, useNoteIds } from '@/features/note-ids';
 import { MentionRow } from '@/features/link-mentions';
 import { VaultNoteSide, VaultNoteTop, VaultSettingsDialog, VaultViewModal } from '@/features/vault-settings';
 import { NoteProperties } from '@/features/note-properties';
+import { WhatIsThisDialog, type BriefSeed } from '@/features/what-is-this';
 import { copyLastReply, toggleQuickSelect } from '@/features/terminal-helpers';
 import { openFind } from '@/features/terminal-search';
 import { focusSession } from '@/entities/session';
@@ -155,6 +156,8 @@ export default function WorkspacePage() {
   const [vaultView, setVaultView] = useState<{ sourceId: string; viewId: string } | null>(null);
   // T78: the table view, opened from a note (its source and folder) or ⌘K.
   const [noteTable, setNoteTable] = useState<{ path?: string } | null>(null);
+  // "What is this?" (T81): open with an optional dropped file / text.
+  const [briefOpen, setBriefOpen] = useState<{ seed?: BriefSeed } | null>(null);
   const summonRef = useRef({ sessions, focusedId, selectSession });
   summonRef.current = { sessions, focusedId, selectSession };
   useEffect(
@@ -384,6 +387,7 @@ export default function WorkspacePage() {
     a.links = () => setLinksOpen(true);
     a.vault = () => setVaultOpen({});
     a.noteTable = () => setNoteTable({ path: notePath ?? undefined });
+    a.whatIsThis = () => setBriefOpen({});
     a.firstRun = reopenFirstRun;
     a.guide = showGuide;
     a.whatsNew = showNotes;
@@ -693,6 +697,17 @@ export default function WorkspacePage() {
             onOpenNote={setNotePath}
           />
         )}
+        {briefOpen && (
+          <WhatIsThisDialog
+            projectId={localProjectId ?? null}
+            seed={briefOpen.seed}
+            onClose={() => setBriefOpen(null)}
+            onOpenNote={(p) => {
+              setBriefOpen(null);
+              setNotePath(p);
+            }}
+          />
+        )}
         <QuickOpen open={quickOpenOn} onClose={() => setQuickOpen(false)} onPick={setNotePath} />
         {commandsOpen && focusedSession && (
           <SessionCommandsModal
@@ -803,6 +818,7 @@ export default function WorkspacePage() {
               setGraphFull(false);
             }}
             onSources={() => setSourcesOpen(true)}
+            onWhatIsThis={(seed) => setBriefOpen({ seed })}
           />
         )}
         {previewOpen && !fullscreen.on && !graphFull && !noteFull && project && !project.remote && (

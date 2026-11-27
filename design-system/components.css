@@ -659,6 +659,58 @@ body {
 .c-dialog[open] { display: flex; flex-direction: column; }
 .c-dialog__body { min-height: 0; overflow-y: auto; }
 
+/* ── Brief ("What is this?", T81) ─────────────────────────── */
+/* A short card with fixed fields — label above, one or two lines below; never a wall of text. */
+.c-brief { display: flex; flex-direction: column; gap: var(--space-inset-md); min-width: 0; }
+.c-brief__meta {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-inline-xs) var(--space-inline-sm);
+  font-size: var(--font-size-caption); color: var(--color-text-tertiary); font-variant-numeric: tabular-nums;
+}
+.c-brief__meta-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--color-text-secondary); }
+.c-brief__notice { margin: 0; font-size: var(--font-size-caption); line-height: var(--line-height-body); color: var(--color-text-tertiary); }
+.c-brief__notice[data-tone='warn'] { color: var(--color-status-waiting); }
+.c-brief__preview { border: 1px solid var(--color-border-subtle); border-radius: var(--radius-control); }
+.c-brief__preview > summary {
+  padding: var(--space-inline-xs) var(--space-inset-sm); cursor: pointer;
+  font-size: var(--font-size-caption); color: var(--color-text-secondary);
+}
+.c-brief__preview > pre {
+  margin: 0; max-height: var(--size-pick-list); overflow: auto; padding: var(--space-inset-sm);
+  border-top: 1px solid var(--color-border-subtle); background: var(--color-bg-canvas); color: var(--color-text-primary);
+  font: var(--font-size-caption) / var(--line-height-body) var(--font-family-mono); white-space: pre-wrap; overflow-wrap: anywhere; user-select: text;
+}
+.c-brief__card {
+  display: flex; flex-direction: column; gap: var(--space-inset-sm);
+  padding: var(--space-inset-md); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-container);
+  background: var(--color-bg-canvas);
+}
+.c-brief__section { display: flex; flex-direction: column; gap: var(--space-inline-xs); min-width: 0; }
+.c-brief__label { font-size: var(--font-size-caption); font-weight: 600; color: var(--color-text-tertiary); }
+.c-brief__text { margin: 0; line-height: var(--line-height-body); color: var(--color-text-primary); overflow-wrap: anywhere; user-select: text; }
+.c-brief__bullets {
+  margin: 0; padding-left: var(--space-stack-md); display: flex; flex-direction: column; gap: var(--space-inline-xs);
+  line-height: var(--line-height-body); color: var(--color-text-primary); user-select: text;
+}
+.c-brief__terms { display: flex; flex-wrap: wrap; gap: var(--space-inline-xs); margin: 0; padding: 0; list-style: none; }
+.c-brief__term {
+  padding: 0 var(--space-inline-xs); border-radius: var(--radius-badge); background: var(--color-bg-hover);
+  font: var(--font-size-caption) / var(--line-height-body) var(--font-family-mono); color: var(--color-text-secondary); user-select: text;
+}
+.c-brief__related { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
+.c-brief__rel {
+  display: flex; align-items: center; gap: var(--space-inline-sm); min-height: var(--size-row);
+  border-top: 1px solid var(--color-border-subtle);
+}
+.c-brief__rel:first-child { border-top: 0; }
+.c-brief__rel-main {
+  flex: 1; min-width: 0; display: flex; flex-direction: column; padding: var(--space-inline-xs) 0;
+  border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer;
+}
+.c-brief__rel-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--color-text-primary); }
+.c-brief__rel-main:hover .c-brief__rel-title { text-decoration: underline; }
+.c-brief__rel-why { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--font-size-caption); color: var(--color-text-tertiary); }
+.c-brief__rel .c-btn[aria-pressed='true'] { color: var(--color-text-primary); background: var(--color-bg-selected); }
+
 /* ── Checklist (first run) ────────────────────────────────── */
 /* ── Pick list (T56) ─────────────────────────────────────────
  * A short scrolling list of choices inside a dialog (remote folders): a path head, then rows to click. */

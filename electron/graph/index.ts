@@ -13,6 +13,7 @@ import type {
   GraphSource,
   GraphSourceStatus,
   GraphStatus,
+  RelatedNote,
   VaultLinkRule,
 } from '../../src/shared/api/types';
 import type { AppGraph } from './app-nodes';
@@ -103,10 +104,7 @@ export function effectiveSources(
 ): GraphSource[] {
   const abs = (s: GraphSource) => path.resolve(untildify(s.path, home));
   const roots = new Set(user.map(abs));
-  return [
-    ...user,
-    ...auto.filter((a) => !roots.has(abs(a))).map((a) => ({ ...a, ...prefs[a.id] })),
-  ];
+  return [...user, ...auto.filter((a) => !roots.has(abs(a))).map((a) => ({ ...a, ...prefs[a.id] }))];
 }
 
 /**
@@ -245,6 +243,7 @@ export class GraphService implements VaultGraph {
   private req = 0;
   private waiting = new Map<number, (s: GraphSnapshot) => void>();
   private waitingNotes = new Map<number, (n: VaultNote[]) => void>();
+  private waitingRelated = new Map<number, (r: RelatedNote[]) => void>();
   /** T70: goes up when the app's part changed (added to the index version, so the open graph refetches). */
   private appVersion = 0;
   private appTimer: ReturnType<typeof setTimeout> | null = null;
@@ -429,7 +428,8 @@ export class GraphService implements VaultGraph {
       const root = untildify(s.path, this.opts.home);
       const rel = path.relative(root, file);
       if (!rel || rel.startsWith('..') || path.isAbsolute(rel)) continue;
-      if (!best || root.length > best.root.length) best = { source: s, root, rel: rel.split(path.sep).join('/') };
+      if (!best || root.length > best.root.length)
+        best = { source: s, root, rel: rel.split(path.sep).join('/') };
     }
     return best;
   }
@@ -443,6 +443,19 @@ export class GraphService implements VaultGraph {
     return new Promise((resolve) => {
       this.waitingNotes.set(req, resolve);
       w.postMessage({ type: 'notes', req, id } satisfies ToWorker);
+    });
+  }
+
+  /** T81: notes related to a text (its IDs, shared words), from the index in the worker; [] with no source on. */
+  related(text: string, ids: string[] = []): Promise<RelatedNote[]> {
+    if (!this.hasEnabled()) return Promise.resolve([]);
+    this.start();
+    const w = this.worker;
+    if (!w) return Promise.resolve([]);
+    const req = ++this.req;
+    return new Promise((resolve) => {
+      this.waitingRelated.set(req, resolve);
+      w.postMessage({ type: 'related', req, text, ids } satisfies ToWorker);
     });
   }
 
@@ -520,7 +533,10 @@ export class GraphService implements VaultGraph {
     // A small young generation: indexing makes short-lived garbage in bursts, and V8's default (16 MB semi-spaces)
     // keeps that headroom resident for the worker's life. Measured with 2,000 notes: −13 MB, same index time.
     // No old-generation cap: a big vault must not run the worker out of memory.
-    const w = new Worker(this.opts.workerFile, { workerData, resourceLimits: { maxYoungGenerationSizeMb: 4 } });
+    const w = new Worker(this.opts.workerFile, {
+      workerData,
+      resourceLimits: { maxYoungGenerationSizeMb: 4 },
+    });
     this.worker = w;
     w.on('message', (m: FromWorker) => {
       if (m.type === 'status') {
@@ -530,6 +546,9 @@ export class GraphService implements VaultGraph {
       else if (m.type === 'notes') {
         this.waitingNotes.get(m.req)?.(m.notes);
         this.waitingNotes.delete(m.req);
+      } else if (m.type === 'related') {
+        this.waitingRelated.get(m.req)?.(m.related);
+        this.waitingRelated.delete(m.req);
       } else {
         this.waiting.get(m.req)?.(m.snapshot);
         this.waiting.delete(m.req);
@@ -544,6 +563,8 @@ export class GraphService implements VaultGraph {
       this.waiting.clear();
       for (const resolve of this.waitingNotes.values()) resolve([]);
       this.waitingNotes.clear();
+      for (const resolve of this.waitingRelated.values()) resolve([]);
+      this.waitingRelated.clear();
       // Crashed: the next graph call starts it again (not right away, so a note that crashes it can't loop).
       this.crashes++;
       console.error(`[graph] worker exited (${code}), crash ${this.crashes}/${MAX_CRASHES}`);
@@ -564,6 +585,8 @@ export class GraphService implements VaultGraph {
     this.waiting.clear();
     for (const resolve of this.waitingNotes.values()) resolve([]);
     this.waitingNotes.clear();
+    for (const resolve of this.waitingRelated.values()) resolve([]);
+    this.waitingRelated.clear();
   }
 
   private post(m: ToWorker): void {

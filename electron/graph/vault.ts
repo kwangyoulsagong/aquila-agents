@@ -937,32 +937,53 @@ export class VaultService {
     return { text: applyAction(src, a, values) };
   }
 
-  /** A new note from a template; an existing note of that name is opened instead of overwritten. */
-  createNote(id: string, templateId: string | null, title: string): string | null {
+  /**
+   * A new note from a template; an existing note of that name is opened instead of overwritten. T81: with `body`
+   * (a brief saved as a note), that text replaces the template's, and a taken name gets ` 2`, ` 3`… — never the
+   * existing note.
+   */
+  createNote(id: string, templateId: string | null, title: string, body?: string): string | null {
     const root = this.opts.graph.sourceRoot(id);
     const v = this.read(id);
     const name = String(title ?? '').trim();
     if (!root || !v || !name) return null;
-    const t =
-      v.config.templates.find((x) => x.id === (templateId ?? v.config.newNotes)) ??
+    const t = this.templateOf(v.config, templateId);
+    for (let n = 1; n <= (body === undefined ? 1 : 20); n++) {
+      const { rel, text } = renderTemplate(t, n === 1 ? name : `${name} ${n}`, this.now());
+      const file = path.join(root, ...rel.split('/'));
+      if (!path.resolve(file).startsWith(path.resolve(root) + path.sep)) return null;
+      if (fs.existsSync(file)) {
+        if (body === undefined) return file;
+        continue;
+      }
+      try {
+        fs.mkdirSync(path.dirname(file), { recursive: true });
+        fs.writeFileSync(file, body ?? text, { flag: 'wx' });
+        return file;
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  /** T81: the folder (inside the source) new notes go to — the `newNotes` template's, `''` = the top. */
+  newNoteFolder(id: string): string {
+    const v = this.read(id);
+    return v ? this.templateOf(v.config, null).folder : '';
+  }
+
+  private templateOf(config: VaultConfig, templateId: string | null): VaultTemplate {
+    return (
+      config.templates.find((x) => x.id === (templateId ?? config.newNotes)) ??
       ({
         id: '',
         name: '',
         folder: '',
         file: '{{title}}.md',
         body: '# {{title}}\n\n',
-      } satisfies VaultTemplate);
-    const { rel, text: body } = renderTemplate(t, name, this.now());
-    const file = path.join(root, ...rel.split('/'));
-    if (!path.resolve(file).startsWith(path.resolve(root) + path.sep)) return null;
-    if (fs.existsSync(file)) return file;
-    try {
-      fs.mkdirSync(path.dirname(file), { recursive: true });
-      fs.writeFileSync(file, body, { flag: 'wx' });
-      return file;
-    } catch {
-      return null;
-    }
+      } satisfies VaultTemplate)
+    );
   }
 
   /** T70: the source's template for a day's note (its file is named by `{{date}}` alone), or null. */
