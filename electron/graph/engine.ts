@@ -1,6 +1,7 @@
 // Knowledge graph (T65): the index. Walks enabled sources, parses changed `.md` files in batches that yield, watches
 // each source with one recursive `fs.watch` (no polling), keeps the index in `~/.aquila/graph/index.json`.
 // Runs inside the worker thread (`worker.ts`); tests drive it directly. Never writes to the user's files.
+import { execFile } from 'node:child_process';
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
@@ -69,7 +70,11 @@ export interface EngineOptions {
 /** Watcher debounce normally / in power saver. */
 export const DEBOUNCE_MS = 400;
 export const SAVER_DEBOUNCE_MS = 2000;
-const SAVE_DELAY_MS = 2000;
+/**
+ * The index file is only a cache (thousands of notes: tens of MB of JSON). Written this long after the last change,
+ * not 2 s after every save of a note while someone types; flushed on close.
+ */
+const SAVE_DELAY_MS = 30_000;
 const MAX_FILES = 20_000;
 const MAX_NOTE_BYTES = 1024 * 1024;
 const INDEX_VERSION = 1;
@@ -94,11 +99,46 @@ interface SourceState {
   epoch: number;
   /** T73: folders inside it that belong to another source. */
   exclude: string[];
+  /** What `.gitignore` leaves out (read on each walk): not walked, watch events there dropped. */
+  gitIgnored: Set<string>;
 }
 
 const toPosix = (p: string) => p.split(path.sep).join('/');
 const ignored = (rel: string) =>
   rel.split('/').some((part, i, all) => part.startsWith('.') || (i < all.length - 1 && SKIP_DIRS.has(part)));
+/** `rel` is in `set` or inside a folder in it. */
+const inSet = (rel: string, set: ReadonlySet<string>) => {
+  if (!set.size) return false;
+  for (let i = rel.indexOf('/'); i > 0; i = rel.indexOf('/', i + 1)) if (set.has(rel.slice(0, i))) return true;
+  return set.has(rel);
+};
+
+/**
+ * What the repo's `.gitignore` leaves out under `root` (relative, `/`-separated; folders without the slash) — a
+ * Unity `Library/PackageCache`, vendored docs: thousands of `.md` nobody wrote. Empty when `root` isn't in a git
+ * repo or git isn't there.
+ */
+export function gitIgnored(root: string): Promise<Set<string>> {
+  return new Promise((resolve) => {
+    execFile(
+      'git',
+      ['ls-files', '-z', '--others', '--ignored', '--exclude-standard', '--directory', '--no-empty-directory'],
+      { cwd: root, timeout: 10_000, maxBuffer: 64 * 1024 * 1024 },
+      (err, stdout) => {
+        if (err) return resolve(new Set());
+        resolve(
+          new Set(
+            stdout
+              .split('\0')
+              .filter(Boolean)
+              .map((x) => x.replace(/\/$/, '')),
+          ),
+        );
+      },
+    );
+  });
+}
+
 /** `rel` is one of `exclude` or inside one. */
 const excluded = (rel: string, exclude: readonly string[]) =>
   exclude.some((x) => rel === x || rel.startsWith(`${x}/`));
@@ -108,6 +148,7 @@ export async function walkMarkdown(
   root: string,
   max = MAX_FILES,
   exclude: readonly string[] = [],
+  skip: ReadonlySet<string> = new Set(),
 ): Promise<string[]> {
   const out: string[] = [];
   const stack = [''];
@@ -123,9 +164,14 @@ export async function walkMarkdown(
       if (e.name.startsWith('.')) continue;
       const child = rel ? `${rel}/${e.name}` : e.name;
       if (e.isDirectory()) {
-        if (!SKIP_DIRS.has(e.name) && e.name !== 'node_modules' && !excluded(child, exclude))
+        if (
+          !SKIP_DIRS.has(e.name) &&
+          e.name !== 'node_modules' &&
+          !excluded(child, exclude) &&
+          !skip.has(child)
+        )
           stack.push(child);
-      } else if (e.isFile() && /\.md$/i.test(e.name)) {
+      } else if (e.isFile() && /\.md$/i.test(e.name) && !skip.has(child)) {
         out.push(child);
         if (out.length >= max) break;
       }
@@ -189,6 +235,7 @@ export class GraphEngine {
         rescan: false,
         epoch: 0,
         exclude: [...(s.exclude ?? [])],
+        gitIgnored: new Set(),
       });
     this.emit();
     // Indexing runs on: a later change of sources (a source turned off mid-index) doesn't wait for it.
@@ -379,9 +426,12 @@ export class GraphEngine {
     }
   }
 
-  private async indexSource(id: string, force: boolean): Promise<void> {
+  /** Walks a source and reads what is new or changed. True when the index changed (a rescan often finds nothing). */
+  private async indexSource(id: string, force: boolean): Promise<boolean> {
     const s = this.sources.get(id);
-    if (!s) return;
+    if (!s) return false;
+    let changed = false;
+    const before = s.state;
     const epoch = s.epoch;
     const live = () => !this.closed && this.sources.get(id) === s && s.epoch === epoch;
     try {
@@ -389,16 +439,18 @@ export class GraphEngine {
       if (!st?.isDirectory()) {
         s.state = 'missing';
         this.emit();
-        return;
+        return false;
       }
-      const rels = await walkMarkdown(s.root, undefined, s.exclude);
-      if (!live()) return;
+      s.gitIgnored = await gitIgnored(s.root);
+      if (!live()) return false;
+      const rels = await walkMarkdown(s.root, undefined, s.exclude, s.gitIgnored);
+      if (!live()) return false;
       const known = new Set<string>();
       for (const n of this.notes.values()) if (n.sourceId === id) known.add(n.rel);
       const firstIndex = known.size === 0;
       // Files gone while we weren't looking.
       const present = new Set(rels);
-      for (const rel of known) if (!present.has(rel)) this.notes.delete(noteId(id, rel));
+      for (const rel of known) if (!present.has(rel) && this.notes.delete(noteId(id, rel))) changed = true;
 
       const todo: string[] = [];
       for (const rel of rels) {
@@ -415,14 +467,17 @@ export class GraphEngine {
         s.state = 'paused';
         this.startWatch(s);
         this.emit();
-        return;
+        return changed;
       }
-      s.state = 'indexing';
-      this.emit();
+      // Nothing to read (the usual rescan after a folder event): no "indexing" flash for the open panel.
+      if (todo.length) {
+        s.state = 'indexing';
+        this.emit();
+      }
       const batch = this.opts.batch ?? 50;
       for (let i = 0; i < todo.length; i += batch) {
-        for (const rel of todo.slice(i, i + batch)) await this.readOne(s, rel);
-        if (!live()) return;
+        for (const rel of todo.slice(i, i + batch)) if (await this.readOne(s, rel)) changed = true;
+        if (!live()) return changed;
         if (i + batch < todo.length) {
           this.emit();
           await yieldNow();
@@ -436,7 +491,8 @@ export class GraphEngine {
       s.state = 'error';
       s.error = e instanceof Error ? e.message : String(e);
     }
-    this.emit();
+    if (changed || s.state !== before) this.emit();
+    return changed;
   }
 
   /** Parses one file (or forgets it when it's gone). True when the index changed. */
@@ -470,7 +526,7 @@ export class GraphEngine {
       s.watcher = fs.watch(s.root, { recursive: true }, (_event, filename) => {
         const rel = filename ? toPosix(filename.toString()) : '';
         if (rel === SHARED_FILE) return this.opts.onVaultFile?.(s.id);
-        if (rel && (ignored(rel) || excluded(rel, s.exclude))) return;
+        if (rel && (ignored(rel) || excluded(rel, s.exclude) || inSet(rel, s.gitIgnored))) return;
         if (rel && /\.md$/i.test(rel)) s.pending.add(rel);
         else if (!rel || !/\.[^/]+$/.test(rel))
           s.rescan = true; // a folder (or unknown): walk again
@@ -494,8 +550,8 @@ export class GraphEngine {
     s.pending.clear();
     s.rescan = false;
     if (rescan && s.state !== 'paused') {
-      await this.indexSource(s.id, true);
-      this.changed();
+      // Only a real change moves the version: every move makes the open graph refetch and redraw.
+      if (await this.indexSource(s.id, true)) this.changed();
     } else if (s.state !== 'paused') await this.refresh(s.id, rels);
   }
 

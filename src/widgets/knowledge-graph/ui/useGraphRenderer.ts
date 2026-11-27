@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import Graph from 'graphology';
 import Sigma from 'sigma';
 import { layerDashed, layerPlain } from 'sigma/rendering';
@@ -350,10 +350,14 @@ export function useGraphRenderer(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [el, colors]);
 
+  // What is drawn: a refetch that only moved times (a note saved) must not rebuild sigma and restart the layout.
+  const shape = useMemo(() => shapeKey(view), [view]);
+
   // Data → graph, then one layout run. Known nodes keep their place; new ones start next to a neighbour.
   useEffect(() => {
     const g = graphRef.current;
     if (!g) return;
+    const view = focus.current.view;
     nodesById.current = new Map(view.nodes.map((n) => [n.id, n]));
     const sizes = nodeSizes(view);
     const ids = view.nodes.map((n) => n.id);
@@ -421,7 +425,8 @@ export function useGraphRenderer(
       run?.stop();
     };
     // applyFocus reads refs and the current view; it doesn't need to restart the layout.
-  }, [el, view, colors, saver]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [el, shape, colors, saver]);
 
   // Colour by group / kind: repaint only, the layout stays.
   useEffect(applyPaint, [nodeColor]);
@@ -432,4 +437,11 @@ export function useGraphRenderer(
   return {
     fit: () => void sigmaRef.current?.getCamera().reset({ duration: saver ? 0 : 200 }),
   };
+}
+
+/** Everything the drawing depends on (ids, labels, kinds, edges and their weight), times left out. */
+function shapeKey(view: GraphView): string {
+  const nodes = view.nodes.map((n) => `${n.id}\u0001${n.kind}\u0001${n.label}`).join('\n');
+  const edges = view.edges.map((e) => `${e.id}\u0001${e.kind}\u0001${e.strength}`).join('\n');
+  return `${nodes}\u0000${edges}`;
 }

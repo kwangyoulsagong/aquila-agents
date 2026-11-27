@@ -75,7 +75,11 @@ export default function NoteEditorPanel({
   const width = usePanelWidth('aquila.panel.note');
   const { status, snapshot } = useGraphData();
   const [host, setHost] = useState<HTMLDivElement | null>(null);
-  const [sideOn, setSide] = useState<boolean | null>(null);
+  const [side, setSideState] = useState(readSide);
+  const setSide = (on: boolean) => {
+    setSideState(on);
+    writeSide(on);
+  };
   const [comparing, setComparing] = useState(false);
   const [missing, setMissing] = useState<string | null>(null);
   const node = nodeOfPath(snapshot, path);
@@ -93,8 +97,6 @@ export default function NoteEditorPanel({
 
   const headings = useMemo(() => outline(ed.text), [ed.text]);
   const { backlinks, mentions } = useMemo(() => linksTo(snapshot, node?.id), [snapshot, node?.id]);
-  // The side column is on by default in full window, off in the narrower panel.
-  const side = sideOn ?? full;
   const conflict = ed.conflict;
   const diff = useMemo(
     () =>
@@ -267,16 +269,6 @@ export default function NoteEditorPanel({
         side={
           side ? (
             <>
-              <EditorSection title={t('note.outline')} empty={t('note.outlineEmpty')}>
-                {headings.map((h) => (
-                  <EditorItem
-                    key={`${h.line}`}
-                    label={h.text}
-                    level={h.level - 1}
-                    onClick={() => ed.goToLine(h.line)}
-                  />
-                ))}
-              </EditorSection>
               <EditorSection title={t('note.backlinks')} empty={t('note.none')}>
                 {backlinks.map((b) => (
                   <EditorItem
@@ -293,6 +285,16 @@ export default function NoteEditorPanel({
                   <EditorItem key={m.id} label={m.label} title={m.path} onClick={() => onOpenNote(m.path)} />
                 ))}
               </EditorSection>
+              <EditorSection title={t('note.outline')} empty={t('note.outlineEmpty')}>
+                {headings.map((h) => (
+                  <EditorItem
+                    key={`${h.line}`}
+                    label={h.text}
+                    level={h.level - 1}
+                    onClick={() => ed.goToLine(h.line)}
+                  />
+                ))}
+              </EditorSection>
               {renderSide?.(slot)}
               {renderLinks?.({ nodeId: node?.id, snapshot, status })}
             </>
@@ -301,4 +303,24 @@ export default function NoteEditorPanel({
       />
     </aside>
   );
+}
+
+/**
+ * The outline + links column: on by default, in the panel too — the notes linking here are what people use every
+ * day, and hidden behind ☰ nobody found them. The choice is remembered.
+ */
+const SIDE_KEY = 'aquila.note.side';
+function readSide(): boolean {
+  try {
+    return localStorage.getItem(SIDE_KEY) !== '0';
+  } catch {
+    return true;
+  }
+}
+function writeSide(on: boolean): void {
+  try {
+    localStorage.setItem(SIDE_KEY, on ? '1' : '0');
+  } catch {
+    // not remembered: on again next time
+  }
 }

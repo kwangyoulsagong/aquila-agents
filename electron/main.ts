@@ -1032,8 +1032,8 @@ app.whenReady().then(async () => {
       if (hook.event === 'UserPromptSubmit') turns.start(hook.sessionId, hook.cwd);
       else if (hook.event === 'Stop') void turns.stop(hook.sessionId).catch(() => undefined);
     }
-    if (hook.event === 'Stop' || hook.event === 'UserPromptSubmit' || hook.event === 'SessionEnd')
-      appTouched();
+    // A prompt adds nothing to draw yet (the open tab is already in the graph, T76): the turn's end does.
+    if (hook.event === 'Stop' || hook.event === 'SessionEnd') appTouched();
   };
   // Daily note (T70): today's sessions (local and the last SSH scan) appended to the day's note, on the button only.
   ipcMain.handle(IPC.graphDailyNote, async (_e, sourceId: string | null) => {
@@ -1104,7 +1104,9 @@ app.whenReady().then(async () => {
     graph.setEnabled(String(id), !!enabled),
   );
   ipcMain.handle(IPC.graphIndexNow, (_e, id: string) => graph.indexNow(String(id)));
-  ipcMain.handle(IPC.graphSnapshot, () => graph.snapshot());
+  ipcMain.handle(IPC.graphSnapshot, (_e, opts?: { notesOnly?: boolean }) =>
+    graph.snapshot({ app: opts?.notesOnly !== true }),
+  );
   // T68: decisions and rules go to the index worker; the only file write is an asked-for `[[link]]` at the end of a
   // note of an enabled source (refused when the note isn't plain UTF-8).
   ipcMain.handle(IPC.graphDecide, (_e, d: GraphDecision) => {

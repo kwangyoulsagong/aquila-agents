@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useMemo, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Button,
   EmptyState,
@@ -189,10 +189,12 @@ export default function KnowledgeGraphPanel({
   const deferredQuery = useDeferredValue(query);
   const [searching, setSearching] = useState(false);
   const [resultAt, setResultAt] = useState(0);
-  // T74: "This week" first, unless the person chose another view before.
+  // T74: "This week" first, unless the person chose another view before. Opened beside a note, the graph is about
+  // that note (what people keep using is the local view next to the editor), unless the Map was chosen.
   const [mode, setModeState] = useState<Mode>(() => {
     const m = stored(MODE_KEY);
-    return m === 'map' || m === 'focus' ? m : 'week';
+    if (m === 'map') return m;
+    return activeNotePath || m === 'focus' ? 'focus' : 'week';
   });
   const [follow, setFollowState] = useState(() => stored(FOLLOW_KEY) !== '0');
   const [trail, setTrail] = useState<string[]>([]);
@@ -380,11 +382,16 @@ export default function KnowledgeGraphPanel({
     if (!activeNotePath || !snapshot) return null;
     return snapshot.nodes.find((n) => n.kind === 'note' && n.path === activeNotePath)?.id ?? null;
   }, [activeNotePath, snapshot]);
-  // Start at the open note (or the latest one); follow the editor while pinned to it.
+  // Start at the open note (or the latest one); follow the editor while pinned to it — when the editor moves to
+  // another note (or follow is switched on), not on every snapshot refresh: that snapped a node picked by search or a
+  // click straight back to the editor's note.
+  const followed = useRef<string | null>(null);
   useEffect(() => {
     if (!snapshot) return;
-    if (follow && activeId && activeId !== center) {
-      recentreQuietly(activeId);
+    if (!follow) followed.current = null;
+    if (follow && activeId && activeId !== followed.current) {
+      followed.current = activeId;
+      if (activeId !== center) recentreQuietly(activeId);
       return;
     }
     if (!center) {
@@ -606,7 +613,7 @@ export default function KnowledgeGraphPanel({
           onChange={(v) => setMode(v)}
           options={[
             { value: 'week', label: t('graph.mode.week') },
-            { value: 'focus', label: t('graph.mode.focus') },
+            { value: 'focus', label: t('graph.mode.focusNote') },
             { value: 'map', label: t('graph.mode.map') },
           ]}
         />

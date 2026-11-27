@@ -925,3 +925,26 @@ throttled or hot → `saver`). The rules every task below follows:
   measured on a copy of the 1,505-note monorepo (rebuild 1,126–1,371 ms → 34–60 ms); idle CPU 0 % with the panel
   open; smoke.
   _Left over: the first index of a big repo still takes seconds (once; cached after)._
+
+### Fix · Graph: closing the note editor, typing lag (2026-11-27)
+- [x] A long note title pushed the editor's ⤢ / × off the panel (panel head titles now shrink with an ellipsis).
+  With the graph open, typing and terminals stuttered every few seconds: every note save and every turn of every
+  session moved the index version, and the graph and the editor each refetched the whole snapshot (1.5k nodes, 13k
+  edges) and recomputed on the renderer thread the terminals draw on. Now: a rescan that finds nothing doesn't move
+  the version (no "indexing" flash either); turns move it on Stop / SessionEnd only, folded into one per 4 s; one
+  shared snapshot for graph + editor, fetched once the index is quiet for 1.5 s (at most every 8 s while it keeps
+  moving), an identical snapshot is dropped; the Map rebuilds sigma only when what it draws changed. Indexing: a
+  project's `.gitignore` is read (on this machine 1,327 Unity `Library/PackageCache` READMEs were indexed), and the
+  index file (75 MB for 8,466 notes) is written 30 s after the last change instead of 2 s after every save.
+  Easier to use (from the note-app research in `reports/`): the editor's outline + links column is on in the panel
+  too (remembered), notes linking here listed first; the graph opened beside a note starts on **Around this note**
+  (unless the Map was chosen); ⌘O reads the shared snapshot (instant while the graph or editor is open, fetched
+  right away otherwise) instead of fetching every node again. Bugs found on the way: ⌘O waited for the full snapshot,
+  whose session-history scan takes ~5 s cold, so the list was empty and Enter did nothing (now notes only —
+  `graphSnapshot({ notesOnly })` — and an early Enter opens the first match when the list arrives; this was the smoke
+  note-editor failure on `main`); "follow the editor" snapped a node picked by search back to the editor's note on
+  every snapshot refresh (now only when the editor's note changes). Cold index was O(n²) in the similar-notes pass
+  (every note sharing a word scored exactly): now the 30 best by the lookup words are scored — measured on the real
+  repos, SALT 1,523 notes 6.4 → 2.6 s, data-bahn 4,030 notes 45 → 9.9 s, 98–99 % of suggestions unchanged, one
+  edit 8–17 ms.
+  _Left over: not measured on the 1,500-note repo; smoke fails at the note editor step on `main` too (unrelated)._

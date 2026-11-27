@@ -1556,7 +1556,7 @@ async function checkGraphView(win: BrowserWindow, config: Config, outDir: string
   }
   if (weekRows < 0) return 'graph: "This week" showed neither a list nor "nothing changed" after ⌘⇧N';
   const toAround = await js<boolean>(`(() => {
-    const b = [...document.querySelectorAll('aside .c-segment__item')].find((e) => e.textContent.trim() === ${JSON.stringify(t('graph.mode.focus'))});
+    const b = [...document.querySelectorAll('aside .c-segment__item')].find((e) => e.textContent.trim() === ${JSON.stringify(t('graph.mode.focusNote'))});
     b?.click();
     return !!b;
   })()`);

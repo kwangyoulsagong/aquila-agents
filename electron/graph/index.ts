@@ -196,6 +196,11 @@ export function mergeStatus(sources: readonly GraphSource[], engine: EngineStatu
   };
 }
 
+/**
+ * The app's part changes on every turn of every session: with a few tabs working that's every few seconds, and each
+ * move makes the open graph refetch the whole snapshot. Folded into one move per this long.
+ */
+const APP_COALESCE_MS = 4000;
 const EMPTY: GraphSnapshot = { nodes: [], edges: [], idGroups: [], version: 0 };
 
 export interface GraphServiceOptions {
@@ -344,7 +349,8 @@ export class GraphService implements VaultGraph {
     return this.current();
   }
 
-  async snapshot(): Promise<GraphSnapshot> {
+  /** `app: false`: the index alone, without the app's part (no history scan: quick open answers at once). */
+  async snapshot({ app: withApp = true }: { app?: boolean } = {}): Promise<GraphSnapshot> {
     this.start();
     const w = this.worker;
     if (!w) return EMPTY;
@@ -354,7 +360,7 @@ export class GraphService implements VaultGraph {
       this.waiting.set(req, resolve);
       w.postMessage({ type: 'snapshot', req } satisfies ToWorker);
     });
-    if (!this.opts.app || snap === EMPTY) return snap;
+    if (!withApp || !this.opts.app || snap === EMPTY) return snap;
     const app = await this.opts.app(snap.nodes);
     const ids = new Set(snap.nodes.map((n) => n.id));
     const nodes = [...snap.nodes, ...app.nodes.filter((n) => !ids.has(n.id))];
@@ -373,7 +379,7 @@ export class GraphService implements VaultGraph {
       this.appTimer = null;
       this.appVersion++;
       this.opts.onStatus(this.current());
-    }, 1000);
+    }, APP_COALESCE_MS);
     this.appTimer.unref?.();
   }
 

@@ -1378,7 +1378,11 @@ export interface AquilaApi {
   /** Starts a first index that was paused in power saver. */
   graphIndexNow(id: string): Promise<GraphStatus>;
   /** The whole index: notes, tags, code names and their edges. */
-  graphSnapshot(): Promise<GraphSnapshot>;
+  /**
+   * `notesOnly`: the index without the app's part (sessions, files, trends) — no history scan, so it answers at once
+   * (quick open).
+   */
+  graphSnapshot(opts?: { notesOnly?: boolean }): Promise<GraphSnapshot>;
   /** Opens a note of an enabled source in the default app (T66, until the editor T67). Other paths are refused. */
   graphOpenNote(path: string): Promise<boolean>;
   /** T68: accept / reject a suggestion. `inserted`: the `[[link]]` was written (false when asked and refused). */
