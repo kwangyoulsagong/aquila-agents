@@ -157,6 +157,12 @@ const api: AquilaApi = {
   vaultCreateNote: (id, templateId, title) =>
     ipcRenderer.invoke(IPC.vaultCreateNote, { id, templateId, title }),
   onVaultChanged: on(IPC.vaultChanged),
+  briefPrepare: (input, projectId) => ipcRenderer.invoke(IPC.briefPrepare, { input, projectId }),
+  briefRun: (req) => ipcRenderer.invoke(IPC.briefRun, req),
+  briefCancel: (id) => ipcRenderer.send(IPC.briefCancel, id),
+  briefTargets: (projectId) => ipcRenderer.invoke(IPC.briefTargets, projectId),
+  briefSave: (req) => ipcRenderer.invoke(IPC.briefSave, req),
+  graphRelated: (text, ids) => ipcRenderer.invoke(IPC.graphRelated, { text, ids }),
   globalShortcut: () => ipcRenderer.invoke(IPC.globalShortcutGet),
   setGlobalShortcut: (accelerator) => ipcRenderer.invoke(IPC.globalShortcutSet, accelerator),
   onGlobalShortcut: on(IPC.globalShortcutFired),

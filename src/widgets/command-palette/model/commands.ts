@@ -40,6 +40,7 @@ export type ActionId =
   | 'sources'
   | 'links'
   | 'vault'
+  | 'whatIsThis'
   | 'firstRun'
   | 'guide'
   | 'whatsNew';
@@ -121,6 +122,7 @@ const ACTIONS: {
   { action: 'sources', label: (t) => t('sources.menu') },
   { action: 'links', label: (t) => t('links.menu') },
   { action: 'vault', label: (t) => t('vault.menu') },
+  { action: 'whatIsThis', label: (t) => t('brief.action') },
   { action: 'firstRun', label: (t) => t('firstRun.checklist') },
   { action: 'guide', label: (t) => t('guide.title'), shortcut: 'guide' },
   { action: 'whatsNew', label: (t) => t('notes.title') },

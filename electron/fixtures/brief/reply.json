@@ -1,0 +1,12 @@
+{
+  "product": "Aquila Agents",
+  "feature": "Login screen — remember me",
+  "intent": "Keep returning users signed in for 30 days so they skip the login form on a trusted device.",
+  "points": [
+    "Checkbox under the password field, off by default",
+    "Token lasts 30 days; logout clears it",
+    "Shared computers: show a short warning"
+  ],
+  "questions": ["What happens on password change?", "Does it apply to SSO accounts?"],
+  "terms": ["FE-REQ-030", "remember me"]
+}

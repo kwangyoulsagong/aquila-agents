@@ -23,6 +23,8 @@ export interface SimilarDoc {
 const TOP_K = 3;
 const MIN_SCORE = 0.2;
 const MIN_SHARED = 2;
+/** T81: a pasted text against a note — longer and of another kind, so a lower bar. */
+const QUERY_MIN_SCORE = 0.08;
 /**
  * Korean words that end like a verb or a clause ("이동됐다", "정리이며", "있어요"): they say what happened, not what
  * a note is about, so they don't name a group. Two-syllable endings only, so nouns like 회고 / 재고 stay.
@@ -231,6 +233,63 @@ export class SimilarIndex {
 
   all(): SimilarPair[] {
     return [...this.pairs.values()];
+  }
+
+  /**
+   * T81: the notes nearest to a text that isn't in the index (a pasted guide or email), by the same TF-IDF —
+   * looked up through the postings like `sync`, never a scan of every note. Words only one note has count here (a
+   * rare word the text shares with exactly one note is a good reason).
+   */
+  query(text: string, k = 5): { id: string; score: number; terms: string[] }[] {
+    const n = this.docs.size;
+    if (!n) return [];
+    const maxDf = Math.max(2, Math.floor(n * MAX_DF_SHARE));
+    const q = new Map<string, number>();
+    let sum = 0;
+    for (const [t, c] of termCounts(text)) {
+      const df = this.df.get(t);
+      if (!df || df > maxDf || PREDICATE.test(t)) continue;
+      const x = (1 + Math.log(c)) * this.idf(t);
+      q.set(t, x);
+      sum += x * x;
+    }
+    const norm = Math.sqrt(sum);
+    if (!norm) return [];
+    const lookup = [...q.entries()].sort((x, y) => y[1] - x[1]).slice(0, LOOKUP_TERMS * 2);
+    const rough = new Map<string, number>();
+    for (const [t, w] of lookup) {
+      const idf = this.idf(t);
+      for (const other of this.postings.get(t) ?? []) {
+        const tf = this.docs.get(other)!.tf.get(t) ?? 0;
+        rough.set(other, (rough.get(other) ?? 0) + w * (1 + Math.log(tf)) * idf);
+      }
+    }
+    const docNorm = (tf: Map<string, number>) => {
+      let s = 0;
+      for (const [t, c] of tf) s += ((1 + Math.log(c)) * this.idf(t)) ** 2;
+      return Math.sqrt(s);
+    };
+    const out: { id: string; score: number; terms: string[] }[] = [];
+    const candidates = [...rough.entries()].sort((x, y) => y[1] - x[1]).slice(0, CANDIDATES * 2);
+    for (const [id] of candidates) {
+      const tf = this.docs.get(id)!.tf;
+      const dn = docNorm(tf);
+      if (!dn) continue;
+      let dot = 0;
+      const shared: [string, number][] = [];
+      for (const [t, w] of q) {
+        const c = tf.get(t);
+        if (!c) continue;
+        const x = w * (1 + Math.log(c)) * this.idf(t);
+        dot += x;
+        shared.push([t, x]);
+      }
+      const score = dot / (norm * dn);
+      if (shared.length < MIN_SHARED || score < QUERY_MIN_SCORE) continue;
+      shared.sort((x, y) => y[1] - x[1]);
+      out.push({ id, score: Math.min(1, score), terms: shared.slice(0, 3).map(([t]) => t) });
+    }
+    return out.sort((x, y) => y.score - x.score || x.id.localeCompare(y.id)).slice(0, k);
   }
 
   // ---- internals ----

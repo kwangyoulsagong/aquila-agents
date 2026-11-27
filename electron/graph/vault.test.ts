@@ -385,6 +385,17 @@ describe('files and the service', () => {
     expect(svc.createNote('nope', null, 'x')).toBeNull();
   });
 
+  it('T81: with a body, writes it in the new-note folder and never reuses a taken name', () => {
+    const a = svc.createNote('req', null, 'Brief login', '---\ntype: brief\n---\n# A\n');
+    expect(path.dirname(a!)).toBe(path.join(root, 'specs', 'to-do'));
+    expect(fs.readFileSync(a!, 'utf8')).toBe('---\ntype: brief\n---\n# A\n');
+    const b = svc.createNote('req', null, 'Brief login', '# B\n');
+    expect(b).not.toBe(a);
+    expect(fs.readFileSync(b!, 'utf8')).toBe('# B\n');
+    expect(fs.readFileSync(a!, 'utf8')).toContain('# A');
+    expect(svc.newNoteFolder('req')).toBe('specs/to-do');
+  });
+
   it('turns a Claude action into a prompt with the note', () => {
     svc.save('req', { actions: [{ name: 'Ask', kind: 'claude', prompt: 'Review {{title}}' }] }, 'personal');
     const file = path.join(root, 'specs', 'done', 'DB-6891-downloads.md');

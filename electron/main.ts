@@ -74,7 +74,21 @@ import {
 import { LIVE_SOURCES, ratio, refreshDue, UsageTracker } from './usage';
 import { ContextWatcher, statusLineSources, userHasStatusLine } from './context';
 import { listRemoteDirs } from './remote/browse';
-import { connect as figmaConnect, FIGMA_DOCS_URL, readProfiles as figmaProfiles } from './figma';
+import {
+  connect as figmaConnect,
+  ensureMcpConfig as ensureFigmaMcp,
+  FIGMA_DOCS_URL,
+  readProfiles as figmaProfiles,
+} from './figma';
+import {
+  BRIEF_MAX_CHARS,
+  BriefService,
+  briefNote,
+  fixtureBrief,
+  prepareBrief,
+  runClaudeBrief,
+} from './brief';
+import { cleanIds } from './graph/related';
 import { PowerWatcher, type PowerSource } from './power';
 import { FIXTURE_NOW, fixtureFetcher, NewsService, readHead } from './news';
 import {
@@ -167,6 +181,10 @@ import {
   type VaultEdit,
   type VaultPresetId,
   type VaultScope,
+  type BriefInput,
+  type BriefRunRequest,
+  type BriefSaveRequest,
+  type BriefTargets,
   type ToolId,
   type StatusUpdate,
   type ExtensionViewState,
@@ -221,7 +239,8 @@ function createWindow(): void {
   const openLink = (url: string) => {
     const target = externalTarget(url);
     if (!target) return;
-    if (isSmoke) smokeLinks.push(target); // smoke checks where it went; no browser opens
+    if (isSmoke)
+      smokeLinks.push(target); // smoke checks where it went; no browser opens
     else void shell.openExternal(target);
   };
   wc.setWindowOpenHandler(({ url }) => {
@@ -565,7 +584,9 @@ app.whenReady().then(async () => {
   };
   // Extensions (T71): folders under ~/.aquila/extensions (smoke: a temp folder of its own). Nothing runs until the
   // panel shows one, or the user allowed one in the background.
-  const extDir = isSmoke ? path.join(app.getPath('temp'), `aquila-smoke-ext-${process.pid}`) : path.join(APP_DIR, 'extensions');
+  const extDir = isSmoke
+    ? path.join(app.getPath('temp'), `aquila-smoke-ext-${process.pid}`)
+    : path.join(APP_DIR, 'extensions');
   extensions = new ExtensionHost({
     dir: extDir,
     prefsPath: isSmoke ? path.join(extDir, '.prefs.json') : path.join(APP_DIR, 'extensions.json'),
@@ -632,7 +653,13 @@ app.whenReady().then(async () => {
       let projectId = projectForPath(config, created.dir);
       if (!projectId) {
         config = appMenu.refresh(
-          editProjects({ op: 'addProject', path: created.dir, name: String(name ?? '').trim(), group, account }),
+          editProjects({
+            op: 'addProject',
+            path: created.dir,
+            name: String(name ?? '').trim(),
+            group,
+            account,
+          }),
         );
         graph.projectsChanged(); // T73: its folder joins the graph
         projectId = projectForPath(config, created.dir);
@@ -1183,6 +1210,96 @@ app.whenReady().then(async () => {
   ipcMain.handle(IPC.vaultCreateNote, (_e, a: { id: string; templateId: string | null; title: string }) =>
     vault.createNote(String(a.id), a.templateId ? String(a.templateId) : null, String(a.title ?? '')),
   );
+  // "What is this?" (T81): prepare = sanitize + cap, shown before anything is sent; run = one hidden `claude -p` on
+  // the click (the project's account, cached per input); save = a new note only on "Save as note". Smoke: canned.
+  const briefs = new BriefService({
+    run: isSmoke
+      ? fixtureBrief(path.join(__dirname, '..', '..', 'electron', 'fixtures', 'brief', 'reply.json'))
+      : runClaudeBrief(binaryFor('claude')),
+  });
+  const briefAccount = (projectId: unknown) => {
+    const config = loadConfig();
+    // The project's account; none (no local project selected) = the shared account, like the graph's Claude runs.
+    const account = config.projects.find((p) => p.id === projectId && !p.remote)?.account;
+    const a = account ? config.accounts[account] : undefined;
+    return {
+      config,
+      account,
+      label: account ? accountLabel(translator(config.language), account, a) : '',
+      configDir: a?.claudeConfigDir && account ? claudeConfigDir(config, account) : undefined,
+      figma: !!account && figmaProfiles()[account]?.state === 'connected',
+    };
+  };
+  const briefPrepare = (input: BriefInput, projectId: unknown) => {
+    const acc = briefAccount(projectId);
+    const text = typeof input?.text === 'string' ? input.text : '';
+    const name = typeof input?.name === 'string' ? input.name : undefined;
+    return { acc, prepared: prepareBrief({ text, name }, { figmaConnected: acc.figma, account: acc.label }) };
+  };
+  ipcMain.handle(
+    IPC.briefPrepare,
+    (_e, a: { input: BriefInput; projectId: string | null }) => briefPrepare(a?.input, a?.projectId).prepared,
+  );
+  ipcMain.handle(IPC.briefRun, (_e, req: BriefRunRequest) => {
+    const { acc, prepared } = briefPrepare(req?.input, req?.projectId);
+    return briefs.run(String(req?.id), prepared, {
+      model: req?.model === 'sonnet' ? 'sonnet' : 'haiku',
+      language: acc.config.language,
+      configDir: acc.configDir,
+      ...(prepared.figma?.connected ? { figmaMcp: ensureFigmaMcp() } : {}),
+    });
+  });
+  ipcMain.on(IPC.briefCancel, (_e, id: string) => briefs.cancel(String(id)));
+  ipcMain.handle(IPC.briefTargets, (_e, projectId: string | null): BriefTargets => {
+    const enabled = graph.status().sources.filter((x) => x.enabled);
+    const root = (() => {
+      const p = loadConfig().projects.find((x) => x.id === projectId && !x.remote);
+      return p ? path.resolve(expand(p.path)) : null;
+    })();
+    const inside = (a: string, b: string) => a === b || a.startsWith(b + path.sep);
+    const sources = enabled.map((x) => ({ id: x.id, path: x.path, folder: vault.newNoteFolder(x.id) }));
+    const own = root
+      ? enabled
+          .filter((x) => {
+            const r = graph.sourceRoot(x.id);
+            return !!r && (inside(root, path.resolve(r)) || inside(path.resolve(r), root));
+          })
+          .sort((a, b) => b.path.length - a.path.length)[0]
+      : undefined;
+    return { sources, defaultId: own?.id ?? sources.find((x) => x.folder)?.id ?? sources[0]?.id ?? null };
+  });
+  ipcMain.handle(IPC.briefSave, (_e, req: BriefSaveRequest) => {
+    if (typeof req?.sourceId !== 'string' || !graph.enabledIds().includes(req.sourceId)) return null;
+    const title = String(req.title ?? '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 120);
+    if (!title) return null;
+    const t = translator(loadConfig().language);
+    const body = briefNote(
+      {
+        ...req,
+        title,
+        source: String(req.source ?? '').slice(0, 300),
+        links: Array.isArray(req.links)
+          ? req.links.filter((l) => typeof l?.path === 'string' && !!graph.notePath(l.path))
+          : [],
+      },
+      new Date(),
+      {
+        intent: t('brief.intent'),
+        points: t('brief.points'),
+        questions: t('brief.questions'),
+        terms: t('brief.terms'),
+        related: t('brief.related'),
+        reply: t('brief.raw'),
+      },
+    );
+    return vault.createNote(req.sourceId, null, title, body);
+  });
+  ipcMain.handle(IPC.graphRelated, (_e, a: { text: string; ids?: string[] }) =>
+    typeof a?.text === 'string' ? graph.related(a.text.slice(0, BRIEF_MAX_CHARS), cleanIds(a.ids)) : [],
+  );
   ipcMain.handle(IPC.sessionRestore, () => restoreSessions());
   ipcMain.handle(IPC.sessionStart, (_e, id: string) => s.wake(loadConfig(), id));
   ipcMain.handle(IPC.sessionReopen, (_e, id: string) => s.reopen(loadConfig(), String(id)));
@@ -1441,7 +1558,9 @@ app.whenReady().then(async () => {
     safe('updater', () => startUpdater(() => translator(loadConfig().language)));
   if (isSmoke && win) {
     const w = win;
-    w.webContents.once('did-finish-load', () => runSmoke(w, s, loadConfig(), smokeOutput, previews, runs, extensions));
+    w.webContents.once('did-finish-load', () =>
+      runSmoke(w, s, loadConfig(), smokeOutput, previews, runs, extensions),
+    );
   }
   app.on('activate', () => BrowserWindow.getAllWindows().length === 0 && createWindow());
 });

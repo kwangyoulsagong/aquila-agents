@@ -21,6 +21,7 @@ import { SourcesDialog } from '@/features/graph-sources';
 import { LinkSettingsDialog, LinkSuggestions } from '@/features/link-suggestions';
 import { NoteEditorPanel, QuickOpen } from '@/features/edit-note';
 import { VaultNoteSide, VaultNoteTop, VaultSettingsDialog, VaultViewModal } from '@/features/vault-settings';
+import { WhatIsThisDialog, type BriefSeed } from '@/features/what-is-this';
 import { copyLastReply, toggleQuickSelect } from '@/features/terminal-helpers';
 import { openFind } from '@/features/terminal-search';
 import { focusSession } from '@/entities/session';
@@ -146,6 +147,8 @@ export default function WorkspacePage() {
   // Folder settings (T69) and a source's board / table / list view.
   const [vaultOpen, setVaultOpen] = useState<{ source?: string } | null>(null);
   const [vaultView, setVaultView] = useState<{ sourceId: string; viewId: string } | null>(null);
+  // "What is this?" (T81): open with an optional dropped file / text.
+  const [briefOpen, setBriefOpen] = useState<{ seed?: BriefSeed } | null>(null);
   const summonRef = useRef({ sessions, focusedId, selectSession });
   summonRef.current = { sessions, focusedId, selectSession };
   useEffect(
@@ -214,7 +217,10 @@ export default function WorkspacePage() {
   const { config, project, activeSessionId, openSession, closeSession, setConfig, showError } = ws;
   // The graph's project choice (T73): local projects only (a remote project's notes aren't on this machine).
   const graphProjects = useMemo(
-    () => (config?.projects ?? []).filter((p) => !p.remote).map((p) => ({ id: p.id, name: p.name, path: p.path })),
+    () =>
+      (config?.projects ?? [])
+        .filter((p) => !p.remote)
+        .map((p) => ({ id: p.id, name: p.name, path: p.path })),
     [config?.projects],
   );
   // Only while the preview is actually shown: a remote project or full window would otherwise leave nothing on screen.
@@ -371,6 +377,7 @@ export default function WorkspacePage() {
     a.sources = () => setSourcesOpen(true);
     a.links = () => setLinksOpen(true);
     a.vault = () => setVaultOpen({});
+    a.whatIsThis = () => setBriefOpen({});
     a.firstRun = reopenFirstRun;
     a.guide = showGuide;
     a.whatsNew = showNotes;
@@ -443,8 +450,7 @@ export default function WorkspacePage() {
   const t = translator(config.language);
   // A new extension's folder joins the current local project's group and account (else the first ones).
   const extGroup = project && !project.remote ? project.group : (config.groups[0]?.id ?? '');
-  const extAccount =
-    project && !project.remote ? project.account : (Object.keys(config.accounts)[0] ?? '');
+  const extAccount = project && !project.remote ? project.account : (Object.keys(config.accounts)[0] ?? '');
 
   return (
     <I18nContext.Provider value={t}>
@@ -673,6 +679,17 @@ export default function WorkspacePage() {
             onOpenNote={setNotePath}
           />
         )}
+        {briefOpen && (
+          <WhatIsThisDialog
+            projectId={localProjectId ?? null}
+            seed={briefOpen.seed}
+            onClose={() => setBriefOpen(null)}
+            onOpenNote={(p) => {
+              setBriefOpen(null);
+              setNotePath(p);
+            }}
+          />
+        )}
         <QuickOpen open={quickOpenOn} onClose={() => setQuickOpen(false)} onPick={setNotePath} />
         {commandsOpen && focusedSession && (
           <SessionCommandsModal
@@ -773,6 +790,7 @@ export default function WorkspacePage() {
               setGraphFull(false);
             }}
             onSources={() => setSourcesOpen(true)}
+            onWhatIsThis={(seed) => setBriefOpen({ seed })}
           />
         )}
         {previewOpen && !fullscreen.on && !graphFull && !noteFull && project && !project.remote && (
