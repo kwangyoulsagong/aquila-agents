@@ -948,3 +948,43 @@ throttled or hot → `saver`). The rules every task below follows:
   repos, SALT 1,523 notes 6.4 → 2.6 s, data-bahn 4,030 notes 45 → 9.9 s, 98–99 % of suggestions unchanged, one
   edit 8–17 ms.
   _Left over: not measured on the 1,500-note repo; smoke fails at the note editor step on `main` too (unrelated)._
+
+### T77–T82 · Notes you'd actually use: blocks, properties, IDs, review, briefs, a document look (2026-11-27)
+From the note-app research (Obsidian / Notion / block editors / spec tools): keep the file plain Markdown and the
+save byte-exact, add the conveniences on top. Built in parallel worktrees, merged in `task/notes-pipeline`.
+- [x] **T77 Block editing** (`src/features/edit-note/model/blocks.ts`, `blockEdits.ts`, `blockHandle.ts`,
+  `slashMenu.ts`): blocks are ranges of the text; ⋮⋮ handle to drag (drop line, auto-scroll), click for a menu
+  (turn into, duplicate, delete, copy as Markdown), ⌥⇧↑/↓ moves a block, `/` menu (Korean / English / Markdown
+  aliases, never while the IME composes). Every operation is one splice; untouched bytes and CRLF stay.
+  _Left over: ordered lists aren't renumbered after a move; a paragraph moved into a list can read as list text in
+  edge cases; moved lines in a mixed-ending file take the first line ending._
+- [x] **T78 Properties + table** (`src/features/note-properties/`, `src/widgets/note-table/`, `note:table` IPC):
+  frontmatter as editable rows above every note (text / date / list chips / select, add / remove, minimal splice);
+  ⌘K **Table view**: rows from the index, pick columns, sort, filter (text, folder, property, status chips), group,
+  virtualized, inline cell edit (refused if the file changed).
+  _Left over: the T69 vault table view doesn't use the new grid yet; typed properties also show in the vault side._
+- [x] **T79 Requirement IDs** (`src/features/note-ids/`, `src/features/link-mentions/`): IDs the index learned get
+  an underline (defined / duplicate / unknown / loose), hover card (defining note, status, referenced in N notes ·
+  M sessions · K files), ⌘-click opens; "Referenced in" + checklist meter in the side column; lenses "IDs with no
+  work", "Unknown · duplicate IDs"; **Link** on a mention turns its first plain mention into `[[name]]`.
+  _Left over: the index reads `FE-REQ-030` as `REQ-030` (kept for link rules; `refIds` keeps the full ID);
+  sessions / files in "Referenced in" aren't clickable._
+- [x] **T80 Agent change review** (`electron/graph/note-seen.ts`, `src/features/note-review/`): the text you last
+  saw per note (`~/.aquila/notes-seen/`, 2,000 notes / 50 MB LRU); "Claude changed this note · +12 −3" bar with
+  Review (diff), Revert hunk (confirm), Mark as seen; "Changed outside" list. No polling.
+  _Left over: "who" comes from turn files (can name an earlier session); the list refreshes on open / mark._
+- [x] **T81 What is this?** (`electron/brief.ts`, `electron/graph/related.ts`, `src/features/what-is-this/`): drop
+  or paste a guide, email (headers cut to Subject / From / Date), HTML or a Figma link; see exactly what is sent
+  (≤ 20k chars) and to which account; one hidden `claude -p` per click (haiku, sonnet optional) → product, feature,
+  intent, key points, open questions; related notes found locally (same ID / shared words); Save as note
+  (frontmatter `type: brief`). ⌘K, a button in the graph head, or drop.
+  _Left over: PDFs refused (paste the text); Figma read tools untested with a real account; no editor button._
+- [x] **T82 Document look** (`model/document.ts`, `readingMode.ts`, T82 block in `components.css`, doc tokens):
+  centred 720px column, type scale, title, folder · edited header, bullets by depth, drawn checkboxes, callout
+  cards, code cards (language + copy), table cards, wikilink pills; **Read** mode (⌘E) hides all syntax, links and
+  checkboxes still work.
+  _Left over: copy button, Korean IME and table Tab not checked by hand in reading mode._
+- [x] **Background verification**: `npm run smoke:hidden` / `perf:hidden` (`AQUILA_HIDDEN=1`): windows 1 %
+  opaque, click-through, never focused, no Dock icon — nothing on screen. Smoke polls the release notes and the daily
+  note's sessions; a view that opens while the shared snapshot is stale fetches at once; Enter in graph search before
+  results arrive takes the first match.
