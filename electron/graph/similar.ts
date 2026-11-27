@@ -43,6 +43,8 @@ const MAX_DF_SHARE = 0.25;
  * neighbours.
  */
 const CANDIDATES = 30;
+/** More changed notes than this in one sync: every note's length is worked out again instead of tracked. */
+const NORM_KEEP_MAX = 64;
 
 const TOKEN = /[\p{L}\p{N}_]+/gu;
 // eslint-disable-next-line no-control-regex -- the whole ASCII range on purpose
@@ -114,18 +116,63 @@ const pairKey = (a: string, b: string) => (a < b ? `${a}\u0000${b}` : `${b}\u000
 interface Entry {
   sig: string;
   tf: Map<string, number>;
+  /** Its number in the index (postings and per-sync arrays are by number, not id). */
+  slot: number;
+}
+
+/**
+ * The `k` best of `vals` (by value, ties to the lower index), best first — what a stable sort by value would put
+ * first, without sorting thousands of rough scores per note.
+ */
+export function topIndices(vals: ArrayLike<number>, k: number): number[] {
+  const top: number[] = [];
+  for (let i = 0; i < vals.length; i++) {
+    const v = vals[i]!;
+    if (top.length === k && v <= vals[top[k - 1]!]!) continue;
+    // Insert after every kept index with a value ≥ v (earlier indices win ties).
+    let j = top.length;
+    while (j > 0 && vals[top[j - 1]!]! < v) j--;
+    top.splice(j, 0, i);
+    if (top.length > k) top.pop();
+  }
+  return top;
+}
+
+/** A note's weights for scoring: in its own word order, and sorted by word number for merging two notes. */
+interface Vec {
+  terms: string[];
+  weights: number[];
+  norm: number;
+  sorted: Int32Array;
+  sortedW: Float64Array;
+  /** Where each sorted word is in `terms`. */
+  sortedAt: Int32Array;
 }
 
 export class SimilarIndex {
   private docs = new Map<string, Entry>();
   private df = new Map<string, number>();
-  /** term → notes that have it. */
-  private postings = new Map<string, Set<string>>();
+  /** term → the notes that have it (slot → 1 + log of its count there). */
+  private postings = new Map<string, Map<number, number>>();
+  /** slot → note id; freed slots are reused. */
+  private ids: string[] = [];
+  private free: number[] = [];
+  /** word → its number (only grows; numbers just need to be stable while the index lives). */
+  private termIds = new Map<string, number>();
   private pairs = new Map<string, SimilarPair>();
   private byNote = new Map<string, Set<string>>();
   /** T76: `terms` per note (by its signature), and the note count they were weighed at. */
   private termsCache = new Map<string, { sig: string; terms: string[] }>();
   private termsAt = 0;
+  /**
+   * Each note's vector length by slot (NaN / missing = work it out), kept between syncs: an edit changes the
+   * lengths of only the notes sharing a word whose note count changed, not of the thousands it is ranked against.
+   * `normsAt` is the note count they hold for (every length changes with it).
+   */
+  private norms: number[] = [];
+  private normsAt = -1;
+  /** Words whose note count may change in this sync, with the count before (null: too many changes, start over). */
+  private dfBefore: Map<string, number> | null = null;
 
   /**
    * Brings the index in line with these notes: new / changed ones are scored again, gone ones dropped. Returns
@@ -134,94 +181,130 @@ export class SimilarIndex {
   sync(docs: Iterable<SimilarDoc>): boolean {
     const seen = new Set<string>();
     const dirty: string[] = [];
+    this.dfBefore = new Map();
     for (const d of docs) {
       seen.add(d.id);
       const prev = this.docs.get(d.id);
       if (prev?.sig === d.sig) continue;
-      if (prev) this.unindex(d.id, prev);
-      const entry = { sig: d.sig, tf: termCounts(d.text) };
+      if (dirty.length >= NORM_KEEP_MAX) this.dfBefore = null;
+      if (prev) this.unindex(prev);
+      const slot = prev ? prev.slot : (this.free.pop() ?? this.ids.length);
+      this.ids[slot] = d.id;
+      const entry: Entry = { sig: d.sig, tf: termCounts(d.text), slot };
       this.docs.set(d.id, entry);
-      for (const t of entry.tf.keys()) {
+      for (const [t, c] of entry.tf) {
+        this.noteDf(t);
         this.df.set(t, (this.df.get(t) ?? 0) + 1);
-        let set = this.postings.get(t);
-        if (!set) this.postings.set(t, (set = new Set()));
-        set.add(d.id);
+        let post = this.postings.get(t);
+        if (!post) this.postings.set(t, (post = new Map()));
+        post.set(slot, 1 + Math.log(c));
       }
       dirty.push(d.id);
     }
     let changed = false;
     for (const [id, e] of [...this.docs])
       if (!seen.has(id)) {
-        this.unindex(id, e);
+        this.unindex(e);
         this.docs.delete(id);
+        this.free.push(e.slot);
+        this.norms[e.slot] = NaN;
         changed = this.dropPairs(id) || changed;
       }
+    this.staleNorms(dirty);
     if (!dirty.length) return changed;
     for (const id of dirty) this.dropPairs(id);
-    const weights = new Map<string, { w: Map<string, number>; norm: number }>();
-    const vec = (id: string) => {
-      let v = weights.get(id);
-      if (!v) weights.set(id, (v = this.weigh(this.docs.get(id)!.tf)));
+    const vecs: (Vec | undefined)[] = [];
+    const norms = this.norms;
+    const vec = (slot: number) => {
+      let v = vecs[slot];
+      if (!v) {
+        vecs[slot] = v = this.vector(this.docs.get(this.ids[slot]!)!.tf);
+        norms[slot] = v.norm;
+      }
+      return v;
+    };
+    // A note's length alone, for ranking the rough scores.
+    const normOf = (slot: number) => {
+      let v = norms[slot];
+      if (v === undefined || Number.isNaN(v)) norms[slot] = v = this.norm(this.docs.get(this.ids[slot]!)!.tf);
       return v;
     };
     const n = this.docs.size;
     const maxDf = Math.max(2, Math.floor(n * MAX_DF_SHARE));
+    // Rough scores by slot (0 = not touched), the slots in the order first touched.
+    const rough = new Float64Array(this.ids.length);
+    const touched: number[] = [];
     for (const id of dirty) {
-      const me = vec(id);
+      const mySlot = this.docs.get(id)!.slot;
+      const me = vec(mySlot);
       if (!me.norm) continue;
-      const lookup = [...me.w.entries()]
+      const lookup = me.terms
+        .map((t, i) => [t, me.weights[i]!] as const)
         .filter(([t]) => (this.df.get(t) ?? 0) <= maxDf)
         .sort((x, y) => y[1] - x[1])
         .slice(0, LOOKUP_TERMS);
       // Rough score from the lookup words alone (their weight in the other note read straight from its counts),
       // then the exact cosine for the best few.
-      const rough = new Map<string, number>();
+      touched.length = 0;
       for (const [t, w] of lookup) {
         const idf = this.idf(t);
-        for (const other of this.postings.get(t) ?? []) {
-          if (other === id) continue;
-          const tf = this.docs.get(other)!.tf.get(t) ?? 0;
-          rough.set(other, (rough.get(other) ?? 0) + w * (1 + Math.log(tf)) * idf);
+        for (const [s, ltf] of this.postings.get(t) ?? []) {
+          if (s === mySlot) continue;
+          if (rough[s] === 0) touched.push(s);
+          rough[s] += w * ltf * idf;
         }
       }
       // Divided by the other note's length, as the cosine is (a long note shares many words with everything).
-      const candidates =
-        rough.size <= CANDIDATES
-          ? [...rough.keys()]
-          : [...rough.entries()]
-              .map(([k, v]) => [k, v / (vec(k).norm || 1)] as const)
-              .sort((x, y) => y[1] - x[1])
-              .slice(0, CANDIDATES)
-              .map(([k]) => k);
-      const scored: SimilarPair[] = [];
-      for (const other of candidates) {
-        const them = vec(other);
+      let candidates: number[];
+      if (touched.length <= CANDIDATES) candidates = [...touched];
+      else {
+        const vals = touched.map((s) => rough[s]! / (normOf(s) || 1));
+        candidates = topIndices(vals, CANDIDATES).map((i) => touched[i]!);
+      }
+      for (const s of touched) rough[s] = 0;
+      const part = new Float64Array(me.terms.length);
+      const scored: { other: string; score: number; at: Int32Array; parts: number[] }[] = [];
+      for (const slot of candidates) {
+        const them = vec(slot);
         if (!them.norm) continue;
-        let dot = 0;
-        const shared: [string, number][] = [];
-        for (const [t, w] of me.w) {
-          const x = them.w.get(t);
-          if (x === undefined) continue;
-          dot += w * x;
-          shared.push([t, w * x]);
+        // Both word lists are sorted by word number: one merge, no lookups.
+        const at: number[] = [];
+        let sum = 0;
+        const a = me.sorted;
+        const b = them.sorted;
+        for (let i = 0, j = 0; i < a.length && j < b.length;) {
+          if (a[i]! < b[j]!) i++;
+          else if (a[i]! > b[j]!) j++;
+          else {
+            const k = me.sortedAt[i]!;
+            const x = me.sortedW[i]! * them.sortedW[j]!;
+            part[k] = x;
+            sum += x;
+            at.push(k);
+            i++;
+            j++;
+          }
         }
+        // Clearly under the bar even with rounding: no need for the exact sum.
+        if (at.length < MIN_SHARED || sum / (me.norm * them.norm) < MIN_SCORE * (1 - 1e-9)) continue;
+        // Summed in the note's own word order, as a walk over its words would (the same score to the last bit).
+        const order = Int32Array.from(at).sort();
+        let dot = 0;
+        const parts = Array.from(order, (k) => part[k]!);
+        for (const x of parts) dot += x;
         const score = dot / (me.norm * them.norm);
-        if (score < MIN_SCORE || shared.length < MIN_SHARED) continue;
-        shared.sort((x, y) => y[1] - x[1]);
-        scored.push({
-          a: id,
-          b: other,
-          score: Math.min(1, score),
-          terms: shared.slice(0, 3).map(([t]) => t),
-        });
+        if (score < MIN_SCORE) continue;
+        scored.push({ other: this.ids[slot]!, score: Math.min(1, score), at: order, parts });
       }
       scored.sort((x, y) => y.score - x.score);
-      for (const p of scored.slice(0, TOP_K)) {
-        const key = pairKey(p.a, p.b);
+      for (const s of scored.slice(0, TOP_K)) {
+        const key = pairKey(id, s.other);
         const prev = this.pairs.get(key);
-        if (prev && prev.score >= p.score) continue;
-        this.pairs.set(key, p);
-        for (const x of [p.a, p.b]) {
+        if (prev && prev.score >= s.score) continue;
+        // The three heaviest shared words, ties in the note's own word order.
+        const top = topIndices(s.parts, 3).map((i) => me.terms[s.at[i]!]!);
+        this.pairs.set(key, { a: id, b: s.other, score: s.score, terms: top });
+        for (const x of [id, s.other]) {
           let set = this.byNote.get(x);
           if (!set) this.byNote.set(x, (set = new Set()));
           set.add(key);
@@ -259,9 +342,9 @@ export class SimilarIndex {
     const rough = new Map<string, number>();
     for (const [t, w] of lookup) {
       const idf = this.idf(t);
-      for (const other of this.postings.get(t) ?? []) {
-        const tf = this.docs.get(other)!.tf.get(t) ?? 0;
-        rough.set(other, (rough.get(other) ?? 0) + w * (1 + Math.log(tf)) * idf);
+      for (const [s, ltf] of this.postings.get(t) ?? []) {
+        const other = this.ids[s]!;
+        rough.set(other, (rough.get(other) ?? 0) + w * ltf * idf);
       }
     }
     const docNorm = (tf: Map<string, number>) => {
@@ -340,14 +423,69 @@ export class SimilarIndex {
     return { w, norm: Math.sqrt(sum) };
   }
 
-  private unindex(id: string, e: Entry): void {
+  /** `weigh` as a `Vec`. */
+  private vector(tf: Map<string, number>): Vec {
+    const { w, norm } = this.weigh(tf);
+    const terms = [...w.keys()];
+    const weights = [...w.values()];
+    const nums = terms.map((t) => {
+      let k = this.termIds.get(t);
+      if (k === undefined) this.termIds.set(t, (k = this.termIds.size));
+      return k;
+    });
+    const sortedAt = Int32Array.from(terms.keys()).sort((x, y) => nums[x]! - nums[y]!);
+    return {
+      terms,
+      weights,
+      norm,
+      sorted: Int32Array.from(sortedAt, (i) => nums[i]!),
+      sortedW: Float64Array.from(sortedAt, (i) => weights[i]!),
+      sortedAt,
+    };
+  }
+
+  /** `weigh(tf).norm` without building the weights. */
+  private norm(tf: Map<string, number>): number {
+    const n = this.docs.size;
+    let sum = 0;
+    for (const [t, c] of tf) {
+      const df = this.df.get(t) ?? 1;
+      if (df < 2) continue;
+      const x = (1 + Math.log(c)) * Math.log(1 + n / df);
+      sum += x * x;
+    }
+    return Math.sqrt(sum);
+  }
+
+  /** Before `t`'s note count changes in a sync: remember what it was. */
+  private noteDf(t: string): void {
+    if (this.dfBefore && !this.dfBefore.has(t)) this.dfBefore.set(t, this.df.get(t) ?? 0);
+  }
+
+  /** After a sync's adds / removes: forget the lengths that changed (all of them when the note count did). */
+  private staleNorms(dirty: readonly string[]): void {
+    const before = this.dfBefore;
+    this.dfBefore = null;
+    if (!before || this.docs.size !== this.normsAt) {
+      this.norms = [];
+      this.normsAt = this.docs.size;
+      return;
+    }
+    for (const [t, was] of before)
+      if ((this.df.get(t) ?? 0) !== was)
+        for (const s of this.postings.get(t)?.keys() ?? []) this.norms[s] = NaN;
+    for (const id of dirty) this.norms[this.docs.get(id)!.slot] = NaN;
+  }
+
+  private unindex(e: Entry): void {
     for (const t of e.tf.keys()) {
+      this.noteDf(t);
       const d = (this.df.get(t) ?? 1) - 1;
       if (d > 0) this.df.set(t, d);
       else this.df.delete(t);
-      const set = this.postings.get(t);
-      set?.delete(id);
-      if (set && !set.size) this.postings.delete(t);
+      const post = this.postings.get(t);
+      post?.delete(e.slot);
+      if (post && !post.size) this.postings.delete(t);
     }
   }
 

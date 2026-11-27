@@ -112,6 +112,7 @@ function tokenKeys(text: string): Set<string> {
   return keys;
 }
 
+const HAS_WORD = /[\p{L}\p{N}_]/u;
 const isWordChar = (c: string | undefined) => !!c && /[\p{L}\p{N}_]/u.test(c);
 
 /** `title` in `text` (both lowercased); ASCII titles only as whole words. */
@@ -125,11 +126,61 @@ function contains(text: string, title: string): boolean {
   return false;
 }
 
+/**
+ * T76: what a text's `tokenKeys` must hold for `contains(text, title)` to be checked (`title` lowercased): the key
+ * of its first word, as before, plus the words that can only appear whole in a text that has the title — every
+ * word of an ASCII title (matched as whole words); the inner words of another title, and the first two letters of
+ * its last word (Korean particles attach after it). Cheap set lookups that rule out most titles before scanning.
+ */
+export function titleNeeds(title: string): string[] {
+  const words = [...title.matchAll(TOKEN)];
+  if (!words.length) return [];
+  const first = words[0]![0];
+  const need = new Set([ASCII.test(first) || first.length <= 2 ? first : first.slice(0, 2)]);
+  const ascii = ASCII.test(title);
+  for (const m of words) {
+    const w = m[0];
+    const atStart = m.index === 0;
+    const atEnd = m.index + w.length === title.length;
+    if (ascii || (!atStart && !atEnd)) need.add(w);
+    else if (atEnd && !atStart && !ASCII.test(w) && w.length >= 2) need.add(w.slice(0, 2));
+  }
+  return [...need];
+}
+
+interface TitleProbe {
+  id: string;
+  title: string;
+  need: string[];
+  /** Its place among the titles (results come out in this order per key, as they always did). */
+  order: number;
+}
+type TitleIndex = Map<string, TitleProbe[]>;
+
+/**
+ * Each title filed under the one of its needed keys that the fewest titles need (a rare word, not "fe" of
+ * `FE-REQ-…`), so a text's words reach few titles.
+ */
+function titleIndex(titled: readonly { id: string; title: string }[]): TitleIndex {
+  const probes = titled.map(({ id, title }, order) => ({ id, title, need: titleNeeds(title), order }));
+  const needCount = new Map<string, number>();
+  for (const p of probes) for (const k of p.need) needCount.set(k, (needCount.get(k) ?? 0) + 1);
+  const index: TitleIndex = new Map();
+  for (const p of probes) {
+    let best = p.need[0]!;
+    for (const k of p.need) if (needCount.get(k)! < needCount.get(best)!) best = k;
+    push(index, best, p);
+  }
+  return index;
+}
+
 /** T76: which notes each note's text mentions by title, kept between builds (see `buildGraph`). */
 export interface MentionCache {
   /** Every mentionable title (id + title): when it changes, everything is scanned again. */
   titles: string;
   byNote: Map<string, { sig: string; targets: string[] }>;
+  /** The titles filed for lookup, built on the first scan after `titles` changed. */
+  index?: TitleIndex;
 }
 export const mentionCache = (): MentionCache => ({ titles: '', byNote: new Map() });
 
@@ -310,22 +361,22 @@ export function buildGraph(
   // Another note's title in the text: for each note, the titles whose first word is among its words, checked in
   // the text. Kept per note while the note and the set of titles stay the same (T76): one changed note is one note
   // scanned, not the whole index — a rebuild on every save was ~1 s for 1,500 notes.
-  const titleKey = new Map<string, IndexedNote[]>();
-  const titleList: string[] = [];
+  // Titles are looked up by a rare needed word (see `titleIndex`) and checked against all their needed keys before
+  // the text is scanned; `need[0]` is the first-word key, which orders the results as they always were.
+  const titled: { id: string; title: string }[] = [];
   for (const target of all) {
     const title = target.note.title.trim().toLowerCase();
-    if (!mentionable(title)) continue;
-    const first = title.match(TOKEN)?.[0];
-    if (!first) continue;
-    push(titleKey, ASCII.test(first) || first.length <= 2 ? first : first.slice(0, 2), target);
-    titleList.push(`${noteId(target.sourceId, target.rel)}\u0001${title}`);
+    if (!mentionable(title) || !HAS_WORD.test(title)) continue;
+    titled.push({ id: noteId(target.sourceId, target.rel), title });
   }
   const cache = extras.mentions;
-  const titles = titleList.join('\u0002');
+  const titles = titled.map((t) => `${t.id}\u0001${t.title}`).join('\u0002');
   if (cache && cache.titles !== titles) {
     cache.titles = titles;
     cache.byNote.clear();
+    delete cache.index;
   }
+  let index = cache?.index;
   const noteById = new Map(all.map((n) => [noteId(n.sourceId, n.rel), n]));
   for (const n of all) {
     const from = noteId(n.sourceId, n.rel);
@@ -333,15 +384,22 @@ export function buildGraph(
     const kept = cache?.byNote.get(from);
     let targets = kept && kept.sig === sig ? kept.targets : null;
     if (!targets) {
-      targets = [];
-      const seen = new Set<IndexedNote>();
-      for (const k of tokenKeys(n.note.text))
-        for (const target of titleKey.get(k) ?? []) {
-          if (target === n || seen.has(target)) continue;
-          seen.add(target);
-          if (contains(n.note.text, target.note.title.trim().toLowerCase()))
-            targets.push(noteId(target.sourceId, target.rel));
-        }
+      if (!index) {
+        index = titleIndex(titled);
+        if (cache) cache.index = index;
+      }
+      const keys = tokenKeys(n.note.text);
+      const found: TitleProbe[] = [];
+      for (const k of keys)
+        for (const p of index.get(k) ?? [])
+          if (p.id !== from && p.need.every((x) => keys.has(x)) && contains(n.note.text, p.title))
+            found.push(p);
+      if (found.length > 1) {
+        const at = new Map<string, number>();
+        for (const k of keys) at.set(k, at.size);
+        found.sort((x, y) => at.get(x.need[0]!)! - at.get(y.need[0]!)! || x.order - y.order);
+      }
+      targets = found.map((p) => p.id);
       cache?.byNote.set(from, { sig, targets });
     }
     for (const to of targets) edges.add(from, to, { via: 'title', label: noteById.get(to)!.note.title });

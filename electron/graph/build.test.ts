@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import type { GraphSnapshot } from '../../src/shared/api/types';
-import { buildGraph, idGroups, noteId, type CodeName, type IndexedNote } from './build';
+import {
+  buildGraph,
+  idGroups,
+  mentionCache,
+  noteId,
+  titleNeeds,
+  type CodeName,
+  type IndexedNote,
+} from './build';
 import { parseNote } from './parse';
 import { compileLinkRules } from './vault';
 
@@ -101,6 +109,32 @@ describe('buildGraph', () => {
     expect(edge(g, noteId('s', 'c.md'), noteId('s', 'roadmap.md'))).toBeUndefined();
     expect(edge(g, noteId('s', 'd.md'), noteId('s', '주간 회의.md'))).toBeDefined();
     expect(edge(g, noteId('s', 'e.md'), noteId('s', 'readme.md'))).toBeUndefined();
+  });
+
+  it("titleNeeds: every word of an ASCII title; inner words and the last word's start of a Korean one", () => {
+    expect(titleNeeds('fe-req-030 login flow')).toEqual(['fe', 'req', '030', 'login', 'flow']);
+    expect(titleNeeds('2026 주간 회의록')).toEqual(['2026', '주간', '회의']);
+    expect(titleNeeds('주간회의')).toEqual(['주간']);
+    expect(titleNeeds('---')).toEqual([]);
+  });
+
+  it('title mentions: titles sharing a first word, same first word in title order, kept per note between builds', () => {
+    const notes = [
+      note('s', 'a.md', '# FE-REQ-001 Login flow'),
+      note('s', 'b.md', '# FE-REQ-002 Search page'),
+      note('s', 'c.md', '# FE-REQ-003 Export'),
+      note('s', 'd.md', 'See fe-req-002 search page, then fe-req-001 login flow. Not fe-req-003 exports.'),
+    ];
+    const cache = mentionCache();
+    const g = buildGraph(notes, new Map(), 0, { mentions: cache });
+    const from = noteId('s', 'd.md');
+    const mentioned = g.edges.filter((e) => e.source === from && e.reasons.some((r) => r.via === 'title'));
+    expect(mentioned.map((e) => e.target)).toEqual([noteId('s', 'a.md'), noteId('s', 'b.md')]);
+    expect(cache.byNote.get(from)?.targets).toEqual([noteId('s', 'a.md'), noteId('s', 'b.md')]);
+    // Same titles: the lookup index is reused.
+    const index = cache.index;
+    buildGraph(notes, new Map(), 1, { mentions: cache });
+    expect(cache.index).toBe(index);
   });
 
   it('a repeated ID or URL links the notes; one in too many notes is noise', () => {

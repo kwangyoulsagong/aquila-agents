@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SimilarIndex, termCounts } from './similar';
+import { SimilarIndex, termCounts, topIndices } from './similar';
 
 const doc = (id: string, text: string, sig = '1') => ({ id, sig, text: text.toLowerCase() });
 
@@ -84,5 +84,55 @@ describe('terms (T75)', () => {
       ...Array.from({ length: 8 }, (_, i) => ({ id: `y${i}`, sig: '1', text: `기타${i} 다른${i}` })),
     ]);
     expect(ko.terms('k1').sort()).toEqual(['할인', '회고']);
+  });
+});
+
+describe('topIndices', () => {
+  it('the k best, best first, ties to the lower index — as a stable sort would', () => {
+    const vals = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5];
+    const sorted = vals
+      .map((v, i) => [v, i] as const)
+      .sort((x, y) => y[0] - x[0])
+      .map(([, i]) => i);
+    for (const k of [0, 1, 3, 5, 11, 20]) expect(topIndices(vals, k)).toEqual(sorted.slice(0, k));
+  });
+});
+
+describe('SimilarIndex lengths kept between syncs', () => {
+  it('after edits, removals and re-adds the kept lengths are the ones worked out fresh', () => {
+    const words = 'alpha bravo charlie delta echo foxtrot golf hotel india juliet kilo lima mike'.split(' ');
+    const text = (i: number, extra = '') =>
+      `${words[i % 13]} ${words[(i * 3) % 13]} ${words[(i * 7) % 13]} ${words[(i + 5) % 13]} ${extra}`;
+    let docs = Array.from({ length: 40 }, (_, i) => ({ id: `n${i}`, sig: '1', text: text(i) }));
+    const idx = new SimilarIndex();
+    idx.sync(docs);
+    const steps: ((d: typeof docs) => typeof docs)[] = [
+      (d) => d.map((x, i) => (i === 3 ? { ...x, sig: '2', text: text(3, 'zulu yankee') } : x)),
+      (d) => d.filter((x) => x.id !== 'n7'),
+      (d) => [...d, { id: 'n7', sig: '3', text: text(7, 'zulu') }],
+      (d) => d.map((x, i) => (i === 10 ? { ...x, sig: '4', text: 'alpha bravo' } : x)),
+    ];
+    // White-box: the private length cache against a fresh index's lengths for the same notes.
+    type Inner = {
+      norms: number[];
+      docs: Map<string, { slot: number; tf: Map<string, number> }>;
+      norm(tf: Map<string, number>): number;
+    };
+    let checked = 0;
+    for (const step of steps) {
+      docs = step(docs);
+      idx.sync(docs);
+      const fresh = new SimilarIndex();
+      fresh.sync(docs);
+      const inner = idx as unknown as Inner;
+      const other = fresh as unknown as Inner;
+      for (const [id, e] of inner.docs) {
+        const kept = inner.norms[e.slot];
+        if (kept === undefined || Number.isNaN(kept)) continue;
+        expect(kept).toBe(other.norm(other.docs.get(id)!.tf));
+        checked++;
+      }
+    }
+    expect(checked).toBeGreaterThan(0);
   });
 });
