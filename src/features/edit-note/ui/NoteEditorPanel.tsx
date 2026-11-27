@@ -55,6 +55,8 @@ export interface NoteEditorPanelProps {
   extension?: () => Promise<Extension>;
   /** T79: an unlinked mention's row (with "Link"); `title` is this note's title as the index has it. */
   renderMention?: (p: { mention: LinkedNote; title: string; path: string; onOpen: () => void }) => ReactNode;
+  /** T81: more buttons in the head ("What is this?"), from another feature. */
+  renderActions?: () => ReactNode;
 }
 
 /** What a slot gets: the note, its text right now, and a way to change it as one edit (saved like typing). */
@@ -89,6 +91,7 @@ export default function NoteEditorPanel({
   onClaude,
   extension,
   renderMention,
+  renderActions,
 }: NoteEditorPanelProps) {
   const t = useT();
   const width = usePanelWidth('aquila.panel.note');
@@ -151,9 +154,16 @@ export default function NoteEditorPanel({
   const locale = t('locale');
   const mtime = ed.file?.mtime;
   const edited = mtime
-    ? new Date(mtime).toLocaleString(locale, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+    ? new Date(mtime).toLocaleString(locale, {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
     : '';
-  const meta = [folderName(path), edited && t('note.readEdited', { date: edited })].filter(Boolean).join(' · ');
+  const meta = [folderName(path), edited && t('note.readEdited', { date: edited })]
+    .filter(Boolean)
+    .join(' · ');
   const copy = t('action.copy');
   const copied = t('note.readCopied');
   const { effects } = ed;
@@ -258,6 +268,7 @@ export default function NoteEditorPanel({
           </span>
         )}
         <div className="c-panel__actions">
+          {renderActions?.()}
           {onClaude && ed.file && <HandleWithClaude notePath={path} onClaude={onClaude} />}
           <Button
             variant="ghost"
@@ -341,10 +352,20 @@ export default function NoteEditorPanel({
                 {mentions.map((m) =>
                   renderMention && node ? (
                     <Fragment key={m.id}>
-                      {renderMention({ mention: m, title: node.label, path, onOpen: () => onOpenNote(m.path) })}
+                      {renderMention({
+                        mention: m,
+                        title: node.label,
+                        path,
+                        onOpen: () => onOpenNote(m.path),
+                      })}
                     </Fragment>
                   ) : (
-                    <EditorItem key={m.id} label={m.label} title={m.path} onClick={() => onOpenNote(m.path)} />
+                    <EditorItem
+                      key={m.id}
+                      label={m.label}
+                      title={m.path}
+                      onClick={() => onOpenNote(m.path)}
+                    />
                   ),
                 )}
               </EditorSection>

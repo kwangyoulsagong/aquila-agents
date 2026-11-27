@@ -25,7 +25,7 @@ import { NoteReferences, useNoteIds } from '@/features/note-ids';
 import { MentionRow } from '@/features/link-mentions';
 import { VaultNoteSide, VaultNoteTop, VaultSettingsDialog, VaultViewModal } from '@/features/vault-settings';
 import { NoteProperties } from '@/features/note-properties';
-import { WhatIsThisDialog, type BriefSeed } from '@/features/what-is-this';
+import { WhatIsThisButton, WhatIsThisDialog, type BriefSeed } from '@/features/what-is-this';
 import { copyLastReply, toggleQuickSelect } from '@/features/terminal-helpers';
 import { openFind } from '@/features/terminal-search';
 import { focusSession } from '@/entities/session';
@@ -780,6 +780,7 @@ export default function WorkspacePage() {
             )}
             extension={noteIds}
             renderMention={(p) => <MentionRow {...p} />}
+            renderActions={() => <WhatIsThisButton onOpen={(seed) => setBriefOpen({ seed })} />}
             renderSide={(slot) => (
               <>
                 <ChangedNotes path={slot.path} onOpenNote={setNotePath} />
