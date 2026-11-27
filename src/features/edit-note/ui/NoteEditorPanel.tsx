@@ -93,6 +93,7 @@ export default function NoteEditorPanel({
 
   const ed = useNoteEditor(host, path, {
     links: () => linkOptions(snapshot, path),
+    t: () => t,
     onOpenLink: (target) => {
       const to = resolveLink(snapshot, target, node?.sourceId);
       if (to?.path) {

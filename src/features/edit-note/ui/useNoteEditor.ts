@@ -33,7 +33,7 @@ export interface NoteEditorState {
   text: string;
 }
 
-type Callbacks = Pick<EditorOptions, 'links' | 'onOpenLink'> & {
+type Callbacks = Pick<EditorOptions, 'links' | 'onOpenLink' | 't'> & {
   /** T79: more extensions from another feature (requirement IDs), loaded with the note. */
   extension?: () => Promise<Extension>;
 };
@@ -174,6 +174,7 @@ export function useNoteEditor(host: HTMLElement | null, path: string, cb: Callba
 
     const extensions = editorExtensions({
       links: () => cbRef.current.links(),
+      t: () => cbRef.current.t(),
       onOpenLink: (t) => cbRef.current.onOpenLink(t),
       onOpenUrl: (url) => void api.noteOpenUrl(url),
       imageSrc: (target) => imageSrc(path, target),
