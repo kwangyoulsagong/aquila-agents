@@ -967,6 +967,21 @@ export class VaultService {
     return null;
   }
 
+  /**
+   * T83: a new note's file name and text from the source's `newNotes` template (else `# Title`), for a folder the
+   * user picked in the explorer (the template's own folder doesn't apply). Null for an unknown source.
+   */
+  draft(id: string, title: string): { name: string; text: string } | null {
+    const v = this.read(id);
+    if (!v) return null;
+    const { rel, text } = renderTemplate(
+      { ...this.templateOf(v.config, null), folder: '' },
+      title,
+      this.now(),
+    );
+    return { name: rel, text };
+  }
+
   /** T81: the folder (inside the source) new notes go to — the `newNotes` template's, `''` = the top. */
   newNoteFolder(id: string): string {
     const v = this.read(id);

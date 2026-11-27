@@ -283,6 +283,9 @@
   --size-modal-wide-aside: 320px;   /* its list column */
   --size-editor-measure: 720px;     /* note editor: longest line in full window (T67) */
   --size-editor-side: 240px;        /* note editor: outline + links column */
+  --size-explorer: 256px;           /* note explorer (T83): the file tree column beside the editor */
+  --size-tree-row: var(--p-size-24);  /* note explorer: one row of the tree (dense, on the grid) */
+  --size-tree-indent: var(--p-size-12); /* note explorer: indent per folder level */
   --size-doc-check: var(--p-size-16); /* note document: a to-do checkbox, a callout icon (T82) */
   --size-card-list: var(--p-size-224); /* graph card: suggested links before they scroll (T68) */
   --size-board-column: 256px;       /* a board view's column (T69) */

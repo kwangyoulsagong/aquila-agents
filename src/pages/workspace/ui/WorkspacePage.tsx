@@ -20,6 +20,7 @@ import { GlobalShortcutDialog } from '@/features/global-shortcut';
 import { SourcesDialog } from '@/features/graph-sources';
 import { LinkSettingsDialog, LinkSuggestions } from '@/features/link-suggestions';
 import { NoteEditorPanel, QuickOpen } from '@/features/edit-note';
+import { NoteExplorer } from '@/features/note-explorer';
 import { ChangedNotes, NoteReviewBar } from '@/features/note-review';
 import { NoteReferences, useNoteIds } from '@/features/note-ids';
 import { MentionRow } from '@/features/link-mentions';
@@ -98,6 +99,14 @@ export default function WorkspacePage() {
   const [noteFullOn, setNoteFull] = useState(false);
   const [quickOpenOn, setQuickOpen] = useState(false);
   const quickOpen = useCallback(() => setQuickOpen(true), []);
+  // T83: the editor panel with the file explorer, also with no note open; the counter turns the explorer on.
+  const [explorerOnly, setExplorerOnly] = useState(false);
+  const [explorerRequest, setExplorerRequest] = useState(0);
+  const noteExplorer = useCallback(() => {
+    setExplorerOnly(true);
+    setExplorerRequest((n) => n + 1);
+  }, []);
+  const noteShown = !!notePath || explorerOnly;
   const [previewRequest, setPreviewRequest] = useState<{ url: string; at: number } | null>(null);
   const clearPreviewRequest = useCallback(() => setPreviewRequest(null), []);
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -214,6 +223,7 @@ export default function WorkspacePage() {
     toggleRun,
     toggleGraph,
     quickOpen,
+    noteExplorer,
     togglePalette,
     toggleGuide,
     toggleHistory,
@@ -236,7 +246,7 @@ export default function WorkspacePage() {
   // Only while the preview is actually shown: a remote project or full window would otherwise leave nothing on screen.
   const previewFull = previewFullOn && previewOpen && !fullscreen.on && !!project && !project.remote;
   const graphFull = graphFullOn && graphOpen && !fullscreen.on && !previewFull;
-  const noteFull = noteFullOn && !!notePath && !fullscreen.on && !previewFull && !graphFull;
+  const noteFull = noteFullOn && noteShown && !fullscreen.on && !previewFull && !graphFull;
   // One panel alone in the window: the sidebar, the terminals and the other panels step aside.
   const panelFull = previewFull || graphFull || noteFull;
   // More side panels than the window holds: the oldest one closes (changes · run · preview).
@@ -250,6 +260,7 @@ export default function WorkspacePage() {
       setGraphFull(false);
     } else if (p === 'note') {
       setNotePath(null);
+      setExplorerOnly(false);
       setNoteFull(false);
     } else {
       setPreviewOpen(false);
@@ -263,7 +274,7 @@ export default function WorkspacePage() {
       extensions: extOpen,
       preview: previewOpen,
       graph: graphOpen,
-      note: !!notePath,
+      note: noteShown,
     },
     {
       changes: changesOpen && !fullscreen.on && !panelFull,
@@ -271,7 +282,7 @@ export default function WorkspacePage() {
       extensions: extOpen && !fullscreen.on && !panelFull,
       preview: previewOpen && !fullscreen.on && local && !graphFull && !noteFull,
       graph: graphOpen && !fullscreen.on && !previewFull && !noteFull,
-      note: !!notePath && !fullscreen.on && !previewFull && !graphFull,
+      note: noteShown && !fullscreen.on && !previewFull && !graphFull,
     },
     closePanel,
   );
@@ -378,6 +389,7 @@ export default function WorkspacePage() {
     a.toggleExtensions = toggleExtensions;
     a.newExtension = () => setNewExtOpen(true);
     a.quickOpen = quickOpen;
+    a.noteExplorer = noteExplorer;
     if (activeSessionId) a.closeSession = () => closeSession(activeSessionId);
     // Edited in its tab, which full window hides.
     if (activeSessionId && !fullscreen.on) a.renameSession = () => renameTab(activeSessionId);
@@ -427,6 +439,7 @@ export default function WorkspacePage() {
     toggleGraph,
     toggleExtensions,
     quickOpen,
+    noteExplorer,
     openWorktreeDialog,
     paletteWorktrees.length,
     openCleanup,
@@ -758,16 +771,32 @@ export default function WorkspacePage() {
           />
         )}
         {/* Last column: the native preview view only has to follow its own size and the window. */}
-        {notePath && !fullscreen.on && !previewFull && !graphFull && (
+        {noteShown && !fullscreen.on && !previewFull && !graphFull && (
           <NoteEditorPanel
             path={notePath}
             full={noteFull}
             onToggleFull={() => setNoteFull((f) => !f)}
             onClose={() => {
               setNotePath(null);
+              setExplorerOnly(false);
               setNoteFull(false);
             }}
             onOpenNote={setNotePath}
+            explorerRequest={explorerRequest}
+            renderExplorer={({ flush }) => (
+              <NoteExplorer
+                currentPath={notePath}
+                projects={graphProjects}
+                activeProjectId={ws.activeProjectId}
+                onOpenNote={setNotePath}
+                beforeChange={flush}
+                onMoved={setNotePath}
+                onGone={() => {
+                  setExplorerOnly(true);
+                  setNotePath(null);
+                }}
+              />
+            )}
             renderLinks={(p) => (
               <LinkSuggestions {...p} variant="side" onOpen={(n) => n.path && setNotePath(n.path)} />
             )}

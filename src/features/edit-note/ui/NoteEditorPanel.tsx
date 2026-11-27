@@ -31,8 +31,8 @@ import { useNoteEditor } from './useNoteEditor';
 import { HandleWithClaude } from './HandleWithClaude';
 
 export interface NoteEditorPanelProps {
-  /** Absolute path of the note (a `.md` in an enabled source). */
-  path: string;
+  /** Absolute path of the note (a `.md` in an enabled source); null = no note (T83: the explorer alone). */
+  path: string | null;
   full: boolean;
   onToggleFull: () => void;
   onClose: () => void;
@@ -57,6 +57,12 @@ export interface NoteEditorPanelProps {
   renderMention?: (p: { mention: LinkedNote; title: string; path: string; onOpen: () => void }) => ReactNode;
   /** T81: more buttons in the head ("What is this?"), from another feature. */
   renderActions?: () => ReactNode;
+  /**
+   * T83: the file explorer column (from another feature). `flush` saves pending edits before files move.
+   */
+  renderExplorer?: (p: { flush: () => Promise<void> }) => ReactNode;
+  /** T83: bumped to show the explorer (the "Note explorer" command), whatever the remembered choice. */
+  explorerRequest?: number;
 }
 
 /** What a slot gets: the note, its text right now, and a way to change it as one edit (saved like typing). */
@@ -79,7 +85,7 @@ const MAC = detectPlatform() === 'mac';
  * file changes on disk under unsaved edits.
  */
 export default function NoteEditorPanel({
-  path,
+  path: notePath,
   full,
   onToggleFull,
   onClose,
@@ -92,7 +98,10 @@ export default function NoteEditorPanel({
   extension,
   renderMention,
   renderActions,
+  renderExplorer,
+  explorerRequest,
 }: NoteEditorPanelProps) {
+  const path = notePath ?? '';
   const t = useT();
   const width = usePanelWidth('aquila.panel.note');
   const { status, snapshot } = useGraphData();
@@ -102,6 +111,18 @@ export default function NoteEditorPanel({
     setSideState(on);
     writeSide(on);
   };
+  // T83: the file explorer column, remembered; the "Note explorer" command always shows it.
+  const [explorerOn, setExplorerState] = useState(readExplorer);
+  const setExplorer = (on: boolean) => {
+    setExplorerState(on);
+    writeExplorer(on);
+  };
+  useEffect(() => {
+    if (!explorerRequest) return;
+    setExplorerState(true);
+    writeExplorer(true);
+  }, [explorerRequest]);
+  const showExplorer = !!renderExplorer && explorerOn;
   const [comparing, setComparing] = useState(false);
   const [missing, setMissing] = useState<string | null>(null);
   const [readingOn, setReadingOn] = useState(readReading);
@@ -261,7 +282,7 @@ export default function NoteEditorPanel({
         <ResizeHandle onChange={width.onChange} onReset={width.onReset} label={t('action.resizePanel')} />
       )}
       <div className="c-panel__head">
-        <span title={path}>{title}</span>
+        <span title={path}>{notePath ? title : t('explorer.open')}</span>
         {ed.file && (
           <span className="c-row__meta" data-fixed data-save={ed.saveState}>
             {saveLabel}
@@ -270,33 +291,49 @@ export default function NoteEditorPanel({
         <div className="c-panel__actions">
           {renderActions?.()}
           {onClaude && ed.file && <HandleWithClaude notePath={path} onClaude={onClaude} />}
-          <Button
-            variant="ghost"
-            aria-pressed={readingOn}
-            onClick={toggleReading}
-            title={`${t('note.readTitle')} (${acceleratorLabel(READING_ACCELERATOR)})`}
-          >
-            {t('note.read')}
-          </Button>
-          <Button
-            variant="ghost"
-            icon
-            aria-pressed={side}
-            onClick={() => setSide(!side)}
-            title={t('note.side')}
-            aria-label={t('note.side')}
-          >
-            ☰
-          </Button>
-          <Button
-            variant="ghost"
-            icon
-            onClick={() => void api.graphOpenNote(path)}
-            title={t('note.openDefault')}
-            aria-label={t('note.openDefault')}
-          >
-            ↗
-          </Button>
+          {renderExplorer && (
+            <Button
+              variant="ghost"
+              icon
+              aria-pressed={showExplorer}
+              onClick={() => setExplorer(!showExplorer)}
+              title={t('explorer.toggle')}
+              aria-label={t('explorer.toggle')}
+            >
+              ▤
+            </Button>
+          )}
+          {notePath && (
+            <>
+              <Button
+                variant="ghost"
+                aria-pressed={readingOn}
+                onClick={toggleReading}
+                title={`${t('note.readTitle')} (${acceleratorLabel(READING_ACCELERATOR)})`}
+              >
+                {t('note.read')}
+              </Button>
+              <Button
+                variant="ghost"
+                icon
+                aria-pressed={side}
+                onClick={() => setSide(!side)}
+                title={t('note.side')}
+                aria-label={t('note.side')}
+              >
+                ☰
+              </Button>
+              <Button
+                variant="ghost"
+                icon
+                onClick={() => void api.graphOpenNote(path)}
+                title={t('note.openDefault')}
+                aria-label={t('note.openDefault')}
+              >
+                ↗
+              </Button>
+            </>
+          )}
           <Button
             variant="ghost"
             icon
@@ -319,20 +356,34 @@ export default function NoteEditorPanel({
         </div>
       </div>
       {/* The editor stays mounted while a note can't be opened, so the next note opens in the same view. */}
-      {ed.unavailable && <EmptyState title={t('note.unavailable')} path={path} />}
+      {!showExplorer && (ed.unavailable || !notePath) && (
+        <EmptyState
+          title={notePath ? t('note.unavailable') : t('explorer.empty')}
+          path={notePath ?? undefined}
+        />
+      )}
       <NoteEditor
         hostRef={setHost}
-        hidden={ed.unavailable}
+        hidden={ed.unavailable || !notePath}
+        explorer={showExplorer ? renderExplorer?.({ flush: ed.save }) : undefined}
+        placeholder={
+          <EmptyState
+            title={notePath ? t('note.unavailable') : t('explorer.empty')}
+            path={notePath ?? undefined}
+          />
+        }
         top={
-          <>
-            {renderTop?.(slot)}
-            {banner}
-            {comparing && conflict?.kind === 'changed' && (
-              <EditorCompare>
-                {diff ? <DiffView files={[diff]} /> : <EmptyState title={t('note.compareTooLarge')} />}
-              </EditorCompare>
-            )}
-          </>
+          notePath && (
+            <>
+              {renderTop?.(slot)}
+              {banner}
+              {comparing && conflict?.kind === 'changed' && (
+                <EditorCompare>
+                  {diff ? <DiffView files={[diff]} /> : <EmptyState title={t('note.compareTooLarge')} />}
+                </EditorCompare>
+              )}
+            </>
+          )
         }
         side={
           side ? (
@@ -406,5 +457,22 @@ function writeSide(on: boolean): void {
     localStorage.setItem(SIDE_KEY, on ? '1' : '0');
   } catch {
     // not remembered: on again next time
+  }
+}
+
+/** T83: the file explorer column: off until turned on (or the "Note explorer" command), remembered. */
+const EXPLORER_KEY = 'aquila.note.explorer';
+function readExplorer(): boolean {
+  try {
+    return localStorage.getItem(EXPLORER_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+function writeExplorer(on: boolean): void {
+  try {
+    localStorage.setItem(EXPLORER_KEY, on ? '1' : '0');
+  } catch {
+    // not remembered
   }
 }

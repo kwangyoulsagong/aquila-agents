@@ -26,6 +26,7 @@ export type ActionId =
   | 'toggleExtensions'
   | 'newExtension'
   | 'quickOpen'
+  | 'noteExplorer'
   | 'history'
   | 'nextWaiting'
   | 'nextReview'
@@ -109,6 +110,7 @@ const ACTIONS: {
   { action: 'toggleExtensions', label: (t) => t('ext.toggle') },
   { action: 'newExtension', label: (t) => t('ext.new') },
   { action: 'quickOpen', label: (t) => t('note.quickOpen'), shortcut: 'quickOpen' },
+  { action: 'noteExplorer', label: (t) => t('explorer.open'), shortcut: 'noteExplorer' },
   { action: 'history', label: (t) => t('history.title'), shortcut: 'history' },
   { action: 'nextWaiting', label: (t) => t('attention.next'), shortcut: 'nextWaiting' },
   { action: 'nextReview', label: (t) => t('review.next') },

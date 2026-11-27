@@ -388,6 +388,13 @@ describe('files and the service', () => {
     expect(svc.createNote('nope', null, 'x')).toBeNull();
   });
 
+  it('T83: a draft is the newNotes template without its folder (the explorer picks the folder)', () => {
+    const d = svc.draft('req', 'DB-7200 export');
+    expect(d?.name).toBe('DB-7200-db-7200-export.md');
+    expect(d?.text).toContain('id: DB-7200');
+    expect(svc.draft('nope', 'x')).toBeNull();
+  });
+
   it('T81: with a body, writes it in the new-note folder and never reuses a taken name', () => {
     const a = svc.createNote('req', null, 'Brief login', '---\ntype: brief\n---\n# A\n');
     expect(path.dirname(a!)).toBe(path.join(root, 'specs', 'to-do'));

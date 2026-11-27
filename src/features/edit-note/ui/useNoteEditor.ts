@@ -156,10 +156,17 @@ export function useNoteEditor(host: HTMLElement | null, path: string, cb: Callba
     };
   }, [host]);
 
-  // The note: (re)opened on path change; the previous one is saved and released first.
+  // The note: (re)opened on path change; the previous one is saved and released first. No path (T83: the
+  // explorer open with no note): an empty, read-only view.
   useEffect(() => {
     const v = view.current;
     if (!v) return;
+    if (!path) {
+      s.current = { ...s.current, path: '', file: null, conflict: null, timer: null, textTimer: null, saving: null };
+      setState({ file: null, unavailable: false, saveState: 'saved', conflict: null, text: '' });
+      v.setState(EditorState.create({ doc: '', extensions: readOnly(true) }));
+      return;
+    }
     let alive = true;
     const session = {
       path,

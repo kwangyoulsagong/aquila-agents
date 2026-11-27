@@ -1086,6 +1086,70 @@ export interface NoteTableData {
   properties: VaultProperty[];
 }
 
+// ---- Note explorer (T83) ----
+
+/** A note as the explorer lists it (from the index, no disk walk). `rel` is `/`-separated inside the source. */
+export interface NoteFsEntry {
+  rel: string;
+  title: string;
+  mtime: number;
+  /** Creation time; only when asked for (`created`), one stat per note. */
+  ctime?: number;
+  /** Frontmatter `status:` (short scalar). */
+  status?: string;
+}
+
+export interface NoteFsList {
+  sourceId: string;
+  /** The source folder (absolute). */
+  root: string;
+  files: NoteFsEntry[];
+}
+
+export type NoteFsError = 'exists' | 'badName' | 'refused' | 'notFound' | 'notEmpty' | 'failed';
+
+export type NoteFsResult = { ok: true; rel: string; mtime?: number } | { ok: false; error: NoteFsError };
+
+/** A file or folder's path inside the source before and after a rename / move. */
+export interface NoteFsMove {
+  from: string;
+  to: string;
+}
+
+/** A note whose links to the renamed / moved notes can be fixed: where it is now, and how many links. */
+export interface NoteFsLinkNote {
+  rel: string;
+  count: number;
+}
+
+export type NoteFsMoveResult =
+  | {
+      ok: true;
+      /** The items asked for (a folder as one move). Empty: nothing to do (same folder, same name). */
+      moved: NoteFsMove[];
+      /** Every note that moved (a folder's notes one by one). */
+      files: NoteFsMove[];
+      /** Notes with links to fix (asked before anything is written). */
+      links: NoteFsLinkNote[];
+    }
+  | { ok: false; error: NoteFsError; moved?: NoteFsMove[] };
+
+export interface NoteFsLinkResult {
+  /** Links rewritten. */
+  fixed: number;
+  /** Notes left as they were (changed meanwhile, read-only, gone). */
+  failed: string[];
+}
+
+export type NoteFsSort = 'name' | 'modified' | 'created';
+
+/** What the explorer remembers per source in `~/.aquila/explorer.json` (never in the repo). */
+export interface NoteFsPrefs {
+  pins: string[];
+  recent: string[];
+  sort: NoteFsSort;
+}
+
 export type VaultMoveResult =
   { ok: true; path: string } | { ok: false; reason: 'exists' | 'refused' | 'failed' };
 
@@ -1483,6 +1547,28 @@ export interface AquilaApi {
   briefTargets(projectId: string | null): Promise<BriefTargets>;
   /** T81: writes the brief as a new note (only on "Save as note"): its path, or null. */
   briefSave(req: BriefSaveRequest): Promise<string | null>;
+  /** T83 note explorer: an enabled source's notes from the index (`created`: also creation times), or null. */
+  noteFsList(sourceId: string, opts?: { created?: boolean }): Promise<NoteFsList | null>;
+  /** T83: empty sub-folders of a folder (a readdir when it's expanded; folders with notes come from the index). */
+  noteFsDirs(sourceId: string, rel: string): Promise<string[]>;
+  /** T83: a new folder (never over an existing one). */
+  noteFsMkdir(sourceId: string, parent: string, name: string): Promise<NoteFsResult>;
+  /** T83: a new note in a folder from the source's `newNotes` template (else `# Title`); never over a file. */
+  noteFsCreateNote(sourceId: string, folder: string, title: string): Promise<NoteFsResult>;
+  /** T83: renames a note or folder in place. Links to fix are returned, not written. */
+  noteFsRename(sourceId: string, rel: string, name: string): Promise<NoteFsMoveResult>;
+  /** T83: moves notes / folders into a folder (`''` = the top). Links to fix are returned, not written. */
+  noteFsMove(sourceId: string, rels: string[], folder: string): Promise<NoteFsMoveResult>;
+  /** T83: rewrites only the link spans in these notes (refused per note if it changed since read). */
+  noteFsFixLinks(sourceId: string, files: NoteFsMove[], notes: string[]): Promise<NoteFsLinkResult>;
+  /** T83: to the macOS Trash. Returns what was trashed. */
+  noteFsTrash(sourceId: string, rels: string[]): Promise<string[]>;
+  /** T83 undo: removes a note made here if it's untouched (same mtime; to the Trash), or an empty folder. */
+  noteFsUndoCreate(sourceId: string, rel: string, mtime?: number): Promise<boolean>;
+  /** T83: Reveal in Finder / open in the default app. */
+  noteFsShell(sourceId: string, rel: string, action: 'reveal' | 'open'): Promise<boolean>;
+  noteFsPrefs(sourceId: string): Promise<NoteFsPrefs>;
+  noteFsSetPrefs(sourceId: string, prefs: NoteFsPrefs): Promise<void>;
   /** T81: notes related to a text from the local index (same IDs, shared words) — no model. */
   graphRelated(text: string, ids?: string[]): Promise<RelatedNote[]>;
   /** Global shortcut (T41): the saved key and whether the OS gave it to us. */
@@ -1963,6 +2049,18 @@ export const IPC = {
   briefPdfText: 'brief:pdf-text',
   briefTargets: 'brief:targets',
   briefSave: 'brief:save',
+  noteFsList: 'note-fs:list',
+  noteFsDirs: 'note-fs:dirs',
+  noteFsMkdir: 'note-fs:mkdir',
+  noteFsCreateNote: 'note-fs:create-note',
+  noteFsRename: 'note-fs:rename',
+  noteFsMove: 'note-fs:move',
+  noteFsFixLinks: 'note-fs:fix-links',
+  noteFsTrash: 'note-fs:trash',
+  noteFsUndoCreate: 'note-fs:undo-create',
+  noteFsShell: 'note-fs:shell',
+  noteFsPrefs: 'note-fs:prefs',
+  noteFsSetPrefs: 'note-fs:set-prefs',
   graphRelated: 'graph:related',
   globalShortcutGet: 'global-shortcut:get',
   globalShortcutSet: 'global-shortcut:set',

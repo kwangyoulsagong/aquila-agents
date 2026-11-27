@@ -7,6 +7,10 @@ interface EditorProps {
   top?: ReactNode;
   /** Outline / links column on the right; omitted = hidden. */
   side?: ReactNode;
+  /** T83: the file explorer column on the left; omitted = hidden. Shown even while the text is hidden. */
+  explorer?: ReactNode;
+  /** T83: shown in the text's place while it is hidden and the explorer is on (no note, a note that can't open). */
+  placeholder?: ReactNode;
   /** Hidden but kept mounted (the CodeMirror host survives, e.g. while a note can't be opened). */
   hidden?: boolean;
 }
@@ -15,14 +19,16 @@ interface EditorProps {
  * `.c-editor` — the note editor (T67): a CodeMirror host and an optional side column. CodeMirror's own classes
  * (`.cm-*`) and the live-preview marks (`.cm-md-*`) are styled under `.c-editor` in components.css.
  */
-export function NoteEditor({ hostRef, top, side, hidden }: EditorProps) {
+export function NoteEditor({ hostRef, top, side, explorer, placeholder, hidden }: EditorProps) {
   return (
-    <div className="c-editor" hidden={hidden}>
-      <div className="c-editor__main">
+    <div className="c-editor" hidden={hidden && !explorer}>
+      {explorer && <div className="c-editor__explorer">{explorer}</div>}
+      {hidden && explorer && <div className="c-editor__main">{placeholder}</div>}
+      <div className="c-editor__main" hidden={hidden}>
         {top}
         <div className="c-editor__host" ref={hostRef} />
       </div>
-      {side && <aside className="c-editor__side">{side}</aside>}
+      {side && !hidden && <aside className="c-editor__side">{side}</aside>}
     </div>
   );
 }

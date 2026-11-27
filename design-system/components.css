@@ -1257,6 +1257,7 @@ body {
 /* ── Note editor (T67): CodeMirror live preview + outline / links column ─── */
 .c-editor { flex: 1; min-height: 0; display: flex; background: var(--color-bg-canvas); }
 .c-editor[hidden] { display: none; }
+.c-editor__main[hidden] { display: none; }
 .c-editor__main { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
 .c-editor__host { flex: 1; min-height: 0; overflow: hidden; display: flex; }
 .c-editor__side { flex: none; width: var(--size-editor-side); overflow: auto; border-left: 1px solid var(--color-border-subtle); background: var(--color-bg-surface); }
@@ -1401,6 +1402,49 @@ body {
 .c-noteid-note[data-tone='warn'] { color: var(--color-status-waiting); }
 .c-noteid-note__text { flex: 1; min-width: 0; }
 .c-noteid-note__actions { flex: none; display: flex; gap: var(--space-inline-xs); }
+/* ── Note explorer (T83): a file tree column left of the editor ─────────────
+ * `.c-explorer` holds a head (source, sort, buttons), a filter field and the tree. `.c-tree` rows are fixed height
+ * (the list is virtualized), indented by `--level`; folders show a count, notes a status / "just changed" dot.
+ * State lives in attributes: aria-selected, aria-expanded, data-current (the open note), data-drop (drag target). */
+.c-editor__explorer { flex: none; width: var(--size-explorer); min-height: 0; display: flex; border-right: 1px solid var(--color-border-subtle); background: var(--color-bg-surface); }
+.c-explorer { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.c-explorer__head { flex: none; display: flex; align-items: center; gap: var(--space-inline-xs); padding: var(--space-inline-xs) var(--space-inset-sm); border-bottom: 1px solid var(--color-border-subtle); }
+.c-explorer__head > .c-select { flex: 1; min-width: 0; }
+.c-explorer__filter { flex: none; padding: var(--space-inline-xs) var(--space-inset-sm); }
+.c-explorer__note { flex: none; padding: var(--space-inline-xs) var(--space-inset-md); font-size: var(--font-size-caption); color: var(--color-text-tertiary); }
+.c-explorer__note[data-tone='warn'] { color: var(--color-status-waiting); }
+.c-tree { position: relative; flex: 1; min-height: 0; overflow: auto; outline: none; font-size: var(--font-size-label); }
+.c-tree:focus-visible { box-shadow: inset 0 0 0 1px var(--color-border-focus); }
+.c-tree__spacer { position: relative; }
+.c-tree__section { display: flex; align-items: center; height: var(--size-tree-row); padding: 0 var(--space-inset-md); font-size: var(--font-size-caption); color: var(--color-text-tertiary); }
+.c-tree__row {
+  position: absolute; left: 0; right: 0; display: flex; align-items: center; gap: var(--space-inline-xs); height: var(--size-tree-row);
+  padding: 0 var(--space-inset-sm) 0 calc(var(--space-inset-sm) + var(--size-tree-indent) * var(--level, 0));
+  color: var(--color-text-secondary); white-space: nowrap; cursor: pointer; user-select: none;
+}
+.c-tree__row:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
+.c-tree__row[aria-selected='true'] { background: var(--color-bg-selected); color: var(--color-text-primary); }
+.c-tree__row[data-current] { color: var(--color-text-primary); font-weight: 600; }
+.c-tree__row[data-cursor] { box-shadow: inset 0 0 0 1px var(--color-border-focus); }
+.c-tree__row[data-drop] { background: var(--color-bg-pressed); box-shadow: inset 0 0 0 1px var(--color-action-primary); }
+.c-tree__row[data-dragging] { opacity: 0.5; }
+.c-tree__twisty { flex: none; width: var(--size-tree-indent); color: var(--color-text-tertiary); text-align: center; font-size: var(--font-size-caption); transition: transform var(--motion-fast) var(--motion-ease); }
+.c-tree__row[aria-expanded='true'] .c-tree__twisty { transform: rotate(90deg); }
+.c-tree__icon { flex: none; width: var(--size-tree-indent); color: var(--color-text-tertiary); text-align: center; font-size: var(--font-size-caption); }
+.c-tree__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.c-tree__name mark { background: none; color: var(--color-action-primary); }
+.c-tree__count { flex: none; font-size: var(--font-size-caption); color: var(--color-text-tertiary); }
+.c-tree__dot { flex: none; width: var(--size-dot-sm); height: var(--size-dot-sm); border-radius: 50%; background: var(--color-status-idle); }
+.c-tree__dot[data-tone='done'] { background: var(--color-status-done); }
+.c-tree__dot[data-tone='active'] { background: var(--color-status-working); }
+.c-tree__dot[data-tone='changed'] { background: var(--color-status-waiting); }
+.c-tree__actions { flex: none; display: none; gap: var(--space-inline-xs); }
+.c-tree__row:hover .c-tree__actions, .c-tree__row[data-cursor] .c-tree__actions { display: flex; }
+.c-tree__action { width: var(--size-tree-row); height: var(--size-tree-row); padding: 0; border: 0; border-radius: var(--radius-badge); background: none; color: var(--color-text-tertiary); font: inherit; cursor: pointer; }
+.c-tree__action:hover { background: var(--color-bg-pressed); color: var(--color-text-primary); }
+.c-tree__input { flex: 1; min-width: 0; height: var(--size-tree-row); padding: 0 var(--space-inline-xs); border: 1px solid var(--color-border-focus); border-radius: var(--radius-badge); background: var(--color-bg-canvas); color: var(--color-text-primary); font: inherit; outline: none; }
+.c-tree__input[aria-invalid='true'] { border-color: var(--color-status-error); }
+.c-tree__ghost { position: fixed; z-index: 10; margin: var(--space-inset-sm) 0 0 var(--space-inset-md); padding: var(--space-inline-xs) var(--space-inset-sm); border: 1px solid var(--color-border-default); border-radius: var(--radius-control); background: var(--color-bg-surface); color: var(--color-text-primary); font-size: var(--font-size-label); pointer-events: none; white-space: nowrap; }
 /* ── Note document look (T82) ─────────────────────────────────
  * The live preview reads like a finished page: a centred column, a type scale, cards for callouts, code and
  * tables. Presentation only (the file stays plain Markdown). Reading mode (`.cm-reading`) hides every mark.

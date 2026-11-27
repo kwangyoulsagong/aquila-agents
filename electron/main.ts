@@ -115,6 +115,7 @@ import { TurnFiles } from './graph/turn-files';
 import { WorkScanner, type WorkScanOut } from './graph/history-worker';
 import { linkable, withLink } from './graph/rules';
 import { VaultService } from './graph/vault';
+import { NoteFs } from './graph/note-fs';
 import { runClaudeHaiku } from './graph/extract';
 import {
   IMAGE_FILE,
@@ -182,6 +183,7 @@ import {
   type VaultConfig,
   type VaultEdit,
   type NoteTableData,
+  type NoteFsMove,
   type VaultProperty,
   type VaultPresetId,
   type VaultScope,
@@ -1267,6 +1269,57 @@ app.whenReady().then(async () => {
   );
   ipcMain.handle(IPC.vaultCreateNote, (_e, a: { id: string; templateId: string | null; title: string }) =>
     vault.createNote(String(a.id), a.templateId ? String(a.templateId) : null, String(a.title ?? '')),
+  );
+  // Note explorer (T83): folder / note / rename / move / Trash inside enabled sources only (paths checked in
+  // note-fs.ts); links are rewritten only after the user's yes. Pins and recent notes in ~/.aquila/explorer.json.
+  const noteFs = new NoteFs({
+    graph,
+    draft: (id, title) => vault.draft(id, title),
+    trash: (abs) => shell.trashItem(abs),
+    prefsFile: isSmoke ? path.join(graphDir, 'explorer.json') : path.join(APP_DIR, 'explorer.json'),
+  });
+  type FsArgs = { id: string; rel: string; name: string; parent: string; folder: string; title: string };
+  ipcMain.handle(IPC.noteFsList, (_e, a: { id: string; created?: boolean }) =>
+    noteFs.list(String(a?.id), !!a?.created),
+  );
+  ipcMain.handle(IPC.noteFsDirs, (_e, a: FsArgs) => noteFs.dirs(String(a?.id), String(a?.rel ?? '')));
+  ipcMain.handle(IPC.noteFsMkdir, (_e, a: FsArgs) =>
+    noteFs.mkdir(String(a?.id), String(a?.parent ?? ''), String(a?.name ?? '')),
+  );
+  ipcMain.handle(IPC.noteFsCreateNote, (_e, a: FsArgs) =>
+    noteFs.createNote(String(a?.id), String(a?.folder ?? ''), String(a?.title ?? '')),
+  );
+  ipcMain.handle(IPC.noteFsRename, (_e, a: FsArgs) =>
+    noteFs.rename(String(a?.id), String(a?.rel ?? ''), String(a?.name ?? '')),
+  );
+  ipcMain.handle(IPC.noteFsMove, (_e, a: { id: string; rels: string[]; folder: string }) =>
+    noteFs.move(String(a?.id), Array.isArray(a?.rels) ? a.rels.map(String) : [], String(a?.folder ?? '')),
+  );
+  ipcMain.handle(IPC.noteFsFixLinks, (_e, a: { id: string; files: NoteFsMove[]; notes: string[] }) =>
+    noteFs.fixLinks(String(a?.id), a?.files, a?.notes),
+  );
+  ipcMain.handle(IPC.noteFsTrash, (_e, a: { id: string; rels: string[] }) =>
+    noteFs.trash(String(a?.id), Array.isArray(a?.rels) ? a.rels.map(String) : []),
+  );
+  ipcMain.handle(IPC.noteFsUndoCreate, (_e, a: { id: string; rel: string; mtime?: number }) =>
+    noteFs.undoCreate(
+      String(a?.id),
+      String(a?.rel ?? ''),
+      typeof a?.mtime === 'number' ? a.mtime : undefined,
+    ),
+  );
+  ipcMain.handle(IPC.noteFsShell, async (_e, a: { id: string; rel: string; action: string }) => {
+    const abs = noteFs.existing(String(a?.id), String(a?.rel ?? ''));
+    if (!abs) return false;
+    if (a.action === 'reveal') {
+      shell.showItemInFolder(abs);
+      return true;
+    }
+    return (await shell.openPath(abs)) === '';
+  });
+  ipcMain.handle(IPC.noteFsPrefs, (_e, id: string) => noteFs.prefs(String(id)));
+  ipcMain.handle(IPC.noteFsSetPrefs, (_e, a: { id: string; prefs: unknown }) =>
+    noteFs.setPrefs(String(a?.id), a?.prefs),
   );
   // "What is this?" (T81): prepare = sanitize + cap, shown before anything is sent; run = one hidden `claude -p` on
   // the click (the project's account, cached per input); save = a new note only on "Save as note". Smoke: canned.

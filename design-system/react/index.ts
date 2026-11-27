@@ -87,6 +87,17 @@ export {
   EditorTab,
   EditorFields,
 } from './NoteEditor';
+export {
+  Explorer,
+  Tree,
+  TreeSection,
+  TreeRow,
+  TreeAction,
+  TreeInput,
+  TreeGhost,
+  type TreeRowProps,
+  type TreeDotTone,
+} from './Tree';
 export { Board, BoardColumn, BoardCard } from './Board';
 export { ReviewCounts, ReviewMeta, ReviewConfirm } from './Review';
 export { NoteIdRow, NoteIdText, NoteIdNote } from './NoteId';
