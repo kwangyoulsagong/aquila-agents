@@ -20,6 +20,7 @@
     "smoke:hidden": "npm run build && cross-env AQUILA_SMOKE=1 AQUILA_HIDDEN=1 electron .",
     "perf:hidden": "npm run build && cross-env AQUILA_SMOKE=1 AQUILA_PERF=1 AQUILA_HIDDEN=1 electron .",
     "capture": "npm run build && bash scripts/capture/capture.sh",
+    "capture:hidden": "npm run build && cross-env AQUILA_HIDDEN=1 bash scripts/capture/capture.sh",
     "release-notes": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/release-notes.ts",
     "dist": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/release-notes.ts check && npm run build && electron-builder --mac --arm64 --publish never",
     "dist:win": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/release-notes.ts check && npm run build && electron-builder --win --x64 --arm64 --publish never",

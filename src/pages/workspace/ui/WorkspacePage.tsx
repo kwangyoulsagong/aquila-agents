@@ -94,8 +94,6 @@ export default function WorkspacePage() {
   }, []);
   // Note editor (T67): one note at a time, opened from the graph, ⌘O or a link; right panel or full window.
   const [notePath, setNotePath] = useState<string | null>(null);
-  // T79: requirement IDs in the editor (CodeMirror loads with the editor; this is only a loader).
-  const noteIds = useNoteIds(setNotePath);
   const [noteFullOn, setNoteFull] = useState(false);
   const [quickOpenOn, setQuickOpen] = useState(false);
   const quickOpen = useCallback(() => setQuickOpen(true), []);
@@ -235,6 +233,8 @@ export default function WorkspacePage() {
   });
 
   const { config, project, activeSessionId, openSession, closeSession, setConfig, showError } = ws;
+  // T79: requirement IDs in the editor (CodeMirror loads with the editor; this is only a loader).
+  const noteIds = useNoteIds(setNotePath, translator(config?.language ?? 'ko'));
   // The graph's project choice (T73): local projects only (a remote project's notes aren't on this machine).
   const graphProjects = useMemo(
     () =>

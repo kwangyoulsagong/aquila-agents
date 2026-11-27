@@ -10,7 +10,7 @@ import {
   type RemoteHost,
   type Session,
 } from '@/shared/api';
-import { accountLabel, groupLabel, useT } from '@/shared/i18n';
+import { accountLabel, groupLabel, translator, useT } from '@/shared/i18n';
 import { draggedProject, dropPos, dropTarget, endProjectDrag, startProjectDrag, type DropPos } from './drag';
 
 export type ManageDialog =
@@ -51,7 +51,9 @@ export function useManageProjects({
   onRemoved,
   onError,
 }: Options) {
-  const t = useT();
+  // The workspace page calls this above its language provider, where `useT()` is the default (ko): use the config's.
+  const fallback = useT();
+  const t = loaded ? translator(loaded.language) : fallback;
   const config = loaded ?? NO_CONFIG;
   const [dialog, setDialog] = useState<ManageDialog | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);

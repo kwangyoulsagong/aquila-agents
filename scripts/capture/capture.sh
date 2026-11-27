@@ -2,6 +2,7 @@
 # `npm run capture`: rebuild the guide media in src/features/guide/media/ from fixed fixtures, once per language.
 # Each run gets a throwaway HOME (fixture shell, demo `claude`/`codex`, demo git projects), so no real user data,
 # config or CLI is ever on screen. Needs a build first (`npm run capture` does it). CAPTURE_LANGS="en" for one.
+# AQUILA_HIDDEN=1 (`npm run capture:hidden`): nothing on screen while it records (electron/hidden.ts).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 FIX="$ROOT/scripts/capture/fixtures"
@@ -135,7 +136,7 @@ for lang in ${CAPTURE_LANGS:-ko en}; do
   echo "[capture] $lang in $home"
   # No TERM_PROGRAM/TERM_SESSION_ID from the terminal you run this in: macOS zsh would print "Restored session".
   env -u TERM_PROGRAM -u TERM_SESSION_ID -u TERM_PROGRAM_VERSION \
-    HOME="$home" ZDOTDIR="$home" SHELL=/bin/zsh AQUILA_SMOKE=1 AQUILA_CAPTURE="$OUT" \
+    HOME="$home" ZDOTDIR="$home" SHELL=/bin/zsh AQUILA_SMOKE=1 AQUILA_CAPTURE="$OUT" AQUILA_HIDDEN="${AQUILA_HIDDEN:-}" \
     "$ROOT/node_modules/.bin/electron" "$ROOT"
   rm -rf "$home"
 done

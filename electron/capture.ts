@@ -11,6 +11,7 @@ import type { SessionManager } from './sessions';
 import type { PreviewViews } from './preview';
 import type { Config } from '../src/shared/api/types';
 import { translator } from '../src/shared/i18n/dictionary';
+import './hidden';
 
 /** Window content size while capturing (16:10, like the guide's media frame). */
 const WIN = { width: 1440, height: 900 };
@@ -55,8 +56,8 @@ interface Scenario {
 }
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
-/** The whole run (17 items) takes ~90 s; a stuck step must not hang forever. */
-const TIMEOUT_MS = 240_000;
+/** The whole run (31 items) takes ~3 min; a stuck step must not hang forever. */
+const TIMEOUT_MS = 480_000;
 
 // Capture runs under the fixture HOME: keep Chromium's profile (local storage, caches) there too, never in the
 // real app's Application Support folder. Must happen before `ready`, so at import time.
@@ -153,6 +154,89 @@ export async function runCapture(
     console.log(`[capture] state at the timeout: ${state}`);
     throw new Error(`timed out waiting for ${condition}`);
   };
+
+  // ── note features (T77–T83): web-shop's demo specs and guide (scripts/capture/demo_notes.py) ──
+  const NOTE_ASIDE = `aside[aria-label=${JSON.stringify(t('note.title'))}]`;
+  /** The open editor's CodeMirror view (CodeMirror keeps it on its DOM tile). */
+  const VIEW = `document.querySelector('.c-editor .cm-content').cmTile.root.view`;
+  const shopDir = (config.projects.find((p) => p.id === 'web-shop')?.path ?? '').replace(
+    /^~(?=\/)/,
+    // The fixture HOME ($HOME): Electron's own 'home' path is the account's, not the variable.
+    process.env.HOME ?? app.getPath('home'),
+  );
+  const notePath = (rel: string) => path.join(shopDir, ...rel.split('/'));
+  const LOGIN =
+    lang === 'ko'
+      ? ['로그인 유지', '소셜 로그인', '', '2단계 인증']
+      : ['Remember me', 'Social login', '', 'Two-step verification'];
+  const specTitle = (i: number) => `FE-REQ-${String(30 + i).padStart(3, '0')} ${LOGIN[i]}`;
+  const guideTitle = lang === 'ko' ? '결제 화면 가이드' : 'Checkout screen guide';
+  const firstStep = lang === 'ko' ? '1. 장바구니 합계 확인' : '1. Check the cart total';
+  const lastTask = lang === 'ko' ? '- [ ] 쿠폰 테스트 추가' : '- [ ] Add coupon tests';
+  const briefEmail = [
+    'From: Mina Park <mina@example.com>',
+    'To: team@example.com',
+    'Date: Tue, 24 Nov 2026 10:00:00 +0900',
+    `Subject: ${lang === 'ko' ? '로그인 유지 체크박스' : 'Remember me on the login screen'}`,
+    'Message-ID: <demo-123@example.com>',
+    '',
+    lang === 'ko'
+      ? '안녕하세요, FE-REQ-030대로 로그인 화면에 로그인 유지 체크박스를 넣어 주세요. 토큰은 30일이에요.'
+      : 'Hi team, FE-REQ-030 asks for a remember me checkbox on the login screen. Tokens last 30 days.',
+  ].join('\n');
+  const mouse = (type: 'mouseMove' | 'mouseDown' | 'mouseUp', x: number, y: number) =>
+    win.webContents.sendInputEvent({
+      type,
+      x: Math.round(x),
+      y: Math.round(y),
+      ...(type === 'mouseMove' ? {} : { button: 'left' as const, clickCount: 1 }),
+    });
+  /** ⌘O, the note's title, Enter; waits until the editor shows it. */
+  const openNote = async (title: string) => {
+    await press('O', ['meta'], 300);
+    await waitFor(`!!document.querySelector('.c-palette[open] input')`);
+    await js(`(() => {
+      const input = document.querySelector('.c-palette[open] input');
+      const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+      set.call(input, ${JSON.stringify(title)});
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    })()`);
+    await wait(300);
+    await press('Enter', [], 0);
+    await waitFor(
+      `!!document.querySelector('.c-editor .cm-content')?.textContent.includes(${JSON.stringify(title)})`,
+      10_000,
+    );
+  };
+  const closeNote = async () => {
+    await js(`document.querySelector('${NOTE_ASIDE} .c-panel__actions button:last-child')?.click()`);
+    await waitFor(`!document.querySelector('${NOTE_ASIDE}')`, 3000);
+    await wait(200);
+  };
+  /** Cursor at the first offset of `find` plus `plus` (or right after it), editor focused. */
+  const cursorAt = (find: string, plus: number | 'end' = 0) =>
+    js(`(() => {
+      const v = ${VIEW};
+      const i = v.state.doc.toString().indexOf(${JSON.stringify(find)});
+      if (i < 0) return;
+      v.focus();
+      v.dispatch({ selection: { anchor: i + ${plus === 'end' ? find.length : plus} }, scrollIntoView: true });
+    })()`);
+  /** Moves the pointer onto the text `find` in the editor (the ⋮⋮ handle shows for its block). */
+  const hoverText = async (find: string) => {
+    const at = await js<{ x: number; y: number } | null>(`(() => {
+      const v = ${VIEW};
+      const i = v.state.doc.toString().indexOf(${JSON.stringify(find)});
+      const r = i < 0 ? null : v.coordsAtPos(i + 3, 1);
+      return r ? { x: r.left + 8, y: (r.top + r.bottom) / 2 } : null;
+    })()`);
+    if (!at) throw new Error(`not on screen: ${find}`);
+    mouse('mouseMove', at.x, at.y);
+    mouse('mouseMove', at.x + 4, at.y);
+  };
+  const treeRow = (rel: string) =>
+    `[...document.querySelectorAll('.c-explorer .c-tree__row')].filter((r) => r.dataset.rel === ${JSON.stringify(rel)}).pop()`;
+  let guideText = '';
 
   const scenarios: Scenario[] = [
     {
@@ -418,7 +502,9 @@ export async function runCapture(
         await click('.c-preview .c-btn', t('preview.designer'));
         await waitFor(`!!document.querySelector('.c-preview__figma-bar .c-input')`);
         // Select what's there (a remembered address) so the typed one replaces it.
-        await js(`(() => { const el = document.querySelector('.c-preview__figma-bar .c-input'); el?.focus(); el?.select(); })()`);
+        await js(
+          `(() => { const el = document.querySelector('.c-preview__figma-bar .c-input'); el?.focus(); el?.select(); })()`,
+        );
         await type(`${DESIGN_URL}design.html`, 10);
         await press('Enter', [], 300);
         await click('.c-preview__figma-bar .c-segment__item', t('preview.compare.side'));
@@ -564,6 +650,212 @@ export async function runCapture(
         await js(`['mode', 'project'].forEach((k) => localStorage.removeItem('aquila.graph.' + k))`);
       },
     },
+    {
+      // T77: hover shows ⋮⋮, ⌥⇧↓ moves a numbered step (renumbered), `/` on a new line opens the block menu.
+      id: 'blocks',
+      rect: FULL,
+      ms: 5000,
+      stage: async () => {
+        await openNote(guideTitle);
+        guideText = fs.readFileSync(notePath('docs/checkout-guide.md'), 'utf8');
+        await wait(600);
+      },
+      act: async () => {
+        await wait(300);
+        await hoverText(firstStep);
+        await wait(900);
+        await cursorAt(firstStep, 3);
+        await press('Down', ['alt', 'shift'], 1100);
+        await cursorAt(lastTask, 'end');
+        await press('Enter', [], 300);
+        await press('Enter', [], 300);
+        for (const ch of lang === 'ko' ? ['/', '할'] : ['/', 't', 'o']) {
+          win.webContents.insertText(ch);
+          await wait(250);
+        }
+        await waitFor(`!!document.querySelector('.cm-tooltip-autocomplete li')`, 3000);
+        await wait(800);
+      },
+      after: async () => {
+        await press('Escape', [], 200);
+        // Back to the text as written, through the editor (it saves it, byte-exact): the scenes after read it.
+        await js(`(() => {
+          const v = ${VIEW};
+          v.dispatch({ changes: { from: 0, to: v.state.doc.length, insert: ${JSON.stringify(guideText)} } });
+        })()`);
+        for (
+          let i = 0;
+          i < 50 && fs.readFileSync(notePath('docs/checkout-guide.md'), 'utf8') !== guideText;
+          i++
+        )
+          await wait(100);
+        await closeNote();
+      },
+    },
+    {
+      // T78: a spec's frontmatter as property rows, then ⌘K → Table view of its folder, sorted by due date.
+      id: 'properties',
+      rect: FULL,
+      ms: 5000,
+      stage: async () => {
+        await openNote(specTitle(0));
+        await js(`(() => {
+          const t = document.querySelector('${NOTE_ASIDE} .c-props__toggle');
+          if (t && t.getAttribute('aria-expanded') === 'false') t.click();
+        })()`);
+        await waitFor(`document.querySelectorAll('${NOTE_ASIDE} .c-props__row').length >= 4`);
+        await wait(400);
+      },
+      act: async () => {
+        await wait(1300);
+        await openPalette();
+        await type(lang === 'ko' ? '표 보기' : 'table', 120);
+        await wait(300);
+        await click('.c-palette__item', t('table.menu'));
+        await waitFor(`document.querySelectorAll('.c-ntable .c-ntable__row').length >= 6`, 8000);
+        await wait(700);
+        await js(`(() => {
+          const th = [...document.querySelectorAll('.c-ntable__th')].find((x) => x.textContent.startsWith('due'));
+          th?.querySelector('.c-ntable__sort')?.click();
+        })()`);
+        await wait(1200);
+      },
+      after: async () => {
+        await press('Escape', [], 400);
+        await closeNote();
+      },
+    },
+    {
+      // T79: ID marks (defined / duplicate / unknown) and the hover card of a defined one.
+      id: 'noteIds',
+      rect: FULL,
+      stage: async () => {
+        await openNote(specTitle(1));
+        const mark = `document.querySelector('.c-editor .c-noteid[data-id="FE-REQ-030"]')`;
+        await waitFor(`${mark}?.dataset.state === 'defined'`, 8000);
+        const at = await js<{ x: number; y: number }>(`(() => {
+          const r = ${mark}.getBoundingClientRect();
+          return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+        })()`);
+        mouse('mouseMove', at.x - 3, at.y);
+        mouse('mouseMove', at.x, at.y);
+        await waitFor(`!!document.querySelector('.c-noteid-tip .c-noteid-tip__title')`, 4000);
+        await wait(400);
+      },
+      after: async () => {
+        mouse('mouseMove', 2, 2);
+        await closeNote();
+      },
+    },
+    {
+      // T80: a spec changed outside after it was seen → the bar with counts; Review shows the diff.
+      id: 'noteReview',
+      rect: FULL,
+      stage: async () => {
+        await openNote(specTitle(3));
+        await wait(1200); // the seen copy is written as the note opens
+        const file = notePath('specs/login/FE-REQ-033.md');
+        const added =
+          lang === 'ko'
+            ? '\n## 결정\n\n인증 앱과 SMS를 둘 다 지원해요. 백업 코드 10개를 줘요.\n'
+            : '\n## Decision\n\nSupport both authenticator apps and SMS. Give 10 backup codes.\n';
+        fs.writeFileSync(
+          file,
+          fs.readFileSync(file, 'utf8').replace('status: todo', 'status: doing') + added,
+        );
+        await waitFor(`!!document.querySelector('${NOTE_ASIDE} .c-review__counts')`, 8000);
+        await click(`${NOTE_ASIDE} button`, t('noteReview.review'));
+        await waitFor(`!!document.querySelector('${NOTE_ASIDE} .c-editor__compare .c-diff__actions')`);
+        await wait(500);
+      },
+      after: async () => {
+        await click(`${NOTE_ASIDE} button`, t('noteReview.markSeen'));
+        await closeNote();
+      },
+    },
+    {
+      // T81: ⌘K → What is this?, an email pasted (headers cut), Ask Claude → the canned card, related specs.
+      id: 'whatIsThis',
+      rect: FULL,
+      ms: 5000,
+      act: async () => {
+        await wait(300);
+        await openPalette();
+        await type(lang === 'ko' ? '이게' : 'what is', 90);
+        await wait(300);
+        await click('.c-palette__item', t('brief.action'));
+        await waitFor(`!!document.querySelector('.c-dialog[open] .c-brief textarea')`);
+        await js(`(() => {
+          const ta = document.querySelector('.c-dialog[open] textarea');
+          const set = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set;
+          set.call(ta, ${JSON.stringify(briefEmail)});
+          ta.dispatchEvent(new Event('input', { bubbles: true }));
+        })()`);
+        await wait(900);
+        await click('.c-dialog[open] button', t('brief.run'));
+        await waitFor(
+          `!!document.querySelector('.c-dialog[open] .c-brief__card .c-brief__bullets li')`,
+          8000,
+        );
+        await wait(1000);
+      },
+      after: () => click('.c-dialog[open] button', t('brief.close')),
+    },
+    {
+      // T82: the document look (header, callout / table / code cards), then ⌘E reading mode.
+      id: 'reading',
+      rect: FULL,
+      ms: 4000,
+      stage: async () => {
+        await js(`localStorage.setItem('aquila.note.reading', '0')`);
+        await openNote(guideTitle);
+        await waitFor(`!!document.querySelector('.c-editor .cm-md-callout')`);
+        await wait(400);
+      },
+      act: async () => {
+        await wait(1500);
+        await js(`${VIEW}.focus()`);
+        await press('E', ['meta'], 1800);
+      },
+      after: async () => {
+        await js(`${VIEW}.focus()`);
+        await press('E', ['meta'], 300);
+        await js(`localStorage.setItem('aquila.note.reading', '0')`);
+        await closeNote();
+      },
+    },
+    {
+      // T83: ⌘⇧O opens the explorer with no note; open specs → login, pick a spec.
+      id: 'explorer',
+      rect: FULL,
+      ms: 5000,
+      act: async () => {
+        await wait(400);
+        await press('O', ['meta', 'shift'], 600);
+        // The front tab may be the worktree scene's (its own folder): pick web-shop's source.
+        await js(`(() => {
+          const s = document.querySelector('.c-explorer select[aria-label=${JSON.stringify(t('explorer.source'))}]');
+          const o = s && [...s.options].find((x) => x.textContent.trim() === 'web-shop');
+          if (!o || s.value === o.value) return;
+          const set = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
+          set.call(s, o.value);
+          s.dispatchEvent(new Event('change', { bubbles: true }));
+        })()`);
+        await waitFor(`!!${treeRow('specs')}`, 8000);
+        await js(`${treeRow('specs')}.click()`);
+        await waitFor(`!!${treeRow('specs/login')}`);
+        await wait(500);
+        await js(`${treeRow('specs/login')}.click()`);
+        await waitFor(`!!${treeRow('specs/login/FE-REQ-031.md')}`);
+        await wait(600);
+        await js(`${treeRow('specs/login/FE-REQ-031.md')}.click()`);
+        await wait(1500);
+      },
+      after: async () => {
+        await js(`localStorage.setItem('aquila.note.explorer', '0')`);
+        await closeNote();
+      },
+    },
     { id: 'restore', rect: FULL },
     { id: 'power', rect: TOP_LEFT },
     {
@@ -587,7 +879,11 @@ export async function runCapture(
   ];
 
   const grab = async (rect: Rectangle) =>
-    (await retryViz(async () => withViews(await win.webContents.capturePage(rect), rect, previews?.visible() ?? [])))
+    (
+      await retryViz(async () =>
+        withViews(await win.webContents.capturePage(rect), rect, previews?.visible() ?? []),
+      )
+    )
       .resize({ ...OUT, quality: 'best' })
       .toPNG();
 
@@ -618,6 +914,7 @@ export async function runCapture(
     webPreferences: { backgroundThrottling: false, offscreen: false },
   });
   await encoder.loadURL('about:blank');
+  console.log('[capture] encoder ready');
 
   const write = (file: string, data: Buffer, limit: number) => {
     if (data.length > limit) throw new Error(`${file} is ${data.length} bytes, over the ${limit} budget`);
@@ -640,6 +937,7 @@ export async function runCapture(
         await s.after?.();
         continue;
       }
+      console.log(`[capture] ${s.id}…`);
       await s.stage?.();
       const base = `${s.id}.${lang}`;
       if (!s.act) {

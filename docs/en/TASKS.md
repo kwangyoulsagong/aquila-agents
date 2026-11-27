@@ -924,7 +924,8 @@ throttled or hot → `saver`). The rules every task below follows:
 - **Done:** unit tests (open tab in, roots, mention cache via the engine tests, terms cache, candidate titles);
   measured on a copy of the 1,505-note monorepo (rebuild 1,126–1,371 ms → 34–60 ms); idle CPU 0 % with the panel
   open; smoke.
-  _Left over: the first index of a big repo still takes seconds (once; cached after)._
+  _Left over: the first index of a big repo still takes seconds (once; cached after) — 4,071 notes cut 10.2 → 4.5 s
+  (see "Notes: guide, hidden capture, OCR, cold index")._
 
 ### Fix · Graph: closing the note editor, typing lag (2026-11-27)
 - [x] A long note title pushed the editor's ⤢ / × off the panel (panel head titles now shrink with an ellipsis).
@@ -987,7 +988,7 @@ save byte-exact, add the conveniences on top. Built in parallel worktrees, merge
   (frontmatter `type: brief`). ⌘K, a button in the graph head, or drop.
   _Leftovers done: PDFs (≤ 20 MB) are read on the Mac with PDFKit through `osascript` (no model, no new
   dependency; scanned / locked PDFs say so); a **What is this?** button in the note editor head (page slot).
-  Left over: Figma read tools untested with a real account; scanned PDFs need OCR (not done)._
+  Left over: Figma read tools untested with a real account; scanned PDFs are read with OCR now (see "Notes: guide, hidden capture, OCR, cold index")._
 - [x] **T82 Document look** (`model/document.ts`, `readingMode.ts`, T82 block in `components.css`, doc tokens):
   centred 720px column, type scale, title, folder · edited header, bullets by depth, drawn checkboxes, callout
   cards, code cards (language + copy), table cards, wikilink pills; **Read** mode (⌘E) hides all syntax, links and
@@ -1051,7 +1052,37 @@ save byte-exact, add the conveniences on top. Built in parallel worktrees, merge
   _Left over: the nice-to-haves — group by `status` as virtual folders, folder notes (index.md / README.md), sticky
   parent rows, compact single-child chains; "always / never" for the links question; no auto-scroll while dragging
   near the tree's edge; the Trash can't be undone from the app; the native context menu isn't driven by smoke (its
-  actions are, through keys and hover buttons). Guide text / media not updated._
+  actions are, through keys and hover buttons). Guide text / media: done (see "Notes: guide, hidden capture, OCR, cold index")._
   Follow-up: with the explorer, editor and side column in a ~990px panel the writing column was squeezed and the
   properties head broke letter by letter: the side column now gives way below 720px (976px with the explorer), the
   properties head stays on one line; the inline name field takes focus back if a click moved it.
+
+### Notes: guide, hidden capture, OCR, cold index (2026-11-27)
+- [x] **Guide**: items for block editing, properties + table view, requirement IDs, agent-change review, What is
+  this?, document look + reading mode (⌘E) and the note explorer (⌘⇧O), ko + en, each with captured media. The
+  shortcut sheet has a **Note editor** group for the editor's own keys (⌥⇧↑/↓, `/`, ⌘E; `SheetRow.editorKeys`, not in
+  the app's shortcut map). What's new for the next version: `release-notes/1.4.0.json` (the app version is not
+  bumped; notes newer than the running version stay hidden).
+- [x] **Hidden capture**: `npm run capture:hidden` (`AQUILA_HIDDEN=1`) records the guide media with nothing on
+  screen. The hide logic moved to `electron/hidden.ts` (smoke and capture import it; `smoke:hidden` unchanged, plus no
+  notification banners in hidden runs — a never-focused window would otherwise notify for every waiting demo session).
+  `capturePage` frames, the hidden encoder window's MediaRecorder (WebM) and canvas WebP work with the 1 %-opacity,
+  never-focused window and the "prohibited" activation policy. Capture scenes for the seven items above (demo specs
+  and a guide note in web-shop, `scripts/capture/demo_notes.py`; a localized canned brief reply
+  `electron/fixtures/brief/capture.<lang>.json`). Checked invisible: the front app sampled every 0.25 s during a full ko + en run was never Electron (0 of 1,898 samples).
+- [x] **Scanned PDFs (OCR)**: a PDF with no text layer is read with macOS Vision (`VNRecognizeTextRequest`, ko-KR +
+  en-US, accurate) through JXA — PDFKit renders each page (~2×, ≤ 3000 px); ≤ 30 pages, no page started after 45 s,
+  killed at 60 s; no dependency, no network, no model. The preview says "Read with OCR" (and when pages were cut).
+  Tests: parsing / capping / fallback with a canned runner, and a real OCR of an image-only PDF generated at test time
+  (skipped off macOS).
+- [x] **Cold index** (`electron/graph/similar.ts`, `build.ts`): profiled on two real repos (read only, nothing
+  written). Similar notes: notes get numbered slots, rough scores go into a number array and the best 30 are picked
+  without a full sort; the exact cosine merges two sorted word lists in the old summing order (same scores to the
+  bit); each note's vector length is kept between syncs. Title mentions (`contains`): a title must first pass cheap
+  lookups for the words a match needs (every word of an English title; inner words + the last word's first two
+  letters otherwise), titles filed under their rarest such word, cached with the mention cache. Cold index (min of 3):
+  1,533 notes 2.36 → 1.53 s, 4,071 notes 10.17 → 4.53 s; one edit 32 → 20 ms / 77 → 44 ms; similar-note pairs 100 %
+  the same (2,903 and 7,179 pairs), edges / labels / terms identical, also over a 40-step edit run.
+- Also fixed: the requirement-ID hover card and the project context menus were always Korean (their hooks ran in the
+  workspace page above its language provider, so `useT()` gave the default); they take the config's language now.
+  _Left over: guide media for the new items are captured in a demo state (stills + loops), not driven by smoke._

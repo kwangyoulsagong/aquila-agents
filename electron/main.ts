@@ -1325,7 +1325,18 @@ app.whenReady().then(async () => {
   // the click (the project's account, cached per input); save = a new note only on "Save as note". Smoke: canned.
   const briefs = new BriefService({
     run: isSmoke
-      ? fixtureBrief(path.join(__dirname, '..', '..', 'electron', 'fixtures', 'brief', 'reply.json'))
+      ? fixtureBrief(
+          path.join(
+            __dirname,
+            '..',
+            '..',
+            'electron',
+            'fixtures',
+            'brief',
+            // The guide capture (T24): the demo shop's reply, in the capture's language.
+            process.env.AQUILA_CAPTURE ? `capture.${loadConfig().language}.json` : 'reply.json',
+          ),
+        )
       : runClaudeBrief(binaryFor('claude')),
   });
   const briefAccount = (projectId: unknown) => {

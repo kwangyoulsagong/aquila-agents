@@ -1,5 +1,11 @@
 import type { Translate } from '@/shared/i18n';
-import { projectIndex, shortcutLabel, type Platform, type ShortcutId } from '@/shared/lib/shortcuts';
+import {
+  acceleratorLabel,
+  projectIndex,
+  shortcutLabel,
+  type Platform,
+  type ShortcutId,
+} from '@/shared/lib/shortcuts';
 
 type Key = Parameters<Translate>[0];
 
@@ -8,6 +14,11 @@ interface SheetRow {
   labelKey: Key;
   /** `project1` + `project9` is shown as one range. */
   ids: readonly ShortcutId[];
+  /**
+   * Keys the note editor handles itself (CodeMirror keymap, not the app's shortcut map), as accelerators. The same
+   * on Windows (`CommandOrControl` → Ctrl). Rows with these have no `ids`.
+   */
+  editorKeys?: readonly string[];
 }
 
 /** The full shortcut sheet. A test checks it lists every shortcut of the map exactly once. */
@@ -59,6 +70,20 @@ export const SHEET: readonly { titleKey: Key; rows: readonly SheetRow[] }[] = [
       },
     ],
   },
+  {
+    // Keys of the note editor only (blockHandle.ts, slashMenu.ts, readingMode.ts).
+    titleKey: 'guide.group.notes',
+    rows: [
+      {
+        id: 'blockMove',
+        labelKey: 'guide.key.blockMove',
+        ids: [],
+        editorKeys: ['Alt+Shift+Up', 'Alt+Shift+Down'],
+      },
+      { id: 'slashMenu', labelKey: 'guide.key.slash', ids: [], editorKeys: ['/'] },
+      { id: 'readingMode', labelKey: 'guide.key.reading', ids: [], editorKeys: ['CommandOrControl+E'] },
+    ],
+  },
 ];
 
 /** Every shortcut a list of ids stands for (`project1` + `project9` → `project1`…`project9`). */
@@ -82,6 +107,12 @@ export function shortcutKeys(ids: readonly ShortcutId[], platform?: Platform): s
 export function buildSheet(t: Translate, platform?: Platform) {
   return SHEET.map((g) => ({
     title: t(g.titleKey),
-    rows: g.rows.map((r) => ({ id: r.id, label: t(r.labelKey), keys: shortcutKeys(r.ids, platform) })),
+    rows: g.rows.map((r) => ({
+      id: r.id,
+      label: t(r.labelKey),
+      keys: r.editorKeys
+        ? r.editorKeys.map((k) => acceleratorLabel(k, platform))
+        : shortcutKeys(r.ids, platform),
+    })),
   }));
 }

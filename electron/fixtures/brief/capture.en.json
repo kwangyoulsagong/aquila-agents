@@ -1,0 +1,12 @@
+{
+  "product": "web-shop",
+  "feature": "Login screen — remember me",
+  "intent": "Keep returning shoppers signed in for 30 days so checkout doesn't start with a login form.",
+  "points": [
+    "Checkbox under the password field, off by default",
+    "Token lasts 30 days; logout clears it",
+    "Shared computers: show a short warning"
+  ],
+  "questions": ["What happens on password change?", "Does it apply to social login (FE-REQ-031)?"],
+  "terms": ["FE-REQ-030", "remember me"]
+}

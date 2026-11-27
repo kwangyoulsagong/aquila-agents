@@ -1,15 +1,15 @@
 import { useCallback, useRef } from 'react';
 import type { Extension } from '@codemirror/state';
 import { onGraphSnapshot, peekGraphSnapshot } from '@/entities/note';
-import { useT } from '@/shared/i18n';
+import type { Translate } from '@/shared/i18n';
 import { idIndex } from './ids';
 
 /**
  * The note editor's requirement-ID extension, as a stable loader: CodeMirror stays in the editor's lazy chunk (the
- * page only holds this function). Reads the snapshot the editor already holds — no fetch of its own.
+ * page only holds this function). Reads the snapshot the editor already holds — no fetch of its own. `t` comes
+ * from the caller: the workspace page provides the language context, so `useT()` there would read the default (ko).
  */
-export function useNoteIds(onOpen: (path: string) => void): () => Promise<Extension> {
-  const t = useT();
+export function useNoteIds(onOpen: (path: string) => void, t: Translate): () => Promise<Extension> {
   const live = useRef({ onOpen, t });
   live.current = { onOpen, t };
   const loaded = useRef<Promise<Extension> | null>(null);
