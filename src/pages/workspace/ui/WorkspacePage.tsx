@@ -20,6 +20,7 @@ import { GlobalShortcutDialog } from '@/features/global-shortcut';
 import { SourcesDialog } from '@/features/graph-sources';
 import { LinkSettingsDialog, LinkSuggestions } from '@/features/link-suggestions';
 import { NoteEditorPanel, QuickOpen } from '@/features/edit-note';
+import { ChangedNotes, NoteReviewBar } from '@/features/note-review';
 import { VaultNoteSide, VaultNoteTop, VaultSettingsDialog, VaultViewModal } from '@/features/vault-settings';
 import { copyLastReply, toggleQuickSelect } from '@/features/terminal-helpers';
 import { openFind } from '@/features/terminal-search';
@@ -728,14 +729,20 @@ export default function WorkspacePage() {
               <LinkSuggestions {...p} variant="side" onOpen={(n) => n.path && setNotePath(n.path)} />
             )}
             renderTop={(slot) => (
-              <VaultNoteTop slot={slot} onOpenNote={setNotePath} onClaude={sendNoteToClaude} />
+              <>
+                <NoteReviewBar slot={slot} />
+                <VaultNoteTop slot={slot} onOpenNote={setNotePath} onClaude={sendNoteToClaude} />
+              </>
             )}
             renderSide={(slot) => (
-              <VaultNoteSide
-                slot={slot}
-                onOpenNote={setNotePath}
-                onOpenView={(sourceId, viewId) => setVaultView({ sourceId, viewId })}
-              />
+              <>
+                <ChangedNotes path={slot.path} onOpenNote={setNotePath} />
+                <VaultNoteSide
+                  slot={slot}
+                  onOpenNote={setNotePath}
+                  onOpenView={(sourceId, viewId) => setVaultView({ sourceId, viewId })}
+                />
+              </>
             )}
             onClaude={sendNoteToClaude}
             onCreateNote={(name, sourceId) => {
