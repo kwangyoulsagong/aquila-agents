@@ -57,6 +57,26 @@ describe('relative Markdown links', () => {
   });
 });
 
+describe("a moved note's own images and files", () => {
+  it('re-bases relative images and non-note links against the new folder', () => {
+    const text = '![](x.png) ![d](img/a%20b.png "t") [pdf](files/x.pdf) [z](<my file.zip>)\n';
+    expect(fix(text, [], 'a/n.md', 'b/c/n.md')).toBe(
+      '![](../../a/x.png) ![d](../../a/img/a%20b.png "t") [pdf](../../a/files/x.pdf) [z](<../../a/my file.zip>)\n',
+    );
+  });
+  it('keeps CRLF, URLs, anchors, absolute paths and code as written', () => {
+    const text =
+      '![](x.png)\r\n![w](https://h/x.png) [a](#top) [r](/abs.pdf) [m](mailto:a@b)\r\n`![](x.png)`\r\n```\r\n![](x.png)\r\n```\r\n';
+    expect(fix(text, [], 'n.md', 'sub/n.md')).toBe(
+      '![](../x.png)\r\n![w](https://h/x.png) [a](#top) [r](/abs.pdf) [m](mailto:a@b)\r\n`![](x.png)`\r\n```\r\n![](x.png)\r\n```\r\n',
+    );
+  });
+  it('a note that stayed leaves its images and files alone when another note moves', () => {
+    const text = '![](x.png) [pdf](files/x.pdf) [n](a.md)';
+    expect(fix(text, [{ from: 'a.md', to: 'b/a.md' }], 'n.md')).toBe('![](x.png) [pdf](files/x.pdf) [n](b/a.md)');
+  });
+});
+
 describe('bytes', () => {
   it('keeps CRLF and everything around the link', () => {
     const text = '# T\r\n\r\nSee [[Old]]  \r\n[m](Old.md)\r\n';

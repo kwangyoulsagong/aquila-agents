@@ -82,6 +82,8 @@ function encodeHref(p: string): string {
 /**
  * The splices that fix the links in one note's text. `noteFrom` / `noteTo`: where this note was and is now (the
  * same when it didn't move); relative Markdown links are read against where it was and written for where it is.
+ * A note that stayed only follows moved notes (`.md` links); a note that moved re-bases every relative link it has —
+ * images `![](x.png)` and other files `[pdf](files/x.pdf)` too.
  */
 export function linkSplices(
   text: string,
@@ -109,7 +111,8 @@ export function linkSplices(
 
   const noteMoved = noteFrom !== noteTo;
   for (const m of text.matchAll(/(!?)\[([^\]\n]*)\]\(([ \t]*)(<[^>\n]*>|[^)\s]+)/g)) {
-    if (m[1] || inRanges(m.index, code)) continue;
+    // An image or a non-note file never moves with a rename, so only a moved note re-bases those (below).
+    if ((m[1] && !noteMoved) || inRanges(m.index, code)) continue;
     const href = m[4]!;
     const angled = href.startsWith('<');
     const bare = angled ? href.slice(1, -1) : href;
@@ -117,7 +120,8 @@ export function linkSplices(
     const cut = bare.search(/[#?]/);
     const pathPart = cut < 0 ? bare : bare.slice(0, cut);
     const suffix = cut < 0 ? '' : bare.slice(cut);
-    if (!/\.md$/i.test(pathPart)) continue;
+    const isNote = !m[1] && /\.md$/i.test(pathPart);
+    if (!isNote && !noteMoved) continue;
     let decoded = pathPart;
     try {
       decoded = decodeURIComponent(pathPart);
@@ -126,7 +130,7 @@ export function linkSplices(
     }
     const oldTarget = path.posix.normalize(path.posix.join(dirOf(noteFrom), decoded));
     if (oldTarget.startsWith('../')) continue;
-    const moved = byFrom.get(oldTarget.toLowerCase());
+    const moved = isNote ? byFrom.get(oldTarget.toLowerCase()) : undefined;
     if (!moved && !noteMoved) continue;
     const target = moved ?? oldTarget;
     let rel = path.posix.relative(dirOf(noteTo), target);
