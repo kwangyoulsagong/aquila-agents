@@ -16,8 +16,10 @@ export function reading(on: boolean): Extension {
   if (!on) return [];
   return [
     readingFacet.of(true),
-    EditorState.readOnly.of(true),
-    // `editable` takes its first value: highest precedence beats the read-only compartment's `editable: true`.
+    // `readOnly` and `editable` both take their first value: highest precedence beats the read-only compartment's
+    // `readOnly: false` / `editable: true`, which come earlier. Without it on `readOnly` too, keys still edited the
+    // focused text (Backspace, ⌥⇧↓, Tab in a table) while the page looked read-only.
+    Prec.highest(EditorState.readOnly.of(true)),
     Prec.highest(EditorView.editable.of(false)),
     // Still focusable (⌘E back, ⌘F find, text selection) though not editable.
     EditorView.contentAttributes.of({ tabindex: '0' }),
