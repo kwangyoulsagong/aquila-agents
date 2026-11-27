@@ -314,9 +314,10 @@ export default function NoteExplorer({
   const reveal = useRef(false);
   useEffect(() => {
     if (!currentRel) return;
-    const up = ancestors(currentRel);
-    if (up.length) setExpanded((s) => (up.every((a) => s.has(a)) ? s : new Set([...s, ...up])));
+    // A folder note stands as its folder's row: that folder's parents open, not the folder itself.
     const shown = noteFolderRef.current.get(currentRel) ?? currentRel;
+    const up = ancestors(shown);
+    if (up.length) setExpanded((s) => (up.every((a) => s.has(a)) ? s : new Set([...s, ...up])));
     setCursor(`row:${shown}`);
     setSelection(new Set([shown]));
     reveal.current = true;
@@ -605,10 +606,11 @@ export default function NoteExplorer({
   const revealCurrent = () => {
     if (!currentRel) return;
     setQuery('');
-    const up = ancestors(currentRel);
+    const shown = noteFolder.get(currentRel) ?? currentRel;
+    const up = ancestors(shown);
     setExpanded((s) => new Set([...s, ...up]));
-    setCursor(`row:${currentRel}`);
-    setSelection(new Set([currentRel]));
+    setCursor(`row:${shown}`);
+    setSelection(new Set([shown]));
     reveal.current = true;
     treeRef.current?.focus();
   };
@@ -955,16 +957,6 @@ export default function NoteExplorer({
       >
         ◎
       </Button>
-      <Button
-        variant="ghost"
-        icon
-        title={t('explorer.view')}
-        aria-label={t('explorer.view')}
-        disabled={!sourceId}
-        onClick={() => void viewMenu()}
-      >
-        ⋯
-      </Button>
     </>
   );
 
@@ -1170,6 +1162,16 @@ export default function NoteExplorer({
                 onClick={() => savePrefs(applyView(prefsRef.current, 'view:group'))}
               >
                 ☰
+              </Button>
+              <Button
+                variant="ghost"
+                icon
+                title={t('explorer.view')}
+                aria-label={t('explorer.view')}
+                disabled={!sourceId}
+                onClick={() => void viewMenu()}
+              >
+                ⋯
               </Button>
             </>
           ) : undefined

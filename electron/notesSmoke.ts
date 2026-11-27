@@ -1106,7 +1106,7 @@ async function checkExplorer2(c: Ctx): Promise<string | null> {
     return false;
   };
   const ROW = (rel: string) =>
-    `[...document.querySelectorAll('.c-explorer .c-tree__spacer .c-tree__row')].find((r) => r.dataset.rel === ${JSON.stringify(rel)})`;
+    `[...document.querySelectorAll('.c-explorer .c-tree__spacer .c-tree__row')].filter((r) => r.dataset.rel === ${JSON.stringify(rel)}).pop()`;
   const head = (p: string) =>
     `document.querySelector('${c.noteAside} .c-panel__head > span')?.getAttribute('title') === ${JSON.stringify(p)}`;
   const inputValue = (v: string) =>
@@ -1155,9 +1155,14 @@ async function checkExplorer2(c: Ctx): Promise<string | null> {
     c.h.press(c.win, 'O', ['meta', 'shift']);
     if (!(await c.until(`!!document.querySelector('${c.noteAside} .c-explorer')`)))
       return 'explorer2: ⌘⇧O did not open the explorer';
+    const sourceSelect = `document.querySelector('.c-explorer select[aria-label=${JSON.stringify(t('explorer.source'))}]')`;
+    // The source list may not have the new source yet: wait for its option, then pick it.
+    if (
+      !(await c.until(`!!${sourceSelect}?.querySelector('option[value=${JSON.stringify(sourceId)}]')`, 8000))
+    )
+      return 'explorer2: the source picker does not list the fixture source';
     await c.js(`(() => {
-      const s = document.querySelector('.c-explorer select[aria-label=${JSON.stringify(t('explorer.source'))}]');
-      if (!s) return;
+      const s = ${sourceSelect};
       const set = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
       set.call(s, ${JSON.stringify(sourceId)});
       s.dispatchEvent(new Event('change', { bubbles: true }));
@@ -1192,7 +1197,12 @@ async function checkExplorer2(c: Ctx): Promise<string | null> {
       ))
     )
       return 'explorer2: the chevron of a folder with a folder note did not open it';
-    if (await c.js<boolean>(`!!${ROW(folderNote)}`))
+    // (It is in "Recent" at the top now; under its folder it would be one level deeper.)
+    if (
+      await c.js<boolean>(
+        `[...document.querySelectorAll('.c-explorer .c-tree__spacer .c-tree__row')].some((r) => r.dataset.rel === ${JSON.stringify(folderNote)} && r.getAttribute('aria-level') !== '1')`,
+      )
+    )
       return 'explorer2: the folder note is listed among its folder’s notes';
 
     // Sticky: open "long" (60 notes), scroll into it; its row stays pinned at the top; a click scrolls back to it.

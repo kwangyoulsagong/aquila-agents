@@ -1058,7 +1058,7 @@ save byte-exact, add the conveniences on top. Built in parallel worktrees, merge
   open from the folder's name (dotted name + small marker, hidden from its notes, chevron toggles; per source,
   default on); **sticky parent rows** (`.c-tree__sticky`, up to 5, a click scrolls back to the folder); **compact
   chains** `a / b / c` (per source, default on; actions apply to the last folder); the links question has
-  **Always / Never**, remembered per source in `~/.aquila/explorer.json` and changeable in the head's ⋯ view menu
+  **Always / Never**, remembered per source in `~/.aquila/explorer.json` and changeable in the ⋯ view menu next to the filter
   (which also holds the view toggles); auto-scroll while dragging near the tree's top / bottom edge; right-click on
   empty space (new note / folder at the root, Finder, copy path). The menus are data (`model/menu.ts`): unit tests
   cover the items and enabled states per target (note / folder / multi-select / empty) and that each shown key runs
