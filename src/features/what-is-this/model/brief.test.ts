@@ -1,12 +1,22 @@
 import { describe, expect, it, vi } from 'vitest';
 import { translator } from '@/shared/i18n';
-import type { BriefFields, RelatedNote } from '@/shared/api';
+import type { BriefFields, BriefPrepared, BriefResult, RelatedNote } from '@/shared/api';
 
 const mocks = vi.hoisted(() => ({ briefPdfText: vi.fn() }));
 vi.mock('@/shared/api', () => ({ api: mocks }));
 
-const { checkFile, defaultTitle, isEmpty, MAX_FILE_BYTES, MAX_PDF_BYTES, readFile, termIds, whyLabel } =
-  await import('./brief');
+const {
+  checkFile,
+  defaultTitle,
+  dropRun,
+  isEmpty,
+  MAX_FILE_BYTES,
+  MAX_PDF_BYTES,
+  readFile,
+  resultFor,
+  termIds,
+  whyLabel,
+} = await import('./brief');
 
 const fields = (over: Partial<BriefFields> = {}): BriefFields => ({
   product: '',
@@ -93,5 +103,27 @@ describe('readFile (PDF)', () => {
   it('nothing found even by OCR is said so', async () => {
     mocks.briefPdfText.mockResolvedValueOnce({ error: 'empty' });
     expect(await readFile(pdf(), t)).toEqual({ error: t('brief.pdf.empty', { name: 'scan.pdf' }) });
+  });
+});
+
+describe('a brief belongs to its input', () => {
+  const prepared = (hash: string) => ({ hash }) as BriefPrepared;
+  const result = (hash: string) => ({ hash }) as BriefResult;
+
+  it('shows a result only for the prepared input it was made from', () => {
+    expect(resultFor(result('a'), prepared('a'))).toEqual({ hash: 'a' });
+    expect(resultFor(result('a'), prepared('b'))).toBeNull();
+    expect(resultFor(result('a'), null)).toBeNull();
+    expect(resultFor(null, prepared('a'))).toBeNull();
+  });
+
+  it('a new input cancels the running brief and forgets it', () => {
+    const cancel = vi.fn();
+    const ref = { current: 'b1' as string | null };
+    dropRun(ref, cancel);
+    expect(cancel).toHaveBeenCalledWith('b1');
+    expect(ref.current).toBeNull();
+    dropRun(ref, cancel);
+    expect(cancel).toHaveBeenCalledTimes(1);
   });
 });

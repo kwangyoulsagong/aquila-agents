@@ -1,4 +1,11 @@
-import { api, type BriefFields, type BriefInput, type RelatedNote } from '@/shared/api';
+import {
+  api,
+  type BriefFields,
+  type BriefInput,
+  type BriefPrepared,
+  type BriefResult,
+  type RelatedNote,
+} from '@/shared/api';
 import type { Translate } from '@/shared/i18n';
 
 /** Files read as text in the renderer; main sanitizes them. PDFs: their text, read by main (macOS PDFKit). */
@@ -73,6 +80,17 @@ export function defaultTitle(fields: BriefFields | null, label: string, date: Da
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, 100);
+}
+
+/** A result is shown only for the input it was made from (a reply for an older input is dropped). */
+export function resultFor(result: BriefResult | null, prepared: BriefPrepared | null): BriefResult | null {
+  return result && prepared && result.hash === prepared.hash ? result : null;
+}
+
+/** The input changed: stop the running brief (if any) and forget it, so its late reply is ignored. */
+export function dropRun(runId: { current: string | null }, cancel: (id: string) => void): void {
+  if (runId.current) cancel(runId.current);
+  runId.current = null;
 }
 
 /** Every field empty: say "nothing found" instead of an empty card. */

@@ -8,7 +8,7 @@ import {
   type BriefTargets,
   type RelatedNote,
 } from '@/shared/api';
-import { termIds, type BriefOcr, type BriefSeed } from './brief';
+import { dropRun, resultFor, termIds, type BriefOcr, type BriefSeed } from './brief';
 
 /** Only what main prepares goes over IPC (not the OCR note). */
 const inputOf = (s: BriefInput): BriefInput =>
@@ -48,6 +48,8 @@ export function useWhatIsThis(projectId: string | null, seed: BriefSeed | undefi
 
   // A new input: prepare it (debounced while typing), then related notes from the local index.
   useEffect(() => {
+    // A brief still running is for the old input: stop it, or its reply would show as this one's.
+    dropRun(runId, (id) => api.briefCancel(id));
     setResult(null);
     setPhase('idle');
     setError(null);
@@ -140,7 +142,7 @@ export function useWhatIsThis(projectId: string | null, seed: BriefSeed | undefi
     model,
     setModel,
     phase,
-    result,
+    result: resultFor(result, prepared),
     error,
     targets,
     run,
