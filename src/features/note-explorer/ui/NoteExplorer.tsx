@@ -164,10 +164,15 @@ export default function NoteExplorer({
     [snapshot, currentPath],
   );
   const [picked, setPicked] = useState<string | null>(null);
+  // Follows the open note to its source and stays there (a renamed note is briefly not in the index) — once per note
+  // opened, not on every snapshot refresh: that pulled the explorer back from a source the user had picked, and the
+  // source change dropped a half-typed new name.
+  const followedPath = useRef<string | null>(null);
   useEffect(() => {
-    // Follows the open note to its source and stays there (a renamed note is briefly not in the index).
-    if (currentSource) setPicked(currentSource);
-  }, [currentSource]);
+    if (!currentSource || !currentPath || followedPath.current === currentPath) return;
+    followedPath.current = currentPath;
+    setPicked(currentSource);
+  }, [currentSource, currentPath]);
   const has = (id: string | null | undefined): id is string => !!id && enabled.some((s) => s.id === id);
   const sourceId = has(picked)
     ? picked
@@ -979,6 +984,13 @@ export default function NoteExplorer({
   );
 
   /** A folder / note row; `pin` ≥ 0: its copy pinned at the top (sticky), at that position. */
+  /** The row that shows a name field right now (see the render: it is kept last in the DOM). */
+  const isEditingItem = (item: Item): boolean =>
+    item.kind === 'input' ||
+    (item.kind === 'row' &&
+      item.key.startsWith('row:') &&
+      editing?.mode === 'rename' &&
+      editing.rel === item.row.rel);
   const rowView = (item: Extract<Item, { kind: 'row' }>, top: number, pin = -1) => {
     const { row } = item;
     const folder = row.kind === 'folder';
@@ -1084,28 +1096,34 @@ export default function NoteExplorer({
             : null
         }
       >
-        {items.slice(first, last).map((item, k) => {
-          const top = (first + k) * rowH;
-          if (item.kind === 'section')
-            return (
-              <TreeSection key={item.key} top={top}>
-                {item.label}
-              </TreeSection>
-            );
-          if (item.kind === 'input')
-            return editing && editing.mode !== 'rename' ? (
-              <TreeRow
-                key="input"
-                top={top}
-                level={item.depth}
-                kind={editing.mode === 'folder' ? 'folder' : 'file'}
-                name=""
-                rel=""
-                editor={inputFor(editing)}
-              />
-            ) : null;
-          return rowView(item, top);
-        })}
+        {items
+          .slice(first, last)
+          .map((item, k) => ({ item, top: (first + k) * rowH }))
+          // Visual order, except the row holding a name field (new note / folder, rename) goes last: rows are placed by
+          // `top`, and when the tree reorders (a folder's children load, a file appears) React moves DOM nodes — moving
+          // the focused field drops its focus and the first keys typed were lost. Last never moves.
+          .sort((a, b) => Number(isEditingItem(a.item)) - Number(isEditingItem(b.item)))
+          .map(({ item, top }) => {
+            if (item.kind === 'section')
+              return (
+                <TreeSection key={item.key} top={top}>
+                  {item.label}
+                </TreeSection>
+              );
+            if (item.kind === 'input')
+              return editing && editing.mode !== 'rename' ? (
+                <TreeRow
+                  key="input"
+                  top={top}
+                  level={item.depth}
+                  kind={editing.mode === 'folder' ? 'folder' : 'file'}
+                  name=""
+                  rel=""
+                  editor={inputFor(editing)}
+                />
+              ) : null;
+            return rowView(item, top);
+          })}
       </Tree>
     );
 
