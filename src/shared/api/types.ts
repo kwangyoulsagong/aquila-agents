@@ -733,6 +733,11 @@ export interface GraphNode {
   url?: string;
   /** Notes (T75): the most telling words of the body (local TF-IDF), for naming groups of notes. */
   terms?: string[];
+  /** Notes (T79): requirement-like IDs the note mentions, whole prefix kept (`FE-REQ-030`, `DB-12`). */
+  refIds?: string[];
+  /** Notes (T79): frontmatter `id:` and `status:` (short scalars). */
+  fmId?: string;
+  status?: string;
 }
 
 /**

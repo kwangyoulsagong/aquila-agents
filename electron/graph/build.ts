@@ -241,6 +241,9 @@ export function buildGraph(
       path: n.abs,
       mtime: n.mtime,
       ...(n.note.tags.length ? { tags: n.note.tags } : {}),
+      ...(n.note.refIds?.length ? { refIds: n.note.refIds } : {}),
+      ...(n.note.fmId ? { fmId: n.note.fmId } : {}),
+      ...(n.note.status ? { status: n.note.status } : {}),
     });
     push(byName, nameOf(n.rel), n);
     push(byTitle, n.note.title.trim().toLowerCase(), n);

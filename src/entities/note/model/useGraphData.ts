@@ -156,3 +156,16 @@ export function useGraphData(): Data {
 
 /** The snapshot the graph or the editor holds right now, or null when neither is open (quick open reuses it). */
 export const peekGraphSnapshot = (): GraphSnapshot | null => store.peek();
+
+/**
+ * T79: called with each new snapshot while subscribed (the editor's ID marks follow the index outside React). Holds
+ * the subscription like a view does; the returned function lets go.
+ */
+export const onGraphSnapshot = (cb: (snap: GraphSnapshot | null) => void): (() => void) => {
+  let last = store.get().snapshot;
+  return store.subscribe((d) => {
+    if (d.snapshot === last) return;
+    last = d.snapshot;
+    cb(d.snapshot);
+  });
+};

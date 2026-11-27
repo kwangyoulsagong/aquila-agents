@@ -804,7 +804,9 @@ export default function KnowledgeGraphPanel({
               key={id}
               pressed={lens === id}
               count={lenses[id].size}
-              {...(id === 'untouched' ? { title: t('graph.lens.untouched.hint') } : {})}
+              {...(id === 'untouched' || id === 'noWork' || id === 'idIssues'
+                ? { title: t(`graph.lens.${id}.hint`) }
+                : {})}
               onClick={() => setLens((l) => (l === id ? null : id))}
             >
               {t(`graph.lens.${id}`)}

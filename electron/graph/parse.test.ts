@@ -82,6 +82,17 @@ describe('parseNote', () => {
     expect(n.ids.sort()).toEqual(['DB-12', 'PROJ-104']);
   });
 
+  it('T79: keeps compound ID prefixes, frontmatter id and status', () => {
+    const n = parseNote(
+      'a.md',
+      '---\nid: FE-REQ-030\nstatus: draft\n---\nSee SRV-REQ-040 and DB-6891, not UTF-8.\n```\nCODE-1\n```',
+    );
+    expect(n.refIds.sort()).toEqual(['DB-6891', 'FE-REQ-030', 'SRV-REQ-040']);
+    expect(n.fmId).toBe('FE-REQ-030');
+    expect(n.status).toBe('draft');
+    expect(parseNote('b.md', 'x').fmId).toBeUndefined();
+  });
+
   it('finds code-ish names in text, inline code and code blocks', () => {
     const n = parseNote(
       'a.md',
