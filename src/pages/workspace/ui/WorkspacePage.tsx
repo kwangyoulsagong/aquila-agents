@@ -21,6 +21,7 @@ import { SourcesDialog } from '@/features/graph-sources';
 import { LinkSettingsDialog, LinkSuggestions } from '@/features/link-suggestions';
 import { NoteEditorPanel, QuickOpen } from '@/features/edit-note';
 import { VaultNoteSide, VaultNoteTop, VaultSettingsDialog, VaultViewModal } from '@/features/vault-settings';
+import { NoteProperties } from '@/features/note-properties';
 import { copyLastReply, toggleQuickSelect } from '@/features/terminal-helpers';
 import { openFind } from '@/features/terminal-search';
 import { focusSession } from '@/entities/session';
@@ -50,6 +51,7 @@ import { TrendsButton, TrendsModal, hasCliUpdate, useTrends } from '@/widgets/tr
 import { TrendApplyModal, type ApplyItem } from '@/widgets/trend-apply';
 import { pasteWhenReady } from '@/features/apply-trend';
 import { CommandPalette, type ActionId } from '@/widgets/command-palette';
+import { NoteTableModal } from '@/widgets/note-table';
 import { useWorkspace } from '../model/useWorkspace';
 import { useShortcuts } from '../model/useShortcuts';
 import { usePanelFit, type PanelId } from '../model/panels';
@@ -146,6 +148,8 @@ export default function WorkspacePage() {
   // Folder settings (T69) and a source's board / table / list view.
   const [vaultOpen, setVaultOpen] = useState<{ source?: string } | null>(null);
   const [vaultView, setVaultView] = useState<{ sourceId: string; viewId: string } | null>(null);
+  // T78: the table view, opened from a note (its source and folder) or ⌘K.
+  const [noteTable, setNoteTable] = useState<{ path?: string } | null>(null);
   const summonRef = useRef({ sessions, focusedId, selectSession });
   summonRef.current = { sessions, focusedId, selectSession };
   useEffect(
@@ -371,6 +375,7 @@ export default function WorkspacePage() {
     a.sources = () => setSourcesOpen(true);
     a.links = () => setLinksOpen(true);
     a.vault = () => setVaultOpen({});
+    a.noteTable = () => setNoteTable({ path: notePath ?? undefined });
     a.firstRun = reopenFirstRun;
     a.guide = showGuide;
     a.whatsNew = showNotes;
@@ -423,6 +428,7 @@ export default function WorkspacePage() {
     focusedSession,
     quickSelect,
     find,
+    notePath,
   ]);
 
   // ⌘K: each enabled extension's manifest commands open it and send the command.
@@ -673,6 +679,13 @@ export default function WorkspacePage() {
             onOpenNote={setNotePath}
           />
         )}
+        {noteTable && (
+          <NoteTableModal
+            initialPath={noteTable.path}
+            onClose={() => setNoteTable(null)}
+            onOpenNote={setNotePath}
+          />
+        )}
         <QuickOpen open={quickOpenOn} onClose={() => setQuickOpen(false)} onPick={setNotePath} />
         {commandsOpen && focusedSession && (
           <SessionCommandsModal
@@ -728,7 +741,10 @@ export default function WorkspacePage() {
               <LinkSuggestions {...p} variant="side" onOpen={(n) => n.path && setNotePath(n.path)} />
             )}
             renderTop={(slot) => (
-              <VaultNoteTop slot={slot} onOpenNote={setNotePath} onClaude={sendNoteToClaude} />
+              <>
+                <VaultNoteTop slot={slot} onOpenNote={setNotePath} onClaude={sendNoteToClaude} />
+                <NoteProperties key={slot.path} slot={slot} onOpenTable={(path) => setNoteTable({ path })} />
+              </>
             )}
             renderSide={(slot) => (
               <VaultNoteSide

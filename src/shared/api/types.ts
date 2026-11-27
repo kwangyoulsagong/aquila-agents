@@ -1056,6 +1056,13 @@ export type VaultEdit = { action: string } | { property: string; value: string |
 /** `projectId`: the local project the note is in (the Claude tab opens there). */
 export type VaultEditResult = { text: string } | { prompt: string; projectId?: string };
 
+/** T78: every note of a source from the index (rows of the table view) and the source's property types. */
+export interface NoteTableData {
+  sourceId: string;
+  notes: VaultCard[];
+  properties: VaultProperty[];
+}
+
 export type VaultMoveResult =
   { ok: true; path: string } | { ok: false; reason: 'exists' | 'refused' | 'failed' };
 
@@ -1426,6 +1433,8 @@ export interface AquilaApi {
   /** T69: a card moved to another group: sets the property, or moves the file into that folder. */
   vaultMove(path: string, viewId: string, group: string): Promise<VaultMoveResult>;
   vaultNoteInfo(path: string): Promise<VaultNoteInfo | null>;
+  /** T78: a source's notes with their frontmatter, from the index (no disk scan); null for an unknown source. */
+  noteTable(sourceId: string): Promise<NoteTableData | null>;
   /** T69: the note's text after an action / a property change (not written), or a Claude prompt to send. */
   vaultEdit(path: string, text: string, edit: VaultEdit): Promise<VaultEditResult | null>;
   /** T69: a new note from a template (the source's `newNotes` one when null): its path, or null. */
@@ -1798,6 +1807,7 @@ export const IPC = {
   vaultView: 'vault:view',
   vaultMove: 'vault:move',
   vaultNoteInfo: 'vault:note-info',
+  noteTable: 'note:table',
   vaultEdit: 'vault:edit',
   vaultCreateNote: 'vault:create-note',
   vaultChanged: 'vault:changed',

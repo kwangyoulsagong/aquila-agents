@@ -127,6 +127,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `--size-focus-row` / `--size-focus-center` / `--size-focus-gap` | 40 / 208 / 48 | Graph focus view (T72): one item (label + meta line) / the centre card / room for links between two columns |
 | `--size-bubble-min` / `--size-bubble-max` | 24 / 64 | Graph Map groups (T73): bubble radius of the smallest / biggest group (by √members) |
 | `--size-bar-field` | 224 | A search field sharing a panel bar (T76): it takes the room left beside the buttons, a row of its own only below this |
+| `--size-props-key` / `--size-ntable-title` / `--size-ntable-col` | 128 / 288 / 160 | Properties panel key column / table view title column / a property column's least width (T78) |
 
 ## Components (`components.css`)
 
@@ -194,6 +195,8 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `.c-dropzone[data-over]` | Dashed drop area; accent border + selected background while dragging over |
 | `.c-field` `__label` `__hint`, `.c-input` (`--multiline`, `--inline`), `.c-select` `__control` | Form field: label, text input / select (focus = blue border), monospace hint (`data-tone="warning"` = waiting orange). `--inline` edits a title in place inside a line (tab rename, T43): the line's font, no fixed height |
 | `.c-field__row`, `.c-field-grid` | A control with a button beside it (path + "Change…"); two short fields side by side |
+| `.c-props` `__head` `__toggle` `__count` `__actions` `__list` `__row` `__key` `__value` `__input` `__remove` `__chips` `__chip` `__raw` | A note's properties above its text (T78): a folding head, then key · value · remove rows; list values as chips; raw values in mono |
+| `.c-ntable` `__frame` `__bar` `__chips` `__chip[aria-pressed]` `__head` `__th[aria-sort]` `__sort` `__row` `__group` `__cell[data-editable\|data-editing]` `__open` `__input` `__empty` | Table view (T78): a virtualized grid, one `--size-row` per row; sticky sortable header, title column then property columns; filter / status chips above |
 
 ## React components (`design-system/react/`)
 
@@ -240,6 +243,8 @@ from `src/` (ESLint enforces it). New primitive → add the class to `components
 | `StepList` `label`, `StepItem` `checked` `onToggle` `title` `checkLabel?` `tags?` `meta?` `onHover?` | `.c-steps` |
 | `Media` `src` `kind` `poster` `alt` `still` `placeholder` | `.c-media` (video → poster under reduced motion or `still`) |
 | `ShortcutSheet` `groups` | `.c-shortcuts` |
+| `PropPanel` `title` `count?` `open` `onToggle` `actions?`, `PropRow` `name` `onRemove?` `removeLabel?`, `PropChips`, `PropChip` `label` `onRemove?`, `PropInput`, `PropRaw` | `.c-props` |
+| `DataGrid` `label` `columns` `count` `renderRow(i)` `rowKey(i)` `empty?`, `GridRow`, `GridGroup` `title` `count`, `GridOpen` `label` `onOpen`, `GridCell` `text` `muted?` `onEdit?` `editing?` `editor?`, `GridInput`, `GridBar`, `GridChips` `label`, `GridChip` `label` `count?` `pressed` `onClick`, `GridFrame` | `.c-ntable` (only the rows on screen are rendered) |
 
 ## Copy
 
