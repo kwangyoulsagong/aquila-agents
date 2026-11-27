@@ -144,6 +144,7 @@ const api: AquilaApi = {
   noteAttach: (notePath, data, ext) => ipcRenderer.invoke(IPC.noteAttach, { notePath, data, ext }),
   noteOpenUrl: (url) => ipcRenderer.invoke(IPC.noteOpenUrl, url),
   noteProject: (path) => ipcRenderer.invoke(IPC.noteProject, path),
+  revealFile: (path) => ipcRenderer.invoke(IPC.revealFile, path),
   noteSeenState: (path) => ipcRenderer.invoke(IPC.noteSeenState, path),
   noteSeenMark: (path) => ipcRenderer.invoke(IPC.noteSeenMark, path),
   noteSeenChanged: () => ipcRenderer.invoke(IPC.noteSeenChanged),

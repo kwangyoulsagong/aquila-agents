@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@design-system/react';
-import { api, type SessionKind } from '@/shared/api';
+import { api, type GraphNode, type SessionKind } from '@/shared/api';
 import { I18nContext, translator } from '@/shared/i18n';
 import { withShortcut } from '@/shared/lib/shortcuts';
 import { preloadLazyComponents } from '@/shared/lib/lazyComponent';
@@ -29,6 +29,7 @@ import { WhatIsThisDialog, type BriefSeed } from '@/features/what-is-this';
 import { copyLastReply, toggleQuickSelect } from '@/features/terminal-helpers';
 import { openFind } from '@/features/terminal-search';
 import { focusSession } from '@/entities/session';
+import { openSessionNode } from '@/entities/note';
 import { FirstRunChecklist, useFirstRun } from '@/features/first-run';
 import { GuideButton, GuideModal, GuideOffer, guideMedia, useGuide } from '@/features/guide';
 import { ReleaseNotesModal, useReleaseNotes } from '@/features/release-notes';
@@ -338,6 +339,14 @@ export default function WorkspacePage() {
       if (id) void pasteWhenReady(id, prompt);
     });
   };
+  // "Referenced in" (T79): a session node → its tab to the front or resumed, as in the graph.
+  const openGraphSession = (n: GraphNode) =>
+    void openSessionNode(n, {
+      sessions: ws.sessions,
+      onShow: ws.selectSession,
+      onResumed: ws.adoptResumed,
+      onError: ws.showError,
+    });
   const { splitFocused, toggleZoom, paneCount } = ws.split;
   const paletteActions = useMemo(() => {
     const a: Partial<Record<ActionId, () => void>> = {
@@ -774,7 +783,13 @@ export default function WorkspacePage() {
             renderSide={(slot) => (
               <>
                 <ChangedNotes path={slot.path} onOpenNote={setNotePath} />
-                <NoteReferences path={slot.path} text={slot.version} onOpenNote={setNotePath} />
+                <NoteReferences
+                  path={slot.path}
+                  text={slot.version}
+                  onOpenNote={setNotePath}
+                  onOpenSession={openGraphSession}
+                  onOpenFile={(f) => f.path && void api.revealFile(f.path)}
+                />
                 <VaultNoteSide
                   slot={slot}
                   onOpenNote={setNotePath}

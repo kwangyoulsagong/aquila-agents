@@ -30,7 +30,7 @@ import { usePowerSaver } from '@/shared/lib/usePowerSaver';
 import { onThemeChange } from '@/shared/lib/theme';
 
 import { readColors } from '../model/colors';
-import { sourceName, useGraphData } from '@/entities/note';
+import { sessionRef, sourceName, useGraphData } from '@/entities/note';
 import { LinkSuggestions } from '@/features/link-suggestions';
 import { HandleWithClaude, handleTarget } from '@/features/edit-note';
 import { WhatIsThisButton, type BriefSeed } from '@/features/what-is-this';
@@ -144,12 +144,6 @@ const store = (key: string, value: string) => {
     // not remembered: the default comes back next time
   }
 };
-
-/** `session:<agent>:<id>` → the history ref it was made from. */
-function sessionRef(n: GraphNode): { agent: 'claude' | 'codex'; id: string } | null {
-  const m = /^session:(claude|codex):(.+)$/.exec(n.id);
-  return m ? { agent: m[1] as 'claude' | 'codex', id: m[2]! } : null;
-}
 
 /** `Meetings/2026-11-20 sync.md` for a note (source folder + path inside it); the path for anything else. */
 function notePlace(n: GraphNode, sources: readonly GraphSourceStatus[]): string | undefined {

@@ -2,3 +2,4 @@
 export { default as SourceItem } from './ui/SourceItem';
 export { sourceDot, sourceLine, sourceName } from './model/source';
 export { onGraphSnapshot, peekGraphSnapshot, useGraphData } from './model/useGraphData';
+export { liveTabOf, openSessionNode, sessionRef } from './model/graphNode';

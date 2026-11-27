@@ -1206,6 +1206,13 @@ app.whenReady().then(async () => {
     IPC.noteProject,
     (_e, p: string) => (typeof p === 'string' && p ? projectOfFile(p) : null) ?? null,
   );
+  ipcMain.handle(IPC.revealFile, (_e, p: unknown) => {
+    if (typeof p !== 'string' || !path.isAbsolute(p)) return false;
+    const file = projectOfFile(p) ? path.resolve(p) : graph.notePath(p);
+    if (!file || !fs.existsSync(file)) return false;
+    shell.showItemInFolder(file);
+    return true;
+  });
   protocol.handle('aquila-note', (req) => {
     const p = imageUrlPath(req.url);
     const file = p ? graph.sourceFile(p, IMAGE_FILE) : null;
@@ -1244,7 +1251,13 @@ app.whenReady().then(async () => {
     }
     return {
       sourceId: sid,
-      notes: notes.map((n) => ({ path: n.abs, rel: n.rel, title: n.title, props: n.frontmatter, mtime: n.mtime })),
+      notes: notes.map((n) => ({
+        path: n.abs,
+        rel: n.rel,
+        title: n.title,
+        props: n.frontmatter,
+        mtime: n.mtime,
+      })),
       properties,
     };
   });

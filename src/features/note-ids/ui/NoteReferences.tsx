@@ -11,6 +11,10 @@ export interface NoteReferencesProps {
   /** Its text right now (the editor's, refreshed after edits). */
   text: string;
   onOpenNote: (path: string) => void;
+  /** A session that worked on the note's IDs: its tab to the front, or resumed (the page's graph action). */
+  onOpenSession?: (n: GraphNode) => void;
+  /** A file such a session changed: shown in Finder. */
+  onOpenFile?: (n: GraphNode) => void;
 }
 
 /** Rows shown per list before "+N". */
@@ -21,7 +25,13 @@ const MAX_ROWS = 12;
  * the sessions that worked on them and the files those changed; and the note's own checklist progress. Nothing
  * when the note defines no ID and has no checklist.
  */
-export default function NoteReferences({ path, text, onOpenNote }: NoteReferencesProps) {
+export default function NoteReferences({
+  path,
+  text,
+  onOpenNote,
+  onOpenSession,
+  onOpenFile,
+}: NoteReferencesProps) {
   const t = useT();
   const { snapshot } = useGraphData();
   const refs = useMemo(() => {
@@ -79,18 +89,37 @@ export default function NoteReferences({ path, text, onOpenNote }: NoteReference
         />
       ))}
       {refs && more(refs.notes)}
-      {refs?.sessions.slice(0, MAX_ROWS).map((s) => (
-        <NoteIdText key={s.id} label={s.label} detail={t('noteId.sessions')} />
-      ))}
+      {refs?.sessions
+        .slice(0, MAX_ROWS)
+        .map((s) =>
+          onOpenSession ? (
+            <EditorItem
+              key={s.id}
+              label={s.label}
+              detail={t('noteId.sessions')}
+              title={t('noteId.openSession')}
+              onClick={() => onOpenSession(s)}
+            />
+          ) : (
+            <NoteIdText key={s.id} label={s.label} detail={t('noteId.sessions')} />
+          ),
+        )}
       {refs && more(refs.sessions)}
-      {refs?.files.slice(0, MAX_ROWS).map((f) => (
-        <NoteIdText
-          key={f.id}
-          label={f.label}
-          detail={t('noteId.files')}
-          title={f.path ?? f.label}
-        />
-      ))}
+      {refs?.files
+        .slice(0, MAX_ROWS)
+        .map((f) =>
+          onOpenFile && f.path ? (
+            <EditorItem
+              key={f.id}
+              label={f.label}
+              detail={t('noteId.files')}
+              title={`${f.path}\n${t('noteId.revealFile')}`}
+              onClick={() => onOpenFile(f)}
+            />
+          ) : (
+            <NoteIdText key={f.id} label={f.label} detail={t('noteId.files')} title={f.path ?? f.label} />
+          ),
+        )}
       {refs && more(refs.files)}
     </EditorSection>
   );

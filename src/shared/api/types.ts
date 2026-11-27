@@ -1436,6 +1436,8 @@ export interface AquilaApi {
   noteOpenUrl(url: string): Promise<void>;
   /** T70: the local project a file is in (a note's "Handle with Claude" opens there), or null. */
   noteProject(path: string): Promise<string | null>;
+  /** T79: shows a file of a local project (or a note) in Finder — a changed file in "Referenced in". False if refused. */
+  revealFile(path: string): Promise<boolean>;
   /** T80: the seen copy when the note on disk differs from what the user last looked at, else null. */
   noteSeenState(path: string): Promise<NoteSeenState | null>;
   /** T80: "Mark as seen" — the note as it is on disk now becomes the seen copy. */
@@ -1933,6 +1935,7 @@ export const IPC = {
   noteChanged: 'note:changed',
   noteAttach: 'note:attach',
   noteOpenUrl: 'note:open-url',
+  revealFile: 'file:reveal',
   noteProject: 'note:project',
   noteSeenState: 'note:seen-state',
   noteSeenMark: 'note:seen-mark',
