@@ -912,6 +912,24 @@ export type NoteChange = NoteFile | { path: string; deleted: true };
 export type NoteWriteResult =
   { ok: true; mtime: number } | { ok: false; reason: 'changed' | 'refused' | 'failed' };
 
+/** T80: an open note differs on disk from the text the user last looked at (an agent, a terminal, git changed it). */
+export interface NoteSeenState {
+  /** The note as the user last saw it (opened / marked as seen). */
+  seenText: string;
+  seenAt: number;
+  /** The disk version's mtime (ms). */
+  changedAt: number;
+  /** A Claude session's turns touched the file; null: changed outside, nobody known. */
+  by: 'claude' | null;
+}
+
+/** T80: a note changed outside since the user last saw it (mtime only, no diff). */
+export interface NoteSeenChange {
+  path: string;
+  changedAt: number;
+  by: 'claude' | null;
+}
+
 // ---- Per-source settings (T69). Nothing about any repo's format is built in: a source is shaped by its config. ----
 
 /** A starting point for a source's settings. */
@@ -1406,6 +1424,12 @@ export interface AquilaApi {
   noteOpenUrl(url: string): Promise<void>;
   /** T70: the local project a file is in (a note's "Handle with Claude" opens there), or null. */
   noteProject(path: string): Promise<string | null>;
+  /** T80: the seen copy when the note on disk differs from what the user last looked at, else null. */
+  noteSeenState(path: string): Promise<NoteSeenState | null>;
+  /** T80: "Mark as seen" — the note as it is on disk now becomes the seen copy. */
+  noteSeenMark(path: string): Promise<boolean>;
+  /** T80: notes (of enabled sources) changed outside since last seen, newest first. */
+  noteSeenChanged(): Promise<NoteSeenChange[]>;
   /**
    * T70: today's sessions added to the day's note of a source (when null: one with a date template, else the first
    * enabled) — its date template when it has one, else `<date> sessions.md` — only lines it doesn't have yet. The note's path, or null.
@@ -1789,6 +1813,9 @@ export const IPC = {
   noteAttach: 'note:attach',
   noteOpenUrl: 'note:open-url',
   noteProject: 'note:project',
+  noteSeenState: 'note:seen-state',
+  noteSeenMark: 'note:seen-mark',
+  noteSeenChanged: 'note:seen-changed',
   graphDailyNote: 'graph:daily-note',
   vaultGet: 'vault:get',
   vaultSave: 'vault:save',

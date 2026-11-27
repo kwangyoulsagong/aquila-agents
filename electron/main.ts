@@ -110,6 +110,7 @@ import {
   saveAttachment,
   writeNote,
 } from './graph/note-file';
+import { NoteSeen, NoteSeenStore } from './graph/note-seen';
 import { DevUrlTracker, orderTargets, PreviewViews, readLaunchJson } from './preview';
 import { EXT_SCHEME, ExtensionHost } from './extensions';
 import { SessionManager } from './sessions';
@@ -1094,8 +1095,14 @@ app.whenReady().then(async () => {
   // Note editor (T67): only notes of enabled sources; watched only while open in the editor.
   const noteWatcher = new NoteWatcher((c) => send(IPC.noteChanged, c));
   notesWatched = noteWatcher;
+  // T80: the text each opened note had when the user last looked (~/.aquila/notes-seen, never in the repo).
+  const seenStore = new NoteSeenStore(
+    isSmoke ? path.join(graphDir, 'notes-seen') : path.join(APP_DIR, 'notes-seen'),
+  );
+  const noteSeen = new NoteSeen({ store: seenStore, read: (f) => readNote(f), turnFiles: () => turns.all() });
   app.on('will-quit', () => {
     noteWatcher.close();
+    seenStore.flush();
     graph.close();
     turns.flush();
     if (isSmoke) fs.rmSync(graphDir, { recursive: true, force: true });
@@ -1136,7 +1143,10 @@ app.whenReady().then(async () => {
   ipcMain.handle(IPC.noteOpen, (_e, p: string) => {
     const file = graph.notePath(String(p));
     const note = file ? readNote(file) : null;
-    if (file && note) noteWatcher.watch(file);
+    if (file && note) {
+      noteWatcher.watch(file);
+      void noteSeen.opened(file, note).catch(() => undefined);
+    }
     return note;
   });
   ipcMain.on(IPC.noteClose, (_e, p: string) => noteWatcher.unwatch(path.resolve(String(p))));
@@ -1145,9 +1155,21 @@ app.whenReady().then(async () => {
     (_e, a: { path: string; text: string; bom: boolean; baseMtime: number }): NoteWriteResult => {
       const file = graph.notePath(String(a.path));
       if (!file || typeof a.text !== 'string') return { ok: false, reason: 'refused' };
-      return writeNote(file, a.text, !!a.bom, Number(a.baseMtime));
+      const res = writeNote(file, a.text, !!a.bom, Number(a.baseMtime));
+      // T80: the user's own edit isn't an outside change.
+      if (res.ok) noteSeen.saved(file, a.text, !!a.bom, Number(a.baseMtime), res.mtime);
+      return res;
     },
   );
+  ipcMain.handle(IPC.noteSeenState, (_e, p: string) => {
+    const file = graph.notePath(String(p));
+    return file ? noteSeen.state(file) : null;
+  });
+  ipcMain.handle(IPC.noteSeenMark, (_e, p: string) => {
+    const file = graph.notePath(String(p));
+    return !!file && noteSeen.mark(file);
+  });
+  ipcMain.handle(IPC.noteSeenChanged, () => noteSeen.changed((f) => !!graph.notePath(f)));
   ipcMain.handle(IPC.noteOpenUrl, (_e, url: string) => {
     if (typeof url === 'string' && isWebUrl(url)) void shell.openExternal(url);
   });

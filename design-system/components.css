@@ -1226,6 +1226,12 @@ body {
 .c-editor__banner[data-tone='warn'] { box-shadow: inset var(--size-focus-line) 0 0 var(--color-status-waiting); }
 .c-editor__banner-text { flex: 1; min-width: 0; }
 .c-editor__compare { flex: none; max-height: 50%; overflow: auto; border-bottom: 1px solid var(--color-border-subtle); }
+/* Review bar (T80): "changed since you last looked" — who, +/− line counts, when; a hunk's revert asks first. */
+.c-review__counts { font-family: var(--font-family-mono); white-space: nowrap; }
+.c-review__add { color: var(--color-diff-add-text); }
+.c-review__del { color: var(--color-diff-del-text); }
+.c-review__meta { color: var(--color-text-tertiary); white-space: nowrap; }
+.c-review__confirm { color: var(--color-text-secondary); }
 /* CodeMirror inside: its own classes, our tokens. */
 .c-editor .cm-editor { flex: 1; min-width: 0; height: 100%; color: var(--color-text-primary); background: var(--color-bg-canvas); font-size: var(--font-size-body); }
 .c-editor .cm-editor.cm-focused { outline: 0; }
