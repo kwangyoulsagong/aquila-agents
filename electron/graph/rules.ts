@@ -16,7 +16,8 @@ import type {
 
 /** Accepts of one pattern that propose a rule. */
 export const PROPOSE_AFTER = 3;
-const LINKS_VERSION = 1;
+/** v2 (T79): accepts recorded under an old short ID prefix (`id:REQ`) moved to the whole prefix (`id:FE-REQ`). */
+const LINKS_VERSION = 2;
 
 export interface AcceptedLink {
   a: string;
@@ -116,10 +117,31 @@ export function ruleFor(r: GraphEdgeReason, rules: readonly GraphRule[]): GraphR
   return on.find((x) => patternKey(x.pattern) === key) ?? on.find((x) => covers(x.pattern, p));
 }
 
-/** Patterns accepted PROPOSE_AFTER+ times that have no rule and weren't dismissed. */
+/**
+ * Patterns accepted PROPOSE_AFTER+ times that have no rule and weren't dismissed. An accept recorded under an old
+ * short ID prefix (`id:REQ`, from when `FE-REQ-030` was read as `REQ-030`) counts toward every whole prefix of that
+ * family that has accepts of its own (`id:FE-REQ`) — once per accept — and isn't proposed by itself then.
+ */
 export function proposals(data: LinkData): GraphRuleProposal[] {
+  const keys = new Set(data.accepted.flatMap((a) => a.patterns));
+  const family = (short: string) => {
+    const p = patternOfKey(short);
+    if (!p || p.kind !== 'id') return [];
+    return [...keys].filter((k) => {
+      const q = patternOfKey(k);
+      return k !== short && !!q && covers(p, q);
+    });
+  };
+  const wider = new Map([...keys].map((k) => [k, family(k)]));
   const count = new Map<string, number>();
-  for (const a of data.accepted) for (const k of a.patterns) count.set(k, (count.get(k) ?? 0) + 1);
+  for (const a of data.accepted) {
+    const counted = new Set<string>();
+    for (const k of a.patterns) {
+      const into = wider.get(k)?.length ? wider.get(k)! : [k];
+      for (const x of into) counted.add(x);
+    }
+    for (const k of counted) count.set(k, (count.get(k) ?? 0) + 1);
+  }
   const out: GraphRuleProposal[] = [];
   for (const [key, accepts] of count) {
     if (accepts < PROPOSE_AFTER || data.dismissed.includes(key)) continue;
@@ -127,6 +149,32 @@ export function proposals(data: LinkData): GraphRuleProposal[] {
     if (pattern && !data.rules.some((r) => covers(r.pattern, pattern))) out.push({ key, pattern, accepts });
   }
   return out.sort((x, y) => y.accepts - x.accepts || x.key.localeCompare(y.key));
+}
+
+/**
+ * v1 → v2 (T79): a short ID key (`id:REQ`) whose family has exactly one whole prefix among the accepts
+ * (`id:FE-REQ`) becomes that key, in accepts and "Not now" answers. Ambiguous ones (`FE-REQ` and `SRV-REQ`) stay
+ * short and still count toward each (see `proposals`). Pure; the result has the current version.
+ */
+export function migrateLinks(data: LinkData): LinkData {
+  const keys = new Set(data.accepted.flatMap((a) => a.patterns));
+  const to = new Map<string, string>();
+  for (const k of keys) {
+    const p = patternOfKey(k);
+    if (!p || p.kind !== 'id' || p.prefix.includes('-')) continue;
+    const wide = [...keys].filter((x) => {
+      const q = patternOfKey(x);
+      return x !== k && !!q && covers(p, q);
+    });
+    if (wide.length === 1) to.set(k, wide[0]!);
+  }
+  const map = (k: string) => to.get(k) ?? k;
+  return {
+    ...data,
+    v: LINKS_VERSION,
+    accepted: data.accepted.map((a) => ({ ...a, patterns: [...new Set(a.patterns.map(map))] })),
+    dismissed: [...new Set(data.dismissed.map(map))],
+  };
 }
 
 /** Records a decision. `edge` is the connection as the graph shows it (for its patterns). */
@@ -172,13 +220,15 @@ export function readLinks(file: string | undefined): LinkData {
   if (!file) return emptyLinks();
   try {
     const raw = JSON.parse(fs.readFileSync(file, 'utf8')) as Partial<LinkData>;
-    if (raw.v !== LINKS_VERSION) return emptyLinks();
+    if (raw.v !== LINKS_VERSION && raw.v !== 1) return emptyLinks();
     const strings = (x: unknown) =>
       Array.isArray(x) ? x.filter((s): s is string => typeof s === 'string') : [];
-    return {
+    const data: LinkData = {
       v: LINKS_VERSION,
       accepted: Array.isArray(raw.accepted)
-        ? raw.accepted.filter((a) => a && typeof a.a === 'string' && typeof a.b === 'string')
+        ? raw.accepted
+            .filter((a) => a && typeof a.a === 'string' && typeof a.b === 'string')
+            .map((a) => ({ ...a, patterns: strings(a.patterns) }))
         : [],
       rejected: strings(raw.rejected),
       rules: Array.isArray(raw.rules)
@@ -186,6 +236,7 @@ export function readLinks(file: string | undefined): LinkData {
         : [],
       dismissed: strings(raw.dismissed),
     };
+    return raw.v === 1 ? migrateLinks(data) : data;
   } catch {
     return emptyLinks();
   }
