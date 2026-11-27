@@ -1548,14 +1548,6 @@ body {
 .c-board__card:hover { border-color: var(--color-border-default); }
 .c-board__card[data-moving] { opacity: 0.5; }
 .c-board__card-meta { font-size: var(--font-size-caption); color: var(--color-text-tertiary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.c-table { width: 100%; border-collapse: collapse; font-size: var(--font-size-label); }
-.c-table th, .c-table td { padding: var(--space-inline-xs) var(--space-inset-sm); border-bottom: 1px solid var(--color-border-subtle); text-align: left; vertical-align: top; }
-.c-table th { font-weight: 400; color: var(--color-text-tertiary); }
-.c-table td { color: var(--color-text-secondary); }
-.c-table td:first-child { color: var(--color-text-primary); }
-.c-table__group th { padding-top: var(--space-inset-md); font-weight: 600; color: var(--color-text-primary); }
-.c-table__open { padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
-.c-table__open:hover { color: var(--color-action-primary); }
 
 /* ── Properties above a note's text (T78) ─────────────────── */
 /* The frontmatter as rows: key · value control · remove. The head folds them; edits splice only that key's lines. */

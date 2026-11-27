@@ -475,11 +475,11 @@
       </div>
     </div>
     <div class="mock" style="display:block; padding:16px;">
-      <table class="c-table" aria-label="By priority">
-        <thead><tr><th scope="col">제목</th><th scope="col">labels</th><th scope="col">revised</th></tr></thead>
-        <tbody><tr class="c-table__group"><th colspan="3" scope="rowgroup">high <span class="c-board__count">1</span></th></tr>
-          <tr><td><button class="c-table__open">Search modal keeps the last query</button></td><td>search</td><td>2026-11-10</td></tr></tbody>
-      </table>
+      <div class="c-ntable" role="table" aria-label="By priority" style="--ntable-cols: 2; flex: none; height: 128px;">
+        <div class="c-ntable__head" role="row"><div class="c-ntable__th" role="columnheader" aria-sort="none"><button class="c-ntable__sort">제목<span class="c-ntable__arrow"></span></button></div><div class="c-ntable__th" role="columnheader" aria-sort="ascending"><button class="c-ntable__sort">labels<span class="c-ntable__arrow">↑</span></button></div><div class="c-ntable__th" role="columnheader" aria-sort="none"><button class="c-ntable__sort">revised<span class="c-ntable__arrow"></span></button></div></div>
+        <div class="c-ntable__group" role="row"><span role="rowheader">high <span class="c-ntable__count">1</span></span></div>
+        <div class="c-ntable__row" role="row"><div class="c-ntable__cell" role="cell"><button class="c-ntable__open">Search modal keeps the last query</button></div><div class="c-ntable__cell" role="cell">search</div><div class="c-ntable__cell" role="cell">2026-11-10</div></div>
+      </div>
       <textarea class="c-input c-input--multiline c-input--code" style="margin-top:12px; width:100%;">{ "v": 1, "views": [] }</textarea>
     </div>
   </section>

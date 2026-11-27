@@ -87,7 +87,7 @@ export {
   EditorTab,
   EditorFields,
 } from './NoteEditor';
-export { Board, BoardColumn, BoardCard, DataTable } from './Board';
+export { Board, BoardColumn, BoardCard } from './Board';
 export { ReviewCounts, ReviewMeta, ReviewConfirm } from './Review';
 export { NoteIdRow, NoteIdText, NoteIdNote } from './NoteId';
 export { PropPanel, PropRow, PropChips, PropChip, PropInput, PropRaw } from './Props';

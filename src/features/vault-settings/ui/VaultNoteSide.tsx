@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent } from 'react';
+import { useMemo, useState, type KeyboardEvent } from 'react';
 import {
   Button,
   EditorFields,
@@ -11,7 +11,7 @@ import {
 } from '@design-system/react';
 import { api, type VaultProperty } from '@/shared/api';
 import { useT } from '@/shared/i18n';
-import { cellText } from '../model/config';
+import { cellText, frontmatterKeys } from '../model/config';
 import { useVaultNote } from '../model/useVaultNote';
 import type { NoteSlot } from './slot';
 
@@ -77,8 +77,9 @@ function PropertyField({
 }
 
 /**
- * Beside the note's text (T69): its typed properties (written into the frontmatter as one edit), the source's views
- * and a new note from one of its templates.
+ * Beside the note's text (T69): the typed properties the source declares that the note doesn't have yet (the
+ * properties panel above the text shows and edits the ones it has; setting one here writes it into the
+ * frontmatter as one edit), the source's views and a new note from one of its templates.
  */
 export default function VaultNoteSide({
   slot,
@@ -93,7 +94,9 @@ export default function VaultNoteSide({
   const info = useVaultNote(slot.path);
   const [template, setTemplate] = useState('');
   const [title, setTitle] = useState('');
-  if (!info || (!info.properties.length && !info.views.length && !info.templates.length)) return null;
+  const has = useMemo(() => frontmatterKeys(slot.version), [slot.version]);
+  const missing = info?.properties.filter((p) => !has.has(p.key)) ?? [];
+  if (!info || (!missing.length && !info.views.length && !info.templates.length)) return null;
 
   const set = async (key: string, value: string | string[]) => {
     const r = await api.vaultEdit(slot.path, slot.text(), { property: key, value });
@@ -111,10 +114,10 @@ export default function VaultNoteSide({
 
   return (
     <>
-      {info.properties.length > 0 && (
-        <EditorSection title={t('vault.properties')}>
+      {missing.length > 0 && !slot.readOnly && (
+        <EditorSection title={t('vault.propertiesMissing')}>
           <EditorFields>
-            {info.properties.map((p) => (
+            {missing.map((p) => (
               <PropertyField
                 key={p.key}
                 prop={p}
