@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Annotation, ChangeSet, EditorState } from '@codemirror/state';
+import { Annotation, ChangeSet, EditorState, type Extension } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import { api, type NoteChange, type NoteFile } from '@/shared/api';
 import { editorExtensions, readOnly, readOnlyCompartment, type EditorOptions } from '../model/editor';
@@ -33,7 +33,10 @@ export interface NoteEditorState {
   text: string;
 }
 
-type Callbacks = Pick<EditorOptions, 'links' | 'onOpenLink'>;
+type Callbacks = Pick<EditorOptions, 'links' | 'onOpenLink'> & {
+  /** T79: more extensions from another feature (requirement IDs), loaded with the note. */
+  extension?: () => Promise<Extension>;
+};
 
 /**
  * One CodeMirror view for the panel's lifetime; `path` swaps the note in it. Keeps the text as read plus every
@@ -195,7 +198,8 @@ export function useNoteEditor(host: HTMLElement | null, path: string, cb: Callba
       session.timer = setTimeout(() => void saveRef.current(), SAVE_AFTER_MS);
     });
 
-    void api.noteOpen(path).then((file) => {
+    const extra = cbRef.current.extension?.().catch((): Extension => []) ?? Promise.resolve<Extension>([]);
+    void Promise.all([api.noteOpen(path), extra]).then(([file, ext]) => {
       if (!alive) {
         if (file) api.noteClose(path);
         return;
@@ -207,7 +211,7 @@ export function useNoteEditor(host: HTMLElement | null, path: string, cb: Callba
       }
       session.file = file;
       session.original = file.text;
-      const st = EditorState.create({ doc: docOf(file.text), extensions: [extensions, listener] });
+      const st = EditorState.create({ doc: docOf(file.text), extensions: [extensions, ext, listener] });
       session.acc = ChangeSet.empty(st.doc.length);
       v.setState(st);
       v.dispatch({ effects: readOnlyCompartment.reconfigure(readOnly(!!file.readOnly)) });

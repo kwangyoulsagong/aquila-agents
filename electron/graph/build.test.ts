@@ -17,6 +17,19 @@ const edge = (g: GraphSnapshot, a: string, b: string) =>
   g.edges.find((e) => (e.source === a && e.target === b) || (e.source === b && e.target === a));
 
 describe('buildGraph', () => {
+  it('T79: carries requirement IDs, frontmatter id and status on note nodes', () => {
+    const g = buildGraph(
+      [note('s', 'FE-REQ-030-login.md', '---\nid: FE-REQ-030\nstatus: done\n---\nUses DB-12.'), note('s', 'b.md', 'x')],
+      new Map(),
+    );
+    expect(g.nodes.find((n) => n.id === noteId('s', 'FE-REQ-030-login.md'))).toMatchObject({
+      fmId: 'FE-REQ-030',
+      status: 'done',
+      refIds: ['DB-12', 'FE-REQ-030'],
+    });
+    expect(g.nodes.find((n) => n.id === noteId('s', 'b.md'))?.refIds).toBeUndefined();
+  });
+
   it('resolves [[Name]], folder/Name, relative links; unknown targets become missing nodes', () => {
     const g = buildGraph(
       [

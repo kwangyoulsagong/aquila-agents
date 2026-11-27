@@ -54,7 +54,14 @@ export { ShortcutSheet, type ShortcutSheetGroup } from './ShortcutSheet';
 export { TitleBar } from './TitleBar';
 export { Graph, type GraphNodeBox, type GraphEdgeLine, type GraphColumnLabel } from './Graph';
 export { StepList, StepItem } from './StepList';
-export { GraphStage, GraphLegend, GraphCard, GraphHint, type GraphSwatch, type GraphLine } from './GraphStage';
+export {
+  GraphStage,
+  GraphLegend,
+  GraphCard,
+  GraphHint,
+  type GraphSwatch,
+  type GraphLine,
+} from './GraphStage';
 export {
   FocusStage,
   FocusNode,
@@ -82,3 +89,4 @@ export {
 } from './NoteEditor';
 export { Board, BoardColumn, BoardCard, DataTable } from './Board';
 export { ReviewCounts, ReviewMeta, ReviewConfirm } from './Review';
+export { NoteIdRow, NoteIdText, NoteIdNote } from './NoteId';

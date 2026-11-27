@@ -1292,6 +1292,32 @@ body {
 /* Typed properties in the side column (T69). */
 .c-editor__fields { display: flex; flex-direction: column; gap: var(--space-inset-sm); padding: var(--space-inline-xs) var(--space-inset-md); }
 
+/* ── Requirement IDs in the note editor (T79) ──────────── */
+/* An ID in the text: a quiet underline; unknown = dashed muted, duplicate = wavy warning, loose = dotted. */
+.c-editor .c-noteid { text-decoration: underline; text-decoration-color: var(--color-border-default); }
+.c-editor .c-noteid[data-state='defined'], .c-editor .c-noteid[data-state='duplicate'] { cursor: pointer; }
+.c-editor .c-noteid[data-state='unknown'] { text-decoration-style: dashed; text-decoration-color: var(--color-text-tertiary); }
+.c-editor .c-noteid[data-state='duplicate'] { text-decoration-style: wavy; text-decoration-color: var(--color-status-waiting); }
+.c-editor .c-noteid[data-state='loose'] { text-decoration-style: dotted; }
+/* The hover card (inside `.cm-tooltip`). */
+.c-noteid-tip { display: flex; flex-direction: column; gap: var(--space-inline-xs); max-width: var(--size-editor-side); padding: var(--space-inset-sm) var(--space-inset-md); font-size: var(--font-size-label); }
+.c-noteid-tip__title { font-weight: 600; color: var(--color-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.c-noteid-tip__meta { color: var(--color-text-tertiary); }
+.c-noteid-tip__warn { color: var(--color-status-waiting); }
+.c-noteid-tip__link { padding: 0; border: 0; background: none; color: var(--color-action-primary); font: inherit; text-align: left; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.c-noteid-tip__link:hover { text-decoration: underline; }
+.c-noteid-tip__status { align-self: flex-start; padding: 0 var(--space-inline-xs); border-radius: var(--radius-badge); background: var(--color-bg-hover); color: var(--color-text-secondary); font-size: var(--font-size-caption); }
+/* Side column: a row with actions at its end, a plain line, a note line (confirm / warning / progress). */
+.c-noteid-row { display: flex; align-items: center; min-width: 0; }
+.c-noteid-row__main { flex: 1; min-width: 0; }
+.c-noteid-row__actions { flex: none; display: flex; align-items: center; gap: var(--space-inline-xs); padding-right: var(--space-inset-sm); }
+.c-noteid-text { padding: var(--space-inline-xs) var(--space-inset-md); font-size: var(--font-size-label); color: var(--color-text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.c-noteid-text__detail { margin-left: var(--space-inline-xs); color: var(--color-text-tertiary); }
+.c-noteid-note { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-inline-xs); padding: var(--space-inline-xs) var(--space-inset-md); font-size: var(--font-size-label); color: var(--color-text-tertiary); }
+.c-noteid-note[data-tone='warn'] { color: var(--color-status-waiting); }
+.c-noteid-note__text { flex: 1; min-width: 0; }
+.c-noteid-note__actions { flex: none; display: flex; gap: var(--space-inline-xs); }
+
 /* ── Board / table / list views of a source (T69) ──────────── */
 /* Columns of cards; a card is a button (opens the note), draggable to another column. */
 .c-board { flex: 1; min-height: 0; display: flex; gap: var(--space-inset-md); overflow-x: auto; align-items: stretch; }

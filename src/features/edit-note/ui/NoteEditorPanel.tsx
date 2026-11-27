@@ -1,4 +1,5 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { Fragment, useMemo, useState, type ReactNode } from 'react';
+import type { Extension } from '@codemirror/state';
 import {
   Button,
   EditorBanner,
@@ -14,7 +15,7 @@ import { useT } from '@/shared/i18n';
 import { usePanelWidth } from '@/shared/lib/usePanelWidth';
 import { DiffView } from '@/entities/diff';
 import { useGraphData } from '@/entities/note';
-import { linkOptions, linksTo, nodeOfPath, outline, resolveLink } from '../model/links';
+import { linkOptions, linksTo, nodeOfPath, outline, resolveLink, type LinkedNote } from '../model/links';
 import { lineDiff } from '../model/lineDiff';
 import { useNoteEditor } from './useNoteEditor';
 import { HandleWithClaude } from './HandleWithClaude';
@@ -40,6 +41,10 @@ export interface NoteEditorPanelProps {
   onCreateNote?: (name: string, sourceId: string | undefined) => void;
   /** T70: "Handle with Claude" opens a Claude tab with the note (the page's). */
   onClaude?: (prompt: string, projectId: string | undefined) => void;
+  /** T79: more editor extensions (requirement IDs), loaded with the note. Keep the function stable. */
+  extension?: () => Promise<Extension>;
+  /** T79: an unlinked mention's row (with "Link"); `title` is this note's title as the index has it. */
+  renderMention?: (p: { mention: LinkedNote; title: string; path: string; onOpen: () => void }) => ReactNode;
 }
 
 /** What a slot gets: the note, its text right now, and a way to change it as one edit (saved like typing). */
@@ -70,6 +75,8 @@ export default function NoteEditorPanel({
   renderSide,
   onCreateNote,
   onClaude,
+  extension,
+  renderMention,
 }: NoteEditorPanelProps) {
   const t = useT();
   const width = usePanelWidth('aquila.panel.note');
@@ -93,6 +100,7 @@ export default function NoteEditorPanel({
         onOpenNote(to.path);
       } else setMissing(target);
     },
+    ...(extension ? { extension } : {}),
   });
 
   const headings = useMemo(() => outline(ed.text), [ed.text]);
@@ -281,9 +289,15 @@ export default function NoteEditorPanel({
                 ))}
               </EditorSection>
               <EditorSection title={t('note.mentions')} empty={t('note.none')}>
-                {mentions.map((m) => (
-                  <EditorItem key={m.id} label={m.label} title={m.path} onClick={() => onOpenNote(m.path)} />
-                ))}
+                {mentions.map((m) =>
+                  renderMention && node ? (
+                    <Fragment key={m.id}>
+                      {renderMention({ mention: m, title: node.label, path, onOpen: () => onOpenNote(m.path) })}
+                    </Fragment>
+                  ) : (
+                    <EditorItem key={m.id} label={m.label} title={m.path} onClick={() => onOpenNote(m.path)} />
+                  ),
+                )}
               </EditorSection>
               <EditorSection title={t('note.outline')} empty={t('note.outlineEmpty')}>
                 {headings.map((h) => (
