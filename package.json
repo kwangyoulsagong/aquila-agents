@@ -72,5 +72,10 @@
     "vite": "^7.0.0",
     "vitest": "^3.2.0",
     "wait-on": "^8.0.0"
+  },
+  "allowScripts": {
+    "electron@45.3.4": true,
+    "node-pty@1.1.0": true,
+    "esbuild@0.28.2": true
   }
 }
