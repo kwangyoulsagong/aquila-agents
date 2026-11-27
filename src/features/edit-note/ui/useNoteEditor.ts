@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Annotation, ChangeSet, EditorState, type Extension } from '@codemirror/state';
+import { Annotation, ChangeSet, EditorState, type Extension, type StateEffect } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import { api, type NoteChange, type NoteFile } from '@/shared/api';
 import { editorExtensions, readOnly, readOnlyCompartment, type EditorOptions } from '../model/editor';
 import { imageSrc } from '../model/images';
+import { reading, readingCompartment } from '../model/readingMode';
 import { applyChanges, docOf } from '../model/serialize';
 
 /** Saves this long after typing stops (plus on blur, ⌘S, switching notes, closing). No timer otherwise. */
@@ -36,6 +37,8 @@ export interface NoteEditorState {
 type Callbacks = Pick<EditorOptions, 'links' | 'onOpenLink' | 't'> & {
   /** T79: more extensions from another feature (requirement IDs), loaded with the note. */
   extension?: () => Promise<Extension>;
+  /** T82: open notes in reading mode (read when a note loads; `effects` switches it after). */
+  reading?: boolean;
 };
 
 /**
@@ -215,7 +218,12 @@ export function useNoteEditor(host: HTMLElement | null, path: string, cb: Callba
       const st = EditorState.create({ doc: docOf(file.text), extensions: [extensions, ext, listener] });
       session.acc = ChangeSet.empty(st.doc.length);
       v.setState(st);
-      v.dispatch({ effects: readOnlyCompartment.reconfigure(readOnly(!!file.readOnly)) });
+      v.dispatch({
+        effects: [
+          readOnlyCompartment.reconfigure(readOnly(!!file.readOnly)),
+          readingCompartment.reconfigure(reading(!!cbRef.current.reading)),
+        ],
+      });
       patch({ file, text: file.text });
       if (!file.readOnly) v.focus();
     });
@@ -309,5 +317,8 @@ export function useNoteEditor(host: HTMLElement | null, path: string, cb: Callba
     v.dispatch({ changes: { from: a, to: cur.length - b, insert: want.slice(a, want.length - b) } });
   }, []);
 
-  return { ...state, save, resolve, goToLine, mine, replace };
+  /** T82: presentation-only effects (reading mode, the document header); never an edit. */
+  const effects = useCallback((e: StateEffect<unknown>[]) => view.current?.dispatch({ effects: e }), []);
+
+  return { ...state, save, resolve, goToLine, mine, replace, effects };
 }

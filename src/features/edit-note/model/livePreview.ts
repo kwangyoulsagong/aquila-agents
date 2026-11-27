@@ -8,24 +8,21 @@ import {
   type DecorationSet,
   type ViewUpdate,
 } from '@codemirror/view';
-import type { SyntaxNodeRef } from '@lezer/common';
+import type { SyntaxNode, SyntaxNodeRef } from '@lezer/common';
 import { aligns, cells, isDelimiter, pipes } from './tables';
+import { calloutKind, codeLanguage, docLookField, frontmatterEnd, titleLine } from './document';
+import { isReading } from './readingMode';
+
+export { frontmatterEnd };
 
 // Live preview: Markdown shows rendered (headings, emphasis, links, checkboxes, callouts, tables) except on the
 // lines the cursor is on, which show their raw text. Only decorations — the document is never rewritten, so what
 // is saved is exactly what was typed. Classes are `cm-md-*`, styled in components.css (`.c-editor`).
 
-/** `---` frontmatter at the very top: shown raw and dimmed, never parsed as Markdown. */
-export function frontmatterEnd(state: EditorState): number {
-  if (state.doc.lines < 2 || state.doc.line(1).text !== '---') return 0;
-  for (let n = 2; n <= Math.min(state.doc.lines, 200); n++)
-    if (/^(---|\.\.\.)$/.test(state.doc.line(n).text)) return state.doc.line(n).to;
-  return 0;
-}
-
-/** Line numbers any selection touches: these show raw text. */
-function activeLines(state: EditorState): Set<number> {
+/** Line numbers any selection touches: these show raw text. None in reading mode (T82): everything renders. */
+export function activeLines(state: EditorState): Set<number> {
   const out = new Set<number>();
+  if (isReading(state)) return out;
   for (const r of state.selection.ranges) {
     const a = state.doc.lineAt(r.from).number;
     const b = state.doc.lineAt(r.to).number;
@@ -58,6 +55,9 @@ class CheckboxWidget extends WidgetType {
   }
 }
 
+const CALLOUT_ICON = { note: 'i', tip: '✓', important: '!', warning: '!', caution: '×' } as const;
+
+/** `[!NOTE]` → an icon and the kind as written (`[!info]` reads "info", coloured as a note). */
 class CalloutWidget extends WidgetType {
   constructor(readonly kind: string) {
     super();
@@ -68,8 +68,90 @@ class CalloutWidget extends WidgetType {
   toDOM() {
     const s = document.createElement('span');
     s.className = 'cm-md-callout-kind';
-    s.textContent = this.kind;
+    const kind = calloutKind(this.kind);
+    s.dataset.callout = kind;
+    const icon = document.createElement('span');
+    icon.className = 'cm-md-callout-icon';
+    icon.setAttribute('aria-hidden', 'true');
+    icon.textContent = CALLOUT_ICON[kind];
+    s.append(icon, this.kind);
     return s;
+  }
+}
+
+/** A `-` / `*` / `+` list mark off the cursor line: a bullet, its shape by nesting depth. */
+class BulletWidget extends WidgetType {
+  constructor(readonly depth: number) {
+    super();
+  }
+  eq(other: BulletWidget) {
+    return other.depth === this.depth;
+  }
+  toDOM() {
+    const s = document.createElement('span');
+    s.className = 'cm-md-bullet';
+    s.dataset.depth = String(this.depth % 3);
+    s.setAttribute('aria-hidden', 'true');
+    return s;
+  }
+}
+
+const FENCE = /^\s*(`{3,}|~{3,})\s*$/;
+
+/** The text of the fenced code block at `pos`, without its fences (what the copy button copies). */
+export function fencedBody(state: EditorState, pos: number): string {
+  let node: SyntaxNode | null = syntaxTree(state).resolveInner(pos, 1);
+  while (node && node.name !== 'FencedCode') node = node.parent;
+  if (!node) return '';
+  const first = state.doc.lineAt(node.from).number;
+  const last = state.doc.lineAt(node.to);
+  const end = last.number > first && FENCE.test(last.text) ? last.number - 1 : last.number;
+  if (end <= first) return '';
+  return state.doc.sliceString(state.doc.line(first + 1).from, state.doc.line(end).to);
+}
+
+/** A code fence line (```ts) off the cursor: the language and a copy button across the top of the card. */
+class CodeHeadWidget extends WidgetType {
+  constructor(
+    readonly lang: string,
+    readonly copyLabel: string,
+    readonly copiedLabel: string,
+  ) {
+    super();
+  }
+  eq(other: CodeHeadWidget) {
+    return other.lang === this.lang && other.copyLabel === this.copyLabel && other.copiedLabel === this.copiedLabel;
+  }
+  toDOM(view: EditorView) {
+    const head = document.createElement('span');
+    head.className = 'cm-md-codehead';
+    const lang = document.createElement('span');
+    lang.className = 'cm-md-codelang';
+    lang.textContent = this.lang;
+    const copy = document.createElement('button');
+    copy.type = 'button';
+    copy.className = 'cm-md-codecopy';
+    copy.tabIndex = -1;
+    copy.textContent = this.copyLabel;
+    copy.onmousedown = (e) => e.preventDefault();
+    copy.onclick = (e) => {
+      e.preventDefault();
+      const text = fencedBody(view.state, view.posAtDOM(head));
+      void navigator.clipboard?.writeText(text).then(() => {
+        copy.dataset.copied = 'true';
+        copy.textContent = this.copiedLabel;
+        setTimeout(() => {
+          delete copy.dataset.copied;
+          copy.textContent = this.copyLabel;
+        }, 1200);
+      });
+    };
+    head.append(lang, copy);
+    return head;
+  }
+  /** The button handles its own clicks; a click elsewhere on the header puts the cursor on the fence. */
+  ignoreEvent(e: Event) {
+    return e.target instanceof Element && !!e.target.closest('.cm-md-codecopy');
   }
 }
 
@@ -106,10 +188,20 @@ function inlineDecorations(view: EditorView, opts: LivePreviewOptions): Decorati
   const fm = frontmatterEnd(state);
   const out: Range<Decoration>[] = [];
   const isActive = (pos: number) => active.has(state.doc.lineAt(pos).number);
-  const lineDeco = (pos: number, cls: string) => out.push(line(cls).range(state.doc.lineAt(pos).from));
+  const lineDeco = (pos: number, cls: string, attributes?: Record<string, string>) =>
+    out.push(
+      (attributes ? Decoration.line({ class: cls, attributes }) : line(cls)).range(
+        state.doc.lineAt(pos).from,
+      ),
+    );
+  const reading = isReading(state);
+  const look = state.field(docLookField, false);
+  const title = titleLine(state);
+  const code: [number, number][] = [];
 
   if (fm)
-    for (let n = 1; n <= state.doc.lineAt(fm).number; n++) lineDeco(state.doc.line(n).from, 'cm-md-frontmatter');
+    for (let n = 1; n <= state.doc.lineAt(fm).number; n++)
+      lineDeco(state.doc.line(n).from, 'cm-md-frontmatter');
   for (const { from, to } of view.visibleRanges) {
     syntaxTree(state).iterate({
       from,
@@ -119,7 +211,8 @@ function inlineDecorations(view: EditorView, opts: LivePreviewOptions): Decorati
         const name = node.name;
         const h = /^(?:ATXHeading|SetextHeading)(\d)$/.exec(name);
         if (h) {
-          lineDeco(node.from, `cm-md-h cm-md-h${h[1]}`);
+          const n = state.doc.lineAt(node.from).number;
+          lineDeco(node.from, `cm-md-h cm-md-h${h[1]}${n === title ? ' cm-md-title' : ''}`);
           return;
         }
         switch (name) {
@@ -174,7 +267,8 @@ function inlineDecorations(view: EditorView, opts: LivePreviewOptions): Decorati
           case 'Image': {
             const url = node.node.getChild('URL');
             const marks = node.node.getChildren('LinkMark');
-            const src = url && !isActive(node.from) ? opts.imageSrc(state.doc.sliceString(url.from, url.to)) : null;
+            const src =
+              url && !isActive(node.from) ? opts.imageSrc(state.doc.sliceString(url.from, url.to)) : null;
             if (src && marks.length >= 2) {
               const alt = state.doc.sliceString(marks[0]!.to, marks[1]!.from);
               out.push(Decoration.replace({ widget: new ImageWidget(src, alt) }).range(node.from, node.to));
@@ -194,22 +288,47 @@ function inlineDecorations(view: EditorView, opts: LivePreviewOptions): Decorati
             }
             return;
           }
-          case 'ListMark':
-            out.push(mark('cm-md-listmark').range(node.from, node.to));
+          case 'ListMark': {
+            const item = node.node.parent;
+            const list = item?.parent?.name;
+            if (list === 'BulletList' && !isActive(node.from)) {
+              if (item?.getChild('Task')) {
+                // `- [ ] x`: the checkbox stands in for the bullet.
+                const l = state.doc.lineAt(node.from);
+                const end =
+                  state.doc.sliceString(node.to, node.to + 1) === ' ' && node.to < l.to
+                    ? node.to + 1
+                    : node.to;
+                out.push(hide.range(node.from, end));
+                return;
+              }
+              let depth = 0;
+              for (let p = item?.parent?.parent; p; p = p.parent)
+                if (p.name === 'BulletList' || p.name === 'OrderedList') depth++;
+              out.push(Decoration.replace({ widget: new BulletWidget(depth) }).range(node.from, node.to));
+              return;
+            }
+            out.push(
+              mark(list === 'OrderedList' ? 'cm-md-listmark cm-md-ordered' : 'cm-md-listmark').range(
+                node.from,
+                node.to,
+              ),
+            );
             return;
+          }
           case 'Blockquote': {
             const first = state.doc.lineAt(node.from);
+            const lastN = state.doc.lineAt(node.to).number;
             const callout = CALLOUT.exec(first.text);
-            for (let n = first.number; n <= state.doc.lineAt(node.to).number; n++) {
-              const l = state.doc.line(n);
-              lineDeco(
-                l.from,
-                callout
-                  ? n === first.number
-                    ? 'cm-md-callout cm-md-callout-title'
-                    : 'cm-md-callout'
-                  : 'cm-md-quote',
-              );
+            const kind = callout ? { 'data-callout': calloutKind(callout[2]!) } : undefined;
+            const base = callout ? 'cm-md-callout' : 'cm-md-quote';
+            // The lines on screen, plus the first and last (they round the card's corners).
+            for (const n of blockLines(state, first.number, lastN, from, to)) {
+              const cls =
+                base +
+                (n === first.number ? ` ${base}-start${callout ? ' cm-md-callout-title' : ''}` : '') +
+                (n === lastN ? ` ${base}-end` : '');
+              lineDeco(state.doc.line(n).from, cls, kind);
             }
             if (callout && !isActive(first.from)) {
               const at = first.from + callout[1]!.length;
@@ -238,7 +357,28 @@ function inlineDecorations(view: EditorView, opts: LivePreviewOptions): Decorati
           case 'CodeBlock': {
             const a = state.doc.lineAt(node.from).number;
             const b = state.doc.lineAt(node.to).number;
-            for (let n = a; n <= b; n++) lineDeco(state.doc.line(n).from, 'cm-md-codeblock');
+            code.push([a, b]);
+            for (const n of blockLines(state, a, b, from, to))
+              lineDeco(
+                state.doc.line(n).from,
+                'cm-md-codeblock' +
+                  (n === a ? ' cm-md-codeblock-start' : '') +
+                  (n === b ? ' cm-md-codeblock-end' : ''),
+              );
+            if (name === 'FencedCode') {
+              const open = state.doc.line(a);
+              if (!isActive(open.from)) {
+                const info = node.node.getChild('CodeInfo');
+                const lang = info ? codeLanguage(state.doc.sliceString(info.from, info.to)) : '';
+                out.push(Decoration.replace({ widget: new CodeHeadWidget(lang, look?.copy ?? '⧉', look?.copied ?? '✓') }).range(open.from, open.to));
+              }
+              const close = state.doc.line(b);
+              if (b > a && FENCE.test(close.text) && !isActive(close.from)) {
+                // The closing fence folds into the card's bottom edge.
+                out.push(hide.range(close.from, close.to));
+                lineDeco(close.from, 'cm-md-codeblock-close');
+              }
+            }
             return false;
           }
           case 'Table':
@@ -250,8 +390,24 @@ function inlineDecorations(view: EditorView, opts: LivePreviewOptions): Decorati
       },
     });
     wikiLinks(state, from, to, isActive, out);
+    // Reading mode: a blank line between blocks is half a line (paragraph spacing), outside code.
+    if (reading)
+      for (let pos = from; pos <= to;) {
+        const l = state.doc.lineAt(pos);
+        if (l.from > fm && !l.text.trim() && !code.some(([a, b]) => l.number >= a && l.number <= b))
+          out.push(line('cm-md-blank').range(l.from));
+        pos = l.to + 1;
+      }
   }
   return Decoration.set(out, true);
+}
+
+/** Lines `a..b` of a block that are within `from..to`, plus `a` and `b` themselves (a long block costs its visible part). */
+function blockLines(state: EditorState, a: number, b: number, from: number, to: number): Set<number> {
+  const out = new Set([a, b]);
+  const hi = Math.min(b, state.doc.lineAt(to).number);
+  for (let n = Math.max(a, state.doc.lineAt(from).number); n <= hi; n++) out.add(n);
+  return out;
 }
 
 const WIKI = /!?\[\[([^\]\n]+?)\]\]/g;
@@ -296,6 +452,8 @@ const inlinePlugin = (opts: LivePreviewOptions) =>
           u.docChanged ||
           u.viewportChanged ||
           u.selectionSet ||
+          isReading(u.startState) !== isReading(u.state) ||
+          u.startState.field(docLookField, false) !== u.state.field(docLookField, false) ||
           syntaxTree(u.startState) !== syntaxTree(u.state)
         )
           this.decorations = inlineDecorations(u.view, opts);
@@ -349,7 +507,8 @@ class TableWidget extends WidgetType {
 function tableDecorations(state: EditorState): DecorationSet {
   const builder = new RangeSetBuilder<Decoration>();
   const fm = frontmatterEnd(state);
-  const sel = state.selection.ranges;
+  // Reading mode (T82): always rendered, wherever the selection is.
+  const sel = isReading(state) ? [] : state.selection.ranges;
   syntaxTree(state).iterate({
     enter: (node) => {
       if (node.name !== 'Table')
@@ -379,7 +538,12 @@ function tableDecorations(state: EditorState): DecorationSet {
 const tableField = StateField.define<DecorationSet>({
   create: tableDecorations,
   update(deco, tr) {
-    if (tr.docChanged || tr.selection || syntaxTree(tr.startState) !== syntaxTree(tr.state))
+    if (
+      tr.docChanged ||
+      tr.selection ||
+      tr.reconfigured ||
+      syntaxTree(tr.startState) !== syntaxTree(tr.state)
+    )
       return tableDecorations(tr.state);
     return deco;
   },
@@ -414,7 +578,8 @@ const clicks = (opts: LivePreviewOptions) =>
         return true;
       }
       const cell = el.closest<HTMLElement>('.cm-md-table [data-line]');
-      if (cell) {
+      // Reading mode: a cell click selects text, it doesn't open the row for editing.
+      if (cell && !isReading(view.state)) {
         e.preventDefault();
         const l = view.state.doc.line(Number(cell.dataset.line));
         const ps = pipes(l.text);

@@ -9,6 +9,8 @@ import { blockHandle } from './blockHandle';
 import type { LinkOption } from './links';
 import { livePreview } from './livePreview';
 import { slashCompletion } from './slashMenu';
+import { documentHeader } from './document';
+import { reading, readingCompartment } from './readingMode';
 import { continueMarkup, newRow, nextCell, prevCell } from './tables';
 
 // The editor's extensions in one place. No closing brackets, no reindent on Enter beyond Markdown's list
@@ -82,6 +84,9 @@ export function editorExtensions(opts: EditorOptions): Extension {
     livePreview({ onOpenLink: opts.onOpenLink, onOpenUrl: opts.onOpenUrl, imageSrc: opts.imageSrc }),
     blockHandle({ t: opts.t }),
     readOnlyCompartment.of(readOnly(false)),
+    // T82: reading mode (off until the panel turns it on) and the document header above the text.
+    readingCompartment.of(reading(false)),
+    documentHeader(),
     Prec.high(
       keymap.of([
         { key: 'Tab', run: tableKey(nextCell) },

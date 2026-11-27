@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState, type ReactNode } from 'react';
+import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Extension } from '@codemirror/state';
 import {
   Button,
@@ -13,10 +13,20 @@ import {
 import { api, type GraphSnapshot, type GraphStatus } from '@/shared/api';
 import { useT } from '@/shared/i18n';
 import { usePanelWidth } from '@/shared/lib/usePanelWidth';
+import { acceleratorLabel, detectPlatform } from '@/shared/lib/shortcuts';
 import { DiffView } from '@/entities/diff';
 import { useGraphData } from '@/entities/note';
 import { linkOptions, linksTo, nodeOfPath, outline, resolveLink, type LinkedNote } from '../model/links';
 import { lineDiff } from '../model/lineDiff';
+import { setDocLook } from '../model/document';
+import {
+  isReadingKey,
+  reading,
+  readingCompartment,
+  READING_ACCELERATOR,
+  readReading,
+  writeReading,
+} from '../model/readingMode';
 import { useNoteEditor } from './useNoteEditor';
 import { HandleWithClaude } from './HandleWithClaude';
 
@@ -58,6 +68,8 @@ export interface NoteSlotProps {
 }
 
 const fileName = (p: string) => p.split(/[/\\]/).pop() ?? p;
+const folderName = (p: string) => p.split(/[/\\]/).slice(-2, -1)[0] ?? '';
+const MAC = detectPlatform() === 'mac';
 
 /**
  * Right panel and full window: one Markdown note in CodeMirror with live preview (T67). Saved byte for byte on
@@ -89,9 +101,11 @@ export default function NoteEditorPanel({
   };
   const [comparing, setComparing] = useState(false);
   const [missing, setMissing] = useState<string | null>(null);
+  const [readingOn, setReadingOn] = useState(readReading);
   const node = nodeOfPath(snapshot, path);
 
   const ed = useNoteEditor(host, path, {
+    reading: readingOn,
     links: () => linkOptions(snapshot, path),
     t: () => t,
     onOpenLink: (target) => {
@@ -103,6 +117,13 @@ export default function NoteEditorPanel({
     },
     ...(extension ? { extension } : {}),
   });
+
+  const toggleReading = () => {
+    const on = !readingOn;
+    setReadingOn(on);
+    writeReading(on);
+    ed.effects([readingCompartment.reconfigure(reading(on))]);
+  };
 
   const headings = useMemo(() => outline(ed.text), [ed.text]);
   const { backlinks, mentions } = useMemo(() => linksTo(snapshot, node?.id), [snapshot, node?.id]);
@@ -125,6 +146,20 @@ export default function NoteEditorPanel({
     readOnly: !ed.file || !!ed.file.readOnly,
   };
   const title = node?.label ?? fileName(path).replace(/\.md$/i, '');
+
+  // T82: the document header (name when there's no H1, folder · edited) and the code-block button labels.
+  const locale = t('locale');
+  const mtime = ed.file?.mtime;
+  const edited = mtime
+    ? new Date(mtime).toLocaleString(locale, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+    : '';
+  const meta = [folderName(path), edited && t('note.readEdited', { date: edited })].filter(Boolean).join(' · ');
+  const copy = t('action.copy');
+  const copied = t('note.readCopied');
+  const { effects } = ed;
+  useEffect(() => {
+    if (ed.file) effects([setDocLook.of({ name: title, meta, copy, copied })]);
+  }, [ed.file, effects, title, meta, copy, copied]);
   const saveLabel =
     ed.saveState === 'saving'
       ? t('note.saving')
@@ -206,6 +241,11 @@ export default function NoteEditorPanel({
       className={`c-panel ${full ? 'c-panel--full' : 'c-panel--wide'}`}
       {...(full ? {} : width.props)}
       aria-label={t('note.title')}
+      onKeyDown={(e) => {
+        if (!isReadingKey(e, MAC)) return;
+        e.preventDefault();
+        toggleReading();
+      }}
     >
       {!full && (
         <ResizeHandle onChange={width.onChange} onReset={width.onReset} label={t('action.resizePanel')} />
@@ -219,6 +259,14 @@ export default function NoteEditorPanel({
         )}
         <div className="c-panel__actions">
           {onClaude && ed.file && <HandleWithClaude notePath={path} onClaude={onClaude} />}
+          <Button
+            variant="ghost"
+            aria-pressed={readingOn}
+            onClick={toggleReading}
+            title={`${t('note.readTitle')} (${acceleratorLabel(READING_ACCELERATOR)})`}
+          >
+            {t('note.read')}
+          </Button>
           <Button
             variant="ghost"
             icon

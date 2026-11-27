@@ -48,6 +48,7 @@ Check: `grep -rn -- '--p-' src design-system/components.css` returns only the ru
 | `--color-account-shared` / `-personal` | Claude account badge (`claude` / `claude-personal`) |
 | `--color-graph-note` / `-tag` / `-code` / `-missing` / `-other` / `-edge` / `-focus` | Knowledge graph canvas (T66): node kinds, links, the focused note. WebGL can't read CSS, so the panel resolves them with `getComputedStyle` and again on theme change |
 | `--color-graph-group-1` … `-8` | The Map coloured by group (T72): the eight biggest groups, biggest first (blue, peach, teal, violet, green, pink, yellow, red; `-300` dark / `-600`/`-700` light). Other groups use `--color-graph-missing` |
+| `--color-callout-note` / `-tip` / `-important` / `-warning` / `-caution` (+ `-bg`) | Note callout cards (T82, `> [!KIND]`): accent for the edge, icon and label; `-bg` is the card tint (blue, green, violet, orange, red; `-400`/`-300` dark, `-600` light) |
 | `--color-diff-*` | Diff add / del / hunk |
 | `--color-terminal-*` | xterm theme (read at runtime, re-read when the theme changes): bg, fg, cursor, selection, scrollbar (+ `-hover`), find matches `-match` / `-match-active` (opaque `#RRGGBB`, xterm decorations need it; amber). On light, xterm's `minimumContrastRatio` is 4.5 so CLI colors picked for a dark background stay readable |
 
@@ -72,11 +73,12 @@ A project row shows its most urgent session: `waiting > error > working > done >
 
 - UI: system font (SF Pro + Apple SD Gothic Neo). Mono: JetBrains Mono (bundled), D2Coding fallback.
 - `--font-size-caption` 11 (meta, labels) · `-label` 12 (tabs, buttons) · `-body` 13 (body, terminal) · `-title` 15 · `-heading-1/2/3` 20 / 17 / 15 (note editor headings, T67).
+- Note document (T82, the live preview read as a page): `--font-size-doc-body` 15 (`--line-height-doc` 1.6 → 24) · `-doc-code` 13 (`--line-height-code` 1.55) · `-doc-title` 28 (the first H1, or the name) · `-doc-h1/h2/h3/h4` 24 / 20 / 17 / 15 (`--line-height-heading` 1.3, letter-spacing -0.01em, title -0.02em).
 - Section label: 11 / 600 / uppercase / 0.06em / `--color-text-tertiary`.
 
 ## Spacing & radius (by role)
 
-`--space-inline-xs|sm` 4|8 (items in a row) · `--space-inset-sm|md` 8|12 (padding) · `--space-stack-md|lg` 16|24 (groups/sections).
+`--space-inline-xs|sm` 4|8 (items in a row) · `--space-inset-sm|md` 8|12 (padding) · `--space-stack-md|lg` 16|24 (groups/sections) · `--space-stack-xl` 32 (around a document: the note editor's text, T82).
 `--radius-badge` 4 · `--radius-control` 6 · `--radius-container` 10.
 
 ## Layout — one grid, aligned edges
@@ -122,6 +124,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `--size-modal` / `--size-modal-height` / `--size-modal-aside` | 760 / 520 / 240 | List + detail modal (guide, release notes) / its list column |
 | `--size-modal-wide` / `--size-modal-wide-height` / `--size-modal-wide-aside` | 960 / 640 / 320 | `.c-modal--wide` (session history: longer rows, a transcript) / its list column |
 | `--size-editor-measure` / `--size-editor-side` | 720 / 240 | Note editor (T67): longest text line in full window / outline + links column |
+| `--size-doc-check` | 16 | Note document (T82): a to-do checkbox, a callout icon |
 | `--size-card-list` | 224 | Graph card: suggested links before they scroll (T68) |
 | `--size-board-column` / `--size-code-input` | 256 / 224 | A board view's column / the height of settings edited as text (T69) |
 | `--size-focus-row` / `--size-focus-center` / `--size-focus-gap` | 40 / 208 / 48 | Graph focus view (T72): one item (label + meta line) / the centre card / room for links between two columns |
@@ -143,7 +146,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `.c-queue`, `__lead` `__text` `__title` `__meta` | A sidebar queue entry (review queue, T58): dot, title and a mono caption meta line, both ellipsised; same edges as `.c-row`; a button |
 | `.c-risk` | Warning glyph (⚠) in the error color for a possibly destructive command — on the reason line and the tab |
 | `.c-graph`, `__node[data-mark]` `__box` `__label` `__detail` `__mark` `__edge` `__column` | Static SVG node graph (repo skeleton, T64; the knowledge graph uses the same look): boxes placed by the caller, curved edges. Tone-filled boxes with no outline; colour only where something changes: add = green tint + filled dot, change = blue tint + ring dot, unfit = dashed outline + struck label. When any box is marked (`.c-graph[data-marked]`), unmarked labels step back to secondary. `data-dim` / `data-highlight` for a hovered step. No animation loop |
-| `.c-editor`, `__main` `__host` `__side` `__section` `__section-title` `__item` (`--level`) `__empty` `__banner[data-tone]` `__compare` | Note editor (T67): CodeMirror host + outline / links column; a banner across the top (warn = waiting-colour edge). CodeMirror's `.cm-*` and the live-preview marks `.cm-md-*` (headings, emphasis, code, links, `[[links]]`, checkboxes, quotes / callouts, rules, frontmatter, rendered tables) are styled under `.c-editor` with tokens only |
+| `.c-editor`, `__main` `__host` `__side` `__section` `__section-title` `__item` (`--level`) `__empty` `__banner[data-tone]` `__compare` | Note editor (T67): CodeMirror host + outline / links column; a banner across the top (warn = waiting-colour edge). CodeMirror's `.cm-*` and the live-preview marks `.cm-md-*` (headings, emphasis, code, links, `[[links]]`, checkboxes, quotes / callouts, rules, frontmatter, rendered tables) are styled under `.c-editor` with tokens only. **Document look (T82)**, its own block at the end of the section: a centred column (`--space-stack-xl` padding, `--space-stack-md` under 560px via the `note` container), header `.cm-md-dochead` (`__doctitle` when there's no H1, `__docmeta` folder · edited), `.cm-md-title` (first H1), bullets `.cm-md-bullet[data-depth]`, drawn checkboxes, callout cards `.cm-md-callout[data-callout]` `-start`/`-end` + `.cm-md-callout-kind`/`-icon`, quotes `-start`/`-end`, code cards `.cm-md-codeblock` `-start`/`-end`/`-close` with `.cm-md-codehead` (language + copy), table cards (header row, zebra, sideways scroll), wikilink pills. Reading mode adds `.cm-reading` (and `.cm-md-blank`: half-height blank lines) |
 | `.c-review__counts` `__add` `__del` `__meta` `__confirm` | Note review bar (T80): `+12 −3 lines` in the diff colours, a quiet time, the question before a hunk revert (inside an `EditorBanner` / `DiffView` hunk actions) |
 | `.c-noteid[data-state]` (defined · duplicate · unknown · loose), `.c-noteid-tip` `__title` `__meta` `__warn` `__link` `__status`, `.c-noteid-row` `__main` `__actions`, `.c-noteid-text` `__detail`, `.c-noteid-note[data-tone]` `__text` `__actions` | Requirement IDs (T79): an ID in the note text gets a quiet underline (unknown = dashed, duplicate = wavy waiting colour, loose = dotted) and a hover card; side-column rows for "Referenced in" and unlinked mentions with Link |
 | `.c-suggest`, `__item` `__line[data-line=dotted|dashed]` `__text` `__label` `__why` `__actions` `__proposal[data-tone=warn]` | Link suggestions (T68): one suggested connection per row (line sample, other end, why, ✓ / [[ / ×), a proposal or warning line on top (accent / waiting-colour edge). `GraphCard` takes `children` as a scrolling `__card-body` and `close` as a pinned top-right `__card-close` (actions wrap, the close never gets clipped); `GraphHint` (`.c-kgraph__hint`) is the dismissable how-to line in the same spot |
