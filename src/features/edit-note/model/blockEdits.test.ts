@@ -259,6 +259,40 @@ describe('ordered lists are renumbered', () => {
   });
 });
 
+describe('a number that gains or loses a digit re-indents its item', () => {
+  it('9. → 10. adds a space to its continuation lines and nested blocks; 10. → 8. takes one away (CRLF)', () => {
+    expect(move('8. a\r\n9. b\r\n   cont b\r\n   - child\r\n10. c\r\n    more c\r\n', 4, 0, 'before')).toBe(
+      '8. c\r\n   more c\r\n9. a\r\n10. b\r\n    cont b\r\n    - child\r\n',
+    );
+  });
+
+  it('nested numbered lists and their own continuations move with the item, once', () => {
+    expect(move('9. a\n   1. x\n   2. y\n      deep\n10. b\n', 4, 0, 'before')).toBe(
+      '9. b\n10. a\n    1. x\n    2. y\n       deep\n',
+    );
+  });
+
+  it('lazy continuation lines and blank lines stay as they are', () => {
+    expect(move('9. a\n   text\nlazy\n\n   para\n10. b\n', 5, 0, 'before')).toBe(
+      '9. b\n10. a\n    text\nlazy\n\n    para\n',
+    );
+  });
+
+  it('a delete that shortens later numbers pulls their continuations back; each change is a small splice', () => {
+    const src = '1. a\n2. b\n3. c\n4. d\n5. e\n6. f\n7. g\n8. h\n9. i\n   cont i\n10. j\n    cont j\n11. k\n';
+    const { p, b } = at(src, 0);
+    const changes = deleteBlock(p, b);
+    expect(applyEdits(src, changes)).toBe(
+      '1. b\n2. c\n3. d\n4. e\n5. f\n6. g\n7. h\n8. i\n   cont i\n9. j\n   cont j\n10. k\n',
+    );
+    expect(changes.find((c) => c.from === src.indexOf('    cont j'))).toEqual({
+      from: src.indexOf('    cont j'),
+      to: src.indexOf('    cont j') + 1,
+      insert: '',
+    });
+  });
+});
+
 describe('moving into another container', () => {
   it('a paragraph moved in as a list item first child gets a blank line, so it is not the item text', () => {
     expect(move('- a\n  - c\n\nP', 3, 1, 'before')).toBe('- a\n\n  P\n  - c');

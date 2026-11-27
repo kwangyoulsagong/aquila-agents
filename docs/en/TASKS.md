@@ -736,7 +736,7 @@ throttled or hot → `saver`). The rules every task below follows:
 - **Battery:** local similarity runs in the T65 worker on changed notes only; Claude extraction never starts by itself in saver (queued until on power or run by hand) and has a daily cap per source.
 - **Owns:** `electron/graph/extract.ts`, `electron/graph/rules.ts` (+ tests), `src/features/link-suggestions/`.
 - **Done:** a fixture meeting note gets a suggested edge to a spec; three accepts of `DB-` links propose a rule.
-  _Left over: local similarity lives in `electron/graph/similar.ts` (owned files + one). Accept / reject works on found-in-text (dashed) edges too, so shared-ID links can be accepted and teach rules; patterns are ID prefixes and URL hosts. AI uses the shared Claude account, 4 notes per call, 40 notes / day / source, starts 30 s after the last change. "[[" appends `[[file name]]` as the last line of the note being viewed (not placed in the text). Smoke: the meeting → spec similar suggestion, "[[" in the graph card writes exactly one line, 3 DB- accepts → proposal → rule, AI on + Run now with a canned reply → a person node. Not done: `npm run perf` has no T68 scenario (similarity runs in the existing index pass); no real haiku run checked by hand; guide text / media not updated._
+  _Left over: local similarity lives in `electron/graph/similar.ts` (owned files + one). Accept / reject works on found-in-text (dashed) edges too, so shared-ID links can be accepted and teach rules; patterns are ID prefixes and URL hosts. AI uses the shared Claude account, 4 notes per call, 40 notes / day / source, starts 30 s after the last change. "[[" appends `[[file name]]` as the last line of the note being viewed (not placed in the text). Smoke: the meeting → spec similar suggestion, "[[" in the graph card writes exactly one line, 3 DB- accepts → proposal → rule, AI on + Run now with a canned reply → a person node. Not done: `npm run perf` has no T68 scenario (similarity runs in the existing index pass); no real haiku run checked by hand; guide text / media for the explorer basics are in (see "Notes: guide, hidden capture, OCR, cold index"); these view options aren't in the guide media yet._
 
 ### T69 · Graph 5: per-folder customisation
 - [x] **Goal:** each source can be shaped the way its owner works — nothing about any repo's format is built in.
@@ -960,7 +960,9 @@ save byte-exact, add the conveniences on top. Built in parallel worktrees, merge
   _Leftovers done (`task/notes-leftovers`): move / turn into / delete / duplicate renumber the ordered lists they
   touch (number tokens only; start number, `.` / `)` and `1.` `1.` `1.` lists kept); a paragraph moved under a list
   item's text or next to an ordered item gets a blank line; the save gives moved lines in a mixed-ending file their
-  own endings back. Left over: a number that gains a digit (`9.` → `10.`) doesn't re-indent its continuation lines._
+  own endings back. Final leftovers (`task/notes-final-a`): a number that gains / loses a digit (`9.` → `10.`)
+  moves its item's continuation lines and nested blocks by the same amount (one splice per line; lazy, blank and
+  tab-indented lines left alone). Nothing left over._
 - [x] **T78 Properties + table** (`src/features/note-properties/`, `src/widgets/note-table/`, `note:table` IPC):
   frontmatter as editable rows above every note (text / date / list chips / select, add / remove, minimal splice);
   ⌘K **Table view**: rows from the index, pick columns, sort, filter (text, folder, property, status chips), group,
@@ -975,8 +977,10 @@ save byte-exact, add the conveniences on top. Built in parallel worktrees, merge
   _Leftovers done: the index reads IDs whole (`FE-REQ-030`; shared-ID links, ID groups, `{{id}}` in templates);
   rule prefixes may have several segments and a rule learned as `REQ` keeps covering `FE-REQ-<n>`; index cache v2
   re-parses; the parser's separate `refIds` is gone (nodes take `ids`). "Referenced in": a session brings its tab
-  to the front or resumes, a file shows in Finder (`file:reveal`). Left over: old accepts counted under `id:REQ`
-  don't add up with new `id:FE-REQ` ones toward a proposal._
+  to the front or resumes, a file shows in Finder (`file:reveal`). Final leftovers (`task/notes-final-a`): accepts
+  recorded under an old short prefix (`id:REQ`) count with the whole prefix of the same family (`id:FE-REQ`) toward
+  a proposal, once per accept; `links.json` v2 migrates v1 on load (a short key with one whole family becomes it,
+  "Not now" too; ambiguous ones stay short and count toward each family). Nothing left over._
 - [x] **T80 Agent change review** (`electron/graph/note-seen.ts`, `src/features/note-review/`): the text you last
   saw per note (`~/.aquila/notes-seen/`, 2,000 notes / 50 MB LRU); "Claude changed this note · +12 −3" bar with
   Review (diff), Revert hunk (confirm), Mark as seen; "Changed outside" list. No polling.
@@ -1049,10 +1053,21 @@ save byte-exact, add the conveniences on top. Built in parallel worktrees, merge
   state, nested tree with counts, New folder, New note from the template with the next ID, F2 rename → confirm →
   link spans rewritten exactly (CRLF), drag onto a folder → editor follows, links fixed again, ⌘Z undo, filter +
   Enter, folder to the Trash; screenshots `dist/smoke-explorer.png`, `dist/smoke-explorer-links.png`.
-  _Left over: the nice-to-haves — group by `status` as virtual folders, folder notes (index.md / README.md), sticky
-  parent rows, compact single-child chains; "always / never" for the links question; no auto-scroll while dragging
-  near the tree's edge; the Trash can't be undone from the app; the native context menu isn't driven by smoke (its
-  actions are, through keys and hover buttons). Guide text / media: done (see "Notes: guide, hidden capture, OCR, cold index")._
+  _Final leftovers (`task/notes-final-a`): **Group by status** (☰ next to the filter, per source) — virtual folders
+  todo / draft → in progress → review → done → other values → "No status", notes by the chosen sort, actions on the
+  real files (drag is off there; Move to… works); **folder notes** (`index.md`, `README.md` or `<folder>/<folder>.md`)
+  open from the folder's name (dotted name + small marker, hidden from its notes, chevron toggles; per source,
+  default on); **sticky parent rows** (`.c-tree__sticky`, up to 5, a click scrolls back to the folder); **compact
+  chains** `a / b / c` (per source, default on; actions apply to the last folder); the links question has
+  **Always / Never**, remembered per source in `~/.aquila/explorer.json` and changeable in the ⋯ view menu next to the filter
+  (which also holds the view toggles); auto-scroll while dragging near the tree's top / bottom edge; right-click on
+  empty space (new note / folder at the root, Finder, copy path). The menus are data (`model/menu.ts`): unit tests
+  cover the items and enabled states per target (note / folder / multi-select / empty) and that each shown key runs
+  the same action (menu, keys and hover buttons all go through one `dispatch`). Smoke `explorer2`: compact chain,
+  folder note click + chevron, sticky row after scrolling a 60-note folder + click back, Always fixing links and
+  skipping the question, group by status order + F2 on the real file; screenshots `dist/smoke-explorer-status.png`,
+  `dist/smoke-explorer-sticky.png`. Left over: the Trash can't be undone from the app; auto-scroll isn't driven by
+  smoke (unit-tested speed); guide text / media not updated._
   Follow-up: with the explorer, editor and side column in a ~990px panel the writing column was squeezed and the
   properties head broke letter by letter: the side column now gives way below 720px (976px with the explorer), the
   properties head stays on one line; the inline name field takes focus back if a click moved it.

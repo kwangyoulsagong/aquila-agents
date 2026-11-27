@@ -1416,7 +1416,8 @@ body {
 .c-explorer__head { flex: none; display: flex; align-items: center; gap: var(--space-inline-xs); padding: var(--space-inline-xs) var(--space-inset-sm); border-bottom: 1px solid var(--color-border-subtle); }
 .c-explorer__head > .c-select { flex: 0 1 auto; min-width: 0; }
 .c-explorer__head > .c-select:first-child { flex: 1 1 0; }
-.c-explorer__filter { flex: none; padding: var(--space-inline-xs) var(--space-inset-sm); }
+.c-explorer__filter { flex: none; display: flex; align-items: center; gap: var(--space-inline-xs); padding: var(--space-inline-xs) var(--space-inset-sm); }
+.c-explorer__filter > .c-input { flex: 1; min-width: 0; }
 .c-explorer__note { flex: none; padding: var(--space-inline-xs) var(--space-inset-md); font-size: var(--font-size-caption); color: var(--color-text-tertiary); }
 .c-explorer__note[data-tone='warn'] { color: var(--color-status-waiting); }
 .c-tree { position: relative; flex: 1; min-height: 0; overflow: auto; outline: none; font-size: var(--font-size-label); }
@@ -1450,6 +1451,13 @@ body {
 .c-tree__action:hover { background: var(--color-bg-pressed); color: var(--color-text-primary); }
 .c-tree__input { flex: 1; min-width: 0; height: var(--size-tree-row); padding: 0 var(--space-inline-xs); border: 1px solid var(--color-border-focus); border-radius: var(--radius-badge); background: var(--color-bg-canvas); color: var(--color-text-primary); font: inherit; outline: none; }
 .c-tree__input[aria-invalid='true'] { border-color: var(--color-status-error); }
+.c-tree__twisty:hover { color: var(--color-text-primary); }
+.c-tree__mark { flex: none; width: var(--size-dot-sm); height: var(--size-dot-sm); border-radius: var(--radius-badge); border: 1px solid var(--color-text-tertiary); }
+.c-tree__row[data-folder-note] .c-tree__name { text-decoration: underline dotted var(--color-text-tertiary); text-underline-offset: 3px; }
+.c-tree__row[data-virtual] { color: var(--color-text-tertiary); font-size: var(--font-size-caption); }
+.c-tree__sticky { position: sticky; top: 0; z-index: 2; height: 0; }
+.c-tree__sticky .c-tree__row { background: var(--color-bg-surface); }
+.c-tree__sticky .c-tree__row:last-child { border-bottom: 1px solid var(--color-border-subtle); }
 .c-tree__ghost { position: fixed; z-index: 10; margin: var(--space-inset-sm) 0 0 var(--space-inset-md); padding: var(--space-inline-xs) var(--space-inset-sm); border: 1px solid var(--color-border-default); border-radius: var(--radius-control); background: var(--color-bg-surface); color: var(--color-text-primary); font-size: var(--font-size-label); pointer-events: none; white-space: nowrap; }
 /* ── Note document look (T82) ─────────────────────────────────
  * The live preview reads like a finished page: a centred column, a type scale, cards for callouts, code and

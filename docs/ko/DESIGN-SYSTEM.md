@@ -203,7 +203,7 @@
 | `.c-props` `__head` `__toggle` `__count` `__actions` `__list` `__row` `__key` `__value` `__input` `__remove` `__chips` `__chip` `__raw` | 노트 본문 위의 속성 (T78): 접히는 머리, 키 · 값 · 지우기 줄; 목록 값은 칩, 그대로 두는 값은 모노 |
 | `.c-ntable` `__frame` `__bar` `__chips` `__chip[aria-pressed]` `__head` `__th[aria-sort]` `__sort` `__row` `__group` `__cell[data-editable\|data-editing]` `__open` `__input` `__empty` | 표 보기 (T78): 가상화된 격자, 한 줄 = `--size-row`; 고정된 정렬 머리, 제목 열 다음 속성 열; 위에 필터 / 상태 칩 |
 | `.c-explorer` `__head` `__filter` `__note[data-tone]`, `.c-editor__explorer` | 에디터 왼쪽의 노트 탐색기 열 (T83): 소스 + 정렬 + 버튼, 거르기 칸, 상태 줄(warn = 오류), 그 아래 트리 |
-| `.c-tree` `__spacer` `__section` `__row` (`--level`, `aria-selected` `aria-expanded` `data-current` `data-cursor` `data-drop` `data-dragging` `data-kind`) `__twisty` `__icon` `__name` (`mark` = 거르기 일치) `__count` `__dot[data-tone=done\|active\|other\|changed]` `__actions` `__action` `__input[aria-invalid]` `__ghost` | 가상화된 파일 트리: 고정 높이 `--size-tree-row` 줄을 절대 위치로, 폴더는 노트 수, 노트는 상태 · "방금 바뀜" 점, 마우스를 올리면 버튼, 그 자리에서 이름 입력, 끌 때 따라오는 이름표. 놓을 폴더는 강조색 테두리 |
+| `.c-tree` `__spacer` `__section` `__row` (`--level`, `aria-selected` `aria-expanded` `data-current` `data-cursor` `data-drop` `data-dragging` `data-kind` `data-folder-note` `data-virtual` `data-sticky`) `__twisty` `__icon` `__name` (`mark` = 거르기 일치) `__count` `__dot[data-tone=done\|active\|other\|changed]` `__actions` `__action` `__input[aria-invalid]` `__ghost` `__mark` `__sticky` | 가상화된 파일 트리: 고정 높이 `--size-tree-row` 줄을 절대 위치로, 폴더는 노트 수, 노트는 상태 · "방금 바뀜" 점, 마우스를 올리면 버튼, 그 자리에서 이름 입력, 끌 때 따라오는 이름표. 놓을 폴더는 강조색 테두리. `__mark` + `data-folder-note`: 폴더 이름을 누르면 그 폴더의 노트가 열림(꺾쇠는 펼치기); `data-virtual`: 상태별 보기의 묶음; `__sticky`(높이 0, `position: sticky`)는 화면 맨 위 줄이 들어 있는 폴더 줄의 사본을 고정 |
 
 ## React 컴포넌트 (`design-system/react/`)
 
@@ -247,7 +247,7 @@
 | `RunList` `label`, `RunItem` `name` `status` `state` `current` `title?` `onClick` | `.c-runs`, `.c-runs__item` |
 | `Graph` `width` `height` `label` `nodes` `edges` `columns?` | `.c-graph` |
 | `NoteEditor` `hostRef` `top?` `side?` `explorer?` `placeholder?`, `EditorBanner` `tone?` `actions?`, `EditorCompare`, `EditorSection` `title` `empty?`, `EditorItem` `label` `detail?` `level?` `onClick` | `.c-editor` |
-| `Explorer` `label` `head` `filter?` `note?`, `Tree` `label` `height` `scrollRef?` `onScroll?` `onKeyDown?`, `TreeSection` `top`, `TreeRow` `top` `level` `kind` `name` `rel` `matches?` `open?` `selected?` `current?` `cursor?` `drop?` `dragging?` `count?` `dot?` `actions?` `editor?`, `TreeAction` `label` `onClick`, `TreeInput` `value` `label` `invalid?` `onChange` `onSubmit` `onCancel`, `TreeGhost` `x` `y` | `.c-explorer`, `.c-tree` |
+| `Explorer` `label` `head` `filter?` `note?`, `Tree` `label` `height` `scrollRef?` `onScroll?` `onKeyDown?` `onContextMenu?` `sticky?`, `TreeSection` `top`, `TreeRow` `top` `level` `kind` `name` `rel` `matches?` `open?` `selected?` `current?` `cursor?` `drop?` `dragging?` `count?` `dot?` `actions?` `editor?` `onToggle?` `folderNote?` `virtual?` `sticky?`, `TreeAction` `label` `onClick`, `TreeInput` `value` `label` `invalid?` `onChange` `onSubmit` `onCancel`, `TreeGhost` `x` `y` | `.c-explorer`, `.c-tree` |
 | `ReviewCounts` `added` `removed` `unit?`, `ReviewMeta`, `ReviewConfirm` `actions` | `.c-review` |
 | `NoteIdRow` `actions?`, `NoteIdText` `label` `detail?` `title?`, `NoteIdNote` `tone?` `actions?` | `.c-noteid-*` |
 | `StepList` `label`, `StepItem` `checked` `onToggle` `title` `checkLabel?` `tags?` `meta?` `onHover?` | `.c-steps` |

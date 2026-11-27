@@ -241,6 +241,7 @@ export async function checkNoteFeatures(
       checkWhatIsThis,
       checkLook,
       checkExplorer,
+      checkExplorer2,
     ]) {
       const error = await check(ctx, sourceId);
       if (error) return error;
@@ -1063,6 +1064,236 @@ async function checkExplorer(c: Ctx): Promise<string | null> {
   } finally {
     if (sourceId)
       await c.js(`window.aquila.graphRemoveSource(${JSON.stringify(sourceId)})`).catch(() => undefined);
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+}
+/** T83 leftovers: a third throwaway source — statuses, a folder note, a single-child chain, a long folder. */
+const EXPLORER2_FIXTURES: Record<string, string> = {
+  'board/todo-a.md': '---\nstatus: todo\n---\n# Board todo\n',
+  'board/doing-b.md': '---\nstatus: in-progress\n---\n# Board doing\n',
+  'board/done-c.md': '---\nstatus: done\n---\n# Board done\n',
+  'plain.md': '# Plain\n',
+  'specs/overview.md': '# Specs overview\n',
+  'specs/in-progress/in-progress.md': '# In progress index\n',
+  'specs/in-progress/FE-REQ-040.md': '# Explorer forty\n',
+  'deep/a/b/c/leaf.md': '# Deep leaf\n',
+  'notes/link2.md': CRLF(['# Explorer link two', '', 'See [[FE-REQ-040]].', '']),
+  ...Object.fromEntries(
+    Array.from({ length: 60 }, (_, i) => [`long/n${String(i + 1).padStart(3, '0')}.md`, `# Long ${i + 1}\n`]),
+  ),
+};
+
+/**
+ * T83 leftovers: a single-child chain shows as one row `deep / a / b / c` and opens; a folder's own note opens from
+ * its name (marker shown, hidden from its notes) while the chevron toggles; scrolling a long folder pins its row at
+ * the top (a click on it scrolls back); "Always" in the links question fixes links and skips the question next
+ * time; **Group by status** shows todo → in progress → done → no status, and F2 there renames the real file.
+ */
+async function checkExplorer2(c: Ctx): Promise<string | null> {
+  const t = c.t;
+  const dir = fs.mkdtempSync(path.join(app.getPath('temp'), 'aquila-smoke-explorer2-'));
+  const at = (rel: string) => path.join(dir, ...rel.split('/'));
+  for (const [rel, text] of Object.entries(EXPLORER2_FIXTURES)) {
+    fs.mkdirSync(path.dirname(at(rel)), { recursive: true });
+    fs.writeFileSync(at(rel), text);
+  }
+  const read = (rel: string) => (fs.existsSync(at(rel)) ? fs.readFileSync(at(rel), 'utf8') : null);
+  const poll = async (ok: () => boolean, ms = 5000) => {
+    for (let i = 0; i < ms / 100; i++) {
+      if (ok()) return true;
+      await wait(100);
+    }
+    return false;
+  };
+  const ROW = (rel: string) =>
+    `[...document.querySelectorAll('.c-explorer .c-tree__spacer .c-tree__row')].filter((r) => r.dataset.rel === ${JSON.stringify(rel)}).pop()`;
+  const head = (p: string) =>
+    `document.querySelector('${c.noteAside} .c-panel__head > span')?.getAttribute('title') === ${JSON.stringify(p)}`;
+  const inputValue = (v: string) =>
+    `document.activeElement?.classList.contains('c-tree__input') && document.activeElement.value === ${JSON.stringify(v)}`;
+  const linkQuestion = `[...document.querySelectorAll('.c-dialog[open]')].some((d) => d.textContent.includes('notes/link2.md'))`;
+  const dialogButton = (label: string) =>
+    c.js<boolean>(`(() => {
+      const b = [...document.querySelectorAll('.c-dialog[open] button')].find((x) => x.textContent === ${JSON.stringify(label)});
+      b?.click();
+      return !!b;
+    })()`);
+  const focusTree = () => c.js(`document.querySelector('.c-explorer .c-tree').focus()`);
+  const rename = async (rel: string, name: string) => {
+    await c.js(`${ROW(rel)}.click()`);
+    if (!(await c.until(head(at(rel)), 5000))) return false;
+    await wait(300);
+    await focusTree();
+    c.h.press(c.win, 'F2', []);
+    if (!(await c.until(inputValue(path.basename(rel, '.md')), 3000))) return false;
+    c.win.webContents.insertText(name);
+    c.h.press(c.win, 'Enter', []);
+    return true;
+  };
+  let sourceId = '';
+  try {
+    const st = await c.js<{ sources: { id: string; path: string }[] }>(
+      `window.aquila.graphAddSource(${JSON.stringify(dir)})`,
+    );
+    sourceId = st.sources.find((x) => x.path === dir || x.path.endsWith(path.basename(dir)))?.id ?? '';
+    if (!sourceId) return 'explorer2: the fixture source was not added';
+    const linker = at('notes/link2.md');
+    const spec = at('specs/in-progress/FE-REQ-040.md');
+    if (
+      !(await c.until(
+        `window.aquila.graphSnapshot({ notesOnly: true }).then((g) => {
+          const id = (p) => g.nodes.find((n) => n.path === p)?.id;
+          return g.edges.some((e) => e.source === id(${JSON.stringify(linker)}) && e.target === id(${JSON.stringify(spec)}));
+        })`,
+        15_000,
+      ))
+    )
+      return 'explorer2: the index never linked notes/link2.md to FE-REQ-040';
+
+    await c.js(`document.querySelector('${c.noteAside} .c-panel__actions button:last-child')?.click()`);
+    await c.until(`!document.querySelector('${c.noteAside}')`, 3000);
+    c.h.press(c.win, 'O', ['meta', 'shift']);
+    if (!(await c.until(`!!document.querySelector('${c.noteAside} .c-explorer')`)))
+      return 'explorer2: ⌘⇧O did not open the explorer';
+    const sourceSelect = `document.querySelector('.c-explorer select[aria-label=${JSON.stringify(t('explorer.source'))}]')`;
+    // The source list may not have the new source yet: wait for its option, then pick it.
+    if (
+      !(await c.until(`!!${sourceSelect}?.querySelector('option[value=${JSON.stringify(sourceId)}]')`, 8000))
+    )
+      return 'explorer2: the source picker does not list the fixture source';
+    await c.js(`(() => {
+      const s = ${sourceSelect};
+      const set = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
+      set.call(s, ${JSON.stringify(sourceId)});
+      s.dispatchEvent(new Event('change', { bubbles: true }));
+    })()`);
+
+    // Compact chain: deep / a / b / c is one row; clicking it opens the last folder.
+    if (
+      !(await c.until(
+        `${ROW('deep/a/b/c')}?.querySelector('.c-tree__name')?.textContent === 'deep / a / b / c' && !${ROW('deep')}`,
+      ))
+    )
+      return `explorer2: no compact row "deep / a / b / c" (${await c.js<string>(`JSON.stringify([...document.querySelectorAll('.c-explorer .c-tree__row')].map((r) => r.dataset.rel + '=' + r.textContent))`)})`;
+    await c.js(`${ROW('deep/a/b/c')}.click()`);
+    if (!(await c.until(`!!${ROW('deep/a/b/c/leaf.md')}`, 3000)))
+      return 'explorer2: clicking the compact row did not open deep/a/b/c';
+
+    // Folder note: specs/in-progress opens in-progress.md from its name; the chevron toggles; the note isn't a child.
+    await c.js(`${ROW('specs')}.click()`);
+    if (!(await c.until(`${ROW('specs/in-progress')}?.hasAttribute('data-folder-note')`, 3000)))
+      return 'explorer2: specs/in-progress has no folder note marker';
+    await c.js(`${ROW('specs/in-progress')}.querySelector('.c-tree__name').click()`);
+    const folderNote = 'specs/in-progress/in-progress.md';
+    if (!(await c.until(head(at(folderNote)), 5000)))
+      return 'explorer2: clicking the folder name did not open its folder note';
+    if (!(await c.until(`${ROW('specs/in-progress')}?.hasAttribute('data-current')`, 3000)))
+      return 'explorer2: the folder row is not marked as the open note';
+    await c.js(`${ROW('specs/in-progress')}.querySelector('.c-tree__twisty').click()`);
+    if (
+      !(await c.until(
+        `${ROW('specs/in-progress')}?.getAttribute('aria-expanded') === 'true' && !!${ROW('specs/in-progress/FE-REQ-040.md')}`,
+        3000,
+      ))
+    )
+      return 'explorer2: the chevron of a folder with a folder note did not open it';
+    // (It is in "Recent" at the top now; under its folder it would be one level deeper.)
+    if (
+      await c.js<boolean>(
+        `[...document.querySelectorAll('.c-explorer .c-tree__spacer .c-tree__row')].some((r) => r.dataset.rel === ${JSON.stringify(folderNote)} && r.getAttribute('aria-level') !== '1')`,
+      )
+    )
+      return 'explorer2: the folder note is listed among its folder’s notes';
+
+    // Sticky: open "long" (60 notes), scroll into it; its row stays pinned at the top; a click scrolls back to it.
+    await c.js(`${ROW('long')}.click()`);
+    if (!(await c.until(`!!${ROW('long/n001.md')}`, 3000))) return 'explorer2: "long" did not open';
+    await c.js(`(() => {
+      const tree = document.querySelector('.c-explorer .c-tree');
+      const row = ${ROW('long')};
+      tree.scrollTop = row.offsetTop + row.offsetHeight * 20;
+    })()`);
+    const stickyRow = `document.querySelector('.c-explorer .c-tree__sticky .c-tree__row[data-rel="long"]')`;
+    if (!(await c.until(`!!${stickyRow}`, 3000)))
+      return 'explorer2: no sticky "long" row after scrolling into it';
+    const stickyShown = await c.js<boolean>(`(() => {
+      const tree = document.querySelector('.c-explorer .c-tree').getBoundingClientRect();
+      const r = ${stickyRow}.getBoundingClientRect();
+      return Math.abs(r.top - tree.top) < 2 && r.height > 0;
+    })()`);
+    if (!stickyShown) return 'explorer2: the sticky "long" row is not at the top of the tree';
+    const stickyShot = await c.shot('explorer-sticky');
+    await c.js(`${stickyRow}.click()`);
+    if (
+      !(await c.until(
+        `(() => { const tree = document.querySelector('.c-explorer .c-tree'); const row = ${ROW('long')}; return !!row && Math.abs(row.offsetTop - tree.scrollTop) < 2; })()`,
+        3000,
+      ))
+    )
+      return 'explorer2: clicking the sticky row did not scroll back to "long"';
+    await c.js(`${ROW('long')}.click()`); // closed again: the rest of the check fits on screen
+
+    // Links: "Always" fixes them now and skips the question next time.
+    const renamed1 = 'specs/in-progress/FE-REQ-040 x.md';
+    if (!(await rename('specs/in-progress/FE-REQ-040.md', 'FE-REQ-040 x')))
+      return 'explorer2: F2 on FE-REQ-040 showed no rename field';
+    if (!(await poll(() => read(renamed1) !== null))) return 'explorer2: F2 did not rename FE-REQ-040';
+    if (!(await c.until(linkQuestion))) return 'explorer2: no links question after the rename';
+    if (!(await dialogButton(t('explorer.links.always'))))
+      return 'explorer2: no "Always" in the links question';
+    const want1 = CRLF(['# Explorer link two', '', 'See [[FE-REQ-040 x]].', '']);
+    if (!(await poll(() => read('notes/link2.md') === want1)))
+      return `explorer2: "Always" did not fix the link: ${JSON.stringify(read('notes/link2.md'))}`;
+    const pref = await c.js<{ links?: string }>(`window.aquila.noteFsPrefs(${JSON.stringify(sourceId)})`);
+    if (pref.links !== 'always') return `explorer2: "Always" was not remembered (${JSON.stringify(pref)})`;
+    await wait(1200); // the index learns the new link before the next rename
+    if (!(await c.until(`!!${ROW(renamed1)}`, 3000))) return 'explorer2: the renamed note is not listed';
+    if (!(await rename(renamed1, 'FE-REQ-040 y'))) return 'explorer2: second F2 showed no rename field';
+    const want2 = CRLF(['# Explorer link two', '', 'See [[FE-REQ-040 y]].', '']);
+    if (!(await poll(() => read('notes/link2.md') === want2, 8000)))
+      return `explorer2: with "Always" the link was not fixed: ${JSON.stringify(read('notes/link2.md'))}`;
+    if (await c.js<boolean>(`!!document.querySelector('.c-dialog[open]')`))
+      return 'explorer2: with "Always" the links question still came up';
+
+    // Group by status: todo → in-progress → done → no status; F2 renames the real file.
+    const groupBtn = `document.querySelector('.c-explorer button[aria-label=${JSON.stringify(t('explorer.groupStatus'))}]')`;
+    if (!(await c.js<boolean>(`!!${groupBtn}`))) return 'explorer2: no Group by status button';
+    await c.js(`${groupBtn}.click()`);
+    const groups = `[...document.querySelectorAll('.c-explorer .c-tree__spacer .c-tree__row[data-virtual]')].map((r) => r.dataset.rel)`;
+    if (
+      !(await c.until(
+        `JSON.stringify(${groups}) === ${JSON.stringify(JSON.stringify([':status:todo', ':status:in-progress', ':status:done', ':status:']))}`,
+        3000,
+      ))
+    )
+      return `explorer2: status groups are ${await c.js<string>(`JSON.stringify(${groups})`)}`;
+    if (
+      !(await c.until(
+        `${ROW(':status:')}?.querySelector('.c-tree__name')?.textContent === ${JSON.stringify(t('explorer.noStatus'))} && !!${ROW('board/doing-b.md')}`,
+        3000,
+      ))
+    )
+      return 'explorer2: no "No status" group or the in-progress note is not listed';
+    const statusShot = await c.shot('explorer-status');
+    if (!(await rename('board/todo-a.md', 'todo-z'))) return 'explorer2: F2 by status showed no rename field';
+    if (!(await poll(() => read('board/todo-z.md') !== null && read('board/todo-a.md') === null)))
+      return 'explorer2: F2 by status did not rename the real file';
+    await c.js(`${groupBtn}.click()`);
+    if (!(await c.until(`!${ROW(':status:todo')} && !!${ROW('board')}`, 3000)))
+      return 'explorer2: Group by status did not turn off';
+    console.log(
+      `[smoke] explorer2: compact "deep / a / b / c", folder note opened from its name (chevron toggles, note hidden), sticky "long" row pinned + click back, "Always" fixed links and skipped the question, group by status todo → in-progress → done → no status + F2 on the real file; screenshots: ${statusShot}, ${stickyShot}`,
+    );
+    return null;
+  } finally {
+    if (sourceId) {
+      await c
+        .js(
+          `window.aquila.noteFsSetPrefs(${JSON.stringify(sourceId)}, { pins: [], recent: [], sort: 'name' })`,
+        )
+        .catch(() => undefined);
+      await c.js(`window.aquila.graphRemoveSource(${JSON.stringify(sourceId)})`).catch(() => undefined);
+    }
     fs.rmSync(dir, { recursive: true, force: true });
   }
 }

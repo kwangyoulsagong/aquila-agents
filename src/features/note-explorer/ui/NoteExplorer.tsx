@@ -30,7 +30,6 @@ import {
 } from '@design-system/react';
 import {
   api,
-  type ContextMenuItem,
   type NoteFsError,
   type NoteFsLinkNote,
   type NoteFsList,
@@ -47,16 +46,31 @@ import {
   baseName,
   buildTree,
   dirName,
+  edgeScroll,
   filterFiles,
   flatten,
+  groupByStatus,
+  isOpen,
+  isVirtual,
   movedPath,
   nextId,
   projectSourceIds,
+  stickyRows,
   stripMd,
   within,
   type Row,
   type TreeFolder,
 } from '../model/tree';
+import {
+  ACTION_LABEL,
+  applyView,
+  HOVER_ACTIONS,
+  isExplorerAction,
+  keyAction,
+  menuTemplate,
+  viewMenuTemplate,
+  type ExplorerAction,
+} from '../model/menu';
 
 export interface NoteExplorerProps {
   /** The note open in the editor (absolute), or null. */
@@ -91,6 +105,8 @@ const CHANGED_MS = 5 * 60_000;
 const DRAG_START_PX = 4;
 const HOVER_EXPAND_MS = 600;
 const OVERSCAN = 6;
+/** Most folder rows pinned at the top while scrolling. */
+const STICKY_MAX = 5;
 const EMPTY_PREFS: NoteFsPrefs = { pins: [], recent: [], sort: 'name' };
 
 const toneOf = (status: string): TreeDotTone =>
@@ -237,7 +253,30 @@ export default function NoteExplorer({
   }, [sourceId, loadDirs, version]);
 
   const files = useMemo(() => list?.files ?? [], [list]);
-  const tree = useMemo(() => buildTree(files, dirs, prefs.sort), [files, dirs, prefs.sort]);
+  const grouped = prefs.group === 'status';
+  const folderNotes = prefs.folderNotes !== false;
+  /** The folders on disk (also for "Move to…" while the view is by status). */
+  const folderTree = useMemo(
+    () => buildTree(files, dirs, prefs.sort, { folderNotes }),
+    [files, dirs, prefs.sort, folderNotes],
+  );
+  const tree = useMemo(
+    () => (grouped ? groupByStatus(files, prefs.sort) : folderTree),
+    [grouped, files, prefs.sort, folderTree],
+  );
+  /** Folder note → its folder (the row that stands for it). */
+  const noteFolder = useMemo(() => {
+    const m = new Map<string, string>();
+    if (grouped) return m;
+    const walk = (f: TreeFolder) => {
+      if (f.note) m.set(f.note.rel, f.rel);
+      f.folders.forEach(walk);
+    };
+    walk(folderTree);
+    return m;
+  }, [grouped, folderTree]);
+  const noteFolderRef = useRef(noteFolder);
+  noteFolderRef.current = noteFolder;
   const known = useMemo(() => new Set(files.map((f) => f.rel)), [files]);
   const root = list?.root ?? '';
   const abs = useCallback((rel: string) => (rel ? `${root}/${rel}` : root), [root]);
@@ -275,10 +314,12 @@ export default function NoteExplorer({
   const reveal = useRef(false);
   useEffect(() => {
     if (!currentRel) return;
-    const up = ancestors(currentRel);
+    // A folder note stands as its folder's row: that folder's parents open, not the folder itself.
+    const shown = noteFolderRef.current.get(currentRel) ?? currentRel;
+    const up = ancestors(shown);
     if (up.length) setExpanded((s) => (up.every((a) => s.has(a)) ? s : new Set([...s, ...up])));
-    setCursor(`row:${currentRel}`);
-    setSelection(new Set([currentRel]));
+    setCursor(`row:${shown}`);
+    setSelection(new Set([shown]));
     reveal.current = true;
     const p = prefsRef.current;
     if (sourceId && p.recent[0] !== currentRel)
@@ -295,7 +336,14 @@ export default function NoteExplorer({
       const recent = prefs.recent.filter((r) => known.has(r) && !pins.includes(r)).slice(0, RECENT_SHOWN);
       const fileRow = (rel: string): Row => {
         const entry = files.find((f) => f.rel === rel);
-        return { kind: 'file', rel, name: stripMd(baseName(rel)), depth: 0, ...(entry ? { entry } : {}) };
+        return {
+          kind: 'file',
+          rel,
+          name: stripMd(baseName(rel)),
+          depth: 0,
+          parent: '',
+          ...(entry ? { entry } : {}),
+        };
       };
       if (pins.length) {
         out.push({ key: 'sec:pin', kind: 'section', label: t('explorer.pinned') });
@@ -308,16 +356,20 @@ export default function NoteExplorer({
       if (pins.length || recent.length)
         out.push({ key: 'sec:files', kind: 'section', label: t('explorer.title') });
     }
-    const rows = flatten(tree, expanded, matches);
+    const rows = flatten(tree, expanded, matches, { compact: prefs.compact !== false });
     const adding = editing && editing.mode !== 'rename' ? editing.parent : null;
+    const head = out.length;
     if (adding === '') out.push({ key: 'input', kind: 'input', depth: 0 });
     for (const row of rows) {
       out.push({ key: `row:${row.rel}`, kind: 'row', row });
       if (adding && row.kind === 'folder' && row.rel === adding)
         out.push({ key: 'input', kind: 'input', depth: row.depth + 1 });
     }
+    // A folder not on screen (the view is by status): the name field goes on top.
+    if (adding !== null && !out.some((i) => i.kind === 'input'))
+      out.splice(head, 0, { key: 'input', kind: 'input', depth: 0 });
     return out;
-  }, [matches, prefs.pins, prefs.recent, known, files, tree, expanded, editing, t]);
+  }, [matches, prefs.pins, prefs.recent, prefs.compact, known, files, tree, expanded, editing, t]);
   const rowItems = useMemo(
     () => items.filter((i): i is Extract<Item, { kind: 'row' }> => i.kind === 'row'),
     [items],
@@ -350,14 +402,29 @@ export default function NoteExplorer({
     [items, rowH],
   );
   useEffect(() => {
-    if (!reveal.current || !currentRel || !items.some((i) => i.key === `row:${currentRel}`)) return;
+    const key = `row:${currentRel ? (noteFolder.get(currentRel) ?? currentRel) : ''}`;
+    if (!reveal.current || !currentRel || !items.some((i) => i.key === key)) return;
     reveal.current = false;
-    scrollTo(`row:${currentRel}`);
-  }, [items, currentRel, scrollTo]);
+    scrollTo(key);
+  }, [items, currentRel, scrollTo, noteFolder]);
+
+  /** Each item's parent row index (-1: none), for the sticky folder rows. */
+  const parents = useMemo(() => {
+    const at = new Map(items.map((x, i) => [x.key, i]));
+    return items.map((x) =>
+      x.kind === 'row' && x.key.startsWith('row:') && x.row.parent
+        ? (at.get(`row:${x.row.parent}`) ?? -1)
+        : -1,
+    );
+  }, [items]);
+  const sticky = useMemo(
+    () => (matches ? [] : stickyRows(parents, Math.floor(view.top / rowH), STICKY_MAX)),
+    [parents, view.top, rowH, matches],
+  );
 
   // ---- operations ----
   const folderOf = (rel: string | null): string => {
-    if (!rel) return '';
+    if (!rel || isVirtual(rel)) return '';
     return files.some((f) => f.rel === rel) ? dirName(rel) : rel;
   };
   const isFolder = (rel: string) => !known.has(rel);
@@ -375,6 +442,7 @@ export default function NoteExplorer({
   };
 
   const startRename = (rel: string) => {
+    if (isVirtual(rel)) return;
     const folder = isFolder(rel);
     const name = folder ? baseName(rel) : stripMd(baseName(rel));
     setEditing({ mode: 'rename', rel, folder, value: name });
@@ -405,7 +473,13 @@ export default function NoteExplorer({
       if (next !== currentRel) onMoved(abs(next));
     }
     setNote(null);
-    if (res.links.length && sourceId) setLinkAsk({ sourceId, files: res.files, links: res.links });
+    if (res.links.length && sourceId) {
+      const ask = { sourceId, files: res.files, links: res.links };
+      // Remembered per source: fix without asking, or leave them.
+      const pref = prefsRef.current.links ?? 'ask';
+      if (pref === 'always') void fixLinks(ask);
+      else if (pref === 'ask') setLinkAsk(ask);
+    }
     refreshSoon();
   };
 
@@ -497,8 +571,7 @@ export default function NoteExplorer({
     say(t('explorer.undo.done'));
   };
 
-  const fixLinks = async () => {
-    const ask = linkAsk;
+  const fixLinks = async (ask = linkAsk) => {
     setLinkAsk(null);
     if (!ask) return;
     await beforeChange();
@@ -518,6 +591,13 @@ export default function NoteExplorer({
     );
   };
 
+  /** "Always" / "Never" in the links question: remembered for this source (changeable in the ⋯ menu). */
+  const rememberLinks = (pref: 'always' | 'never') => {
+    savePrefs({ ...prefsRef.current, links: pref });
+    if (pref === 'always') void fixLinks();
+    else setLinkAsk(null);
+  };
+
   const togglePin = (rel: string) => {
     const p = prefsRef.current;
     savePrefs({ ...p, pins: p.pins.includes(rel) ? p.pins.filter((r) => r !== rel) : [...p.pins, rel] });
@@ -526,65 +606,84 @@ export default function NoteExplorer({
   const revealCurrent = () => {
     if (!currentRel) return;
     setQuery('');
-    const up = ancestors(currentRel);
+    const shown = noteFolder.get(currentRel) ?? currentRel;
+    const up = ancestors(shown);
     setExpanded((s) => new Set([...s, ...up]));
-    setCursor(`row:${currentRel}`);
-    setSelection(new Set([currentRel]));
+    setCursor(`row:${shown}`);
+    setSelection(new Set([shown]));
     reveal.current = true;
     treeRef.current?.focus();
   };
 
   const toggleFolder = (rel: string, open?: boolean) => {
-    const willOpen = open ?? !expanded.has(rel);
+    const willOpen = open ?? !isOpen(rel, expanded);
+    const virtual = isVirtual(rel);
     setExpanded((s) => {
       const next = new Set(s);
-      if (willOpen) next.add(rel);
+      // Status groups are open unless closed: the set holds the closed ones.
+      if (willOpen !== virtual) next.add(rel);
       else next.delete(rel);
       return next;
     });
-    if (willOpen) loadDirs(rel);
+    if (!willOpen || virtual) return;
+    // A compact row `a / b / c`: every folder on it may hold empty folders that end the chain.
+    const chain = rowItems.find((x) => x.row.rel === rel)?.row.chain ?? [rel];
+    for (const r of chain) loadDirs(r);
   };
 
-  const targets = (rel: string) => (selection.has(rel) && selection.size > 1 ? [...selection] : [rel]);
+  const targets = (rel: string) =>
+    (selection.has(rel) && selection.size > 1 ? [...selection] : [rel]).filter((r) => !isVirtual(r));
 
+  /** The right-click / ⋯ menu of a row (a status group gets the empty-space menu: it isn't a folder). */
   const menu = async (rel: string, folder: boolean) => {
     if (!sourceId) return;
+    if (isVirtual(rel)) return emptyMenu();
     if (!selection.has(rel)) setSelection(new Set([rel]));
     const sel = targets(rel);
-    const one = sel.length === 1;
-    const items: ContextMenuItem[] = [
-      { id: 'note', label: t('explorer.newNote'), accelerator: 'CommandOrControl+N' },
-      { id: 'folder', label: t('explorer.newFolder') },
-      { separator: true },
-      { id: 'rename', label: t('explorer.rename'), enabled: one, accelerator: 'F2' },
-      { id: 'move', label: t('explorer.moveTo') },
-      ...(!folder && one
-        ? [{ id: 'pin', label: prefs.pins.includes(rel) ? t('explorer.unpin') : t('explorer.pin') }]
-        : []),
-      { separator: true },
-      { id: 'finder', label: t('explorer.finder'), enabled: one },
-      ...(!folder ? [{ id: 'open', label: t('explorer.openDefault'), enabled: one }] : []),
-      { id: 'copy', label: t('explorer.copyPath') },
-      { id: 'copyRel', label: t('explorer.copyRel') },
-      { separator: true },
-      { id: 'trash', label: t('explorer.delete'), accelerator: 'CommandOrControl+Backspace' },
-    ];
-    const id = await api.showContextMenu(items);
-    run(id, rel, folder, sel);
+    const target =
+      sel.length > 1
+        ? ({ kind: 'multi', count: sel.length, folder } as const)
+        : folder
+          ? ({ kind: 'folder' } as const)
+          : ({ kind: 'file', pinned: prefs.pins.includes(rel) } as const);
+    const id = await api.showContextMenu(menuTemplate(target, t));
+    if (isExplorerAction(id)) dispatch(id, rel, folder, sel);
   };
 
-  const run = (id: string | null, rel: string, folder: boolean, sel: string[]) => {
-    if (!sourceId || !id) return;
-    if (id === 'note') startNew('note', folder ? rel : dirName(rel));
-    else if (id === 'folder') startNew('folder', folder ? rel : dirName(rel));
-    else if (id === 'rename') startRename(rel);
-    else if (id === 'move') setMoveAsk(sel);
-    else if (id === 'pin') togglePin(rel);
-    else if (id === 'finder') void api.noteFsShell(sourceId, rel, 'reveal');
-    else if (id === 'open') void api.noteFsShell(sourceId, rel, 'open');
-    else if (id === 'copy') api.copyText(sel.map(abs).join('\n'));
-    else if (id === 'copyRel') api.copyText(sel.join('\n'));
-    else if (id === 'trash') setTrashAsk(sel);
+  const emptyMenu = async () => {
+    if (!sourceId) return;
+    const id = await api.showContextMenu(menuTemplate({ kind: 'empty' }, t));
+    if (isExplorerAction(id)) dispatch(id, '', true, ['']);
+  };
+
+  /** Every action, from the menu, the hover buttons and the keys alike. `rel` '' is the source root. */
+  const dispatch = (action: ExplorerAction, rel: string, folder: boolean, sel: readonly string[]) => {
+    if (!sourceId) return;
+    if (isVirtual(rel)) {
+      rel = '';
+      folder = true;
+    }
+    const real = sel.filter((r) => !isVirtual(r));
+    if (action === 'newNote') startNew('note', folder ? rel : dirName(rel));
+    else if (action === 'newFolder') startNew('folder', folder ? rel : dirName(rel));
+    else if (action === 'rename') {
+      if (rel) startRename(rel);
+    } else if (action === 'move') {
+      if (real.some(Boolean)) setMoveAsk(real);
+    } else if (action === 'pin') togglePin(rel);
+    else if (action === 'finder') void api.noteFsShell(sourceId, rel, 'reveal');
+    else if (action === 'open') void api.noteFsShell(sourceId, rel, 'open');
+    else if (action === 'copy') api.copyText(real.map(abs).join('\n'));
+    else if (action === 'copyRel') api.copyText(real.join('\n'));
+    else if (action === 'trash') {
+      if (real.some(Boolean)) setTrashAsk(real.filter(Boolean));
+    }
+  };
+
+  const viewMenu = async () => {
+    const id = await api.showContextMenu(viewMenuTemplate(prefsRef.current, t));
+    const next = applyView(prefsRef.current, id);
+    if (next !== prefsRef.current) savePrefs(next);
   };
 
   // ---- pointer: click, ⌘/⇧ click, drag and drop ----
@@ -597,6 +696,10 @@ export default function NoteExplorer({
     target: string | null;
     hover: string | null;
     timer: ReturnType<typeof setTimeout> | null;
+    /** Last pointer position, and the auto-scroll frame while it's near the tree's top / bottom edge. */
+    px: number;
+    py: number;
+    frame: number | null;
   } | null>(null);
   const suppressClick = useRef(false);
   const [dragView, setDragView] = useState<{
@@ -611,20 +714,46 @@ export default function NoteExplorer({
   toggleRef.current = toggleFolder;
   const expandedRef = useRef(expanded);
   expandedRef.current = expanded;
+  const rowHRef = useRef(rowH);
+  rowHRef.current = rowH;
 
   useEffect(() => {
     const end = () => {
       const d = drag.current;
       if (d?.timer) clearTimeout(d.timer);
+      if (d?.frame) cancelAnimationFrame(d.frame);
       drag.current = null;
       setDragView(null);
+    };
+    // Held near the tree's top / bottom edge: it scrolls (faster closer to the edge) and the drop target follows.
+    const autoScroll = () => {
+      const d = drag.current;
+      const tree = treeRef.current;
+      if (!d || !tree) return;
+      d.frame = null;
+      const r = tree.getBoundingClientRect();
+      const dy = edgeScroll(d.py, r.top, r.bottom, rowHRef.current * 1.5);
+      const before = tree.scrollTop;
+      if (dy) tree.scrollTop = before + dy;
+      if (tree.scrollTop !== before) {
+        track(d.px, d.py);
+        d.frame = requestAnimationFrame(autoScroll);
+      }
     };
     const onMove = (e: globalThis.PointerEvent) => {
       const d = drag.current;
       if (!d) return;
       if (!d.active && Math.hypot(e.clientX - d.x, e.clientY - d.y) < DRAG_START_PX) return;
       d.active = true;
-      const el = document.elementFromPoint(e.clientX, e.clientY);
+      track(e.clientX, e.clientY);
+      if (!d.frame) d.frame = requestAnimationFrame(autoScroll);
+    };
+    const track = (x: number, y: number) => {
+      const d = drag.current;
+      if (!d) return;
+      d.px = x;
+      d.py = y;
+      const el = document.elementFromPoint(x, y);
       const row = el?.closest<HTMLElement>('.c-tree__row');
       const inTree = !!el && !!treeRef.current?.contains(el);
       let target: string | null = null;
@@ -632,6 +761,8 @@ export default function NoteExplorer({
         target = row.dataset.kind === 'folder' ? row.dataset.rel : dirName(row.dataset.rel);
       else if (inTree) target = '';
       if (target !== null && d.items.some((i) => target === i || target!.startsWith(`${i}/`))) target = null;
+      // A status group isn't a folder: nothing to drop into.
+      if (target !== null && isVirtual(target)) target = null;
       d.target = target;
       // Held over a closed folder: it opens.
       const hover = row?.dataset.kind === 'folder' ? (row.dataset.rel ?? null) : null;
@@ -644,7 +775,7 @@ export default function NoteExplorer({
       }
       const label =
         d.items.length > 1 ? `${baseName(d.items[0]!)} +${d.items.length - 1}` : baseName(d.items[0]!);
-      setDragView({ x: e.clientX, y: e.clientY, label: stripMd(label), target });
+      setDragView({ x, y, label: stripMd(label), target });
     };
     const onUp = () => {
       const d = drag.current;
@@ -673,7 +804,8 @@ export default function NoteExplorer({
   }, []);
 
   const onRowPointerDown = (row: Row, e: PointerEvent<HTMLDivElement>) => {
-    if (e.button !== 0 || editing?.mode === 'rename') return;
+    // By status, rows aren't where the files are: no drag (Move to… still works).
+    if (e.button !== 0 || editing?.mode === 'rename' || grouped || row.virtual) return;
     drag.current = {
       rel: row.rel,
       x: e.clientX,
@@ -683,6 +815,9 @@ export default function NoteExplorer({
       target: null,
       hover: null,
       timer: null,
+      px: e.clientX,
+      py: e.clientY,
+      frame: null,
     };
   };
 
@@ -702,7 +837,7 @@ export default function NoteExplorer({
       return;
     }
     if (e.shiftKey && anchor.current) {
-      const keys = rowItems.filter((i) => i.key.startsWith('row:')).map((i) => i.row.rel);
+      const keys = rowItems.filter((i) => i.key.startsWith('row:') && !i.row.virtual).map((i) => i.row.rel);
       const a = keys.indexOf(anchor.current);
       const b = keys.indexOf(row.rel);
       if (a >= 0 && b >= 0) {
@@ -712,7 +847,9 @@ export default function NoteExplorer({
     }
     anchor.current = row.rel;
     setSelection(new Set([row.rel]));
-    if (row.kind === 'folder') toggleFolder(row.rel);
+    // A folder with a folder note: its name opens the note (the chevron toggles, `onToggle`).
+    if (row.kind === 'folder' && row.note) onOpenNote(abs(row.note));
+    else if (row.kind === 'folder') toggleFolder(row.rel);
     else onOpenNote(abs(row.rel));
   };
 
@@ -740,19 +877,21 @@ export default function NoteExplorer({
     } else if (key === 'ArrowLeft' && cur) {
       if (cur.row.kind === 'folder' && cur.row.open && !matches) toggleFolder(cur.row.rel, false);
       else {
-        const parent = dirName(cur.row.rel);
+        const parent = cur.row.parent;
         const j = rowItems.findIndex((x) => x.key === `row:${parent}`);
         if (parent && j >= 0) go(j);
       }
     } else if (key === 'Enter' && cur) {
       if (cur.row.kind === 'folder') toggleFolder(cur.row.rel);
       else onOpenNote(abs(cur.row.rel));
-    } else if (key === 'F2' && cur) startRename(cur.row.rel);
-    else if ((key === 'Backspace' && mod) || key === 'Delete') {
-      const sel = selection.size ? [...selection] : cur ? [cur.row.rel] : [];
-      if (sel.length) setTrashAsk(sel);
-    } else if (mod && e.code === 'KeyN' && !e.shiftKey) startNew('note', folderOf(cur?.row.rel ?? null));
-    else if (mod && e.code === 'KeyZ' && !e.shiftKey) void undo();
+    } else if (keyAction(e)) {
+      // The same actions as the menu items that show these keys (`KEY_ACTIONS`).
+      const action = keyAction(e)!;
+      const rel = cur?.row.rel ?? '';
+      if (action === 'newNote') dispatch('newNote', folderOf(cur?.row.rel ?? null), true, []);
+      else if (action === 'trash') dispatch('trash', rel, false, selection.size ? [...selection] : [rel]);
+      else if (cur) dispatch(action, rel, cur.row.kind === 'folder', [rel]);
+    } else if (mod && e.code === 'KeyZ' && !e.shiftKey) void undo();
     else if (key === 'Escape' && selection.size) setSelection(new Set());
     else handled = false;
     if (handled) {
@@ -839,6 +978,88 @@ export default function NoteExplorer({
     />
   );
 
+  /** A folder / note row; `pin` ≥ 0: its copy pinned at the top (sticky), at that position. */
+  const rowView = (item: Extract<Item, { kind: 'row' }>, top: number, pin = -1) => {
+    const { row } = item;
+    const folder = row.kind === 'folder';
+    const e = row.entry;
+    const changed = !!e && now - e.mtime < CHANGED_MS && row.rel !== currentRel;
+    const dot = e
+      ? changed
+        ? { tone: 'changed' as const, label: t('explorer.changed') }
+        : e.status
+          ? { tone: toneOf(e.status), label: t('explorer.status', { status: e.status }) }
+          : null
+      : null;
+    const inTree = item.key.startsWith('row:');
+    const renaming =
+      inTree && pin < 0 && editing?.mode === 'rename' && editing.rel === row.rel ? editing : null;
+    const name = row.virtual && !row.name ? t('explorer.noStatus') : row.name;
+    const title = row.virtual
+      ? `${name} · ${t('explorer.count', { n: String(row.count ?? 0) })}`
+      : folder
+        ? `${row.rel} · ${t('explorer.count', { n: String(row.count ?? 0) })}`
+        : row.rel;
+    return (
+      <TreeRow
+        key={pin >= 0 ? `sticky:${item.key}` : item.key}
+        top={top}
+        level={row.depth}
+        kind={row.kind}
+        name={name}
+        rel={row.rel}
+        {...(row.matches ? { matches: row.matches } : {})}
+        open={!!row.open}
+        selected={inTree && selection.has(row.rel)}
+        current={folder ? !!row.note && row.note === currentRel : row.rel === currentRel}
+        cursor={pin < 0 && item.key === cursor}
+        drop={folder && dragView?.target === row.rel}
+        dragging={!!dragView && selection.has(row.rel) && inTree}
+        {...(folder ? { count: row.count ?? 0 } : {})}
+        {...(row.note ? { folderNote: t('explorer.folderNote', { name: baseName(row.note) }) } : {})}
+        {...(row.virtual ? { virtual: true } : {})}
+        {...(pin >= 0 ? { sticky: true } : {})}
+        dot={dot}
+        title={title}
+        {...(renaming ? { editor: inputFor(renaming) } : {})}
+        actions={
+          row.virtual ? undefined : (
+            <>
+              {HOVER_ACTIONS[row.kind].map((a) => (
+                <TreeAction
+                  key={a}
+                  label={t(ACTION_LABEL[a])}
+                  onClick={() => dispatch(a, row.rel, folder, [row.rel])}
+                >
+                  {a === 'newFolder' ? '⊞' : '+'}
+                </TreeAction>
+              ))}
+              <TreeAction label={t('explorer.more')} onClick={() => void menu(row.rel, folder)}>
+                ⋯
+              </TreeAction>
+            </>
+          )
+        }
+        {...(folder && (row.note || pin >= 0) ? { onToggle: () => toggleFolder(row.rel) } : {})}
+        onClick={(ev) => {
+          if (pin < 0) return onRowClick(item, ev);
+          // A pinned folder: back to where it is in the list (its own folders stay pinned above it).
+          const i = items.findIndex((x) => x.key === item.key);
+          if (treeRef.current && i >= 0) treeRef.current.scrollTop = Math.max(0, (i - pin) * rowH);
+          setCursor(item.key);
+          setSelection(new Set([row.rel]));
+          treeRef.current?.focus();
+        }}
+        onContextMenu={(ev) => {
+          ev.preventDefault();
+          setCursor(item.key);
+          void menu(row.rel, folder);
+        }}
+        onPointerDown={(ev) => inTree && pin < 0 && onRowPointerDown(row, ev)}
+      />
+    );
+  };
+
   let body;
   if (!sourceId) body = null;
   else
@@ -849,6 +1070,19 @@ export default function NoteExplorer({
         scrollRef={treeRef}
         onScroll={(e) => setView({ top: e.currentTarget.scrollTop, height: e.currentTarget.clientHeight })}
         onKeyDown={onKeyDown}
+        onContextMenu={(e) => {
+          if ((e.target as Element).closest('.c-tree__row, .c-tree__section')) return;
+          e.preventDefault();
+          void emptyMenu();
+        }}
+        sticky={
+          sticky.length
+            ? sticky.map((i, k) => {
+                const item = items[i];
+                return item?.kind === 'row' ? rowView(item, k * rowH, k) : null;
+              })
+            : null
+        }
       >
         {items.slice(first, last).map((item, k) => {
           const top = (first + k) * rowH;
@@ -870,64 +1104,7 @@ export default function NoteExplorer({
                 editor={inputFor(editing)}
               />
             ) : null;
-          const { row } = item;
-          const folder = row.kind === 'folder';
-          const e = row.entry;
-          const changed = !!e && now - e.mtime < CHANGED_MS && row.rel !== currentRel;
-          const dot = e
-            ? changed
-              ? { tone: 'changed' as const, label: t('explorer.changed') }
-              : e.status
-                ? { tone: toneOf(e.status), label: t('explorer.status', { status: e.status }) }
-                : null
-            : null;
-          const inTree = item.key.startsWith('row:');
-          const renaming = inTree && editing?.mode === 'rename' && editing.rel === row.rel ? editing : null;
-          return (
-            <TreeRow
-              key={item.key}
-              top={top}
-              level={row.depth}
-              kind={row.kind}
-              name={row.name}
-              rel={row.rel}
-              {...(row.matches ? { matches: row.matches } : {})}
-              open={!!row.open}
-              selected={inTree && selection.has(row.rel)}
-              current={!folder && row.rel === currentRel}
-              cursor={item.key === cursor}
-              drop={folder && dragView?.target === row.rel}
-              dragging={!!dragView && selection.has(row.rel) && inTree}
-              {...(folder ? { count: row.count ?? 0 } : {})}
-              dot={dot}
-              title={folder ? `${row.rel} · ${t('explorer.count', { n: String(row.count ?? 0) })}` : row.rel}
-              {...(renaming ? { editor: inputFor(renaming) } : {})}
-              actions={
-                <>
-                  {folder && (
-                    <>
-                      <TreeAction label={t('explorer.newNote')} onClick={() => startNew('note', row.rel)}>
-                        +
-                      </TreeAction>
-                      <TreeAction label={t('explorer.newFolder')} onClick={() => startNew('folder', row.rel)}>
-                        ⊞
-                      </TreeAction>
-                    </>
-                  )}
-                  <TreeAction label={t('explorer.more')} onClick={() => void menu(row.rel, folder)}>
-                    ⋯
-                  </TreeAction>
-                </>
-              }
-              onClick={(ev) => onRowClick(item, ev)}
-              onContextMenu={(ev) => {
-                ev.preventDefault();
-                setCursor(item.key);
-                void menu(row.rel, folder);
-              }}
-              onPointerDown={(ev) => inTree && onRowPointerDown(row, ev)}
-            />
-          );
+          return rowView(item, top);
         })}
       </Tree>
     );
@@ -941,9 +1118,9 @@ export default function NoteExplorer({
         walk(d);
       }
     };
-    walk(tree);
+    walk(folderTree);
     return out;
-  }, [tree]);
+  }, [folderTree]);
 
   return (
     <>
@@ -952,29 +1129,51 @@ export default function NoteExplorer({
         head={head}
         filter={
           sourceId ? (
-            <Input
-              value={query}
-              placeholder={t('explorer.filter')}
-              aria-label={t('explorer.filter')}
-              spellCheck={false}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.nativeEvent.isComposing) return;
-                if (e.key === 'Enter' && firstMatch) {
-                  e.preventDefault();
-                  onOpenNote(abs(firstMatch));
-                } else if (e.key === 'Escape' && query) {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setQuery('');
-                } else if (e.key === 'ArrowDown') {
-                  e.preventDefault();
-                  treeRef.current?.focus();
-                  const firstRow = rowItems[0];
-                  if (firstRow && !cursor) setCursor(firstRow.key);
-                }
-              }}
-            />
+            <>
+              <Input
+                value={query}
+                placeholder={t('explorer.filter')}
+                aria-label={t('explorer.filter')}
+                spellCheck={false}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.nativeEvent.isComposing) return;
+                  if (e.key === 'Enter' && firstMatch) {
+                    e.preventDefault();
+                    onOpenNote(abs(firstMatch));
+                  } else if (e.key === 'Escape' && query) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setQuery('');
+                  } else if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    treeRef.current?.focus();
+                    const firstRow = rowItems[0];
+                    if (firstRow && !cursor) setCursor(firstRow.key);
+                  }
+                }}
+              />
+              <Button
+                variant="ghost"
+                icon
+                title={t('explorer.groupStatus')}
+                aria-label={t('explorer.groupStatus')}
+                aria-pressed={grouped}
+                onClick={() => savePrefs(applyView(prefsRef.current, 'view:group'))}
+              >
+                ☰
+              </Button>
+              <Button
+                variant="ghost"
+                icon
+                title={t('explorer.view')}
+                aria-label={t('explorer.view')}
+                disabled={!sourceId}
+                onClick={() => void viewMenu()}
+              >
+                ⋯
+              </Button>
+            </>
           ) : undefined
         }
         note={
@@ -1000,6 +1199,20 @@ export default function NoteExplorer({
         onClose={() => setLinkAsk(null)}
         actions={
           <>
+            <Button
+              variant="ghost"
+              title={t('explorer.links.pref.never')}
+              onClick={() => rememberLinks('never')}
+            >
+              {t('explorer.links.never')}
+            </Button>
+            <Button
+              variant="ghost"
+              title={t('explorer.links.pref.always')}
+              onClick={() => rememberLinks('always')}
+            >
+              {t('explorer.links.always')}
+            </Button>
             <Button variant="ghost" onClick={() => setLinkAsk(null)}>
               {t('explorer.links.skip')}
             </Button>
