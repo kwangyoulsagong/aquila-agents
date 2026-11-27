@@ -1,0 +1,183 @@
+---
+title: Development setup
+description: Clone, build and run Aquila Agents from source, and the conventions every change follows.
+sidebar:
+  order: 1
+---
+
+import { Steps, Aside, FileTree } from '@astrojs/starlight/components';
+
+Aquila Agents is an Electron app written in TypeScript, with a React renderer. This page gets you from a clone to a
+running dev build, and lists the checks and conventions a change needs before it's merged.
+
+## Requirements
+
+- A Mac. Released builds are macOS only (Apple Silicon), and the scripts, smoke test and guide capture assume macOS.
+- Node.js 22 (what CI uses) and npm.
+- `git`, and Xcode's command line tools for building the native `node-pty` module.
+- Optional, to try real sessions: [Claude Code](https://docs.anthropic.com/en/docs/claude-code) and/or
+  [Codex CLI](https://github.com/openai/codex), installed and logged in.
+
+## Get it running
+
+<Steps>
+
+1. Clone the repo:
+
+   ```sh
+   git clone https://github.com/kwangyoulsagong/aquila-agents.git
+   cd aquila-agents
+   ```
+
+2. Install dependencies. `postinstall` also rebuilds `node-pty` for Electron's Node version:
+
+   ```sh
+   npm install
+   ```
+
+3. Start the app with hot reload of the renderer:
+
+   ```sh
+   npm run dev
+   ```
+
+</Steps>
+
+<Aside type="caution">
+  `node-pty` is a native module built against Electron's ABI. After you change Electron's version, run `npm install`
+  again so it's rebuilt; a stale build fails when the first terminal opens.
+</Aside>
+
+## Scripts
+
+| Command | What it does |
+|---|---|
+| `npm run dev` | Vite + `tsc` watch + Electron, with hot reload of the renderer |
+| `npm run check` | Typecheck + lint (including Feature-Sliced Design boundaries) + tests. **Must pass before you finish** |
+| `npm run typecheck` | Both tsconfigs (renderer and Electron) plus the scripts |
+| `npm run lint` | ESLint |
+| `npm test` | Vitest |
+| `npm run smoke` | Build, launch, open a real pty session, verify the round trip, screenshot `dist/smoke.png`. Exits 0 or 1 |
+| `npm run smoke:hidden` | The same smoke run with the window kept off screen |
+| `npm run capture` | Rebuild the in-app guide's screenshots and loops (`src/features/guide/media/`) from demo fixtures, Korean and English (~3 min) |
+| `npm run capture:hidden` | The same capture with nothing on screen |
+| `npm run build` | Production build |
+| `npm run dist` | Package `release/Aquila Agents-<version>-arm64.dmg` and a `.zip` (unsigned) |
+
+`npm run smoke` also opens the setup checklist, the guide and many feature panels and saves screenshots next to
+`dist/smoke.png`. For UI work, look at those (or at the running dev app) before calling a change done.
+
+`npm run capture` runs the app in a throwaway home folder with demo projects and scripted `claude` / `codex`
+stand-ins, so no real data ever ends up in the guide media. A new guide item needs a capture scenario in
+`electron/capture.ts`.
+
+## Conventions
+
+The full rules are in [`AGENTS.md`](https://github.com/kwangyoulsagong/aquila-agents/blob/main/AGENTS.md), which
+coding agents (Claude Code via `CLAUDE.md`, Codex directly) and people follow alike. In short:
+
+### Code
+
+- **TypeScript strict everywhere.** No `any` unless a comment says why. No `.js` / `.jsx` source files.
+- **IPC goes through `src/shared/api/types.ts`.** A new channel is added to `IPC`, its method to `AquilaApi`, then
+  implemented in `electron/preload.ts` and `electron/main.ts`. The renderer only uses `api` from `@/shared/api`.
+- **Feature-Sliced Design in `src/`:** `app → pages → widgets → features → entities → shared`. Import only downward,
+  other slices only through their `index.ts`, with the `@/` alias. ESLint enforces it.
+- **Every shortcut lives in `src/shared/lib/shortcuts.ts`.** Never write a key combination as a literal.
+
+### UI
+
+- **Design tokens are semantic.** Use only `--color-*`, `--font-*`, `--space-*`, `--radius-*`, `--size-*` and
+  `--motion-*` — never `--p-*` primitives or raw hex / px. A new value gets a primitive and a semantic token in
+  `design-system/tokens.css`, documented in the design system doc.
+- **Everything on the 4px grid**, with edges aligned across regions.
+- **Components come from the design system** (`design-system/react/`). A new primitive is a `.c-*` class in
+  `components.css` plus a React component. Open `design-system/preview.html` to see every token and component.
+- **Micro-interactions** use `--motion-*` tokens, stay at or under 320 ms, and are disabled under
+  `prefers-reduced-motion`.
+
+### Words
+
+- **UI copy in Korean and English.** Every string goes through `src/shared/i18n/dictionary.ts` with both `ko` and
+  `en`; the typecheck fails if one is missing. Keep it short and literal.
+- **Docs in both languages.** `docs/en/` and `docs/ko/` are kept in sync — change one, change the other.
+- Code, comments and commit messages are in English.
+
+### Your CLI setup is off-limits
+
+Claude hooks are injected only through `--settings ~/.aquila/claude-hooks….json` for sessions the app spawns. Code must
+never write to `~/.claude*`, `~/.codex` or shell rc files, except the one user-confirmed `~/.zshrc` line in account
+setup. Session history is read-only.
+
+## Branches and commits
+
+- One task per branch: `task/<id>-<slug>`.
+- [Conventional Commits](https://www.conventionalcommits.org/): `feat(split): …`, `fix(sessions): …`, `chore: …`.
+- Stay in your task's files (see "Owns" in
+  [`docs/en/TASKS.md`](https://github.com/kwangyoulsagong/aquila-agents/blob/main/docs/en/TASKS.md)). Edits to shared
+  files — `src/shared/api/types.ts`, `src/shared/i18n/dictionary.ts`, `electron/main.ts`, `electron/preload.ts`,
+  `components.css`, `pages/workspace/*` — stay small and additive.
+
+### Done means
+
+- `npm run check` passes.
+- `npm run smoke` passes, and for UI work you looked at the screenshots or the running app.
+- Your task's checkbox is ticked in both `docs/en/TASKS.md` and `docs/ko/TASKS.md`, with one line on anything left
+  over.
+
+## Release notes and packaging
+
+Every version shown to users comes with release notes, which the app shows once after an update.
+
+<Steps>
+
+1. Bump `version` in `package.json`.
+
+2. Draft the notes from the Conventional Commits since the last tag:
+
+   ```sh
+   npm run release-notes -- draft
+   ```
+
+   This writes `release-notes/<version>.json`.
+
+3. Finish it in Korean and English: 3–5 headlines (1–5 for a patch release, `x.y.z` with `z` above 0), each pointing
+   to an item in the in-app guide.
+
+4. Package:
+
+   ```sh
+   npm run dist
+   ```
+
+   It refuses to package while the notes are missing, incomplete or still contain a `TODO`.
+
+5. Upload the `.dmg`, `.zip` and `latest-mac.yml` from `release/` to a GitHub release tagged `v<version>`. Installed
+   apps notice it and tell their users.
+
+</Steps>
+
+Builds aren't signed or notarized yet, so testers need the first-launch step from [Install](/en/docs/start/install/).
+
+## Project layout
+
+<FileTree>
+
+- electron/ main process: pty, config, hooks, status, IPC handlers, notes index, smoke
+- src/ React renderer, Feature-Sliced Design
+  - app/ entry, global styles
+  - pages/ workspace (state and shortcuts)
+  - widgets/ sidebar, tabs, split view, panels
+  - features/ user actions
+  - entities/ session, project, note
+  - shared/ api (types, IPC names, bridge), i18n, lib
+- design-system/ tokens.css, components.css, react/, preview.html
+- docs/
+  - en/ README, ARCHITECTURE, DESIGN-SYSTEM, TASKS
+  - ko/ the same, in Korean
+- release-notes/ one JSON per version, ko + en
+- scripts/ release notes, capture
+
+</FileTree>
+
+Next: [Architecture](/en/docs/contributing/architecture/).

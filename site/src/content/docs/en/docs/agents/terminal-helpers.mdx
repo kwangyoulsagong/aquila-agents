@@ -1,0 +1,82 @@
+---
+title: Terminal helpers
+description: Paste images and files, pick URLs and paths by label, find in output, copy the last response, and paste safely.
+sidebar:
+  order: 9
+---
+
+import { Aside } from '@astrojs/starlight/components';
+import Shot from '~/components/docs/Shot.astro';
+
+Every session is a real terminal, and Aquila adds a few helpers on top for the things you do all day with agents.
+They all work the same in Claude, Codex and shell tabs unless noted.
+
+<Shot id="terminal" caption="Labels on every URL and path on screen: type one to copy it." />
+
+| Keys | Helper |
+|---|---|
+| <kbd>⌘V</kbd> | Paste text, or an image / copied files as paths |
+| <kbd>⇧⌘C</kbd> | Copy last response |
+| <kbd>⇧⌘E</kbd> | Pick a URL, path or commit by label |
+| <kbd>⌘F</kbd> | Find in terminal |
+
+## Paste an image or files
+
+To show the agent a screenshot, copy it and press <kbd>⌘V</kbd> in the tab. Aquila saves the image to a
+temporary file and types its path in, which is how Claude and Codex attach an image. Temporary images are cleaned up
+after a day.
+
+Files copied in Finder paste the same way, as their paths. You can also **drag files** from Finder onto a terminal
+("Drop to type the path"). Paths are shell-escaped, so spaces are safe. Plain text pastes as usual.
+
+## Scroll back without losing your place
+
+Scrolling up pauses auto-scroll, so new output doesn't yank you back down. A **Jump to bottom** button appears; it
+changes to **New output** once something new arrives. Click it to catch up.
+
+## Copy the last response
+
+Press <kbd>⇧⌘C</kbd> (or right-click → **Copy last response**) in a Claude or Codex tab to copy the agent's last
+answer. It's read from the session's transcript rather than the screen, so you get the whole answer as plain text,
+without tool calls or thinking.
+
+## Pick a URL, path or commit by label
+
+Press <kbd>⇧⌘E</kbd>. Every URL, file path (like `src/app.ts:12` or `~/notes`) and commit hash on screen gets a short
+letter label, nearest to the bottom first.
+
+- Type a label to **copy** it.
+- Type <kbd>⇧</kbd> + the label to **type it into the session**.
+- Press <kbd>Esc</kbd> to close.
+
+Labels work with the Korean input source on, too.
+
+## Find in output
+
+Press <kbd>⌘F</kbd> (or <kbd>⌘K</kbd> → **Find in terminal**) to search the focused terminal's output, such as an
+error message or a file name.
+
+- <kbd>Enter</kbd> / <kbd>⇧Enter</kbd> go to the next / previous match.
+- **Match case** toggles case-sensitive search.
+- <kbd>Esc</kbd> closes the bar, clears the highlights and gives the keyboard back to the terminal.
+
+## Safe paste
+
+Every paste — <kbd>⌘V</kbd>, dropped files, quick select, and text pasted from panels like the changes panel or the
+preview — has control characters stripped first (tabs and line breaks are kept). Text copied from a web page can't
+smuggle in an escape sequence that ends the paste early and runs a command: pasting only ever types text, and you
+still press Enter yourself.
+
+## Right-click menu
+
+Right-click a terminal for:
+
+- **Copy selection** (<kbd>⌘C</kbd>) and **Paste** (<kbd>⌘V</kbd>)
+- **Copy last response** (<kbd>⇧⌘C</kbd>, not in shell tabs)
+- **Pick URL / path** (<kbd>⇧⌘E</kbd>)
+- **Jump to bottom** (when you're scrolled up)
+
+<Aside type="note">
+  Copy last response works for local projects. In [remote](/en/docs/agents/remote-ssh/) tabs, select the text and
+  copy it instead.
+</Aside>

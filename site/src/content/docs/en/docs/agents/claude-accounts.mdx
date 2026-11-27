@@ -1,0 +1,85 @@
+---
+title: Claude accounts
+description: Use a shared and a personal Claude login side by side, chosen per project.
+sidebar:
+  order: 1
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+import Shot from '~/components/docs/Shot.astro';
+
+Aquila knows two Claude accounts, and each project picks one:
+
+| Account | Command it matches | Login lives in |
+|---|---|---|
+| **Shared** | `claude` | `~/.claude` (your normal Claude Code login) |
+| **Personal** | `claude-personal` | `~/.claude-personal` |
+
+A typical setup is a work account for company repos and a personal account for side projects. Aquila runs the same
+`claude` binary for both; it only points each session at a different config folder (`CLAUDE_CONFIG_DIR`), so
+each account keeps its own login, history and usage.
+
+<Shot id="accounts" caption="The account switch in the tab bar applies to the selected project." />
+
+## Pick the account for a project
+
+To switch, click **Shared** or **Personal** in the **Claude account** switch at the right of the tab bar. It changes
+the selected project only.
+
+You can also set it:
+
+- when you add a project (the add dialog has a **Claude account** field),
+- by right-clicking a project in the sidebar → **Claude account**,
+- in **Project settings…** (right-click the project).
+
+<Aside type="caution" title="New sessions only">
+  The switch applies to **new** Claude sessions in that project. Tabs that are already open keep the account they
+  started with. Each Claude tab shows a badge with its account, so you can tell them apart.
+</Aside>
+
+## Set up the personal account
+
+If an account isn't logged in yet, a **Set up Personal** button shows next to the switch.
+
+<Steps>
+
+1. Click **Set up Personal**. The dialog shows whether the folder exists and whether it's logged in.
+
+2. Click **Create folder and log in**. Aquila creates `~/.claude-personal` and opens a Claude session that uses it.
+
+3. Log in inside that session, the way Claude Code asks you to. The button disappears once the login is found.
+
+</Steps>
+
+For the shared account the button reads **Open Claude and log in**: it just opens a Claude session so you can log in.
+
+### Use `claude-personal` in your own terminal too
+
+The same dialog offers **Use claude-personal in your terminal too**. **Preview** shows the one line it would add to
+the end of `~/.zshrc`; the **Add to …** button adds it. Nothing is written until you click, and if your shell already
+defines `claude-personal`, nothing changes.
+
+## Watch usage and context
+
+**Usage gauge.** Above the sidebar footer, each logged-in account gets two meters: the current **5 hours** block
+(with its reset time) and the **Weekly** window.
+
+- **Live** means the numbers come from Claude's own `/usage` (and, for Codex, its session files). They include
+  claude.ai and other machines.
+- **Estimated** means Aquila worked them out from this Mac's Claude transcripts, so use on claude.ai or other
+  machines isn't counted. Until an account has hit a limit once, the meter shows tokens without a percentage.
+- At 90% you get one macOS notification, and a **New Claude with …** button opens a session on the other account
+  if it has more room.
+
+**Context gauge.** Each local Claude tab has a small ring showing how full the conversation's context window is.
+From 60% it shows the number and turns orange (a good time for `/compact` or a new session); from 85% it turns red.
+
+<Aside>
+  The context ring needs Claude's status line. If you already set your own `statusLine` in Claude's settings, Aquila
+  leaves yours alone and that tab has no ring.
+</Aside>
+
+## Remote projects
+
+Projects on an SSH host don't use the account switch. Instead, the project's settings take an optional **Claude
+config folder on the host**. See [Remote servers (SSH)](/en/docs/agents/remote-ssh/).

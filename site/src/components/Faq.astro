@@ -1,0 +1,118 @@
+---
+import { ui, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = ui[lang].faq;
+---
+
+<section class="section faq" id="faq" aria-labelledby="faq-title">
+  <div class="container faq__grid">
+    <div data-reveal>
+      <span class="eyebrow">{t.eyebrow}</span>
+      <h2 id="faq-title" class="h2 grad">{t.title}</h2>
+    </div>
+    <div class="faq__list">
+      {
+        t.items.map((it, i) => (
+          <details class="faq__item" data-reveal style={`--i:${i}`} name="faq">
+            <summary>
+              <span>{it.q}</span>
+              <i aria-hidden="true" />
+            </summary>
+            <div class="faq__a">
+              <p>{it.a}</p>
+            </div>
+          </details>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .faq__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
+    gap: clamp(2rem, 1rem + 4vw, 5rem);
+    align-items: start;
+  }
+  .faq__list {
+    border-top: 1px solid var(--site-line);
+  }
+  .faq__item {
+    border-bottom: 1px solid var(--site-line);
+  }
+  .faq__item summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.375rem 0;
+    cursor: pointer;
+    list-style: none;
+    font-size: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .faq__item summary::-webkit-details-marker {
+    display: none;
+  }
+  .faq__item summary i {
+    position: relative;
+    width: 1.75rem;
+    height: 1.75rem;
+    flex: none;
+    border-radius: 50%;
+    border: 1px solid var(--site-line);
+    transition:
+      transform var(--motion-slow) var(--motion-ease),
+      background-color var(--motion-medium) var(--motion-ease);
+  }
+  .faq__item summary i::before,
+  .faq__item summary i::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 0.625rem;
+    height: 1.5px;
+    background: currentColor;
+    transform: translate(-50%, -50%);
+  }
+  .faq__item summary i::after {
+    transform: translate(-50%, -50%) rotate(90deg);
+  }
+  .faq__item[open] summary i {
+    transform: rotate(45deg);
+    background: var(--color-bg-hover);
+  }
+  .faq__item summary:hover i {
+    background: var(--color-bg-hover);
+  }
+  .faq__a p {
+    margin: 0;
+    padding: 0 3rem 1.5rem 0;
+    color: var(--color-text-secondary);
+    font-size: var(--site-text-lead);
+  }
+  .faq__item[open] .faq__a {
+    animation: faq-open 0.4s var(--site-ease-out);
+  }
+  @keyframes faq-open {
+    from {
+      opacity: 0;
+      transform: translateY(-0.375rem);
+    }
+  }
+  @media (max-width: 56rem) {
+    .faq__grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .faq__a p {
+      padding-right: 0;
+    }
+  }
+</style>

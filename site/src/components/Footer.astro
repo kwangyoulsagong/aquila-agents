@@ -1,0 +1,130 @@
+---
+import { ui, type Lang } from '../i18n/ui';
+import { href, REPO, RELEASES, AUTHOR, AUTHOR_URL, AUTHOR_LINKEDIN } from '../lib/links';
+import Logo from './Logo.astro';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = ui[lang];
+const other: Lang = lang === 'ko' ? 'en' : 'ko';
+const docs = href(`/${lang}/docs/`);
+---
+
+<footer class="foot">
+  <div class="container foot__grid">
+    <div class="foot__brand">
+      <a href={href(`/${lang}/`)} class="foot__logo"><Logo size={32} /> Aquila Agents</a>
+      <p>{t.footer.tagline}</p>
+    </div>
+    <nav aria-label={t.footer.product}>
+      <p class="foot__h">{t.footer.product}</p>
+      <a href="#features">{t.nav.features}</a>
+      <a href="#notes">{t.nav.notes}</a>
+      <a href="#download">{t.nav.download}</a>
+    </nav>
+    <nav aria-label={t.footer.resources}>
+      <p class="foot__h">{t.footer.resources}</p>
+      <a href={docs}>Docs</a>
+      <a href={RELEASES} rel="noopener">{t.footer.releases}</a>
+      <a href={REPO} rel="noopener">{t.footer.github}</a>
+      {AUTHOR_LINKEDIN && <a href={AUTHOR_LINKEDIN} rel="author noopener">LinkedIn</a>}
+    </nav>
+    <nav aria-label="Language">
+      <p class="foot__h">Language</p>
+      <a href={href(`/${lang}/`)} aria-current="page">{lang === 'ko' ? '한국어' : 'English'}</a>
+      <a href={href(`/${other}/`)} hreflang={other} lang={other} data-lang-switch>{other === 'ko' ? '한국어' : 'English'}</a>
+    </nav>
+  </div>
+  <div class="container foot__bottom">
+    <span>© {new Date().getFullYear()} <a class="foot__author" href={AUTHOR_URL} rel="author noopener">{AUTHOR}</a> · Aquila Agents</span>
+    <span>{t.footer.madeWith}</span>
+  </div>
+  <div class="foot__word" aria-hidden="true">AQUILA</div>
+</footer>
+
+<style>
+  .foot {
+    position: relative;
+    padding-top: 4rem;
+    border-top: 1px solid var(--site-line);
+    overflow: clip;
+  }
+  .foot__grid {
+    display: grid;
+    grid-template-columns: 2fr repeat(3, 1fr);
+    gap: 2rem;
+  }
+  .foot__logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.625rem;
+    font-weight: 700;
+    font-size: 1.0625rem;
+  }
+  .foot__brand p {
+    margin: 0.875rem 0 0;
+    color: var(--color-text-secondary);
+    max-width: 20rem;
+  }
+  .foot nav {
+    display: grid;
+    align-content: start;
+    gap: 0.625rem;
+  }
+  .foot__h {
+    margin: 0 0 0.25rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--color-text-tertiary);
+  }
+  .foot nav a {
+    color: var(--color-text-secondary);
+    font-size: 0.9375rem;
+    width: fit-content;
+    transition: color var(--motion-fast) var(--motion-ease);
+  }
+  .foot nav a:hover,
+  .foot nav a[aria-current] {
+    color: var(--color-text-primary);
+  }
+  .foot__bottom {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-top: 3.5rem;
+    padding-block: 1.5rem;
+    border-top: 1px solid var(--site-line);
+    color: var(--color-text-tertiary);
+    font-size: 0.8125rem;
+  }
+  .foot__author {
+    color: var(--color-text-secondary);
+  }
+  .foot__author:hover {
+    color: var(--color-text-primary);
+  }
+  .foot__word {
+    font-size: clamp(5rem, 22vw, 20rem);
+    font-weight: 800;
+    letter-spacing: -0.06em;
+    line-height: 0.8;
+    text-align: center;
+    margin-bottom: -0.12em;
+    background: linear-gradient(180deg, color-mix(in oklab, var(--color-text-primary) 9%, transparent), transparent 85%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    user-select: none;
+  }
+  @media (max-width: 48rem) {
+    .foot__grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .foot__brand {
+      grid-column: 1 / -1;
+    }
+  }
+</style>

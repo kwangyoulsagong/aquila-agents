@@ -1,0 +1,46 @@
+---
+/**
+ * A guide still or loop. Loops are muted, inline and lazy: motion.ts plays them only while on screen
+ * (and never under reduced motion, where the poster stays).
+ */
+import { media } from '../lib/media';
+import type { Lang } from '../i18n/ui';
+
+interface Props {
+  id: string;
+  lang: Lang;
+  alt: string;
+  eager?: boolean;
+  class?: string;
+}
+const { id, lang, alt, eager = false, class: cls } = Astro.props;
+const m = media(id, lang);
+---
+
+{
+  m.kind === 'video' ? (
+    <video
+      class={cls}
+      src={m.src}
+      poster={m.poster}
+      muted
+      loop
+      playsinline
+      preload={eager ? 'auto' : 'none'}
+      aria-label={alt}
+      data-autoplay
+      width="960"
+      height="600"
+    />
+  ) : (
+    <img
+      class={cls}
+      src={m.src}
+      alt={alt}
+      loading={eager ? 'eager' : 'lazy'}
+      decoding="async"
+      width="960"
+      height="600"
+    />
+  )
+}

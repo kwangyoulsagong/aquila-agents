@@ -1,0 +1,88 @@
+---
+title: 세션 기록
+description: 지난 Claude·Codex 세션을 찾아 새 탭에서 이어 하거나 내보내고, 그 세션이 실행한 명령을 봐요.
+sidebar:
+  order: 7
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+import Shot from '~/components/docs/Shot.astro';
+
+세션 기록은 이 Mac에서 했던 Claude·Codex 세션을 실행한 폴더별로 보여 줘요. Aquila 밖에서 시작한 세션도 들어가요.
+원하는 세션을 찾아 이어서 하거나 Markdown으로 저장할 수 있어요.
+
+<Shot id="history" caption="폴더별 지난 세션과, 고른 세션의 정보와 대화." />
+
+## 세션 기록 열기
+
+<kbd>⌘Y</kbd>를 누르거나 <kbd>⌘K</kbd> → **세션 기록**을 실행해요.
+
+목록은 폴더별로 묶여 있고 최근 것이 위에 와요. 세션을 고르면 에이전트와 계정, 시작·마지막 활동 시각, 프로젝트,
+폴더, 브랜치, 메시지 수, 세션 ID, 대화 앞부분이 보여요.
+
+## 세션 찾기
+
+- 검색 칸에 적으면 이름, 첫 메시지, 폴더, 브랜치, ID에서 찾아요. 대화 내용까지 찾아서, 대화에만 있는 결과는
+  **일치:** 줄에 해당 부분을 보여 줘요.
+- **보기**에서 **전체**, **즐겨찾기**, **Claude**, **Codex**로 걸러요.
+- **즐겨찾기**로 별표를 달고, **이름 바꾸기**로 알아보기 쉬운 이름을 붙여요. 이름과 즐겨찾기는 Aquila에만 저장되고,
+  이름을 비우면 원래 이름으로 돌아가요.
+
+## 세션 이어 하기
+
+<Steps>
+
+1. 세션을 골라요.
+
+2. <kbd>↵</kbd>를 누르거나 **이어하기**를 눌러요.
+
+3. 맞는 프로젝트와 폴더에서 새 탭이 열리고 `claude --resume <id>`(그 세션을 가진 계정으로) 또는 `codex resume <id>`를
+   실행해요.
+
+</Steps>
+
+[워크트리](/ko/docs/agents/worktrees/)에서 돌던 세션이면 새 탭도 그 워크트리에서 열려요. 아직 프로젝트가 아닌
+폴더면 버튼이 **프로젝트로 추가하고 이어하기**로 바뀌고, 먼저 프로젝트로 추가해요. 폴더가 없어졌으면 이어 할 수
+없어요.
+
+## Markdown으로 내보내기
+
+**Markdown으로 내보내기**를 누르고 저장할 곳을 골라요. 디스크에서 다시 읽은 대화 전체가 들어가요. 앱 안의 미리보기는
+긴 세션의 앞부분만 보여 줘요.
+
+<Aside type="caution" title="Claude는 오래된 기록을 지워요">
+  Claude Code는 `cleanupPeriodDays`(기본 30일)가 지난 기록을 지워요. 아래쪽에 지금 설정이 보이고, 곧 지워질 세션에는
+  주황색 안내가 붙어요. 남기고 싶으면 내보내세요.
+</Aside>
+
+## 세션이 실행한 명령 보기
+
+Claude 세션은 에이전트가 실행한 셸 명령을 시간순으로 보여 줘요. 자리를 비운 사이 에이전트가 무엇을 했는지 확인할 때
+좋아요.
+
+- **지금 탭:** Claude 탭에 포커스를 두고 <kbd>⌘K</kbd> → **이 세션의 명령**.
+- **지난 세션:** 세션 기록에서 고르면 **실행한 명령 n개** 아래에 나와요.
+
+<Shot id="commands" caption="이 세션의 명령: 명령마다 결과와, 눈여겨볼 명령의 배지." />
+
+명령마다 결과(**성공**, **오류**, **중단됨**, **실행 중이거나 결과 없음**)와 시각이 보여요. 어떤 명령에는 표시가
+붙어요.
+
+| 표시 | 이런 명령 |
+|---|---|
+| ⚠ **위험할 수 있는 명령** | `rm -rf`, `git push --force`, `git reset --hard`, `DROP TABLE`, `terraform destroy` |
+| **테스트** | `npm test`, `vitest`, `jest`, `pytest`, `go test`, `cargo test` |
+| **마이그레이션** | `prisma migrate`, `alembic`, `rails db:…`, `drizzle-kit push`, `supabase db` |
+
+<Aside type="note" title="개인정보">
+  명령만 보여 주고 출력은 읽지도 저장하지도 않아요. 비밀처럼 보이는 값은 `•••`로 가려요. `TOKEN=…`, `API_KEY=…`,
+  `--password …` 같은 플래그, `Authorization:` 헤더, URL 안의 비밀번호가 그래요.
+</Aside>
+
+## Aquila가 읽는 것
+
+세션 기록은 Claude의 대화 기록(모든 계정)과 Codex의 세션 파일을 읽어요. `~/.claude*`나 `~/.codex` 안의 파일은 절대
+쓰거나, 이름을 바꾸거나, 지우지 않아요.
+
+[원격 프로젝트](/ko/docs/agents/remote-ssh/)의 세션도 호스트와 폴더별로 함께 나와요. 기록을 열 때 SSH로 가져오고,
+이어 하면 그 호스트에서 열려요.

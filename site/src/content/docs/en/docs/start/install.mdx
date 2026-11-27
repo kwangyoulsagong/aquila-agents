@@ -1,0 +1,53 @@
+---
+title: Install
+description: Download Aquila Agents for macOS and open it for the first time.
+sidebar:
+  order: 1
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+
+## Requirements
+
+- A Mac with **Apple Silicon** (M1 or later). Intel Macs, Windows and Linux are not supported yet.
+- At least one agent CLI, installed and logged in:
+  - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) — the `claude` command
+  - [Codex CLI](https://github.com/openai/codex) — the `codex` command
+
+Aquila runs these CLIs as they are, so whatever account and plan they're logged in to is what your sessions use.
+
+## Download and install
+
+<Steps>
+
+1. Download the latest `Aquila.Agents-<version>-arm64.dmg` from the
+   [releases page](https://github.com/kwangyoulsagong/aquila-agents/releases/latest).
+
+2. Open the `.dmg` and drag **Aquila Agents** into **Applications**.
+
+3. Open Aquila Agents from Applications.
+
+</Steps>
+
+## “Unidentified developer” on first launch
+
+Builds are **not signed or notarized yet**, so macOS blocks the first launch. Do one of these, once:
+
+- In Finder, **right-click** the app → **Open** → **Open**.
+- Or run this in Terminal:
+
+  ```sh
+  xattr -dr com.apple.quarantine "/Applications/Aquila Agents.app"
+  ```
+
+After that the app opens normally.
+
+<Aside type="tip">
+  The first window runs the [setup checklist](/en/docs/start/first-run/). It finds your CLIs and helps you add a
+  first project.
+</Aside>
+
+## Updates
+
+When a new version is published, the app tells you and shows its release notes. Download and replace the app the
+same way as above — your projects and settings live in `~/.aquila` and are kept.

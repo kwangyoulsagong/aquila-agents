@@ -1,0 +1,146 @@
+---
+title: Config and the ~/.aquila folder
+description: What lives in ~/.aquila, every field of config.json, and how to edit it safely.
+sidebar:
+  order: 2
+---
+
+import { Aside, FileTree } from '@astrojs/starlight/components';
+
+Aquila keeps everything it stores in one folder in your home directory: `~/.aquila`. Your projects and settings are
+in `~/.aquila/config.json`. Reinstalling or updating the app keeps the folder.
+
+## Edit in the app first
+
+You rarely need to open the file. Everything in it can be changed from the app:
+
+| To change | Do this |
+|---|---|
+| Add a project | **+ Add project** in the sidebar, or drop a folder on the sidebar |
+| Rename, regroup, remove | Right-click the project |
+| Folder, default agent, branch, setup script, port base, editor, run commands, Figma | Right-click → **Project settings…** |
+| Claude account per project | The account switch in the tab bar |
+| Groups | Right-click a group label; drag projects between groups |
+| Language, appearance, notify when done | **⚙ Settings** at the bottom left of the sidebar |
+
+To look at the file itself, choose **⚙ Settings → Open settings file**. See [Projects](/en/docs/workspace/projects/)
+for the full workflow.
+
+## config.json
+
+The file is created on first launch. A typical one looks like this:
+
+```json
+{
+  "language": "en",
+  "accounts": {
+    "shared": { "claudeConfigDir": null },
+    "personal": { "claudeConfigDir": "~/.claude-personal" }
+  },
+  "groups": [{ "id": "work" }, { "id": "personal" }, { "id": "remote" }],
+  "projects": [
+    {
+      "id": "web-shop",
+      "name": "web-shop",
+      "group": "work",
+      "account": "shared",
+      "path": "~/code/web-shop",
+      "portBase": 3000,
+      "runCommands": [{ "name": "web", "command": "npm run dev" }]
+    }
+  ]
+}
+```
+
+### Top-level fields
+
+| Field | Type | Meaning |
+|---|---|---|
+| `language` | `"ko"` \| `"en"` | UI language |
+| `accounts` | object | Claude accounts by id. `shared` runs plain `claude`; `personal` runs Claude with its own config folder |
+| `groups` | array | Sidebar groups, in order: `{ "id": "work" }`. Add `"label"` to override the name. `remote` is the built-in group for SSH projects |
+| `projects` | array | Your projects, in sidebar order (see below) |
+| `notifyDone` | boolean | **Notify when done** is on. Absent when off |
+| `theme` | `"light"` \| `"dark"` | Forced appearance. Absent = match macOS |
+
+### Accounts
+
+| Field | Meaning |
+|---|---|
+| `claudeConfigDir` | Where that account's Claude login lives. `null` for `shared` = Claude's default (`~/.claude`) |
+| `label` | Optional display name |
+
+<Aside type="caution">
+  Leave `shared` at `null`. Setting it to `"~/.claude"` explicitly makes Claude look up a different keychain entry, so
+  your normal login would seem to disappear.
+</Aside>
+
+### Project fields
+
+| Field | Required | Meaning |
+|---|---|---|
+| `id` | yes | Unique id, made from the name when you add a project in the app |
+| `name` | yes | Name in the sidebar |
+| `group` | yes | A group `id` |
+| `account` | yes | An account id (`shared` or `personal`); applies to **new** Claude sessions |
+| `path` | yes | Project folder. Paths under your home are stored as `~/…`. For a remote project, the folder on the host |
+| `defaultAgent` | no | `"claude"`, `"codex"` or `"shell"`: what **+** opens first. Default Claude |
+| `defaultBranch` | no | Branch new worktree branches start from. Default: the branch checked out now |
+| `setupScript` | no | Runs once in a new worktree before the agent starts |
+| `portBase` | no | Sessions get `PORT` = this number, +10 per worktree. 1024–65000 |
+| `openIn` | no | macOS app name for **Open in**, e.g. `"Visual Studio Code"` |
+| `remote` | no | SSH project: `{ "alias": "my-host" }` from your `~/.ssh/config`, optional `claudeConfigDir` on the host |
+| `figma` | no | `true` gives the project's Claude and Codex tabs the Figma MCP. Local projects only |
+| `runCommands` | no | Run slot commands: `[{ "name", "command", "ready"? }]`. Default: `npm run dev` when `package.json` has it |
+
+## If you edit the file by hand
+
+- Quit Aquila first, edit, then reopen it, so the app shows your change.
+- Keep it valid JSON. If Aquila can't read the file, it shows **Couldn't read config.json: …** and starts with the
+  built-in defaults instead.
+- While the file can't be read, project edits from the sidebar **fail** rather than overwrite your file with the
+  defaults. Fix the JSON and reopen the app before changing anything else.
+
+## What's in ~/.aquila
+
+<FileTree>
+
+- ~/.aquila/
+  - config.json projects, accounts, groups, language, appearance
+  - state.json open tabs and split layout, for restore
+  - scrollback/ last output of each open tab (plain text), for restore
+  - claude-hooks.json (and its variants) Claude settings passed to sessions Aquila starts
+  - status.log status events from sessions (rotated at 512 KB)
+  - context/ context use per Claude tab
+  - first-run.json setup checklist state, CLI paths you chose
+  - guide.json whether the tour was offered
+  - release-notes.json last version whose notes you saw
+  - global-shortcut.json your global shortcut
+  - history.json names and favorites for past sessions
+  - usage-limits.json usage limits learned per account
+  - news-cache.json AI trends cache
+  - applies/ trend apply decisions
+  - mcp/ Figma MCP settings for sessions
+  - graph/ note sources, the notes index, link decisions
+  - vaults/ your per-folder note settings
+  - notes-seen/ what each note looked like when you last saw it
+  - explorer.json pinned and recent notes, explorer preferences
+  - runs.json run slot state
+  - extensions/ your extensions
+  - extensions.json which extensions you enabled
+  - extensions-data/ data your extensions saved
+
+</FileTree>
+
+None of this is uploaded anywhere. See [Privacy](/en/docs/reference/privacy/).
+
+<Aside type="tip">
+  Shared folder settings are the one exception to "everything in `~/.aquila`": if you choose to save a note folder's
+  settings as **Shared**, they're written as `.aquila-vault.json` inside that folder so your team gets them too.
+</Aside>
+
+## Moving from Agentrix
+
+Aquila used to be called Agentrix. On first launch, if `~/.aquila/config.json` doesn't exist but `~/.agentrix` does,
+Aquila copies the old folder over — everything except the hook settings files, which it regenerates. The old
+`~/.agentrix` folder is left in place; delete it yourself once you're happy.

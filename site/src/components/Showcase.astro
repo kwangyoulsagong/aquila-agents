@@ -1,0 +1,205 @@
+---
+import { ui, type Lang } from '../i18n/ui';
+import Media from './Media.astro';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = ui[lang].showcase;
+---
+
+<section class="section showcase" aria-labelledby="showcase-title">
+  <div class="container">
+    <div class="head-center" data-reveal>
+      <span class="eyebrow">{t.eyebrow}</span>
+      <h2 id="showcase-title" class="h2 grad">{t.title}</h2>
+      <p class="lead">{t.sub}</p>
+    </div>
+
+    <div class="showcase__ui" data-tabs data-reveal style="--i:1">
+      <div class="showcase__tabs" role="tablist" aria-label={t.eyebrow}>
+        <span class="showcase__glider" aria-hidden="true" data-glider></span>
+        {
+          t.tabs.map((tab, i) => (
+            <button
+              type="button"
+              role="tab"
+              id={`sc-tab-${tab.id}`}
+              aria-controls={`sc-panel-${tab.id}`}
+              aria-selected={i === 0 ? 'true' : 'false'}
+              tabindex={i === 0 ? 0 : -1}
+              data-tab={i}
+            >
+              {tab.label}
+            </button>
+          ))
+        }
+      </div>
+
+      <div class="showcase__panels">
+        {
+          t.tabs.map((tab, i) => (
+            <div
+              class="showcase__panel"
+              role="tabpanel"
+              id={`sc-panel-${tab.id}`}
+              aria-labelledby={`sc-tab-${tab.id}`}
+              hidden={i !== 0}
+              data-panel={i}
+            >
+              <div class="frame showcase__frame">
+                <Media id={tab.id} lang={lang} alt={tab.label} />
+              </div>
+              <p class="showcase__caption">
+                {tab.kbd && <span class="kbd">{tab.kbd}</span>}
+                <span>{tab.body}</span>
+              </p>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .showcase__ui {
+    margin-top: clamp(2.5rem, 2rem + 2vw, 3.5rem);
+    display: grid;
+    justify-items: center;
+  }
+  .showcase__tabs {
+    position: relative;
+    display: inline-flex;
+    gap: 0.25rem;
+    padding: 0.3125rem;
+    border-radius: 999px;
+    border: 1px solid var(--site-line);
+    background: var(--site-card);
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .showcase__tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .showcase__tabs button {
+    position: relative;
+    z-index: 1;
+    padding: 0.5rem 1rem;
+    border: 0;
+    border-radius: 999px;
+    background: none;
+    color: var(--color-text-secondary);
+    font-size: 0.875rem;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color var(--motion-medium) var(--motion-ease);
+  }
+  .showcase__tabs button:hover,
+  .showcase__tabs button[aria-selected='true'] {
+    color: var(--color-text-primary);
+  }
+  .showcase__glider {
+    position: absolute;
+    top: 0.3125rem;
+    bottom: 0.3125rem;
+    left: 0;
+    width: 0;
+    border-radius: 999px;
+    background: var(--color-bg-pressed);
+    box-shadow: 0 1px 0 0 color-mix(in oklab, white 6%, transparent) inset;
+    transition:
+      transform var(--motion-slow) var(--motion-ease),
+      width var(--motion-slow) var(--motion-ease);
+  }
+  .showcase__panels {
+    width: 100%;
+    margin-top: 1.75rem;
+  }
+  .showcase__panel {
+    animation: panel-in 0.6s var(--site-ease-out);
+  }
+  @keyframes panel-in {
+    from {
+      opacity: 0;
+      transform: translateY(0.75rem) scale(0.99);
+    }
+  }
+  .showcase__frame {
+    border-radius: var(--site-radius-xl);
+  }
+  .showcase__caption {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin: 1.25rem auto 0;
+    max-width: 44rem;
+    text-align: center;
+    color: var(--color-text-secondary);
+    font-size: var(--site-text-lead);
+  }
+  .showcase__caption .kbd {
+    flex: none;
+  }
+</style>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-tabs]').forEach((root) => {
+    const tabs = [...root.querySelectorAll<HTMLButtonElement>('[data-tab]')];
+    const panels = [...root.querySelectorAll<HTMLElement>('[data-panel]')];
+    const glider = root.querySelector<HTMLElement>('[data-glider]');
+
+    const place = (tab: HTMLButtonElement) => {
+      if (!glider) return;
+      glider.style.width = `${tab.offsetWidth}px`;
+      glider.style.transform = `translateX(${tab.offsetLeft}px)`;
+    };
+
+    const select = (i: number, focus = false) => {
+      tabs.forEach((t, k) => {
+        const on = k === i;
+        t.setAttribute('aria-selected', String(on));
+        t.tabIndex = on ? 0 : -1;
+      });
+      panels.forEach((p, k) => {
+        p.hidden = k !== i;
+        const v = p.querySelector('video');
+        if (v && k !== i) v.pause();
+      });
+      place(tabs[i]);
+      tabs[i].scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      if (focus) tabs[i].focus();
+      // Newly shown loops start right away (motion.ts handles visibility after that).
+      const v = panels[i].querySelector<HTMLVideoElement>('video[data-autoplay]');
+      if (v && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        v.preload = 'auto';
+        void v.play().catch(() => {});
+      }
+    };
+
+    tabs.forEach((t, i) => t.addEventListener('click', () => select(i)));
+    root.addEventListener('keydown', (e) => {
+      const cur = tabs.findIndex((t) => t.getAttribute('aria-selected') === 'true');
+      const map: Record<string, number> = {
+        ArrowRight: cur + 1,
+        ArrowLeft: cur - 1,
+        Home: 0,
+        End: tabs.length - 1,
+      };
+      if (!(e.key in map) || !(e.target as HTMLElement).closest('[role="tab"]')) return;
+      e.preventDefault();
+      select((map[e.key] + tabs.length) % tabs.length, true);
+    });
+
+    const ro = new ResizeObserver(() => {
+      const cur = tabs.find((t) => t.getAttribute('aria-selected') === 'true');
+      if (cur) place(cur);
+    });
+    ro.observe(root);
+    document.fonts?.ready.then(() => place(tabs[0]));
+  });
+</script>

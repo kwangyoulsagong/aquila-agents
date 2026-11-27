@@ -1,0 +1,555 @@
+---
+/**
+ * A live, HTML-built miniature of the app (not a screenshot): it types, its status dots change and a
+ * notification slides in. Built with the app's tokens so it looks like the real window at any width.
+ * Reduced motion: renders the finished state, no timeline.
+ */
+import { ui, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = ui[lang].mock;
+const projects = [
+  { name: 'web-shop', dots: ['claude'], active: true },
+  { name: 'api', dots: ['codex'] },
+  { name: 'aquila-agents', dots: ['idle', 'idle'] },
+  { name: 'design-notes', dots: [] as string[] },
+];
+---
+
+<div
+  class="mock"
+  data-mock
+  data-claude={JSON.stringify(t.claudeLines)}
+  data-codex={JSON.stringify(t.codexLines)}
+  role="img"
+  aria-label="Aquila Agents"
+>
+  <div class="mock__bar">
+    <div class="mock__lights" aria-hidden="true"><i></i><i></i><i></i></div>
+    <div class="mock__tabs">
+      <div class="mock__tab is-active">
+        <span class="dot" data-dot="claude" data-s="working"></span>
+        <span class="mock__badge mock__badge--claude">{t.claude}</span>
+        <span class="mock__tab-name">checkout</span>
+      </div>
+      <div class="mock__tab">
+        <span class="dot" data-dot="codex" data-s="working"></span>
+        <span class="mock__badge mock__badge--codex">{t.codex}</span>
+        <span class="mock__tab-name">orders</span>
+      </div>
+      <div class="mock__tab mock__tab--shell">
+        <span class="dot"></span>
+        <span class="mock__badge">{t.shell}</span>
+      </div>
+      <div class="mock__plus" aria-hidden="true">+</div>
+    </div>
+  </div>
+
+  <div class="mock__body">
+    <aside class="mock__side">
+      <div class="mock__label">{t.projects}</div>
+      {
+        projects.map((p, i) => (
+          <div class:list={['mock__proj', { 'is-active': p.active }]}>
+            <span class="mock__proj-name">{p.name}</span>
+            <span class="mock__proj-dots">
+              {p.dots.map((d) =>
+                d === 'idle' ? <span class="dot dot--sm" /> : <span class="dot dot--sm" data-dot={d} data-s="working" />,
+              )}
+            </span>
+            <span class="mock__kbd">⌘{i + 1}</span>
+          </div>
+        ))
+      }
+      <div class="mock__label mock__label--review">{t.review}</div>
+      <div class="mock__review" data-review>
+        <span class="dot dot--sm" data-s="done"></span>
+        <span>web-shop · checkout</span>
+        <span class="mock__review-meta">+4 −2</span>
+      </div>
+    </aside>
+
+    <div class="mock__stage">
+      <div class="mock__pane is-focused">
+        <div class="mock__pane-head">
+          <span class="mock__badge mock__badge--claude">{t.claude}</span>
+          <span>web-shop</span>
+          <span class="mock__branch">main</span>
+        </div>
+        <pre class="mock__term" data-term="claude"></pre>
+      </div>
+      <div class="mock__pane mock__pane--second">
+        <div class="mock__pane-head">
+          <span class="mock__badge mock__badge--codex">{t.codex}</span>
+          <span>api</span>
+          <span class="mock__branch">feat/pagination</span>
+        </div>
+        <pre class="mock__term" data-term="codex"></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="mock__toast" data-toast>
+    <img src={`${import.meta.env.BASE_URL.replace(/\/$/, '')}/icon.svg`} alt="" width="28" height="28" />
+    <div>
+      <strong>{t.toastTitle}</strong>
+      <span>{t.toastBody}</span>
+    </div>
+    <span class="dot" data-s="waiting"></span>
+  </div>
+</div>
+
+<style>
+  .mock {
+    --mock-side: 13.5rem;
+    position: relative;
+    border-radius: var(--site-radius-lg);
+    border: 1px solid var(--color-border-default);
+    background: var(--color-bg-canvas);
+    overflow: hidden;
+    box-shadow:
+      0 0 0 1px color-mix(in oklab, black 50%, transparent),
+      0 1px 0 0 color-mix(in oklab, white 8%, transparent) inset,
+      0 3rem 6rem -2rem rgb(0 0 0 / 0.75),
+      0 0 8rem -2rem var(--site-glow);
+    font-family: var(--font-family-ui);
+    font-size: var(--font-size-label);
+    color: var(--color-text-primary);
+    text-align: left;
+    user-select: none;
+  }
+  .mock__bar {
+    display: flex;
+    align-items: center;
+    height: var(--size-titlebar);
+    background: var(--color-bg-surface);
+    border-bottom: 1px solid var(--color-border-subtle);
+  }
+  .mock__lights {
+    display: flex;
+    gap: var(--space-inline-sm);
+    width: var(--mock-side);
+    padding-left: var(--space-inset-md);
+    flex: none;
+  }
+  .mock__lights i {
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 50%;
+    background: var(--color-status-error);
+  }
+  .mock__lights i:nth-child(2) {
+    background: var(--color-status-waiting);
+  }
+  .mock__lights i:nth-child(3) {
+    background: var(--color-status-done);
+  }
+  .mock__tabs {
+    display: flex;
+    align-items: stretch;
+    height: 100%;
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+  }
+  .mock__tab {
+    display: flex;
+    align-items: center;
+    gap: var(--space-inline-sm);
+    padding: 0 var(--space-inset-md);
+    border-right: 1px solid var(--color-border-subtle);
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+  }
+  .mock__tab.is-active {
+    background: var(--color-bg-canvas);
+    color: var(--color-text-primary);
+    box-shadow: inset 0 -2px 0 var(--color-border-focus);
+  }
+  .mock__plus {
+    display: grid;
+    place-items: center;
+    width: var(--size-titlebar);
+    color: var(--color-text-tertiary);
+    font-size: 1rem;
+  }
+  .mock__badge {
+    padding: 0 0.3125rem;
+    border-radius: var(--radius-badge);
+    font-size: var(--font-size-caption);
+    font-weight: 600;
+    line-height: var(--size-badge);
+    color: var(--color-agent-shell);
+    background: color-mix(in oklab, currentColor 14%, transparent);
+  }
+  .mock__badge--claude {
+    color: var(--color-agent-claude);
+  }
+  .mock__badge--codex {
+    color: var(--color-agent-codex);
+  }
+
+  .mock__body {
+    display: grid;
+    grid-template-columns: var(--mock-side) 1fr;
+    height: clamp(18rem, 32vw, 26rem);
+  }
+  .mock__side {
+    background: var(--color-bg-surface);
+    border-right: 1px solid var(--color-border-subtle);
+    padding: var(--space-inset-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .mock__label {
+    padding: var(--space-inset-sm) var(--space-inset-md) var(--space-inline-xs);
+    font-size: var(--font-size-caption);
+    color: var(--color-text-tertiary);
+  }
+  .mock__label--review {
+    margin-top: var(--space-stack-md);
+  }
+  .mock__proj,
+  .mock__review {
+    display: flex;
+    align-items: center;
+    gap: var(--space-inline-sm);
+    height: var(--size-row);
+    padding: 0 var(--space-inset-md);
+    border-radius: var(--radius-control);
+    color: var(--color-text-secondary);
+    min-width: 0;
+  }
+  .mock__proj.is-active {
+    background: var(--color-bg-selected);
+    color: var(--color-text-primary);
+  }
+  .mock__proj-name,
+  .mock__review span:nth-child(2) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .mock__proj-dots {
+    display: flex;
+    gap: var(--space-inline-xs);
+  }
+  .mock__kbd {
+    margin-left: auto;
+    font-size: var(--font-size-caption);
+    color: var(--color-text-tertiary);
+    font-family: var(--font-family-mono);
+  }
+  .dot--sm {
+    width: var(--size-dot-sm);
+    height: var(--size-dot-sm);
+  }
+  .mock__review {
+    opacity: 0;
+    transform: translateX(-0.5rem);
+    transition:
+      opacity var(--motion-slow) var(--motion-ease),
+      transform var(--motion-slow) var(--motion-ease-spring);
+  }
+  .mock__review.is-in {
+    opacity: 1;
+    transform: none;
+  }
+  .mock__review-meta {
+    margin-left: auto;
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-caption);
+    color: var(--color-diff-add-text);
+  }
+
+  .mock__stage {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-width: 0;
+  }
+  .mock__pane {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    border-left: 1px solid var(--color-border-subtle);
+  }
+  .mock__pane:first-child {
+    border-left: 0;
+  }
+  .mock__pane-head {
+    display: flex;
+    align-items: center;
+    gap: var(--space-inline-sm);
+    height: var(--size-pane-head);
+    padding: 0 var(--space-inset-md);
+    border-bottom: 1px solid var(--color-border-subtle);
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-caption);
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .mock__pane.is-focused .mock__pane-head {
+    box-shadow: inset 0 calc(var(--size-focus-line) * -1) 0 var(--color-border-focus);
+  }
+  .mock__branch {
+    margin-left: auto;
+    font-family: var(--font-family-mono);
+    color: var(--color-text-tertiary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .mock__term {
+    margin: 0;
+    padding: var(--space-inset-md);
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-label);
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: var(--color-text-secondary);
+    flex: 1;
+    overflow: hidden;
+  }
+  .mock__term :global(.ln) {
+    display: block;
+    animation: ln-in var(--motion-medium) var(--motion-ease) both;
+  }
+  .mock__term :global(.ln--prompt) {
+    color: var(--color-text-primary);
+  }
+  .mock__term :global(.ln--ok) {
+    color: var(--color-status-done);
+  }
+  .mock__term :global(.ln--ask) {
+    color: var(--color-status-waiting);
+  }
+  .mock__term :global(.caret) {
+    display: inline-block;
+    width: 0.55em;
+    height: 1.1em;
+    vertical-align: -0.2em;
+    background: var(--color-terminal-cursor);
+    animation: caret 1s steps(1) infinite;
+  }
+  @keyframes caret {
+    50% {
+      opacity: 0;
+    }
+  }
+  @keyframes ln-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+  }
+
+  .mock__toast {
+    position: absolute;
+    right: var(--space-stack-md);
+    bottom: var(--space-stack-md);
+    display: flex;
+    align-items: center;
+    gap: var(--space-inset-md);
+    width: min(19rem, calc(100% - 2rem));
+    padding: var(--space-inset-md);
+    border-radius: var(--radius-container);
+    border: 1px solid var(--color-border-default);
+    background: color-mix(in oklab, var(--color-bg-hover) 85%, transparent);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 1rem 2.5rem -0.5rem rgb(0 0 0 / 0.6);
+    opacity: 0;
+    transform: translateY(-0.75rem) scale(0.96);
+    transition:
+      opacity var(--motion-slow) var(--motion-ease),
+      transform var(--motion-slow) var(--motion-ease-spring);
+  }
+  .mock__toast.is-in {
+    opacity: 1;
+    transform: none;
+  }
+  .mock__toast img {
+    border-radius: 22%;
+    flex: none;
+  }
+  .mock__toast div {
+    display: grid;
+    min-width: 0;
+    line-height: 1.35;
+  }
+  .mock__toast strong {
+    font-size: var(--font-size-label);
+  }
+  .mock__toast span {
+    color: var(--color-text-secondary);
+  }
+  .mock__toast .dot {
+    margin-left: auto;
+  }
+
+  /* Tablet: drop the second pane. Phone: drop the sidebar too. */
+  @media (max-width: 56rem) {
+    .mock__stage {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .mock__pane--second {
+      display: none;
+    }
+  }
+  @media (max-width: 36rem) {
+    .mock {
+      --mock-side: 0px;
+      font-size: var(--font-size-caption);
+    }
+    .mock__side,
+    .mock__tab--shell,
+    .mock__plus {
+      display: none;
+    }
+    .mock__lights {
+      width: auto;
+      padding-right: var(--space-inset-md);
+    }
+    .mock__body {
+      grid-template-columns: minmax(0, 1fr);
+      height: 19rem;
+    }
+    .mock__term {
+      font-size: var(--font-size-caption);
+    }
+    .mock__toast {
+      bottom: var(--space-inset-md);
+      right: var(--space-inset-md);
+      left: var(--space-inset-md);
+      width: auto;
+    }
+  }
+</style>
+
+<script>
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+  function classFor(text: string): string {
+    if (text.startsWith('>')) return 'ln ln--prompt';
+    if (text.startsWith('✓')) return 'ln ln--ok';
+    if (/\(y\/n\)|\?$/.test(text)) return 'ln ln--ask';
+    return 'ln';
+  }
+
+  function setDots(root: HTMLElement, who: string, state: string) {
+    root.querySelectorAll<HTMLElement>(`[data-dot="${who}"]`).forEach((d) => (d.dataset.s = state));
+  }
+
+  function renderFinal(root: HTMLElement, claude: string[], codex: string[]) {
+    for (const [name, lines] of [
+      ['claude', claude],
+      ['codex', codex],
+    ] as const) {
+      const term = root.querySelector<HTMLElement>(`[data-term="${name}"]`);
+      if (!term) continue;
+      term.innerHTML = '';
+      for (const text of lines) {
+        const el = document.createElement('span');
+        el.className = classFor(text);
+        el.textContent = text;
+        term.append(el);
+      }
+    }
+    setDots(root, 'claude', 'done');
+    setDots(root, 'codex', 'waiting');
+    root.querySelector('[data-review]')?.classList.add('is-in');
+    root.querySelector('[data-toast]')?.classList.add('is-in');
+  }
+
+  async function run(root: HTMLElement, claude: string[], codex: string[], alive: () => boolean) {
+    const terms = {
+      claude: root.querySelector<HTMLElement>('[data-term="claude"]')!,
+      codex: root.querySelector<HTMLElement>('[data-term="codex"]')!,
+    };
+    const toast = root.querySelector<HTMLElement>('[data-toast]')!;
+    const review = root.querySelector<HTMLElement>('[data-review]')!;
+    const caret = document.createElement('span');
+    caret.className = 'caret';
+
+    const type = async (term: HTMLElement, text: string) => {
+      const el = document.createElement('span');
+      el.className = classFor(text);
+      term.append(el);
+      if (text.startsWith('>')) {
+        el.append(caret);
+        for (const ch of text) {
+          if (!alive()) return;
+          caret.before(ch);
+          await sleep(28 + Math.random() * 40);
+        }
+        await sleep(300);
+        caret.remove();
+      } else {
+        el.textContent = text;
+      }
+    };
+
+    while (alive()) {
+      terms.claude.innerHTML = '';
+      terms.codex.innerHTML = '';
+      toast.classList.remove('is-in');
+      review.classList.remove('is-in');
+      setDots(root, 'claude', 'working');
+      setDots(root, 'codex', 'working');
+      await sleep(600);
+
+      await type(terms.claude, claude[0]);
+      await sleep(500);
+      await type(terms.codex, codex[0]);
+      // Interleave the two agents' output.
+      const rest = Math.max(claude.length, codex.length);
+      for (let i = 1; i < rest && alive(); i++) {
+        if (claude[i]) {
+          await sleep(700);
+          await type(terms.claude, claude[i]);
+          if (i === claude.length - 1) {
+            setDots(root, 'claude', 'done');
+            review.classList.add('is-in');
+          }
+        }
+        if (codex[i]) {
+          await sleep(600);
+          await type(terms.codex, codex[i]);
+          if (i === codex.length - 1) {
+            setDots(root, 'codex', 'waiting');
+            await sleep(250);
+            toast.classList.add('is-in');
+          }
+        }
+      }
+      await sleep(4200);
+    }
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-mock]').forEach((root) => {
+    const claude = JSON.parse(root.dataset.claude ?? '[]') as string[];
+    const codex = JSON.parse(root.dataset.codex ?? '[]') as string[];
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      renderFinal(root, claude, codex);
+      return;
+    }
+    // Run only while on screen; restart cleanly when it comes back.
+    let gen = 0;
+    let visible = false;
+    new IntersectionObserver(([e]) => {
+      if (e.isIntersecting && !visible) {
+        visible = true;
+        const mine = ++gen;
+        void run(root, claude, codex, () => gen === mine && visible);
+      } else if (!e.isIntersecting && visible) {
+        visible = false;
+        gen++;
+      }
+    }).observe(root);
+  });
+</script>

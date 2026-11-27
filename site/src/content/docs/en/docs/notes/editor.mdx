@@ -1,0 +1,152 @@
+---
+title: Note editor
+description: Write Markdown like a document, move blocks around, and manage notes from the explorer — saved as plain Markdown.
+sidebar:
+  order: 2
+---
+
+import { Aside } from '@astrojs/starlight/components';
+import Shot from '~/components/docs/Shot.astro';
+
+The note editor opens any `.md` file in your note sources, right next to your sessions. It looks like a document,
+but the file on disk stays plain Markdown: only the characters you change are written, and line endings, trailing
+spaces and everything else stay as they were.
+
+## Open a note
+
+- <kbd>⌘O</kbd> — find a note by name.
+- <kbd>⇧⌘O</kbd> — open the [note explorer](#note-explorer) and browse.
+- From the [graph](/en/docs/notes/graph/): <kbd>⌘</kbd>-click or double-click a note.
+- Click a `[[link]]` or a backlink in another note.
+
+The editor opens as a right-side panel. **⤢** in its head fills the window (**Note only, full window**), and **↗**
+opens the file in its default app.
+
+## How a note looks
+
+The editor shows a note as a document: a centred column, the title with its folder and last edit date, and cards for
+callouts, code (with its language and a copy button) and tables. Checkboxes are drawn as real checkboxes and
+`[[links]]` as pills.
+
+Markdown marks (`#`, `**`, link targets) are hidden except on the line you're editing. Click into a table to edit its
+cells; <kbd>Tab</kbd> and <kbd>⇧Tab</kbd> move between cells and <kbd>↩</kbd> adds a row.
+
+Beside the text, **Outline and links** lists the note's headings, the notes that link here (**Backlinks**) and notes
+that mention its title without a link (**Unlinked mentions**).
+
+## Saving
+
+You never have to save by hand. The editor saves when you leave it, 1 second after you stop typing, and on
+<kbd>⌘S</kbd>. Switching notes or closing the panel saves first.
+
+If the file changes on disk while you have unsaved edits — say, an agent wrote to it — a banner offers **Compare**,
+**Keep mine** (save over theirs) or **Reload**. Without unsaved edits, the note just reloads in place.
+
+<Aside type="note">
+  Files that aren't valid UTF-8 open read-only, so saving can never change their bytes. Files over 2 MB show only
+  their start, read-only.
+</Aside>
+
+Paste an image into a note and it's saved as `attachments/<note>-<time>.<ext>` next to the note, with a link
+inserted.
+
+## Blocks
+
+<Shot id="blocks" caption="Drag a block by its ⋮⋮ handle, or insert one from the / menu." />
+
+A note's paragraphs, lists and headings are blocks.
+
+- **Move with the mouse:** hover a line and a **⋮⋮** handle appears on its left. Drag it to move the block.
+- **Block menu:** click the handle for **Turn into**, **Duplicate**, **Delete** and **Copy as Markdown**.
+- **Move with the keyboard:** <kbd>⌥⇧↑</kbd> / <kbd>⌥⇧↓</kbd> moves the block at the cursor up or down.
+
+Numbered lists renumber as items move, and the file stays plain Markdown.
+
+### The / menu
+
+On an empty line, type <kbd>/</kbd> to insert a block:
+
+- **Heading 1**, **Heading 2**, **Heading 3**
+- **Bulleted list**, **Numbered list**, **To-do**
+- **Quote**, **Callout**, **Code block**, **Table**, **Divider**
+- **Link to note**
+
+Keep typing to filter. Korean names work too — `/할` finds **To-do** — and the menu never opens while the Korean
+input method is still composing a syllable.
+
+## Reading mode
+
+Press <kbd>⌘E</kbd> (or click **Read** in the head) to hide all Markdown and lock editing. Links and checkboxes still
+work. Press <kbd>⌘E</kbd> again to edit.
+
+<Shot id="reading" caption="Reading mode hides every Markdown mark and locks the text." />
+
+## Note explorer
+
+The **Files** column to the left of the editor shows the current tab's project notes as a folder tree. Open it with
+**▤** in the editor head, <kbd>⇧⌘O</kbd>, or **Note explorer** in <kbd>⌘K</kbd>.
+
+<Shot id="explorer" caption="The Files column: notes as a tree, with the next ID suggested for a new note." />
+
+### Find a note
+
+Type in the filter at the top to find notes by path, title or ID (Korean too). Matching folders open, and
+<kbd>↩</kbd> opens the best match. **Pinned** and **Recent** notes sit at the top of the tree.
+
+### Create, rename, move
+
+Right-click a note or folder, use the hover buttons, or use the keys while the tree has focus:
+
+| Action | How |
+|---|---|
+| **New note** | <kbd>⌘N</kbd>. When sibling notes share an ID (`FE-REQ-029`, `FE-REQ-030`), it suggests the next one: `FE-REQ-031` |
+| **New folder** | Right-click menu or hover button |
+| **Rename** | <kbd>F2</kbd> |
+| Move | Drag onto a folder, or **Move to…** and search for the folder |
+| **Pin** / **Unpin** | Right-click menu |
+| **Reveal in Finder**, **Copy path** | Right-click menu |
+| **Move to Trash** | <kbd>⌘⌫</kbd>. Always asks first |
+| Undo | <kbd>⌘Z</kbd> |
+
+<kbd>⌘</kbd>- or <kbd>⇧</kbd>-click selects several notes to move or trash together. A name that's already taken is
+refused — the explorer never overwrites a file.
+
+### Links stay working
+
+After a rename or move, the explorer asks **Fix the links in N notes?** and lists them. **Fix links** changes only the
+link text that points to what moved (`[[name]]`, `[[name#heading|alias]]`, relative `[text](path.md)` links); every
+other byte stays the same, and code blocks are never touched. To stop being asked, choose **Always** or **Never**, or
+change it later under **Fix links after a move** in the view menu next to the filter.
+
+### Undo
+
+<kbd>⌘Z</kbd> in the tree undoes a move, a rename, a new folder (while it's still empty) or a new note (while you
+haven't edited it).
+
+<Aside type="caution">
+  **Move to Trash** can't be undone with <kbd>⌘Z</kbd>. Put the item back from the Trash in Finder.
+</Aside>
+
+### View options
+
+The view menu next to the filter also has **Group by status** (notes sorted into todo, in progress, review, done and
+so on by their `status:` property), sort by **Name**, **Modified** or **Created**, folder notes (`index.md` or
+`README.md` open from the folder's name) and compact single-child folders.
+
+## Editor keys
+
+| Keys | Action |
+|---|---|
+| <kbd>⌥⇧↑</kbd> / <kbd>⌥⇧↓</kbd> | Move a block up / down |
+| <kbd>/</kbd> | Block menu (on an empty line) |
+| <kbd>⌘E</kbd> | Reading mode |
+| <kbd>⌘S</kbd> | Save now |
+| <kbd>⌘F</kbd> | Find in the note |
+| <kbd>⌘Z</kbd> / <kbd>⇧⌘Z</kbd> | Undo / redo |
+| `[[` | Note name suggestions |
+
+<Aside type="tip">
+  Inside the note editor, <kbd>⌘W</kbd> doesn't close your session, and <kbd>⌘F</kbd> / <kbd>⌘D</kbd> belong to the
+  editor (find, select next match) instead of the terminal and split view. See
+  [Keyboard shortcuts](/en/docs/reference/shortcuts/).
+</Aside>

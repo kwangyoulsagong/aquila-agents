@@ -1,0 +1,116 @@
+---
+title: Quick tour
+description: Ten minutes from an empty window to two agents side by side, one waiting for you.
+sidebar:
+  order: 3
+---
+
+import { Aside, LinkCard, CardGrid } from '@astrojs/starlight/components';
+import Shot from '~/components/docs/Shot.astro';
+
+This walkthrough uses the shortcuts you'll press every day. You need at least one project and the `claude` CLI; if
+you haven't set those up yet, go through [First run](/en/docs/start/first-run/) first. Codex is optional: skip the
+Codex step if you don't have it.
+
+## 1. Add a project
+
+Click **+ Add project** under the project list in the sidebar, choose **Folder on this Mac…**, and pick a repository.
+Confirm the name and group, then click **Add**. You can also just drag the folder from Finder onto the sidebar.
+
+The new project is selected. Its row will show a dot for every session you open in it.
+
+→ More in [Projects](/en/docs/workspace/projects/).
+
+## 2. Open Claude
+
+Press <kbd>⌘T</kbd>. A tab opens and your own `claude` starts in the project folder, exactly as it would in Terminal:
+same login, same `CLAUDE.md`, same MCP servers and slash commands.
+
+Give it a small task that touches a file, for example *"Add a short usage section to the README."*
+
+## 3. Open Codex next to it
+
+Press <kbd>⌘D</kbd> to split right. The new, empty pane is focused. Now press <kbd>⇧⌘T</kbd>: Codex opens in that
+pane, in the same project. (No Codex? Press <kbd>⌥⌘T</kbd> for a shell instead.)
+
+<Shot id="split" caption="Two sessions side by side, each with its own pane head and status dot." />
+
+Click a pane, or press <kbd>⌥⌘←</kbd> / <kbd>⌥⌘→</kbd>, to move between them.
+
+→ More in [Sessions](/en/docs/workspace/sessions/) and [Split panes](/en/docs/workspace/split-panes/).
+
+## 4. Watch the dots
+
+Every tab, pane head and project row has a status dot:
+
+- <span class="sdot" data-s="working"></span> **blue**: working
+- <span class="sdot" data-s="waiting"></span> **orange**: waiting for your input
+- <span class="sdot" data-s="done"></span> **green**: done
+- <span class="sdot" data-s="error"></span> **red**: error
+
+Now go do something else. Switch to another app, or select a different project. When Claude stops to ask for
+permission (to edit a file or run a command), its dot turns **orange** and macOS shows a **Needs input** notification.
+The Dock icon shows how many sessions are waiting.
+
+→ More in [Status and attention](/en/docs/workspace/status/).
+
+## 5. Jump to whoever needs you
+
+Press <kbd>⌘J</kbd>. Aquila brings you to the waiting session, even in another project. Answer it in the terminal as
+usual. If several are waiting, press <kbd>⌘J</kbd> again to go through them, longest wait first.
+
+Clicking the notification does the same thing.
+
+<Aside type="tip">
+  Want this from any app? Set a [global shortcut](/en/docs/workspace/status/#bring-aquila-up-from-any-app) in
+  **⚙ Settings → Global shortcut…**.
+</Aside>
+
+## 6. Review what changed
+
+When Claude finishes, its dot turns green. If you weren't looking at it, it also appears under **To review** in the
+sidebar, with the number of files it changed.
+
+Press <kbd>⇧⌘G</kbd> to open the changes panel. It shows the diff of the project's working tree and updates as files
+are saved. Click a line to leave a comment, then **Paste comments** to put them into the session's input; you press
+Enter.
+
+<Shot id="changes" caption="The changes panel: changed files and a live diff on the right." />
+
+→ More in [Changes panel](/en/docs/agents/changes-panel/).
+
+## 7. Find anything with ⌘K
+
+Press <kbd>⌘K</kbd> and type part of a name: a project, an open session, or an action like *split down* or
+*changes*. Waiting sessions are listed first. Press Enter to go there or run it.
+
+→ More in [Command palette](/en/docs/workspace/command-palette/).
+
+## 8. Quit and come back
+
+Quit the app (<kbd>⌘Q</kbd>) and open it again. Your tabs and splits come back, and Claude and Codex resume their
+conversations.
+
+→ More in [Restore and power](/en/docs/workspace/restore-and-power/).
+
+## The shortcuts you just used
+
+| Keys | Action |
+|---|---|
+| <kbd>⌘T</kbd> | Open Claude |
+| <kbd>⇧⌘T</kbd> | Open Codex |
+| <kbd>⌥⌘T</kbd> | Open shell |
+| <kbd>⌘D</kbd> | Split right |
+| <kbd>⌥⌘←</kbd> <kbd>⌥⌘→</kbd> | Move to the next pane |
+| <kbd>⌘J</kbd> | Go to next waiting session |
+| <kbd>⇧⌘G</kbd> | Show changes |
+| <kbd>⌘K</kbd> | Command palette |
+
+Every shortcut is on [Keyboard shortcuts](/en/docs/reference/shortcuts/), and in the app under <kbd>⌘/</kbd>.
+
+## Where to next
+
+<CardGrid>
+  <LinkCard title="Worktrees" description="Run several agents on one repo without stepping on each other." href="/en/docs/agents/worktrees/" />
+  <LinkCard title="Claude accounts" description="Use a second Claude login per project." href="/en/docs/agents/claude-accounts/" />
+</CardGrid>

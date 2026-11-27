@@ -1,0 +1,92 @@
+---
+title: Preview
+description: See the running app inside Aquila, check it at phone, tablet and desktop widths, and point the agent at an element.
+sidebar:
+  order: 5
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+import Shot from '~/components/docs/Shot.astro';
+
+The preview panel shows your running web app on the right, next to the agent changing it. Pick an element on the
+page and its details land in the agent's input, so "make this button smaller" points at exactly the right thing.
+
+<Shot id="preview" caption="The app in the preview, an element picked and pasted into the Claude tab." />
+
+## Open the preview
+
+Press <kbd>⇧⌘P</kbd>, click **◫ Preview** in the tab bar, or press <kbd>⌘K</kbd> → **Show preview**.
+
+The panel needs a running dev server. If none is found, start one (in a terminal or the
+[Run slot](/en/docs/agents/run/)) or type an address in the **Address** field.
+
+## How the address is found
+
+Aquila collects addresses from two places, newest first:
+
+- **`.claude/launch.json`** in the project — the `port` or `url` of each entry under `configurations`.
+- **Terminal output** — any `localhost` address a terminal or run in this project prints (`http://127.0.0.1:…`,
+  `0.0.0.0` and `[::1]` count as `localhost` too).
+
+They're listed under **Dev servers found**. The address you last used is remembered.
+
+```json title=".claude/launch.json"
+{
+  "configurations": [
+    { "name": "web", "port": 5173 }
+  ]
+}
+```
+
+<Aside type="tip" title="Worktrees">
+  The preview follows the focused tab. A tab in a [worktree](/en/docs/agents/worktrees/) gets that worktree's
+  addresses, `launch.json` and remembered URL, and its branch shows in the panel head. With a **Port base**, the
+  address in that worktree's `PORT` range goes first.
+</Aside>
+
+## Check other widths
+
+Under **Width**, pick **Fit**, **390**, **768** or **1440**. A wider preset is scaled down to fit the panel, so the
+page's media queries see the real width.
+
+This changes the width only — it doesn't fake a mobile browser or touch input.
+
+## Point the agent at an element
+
+<Steps>
+
+1. Focus the Claude or Codex tab you want to send to.
+
+2. Click **Select element**. A highlight with the element's tag, class and size follows your pointer.
+
+3. Click the element. (Press <kbd>Esc</kbd> to cancel.)
+
+4. Aquila pastes a prompt into that tab — the page, a CSS selector, the element's text, attributes, size, computed
+   style and component name (React or Vue, when it can tell) — followed by a cropped screenshot.
+
+5. Add what you want changed and press <kbd>Enter</kbd>.
+
+</Steps>
+
+The button shows where the pick will go (**→ tab name**). If no Claude or Codex tab is focused, it's copied to the
+clipboard instead. If the tab is waiting for an answer, it's copied too, so it doesn't land in the middle of a
+question — answer first, then paste with <kbd>⌘V</kbd>.
+
+## Other controls
+
+| Control | What it does |
+|---|---|
+| **Back**, **Reload** | Navigate the page. |
+| **DevTools** | Open developer tools for the preview. |
+| ↗ | Open the page in Chrome (your default browser if Chrome isn't installed). |
+| ⛶ | Show only the preview, full window. Click again to go back to the workspace. |
+
+<Aside type="note">
+  While a dialog or the command palette is open, the preview hides itself and comes back when it closes. Links
+  that open a new window go to your browser. The preview is for local projects only.
+</Aside>
+
+## Compare with Figma
+
+In projects with Figma connected, **Designer** shows the app and a Figma frame together. See
+[Figma and Designer](/en/docs/agents/figma-designer/).

@@ -1,0 +1,265 @@
+---
+/** Small features; each card opens its screen in a native <dialog> ("click to see"). */
+import { ui, type Lang } from '../i18n/ui';
+import Media from './Media.astro';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = ui[lang].grid;
+const glyph: Record<string, string> = {
+  palette: '<circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/>',
+  terminal: '<path d="M4 6.5 9 12l-5 5.5M12 18h8"/>',
+  accounts: '<circle cx="9" cy="9" r="3.5"/><path d="M3 19c.8-3 3.2-4.5 6-4.5s5.2 1.5 6 4.5"/><circle cx="17" cy="8" r="2.5"/><path d="M16.5 13.5c2.3 0 4 1.2 4.5 3.5"/>',
+  designer: '<rect x="3.5" y="4.5" width="10" height="10" rx="1.5"/><rect x="10.5" y="9.5" width="10" height="10" rx="1.5"/>',
+  run: '<path d="M7 5v14l11-7L7 5Z"/>',
+  globalShortcut: '<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M8 14h8"/>',
+  restore: '<path d="M4 12a8 8 0 1 0 2.4-5.7L4 8.5"/><path d="M4 4v4.5h4.5"/>',
+  power: '<rect x="3" y="7" width="16" height="10" rx="2"/><path d="M21 11v2M8 10l-2 2h4l-2 2"/>',
+};
+---
+
+<section class="section grid" aria-labelledby="grid-title">
+  <div class="container">
+    <div class="head-center" data-reveal>
+      <span class="eyebrow">{t.eyebrow}</span>
+      <h2 id="grid-title" class="h2 grad">{t.title}</h2>
+    </div>
+    <ul class="grid__list">
+      {
+        t.items.map((it, i) => (
+          <li data-reveal style={`--i:${i % 4}`}>
+            <button type="button" class="card spot grid__card" data-spot data-open={`dlg-${it.id}`}>
+              <span class="grid__icon">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                  set:html={glyph[it.id]}
+                />
+              </span>
+              <span class="grid__title">
+                {it.title}
+                {it.kbd && <span class="kbd">{it.kbd}</span>}
+              </span>
+              <span class="grid__body">{it.body}</span>
+              <span class="grid__more">
+                {t.inspect}
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                  <path d="M6 3.5 10.5 8 6 12.5" />
+                </svg>
+              </span>
+            </button>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+
+  {
+    t.items.map((it) => (
+      <dialog class="dlg" id={`dlg-${it.id}`} aria-labelledby={`dlg-${it.id}-title`}>
+        <div class="dlg__inner">
+          <div class="frame dlg__frame">
+            <Media id={it.id} lang={lang} alt={it.title} />
+          </div>
+          <div class="dlg__text">
+            <h3 id={`dlg-${it.id}-title`}>{it.title}</h3>
+            <p>{it.body}</p>
+          </div>
+          <form method="dialog">
+            <button class="dlg__close" aria-label={t.close}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <path d="M6 6l12 12M18 6 6 18" />
+              </svg>
+            </button>
+          </form>
+        </div>
+      </dialog>
+    ))
+  }
+</section>
+
+<style>
+  .grid__list {
+    list-style: none;
+    margin: clamp(2.5rem, 2rem + 2vw, 3.5rem) 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+  }
+  .grid__list li {
+    display: flex;
+  }
+  .grid__card {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 1.5rem;
+    text-align: left;
+    cursor: pointer;
+    transition:
+      border-color var(--motion-medium) var(--motion-ease),
+      transform var(--motion-medium) var(--motion-ease);
+  }
+  .grid__card:hover {
+    border-color: var(--color-border-default);
+    transform: translateY(-2px);
+  }
+  .grid__icon {
+    display: grid;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    margin-bottom: 0.75rem;
+    border-radius: 0.625rem;
+    border: 1px solid var(--site-line);
+    background: var(--color-bg-hover);
+    color: var(--color-text-primary);
+  }
+  .grid__icon svg {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+  .grid__title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    font-size: 1rem;
+    letter-spacing: -0.01em;
+  }
+  .grid__body {
+    color: var(--color-text-secondary);
+    font-size: 0.875rem;
+  }
+  .grid__more {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-top: auto;
+    padding-top: 0.75rem;
+    font-size: 0.8125rem;
+    color: var(--color-action-primary);
+    opacity: 0.8;
+  }
+  .grid__more svg {
+    width: 0.875rem;
+    height: 0.875rem;
+    transition: transform var(--motion-medium) var(--motion-ease);
+  }
+  .grid__card:hover .grid__more svg {
+    transform: translateX(3px);
+  }
+
+  .dlg {
+    width: min(60rem, calc(100vw - 2rem));
+    max-height: calc(100dvh - 2rem);
+    padding: 0;
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--site-radius-xl);
+    background: var(--color-bg-surface);
+    color: var(--color-text-primary);
+    box-shadow: 0 2rem 6rem rgb(0 0 0 / 0.7);
+    overflow: auto;
+  }
+  .dlg::backdrop {
+    background: color-mix(in oklab, var(--color-bg-canvas) 70%, transparent);
+    backdrop-filter: blur(6px);
+  }
+  .dlg[open] {
+    animation: dlg-in 0.45s var(--site-ease-out);
+  }
+  .dlg[open]::backdrop {
+    animation: fade 0.3s ease;
+  }
+  @keyframes dlg-in {
+    from {
+      opacity: 0;
+      transform: translateY(1rem) scale(0.97);
+    }
+  }
+  @keyframes fade {
+    from {
+      opacity: 0;
+    }
+  }
+  .dlg__inner {
+    position: relative;
+    padding: clamp(0.75rem, 2vw, 1.25rem);
+  }
+  .dlg__frame {
+    border-radius: var(--site-radius-lg);
+  }
+  .dlg__text {
+    padding: 1.25rem 0.5rem 0.5rem;
+  }
+  .dlg__text h3 {
+    margin: 0;
+    font-size: var(--site-text-h3);
+  }
+  .dlg__text p {
+    margin: 0.5rem 0 0;
+    color: var(--color-text-secondary);
+  }
+  .dlg__close {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    width: 2.5rem;
+    height: 2.5rem;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    border: 1px solid var(--site-line);
+    background: color-mix(in oklab, var(--color-bg-canvas) 80%, transparent);
+    backdrop-filter: blur(8px);
+    cursor: pointer;
+  }
+  .dlg__close svg {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  @media (max-width: 64rem) {
+    .grid__list {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 30rem) {
+    .grid__list {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>
+
+<script>
+  document.querySelectorAll<HTMLButtonElement>('[data-open]').forEach((btn) => {
+    const dlg = document.getElementById(btn.dataset.open!) as HTMLDialogElement | null;
+    if (!dlg) return;
+    btn.addEventListener('click', () => {
+      dlg.showModal();
+      const v = dlg.querySelector('video');
+      if (v && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        v.preload = 'auto';
+        void v.play().catch(() => {});
+      }
+    });
+    // Click on the backdrop closes.
+    dlg.addEventListener('click', (e) => {
+      if (e.target === dlg) dlg.close();
+    });
+    dlg.addEventListener('close', () => {
+      dlg.querySelector('video')?.pause();
+      btn.focus();
+    });
+  });
+</script>

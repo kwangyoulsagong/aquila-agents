@@ -1,0 +1,111 @@
+/*
+ * Docs theme: Starlight's variables mapped onto the app's semantic tokens. Starlight toggles
+ * html[data-theme='light'|'dark'] — the same attribute tokens.css themes on — so light mode comes free.
+ */
+@import '../../../design-system/tokens.css';
+
+:root {
+  --sl-font: 'Pretendard Variable', Pretendard, var(--font-family-ui);
+  --sl-font-mono: var(--font-family-mono);
+
+  --sl-color-accent-low: var(--color-bg-selected);
+  --sl-color-accent: var(--color-action-primary);
+  --sl-color-accent-high: var(--color-action-primary-hover);
+
+  --sl-color-white: var(--color-text-primary);
+  --sl-color-gray-1: var(--color-text-primary);
+  --sl-color-gray-2: var(--color-text-secondary);
+  --sl-color-gray-3: var(--color-text-secondary);
+  --sl-color-gray-4: var(--color-text-tertiary);
+  --sl-color-gray-5: var(--color-border-default);
+  --sl-color-gray-6: var(--color-bg-hover);
+  --sl-color-black: var(--color-bg-canvas);
+
+  --sl-color-bg: var(--color-bg-canvas);
+  --sl-color-bg-nav: var(--color-bg-canvas);
+  --sl-color-bg-sidebar: var(--color-bg-canvas);
+  --sl-color-bg-inline-code: var(--color-bg-hover);
+  --sl-color-hairline: var(--color-border-subtle);
+  --sl-color-hairline-light: var(--color-border-subtle);
+  --sl-color-hairline-shade: var(--color-border-subtle);
+
+  --sl-color-text: var(--color-text-secondary);
+  --sl-color-text-accent: var(--color-action-primary);
+  --sl-color-text-invert: var(--color-text-on-accent);
+
+  --sl-color-orange: var(--color-status-waiting);
+  --sl-color-green: var(--color-status-done);
+  --sl-color-blue: var(--color-status-working);
+  --sl-color-red: var(--color-status-error);
+  --sl-color-purple: var(--color-account-personal);
+
+  --sl-content-width: 46rem;
+}
+
+/* Starlight's light theme sets its own palette on [data-theme='light']; re-point it at the tokens. */
+:root[data-theme='light'] {
+  --sl-color-white: var(--color-text-primary);
+  --sl-color-gray-1: var(--color-text-primary);
+  --sl-color-gray-2: var(--color-text-secondary);
+  --sl-color-gray-3: var(--color-text-secondary);
+  --sl-color-gray-4: var(--color-text-tertiary);
+  --sl-color-gray-5: var(--color-border-default);
+  --sl-color-gray-6: var(--color-bg-hover);
+  --sl-color-gray-7: var(--color-bg-surface);
+  --sl-color-black: var(--color-bg-canvas);
+  --sl-color-accent-low: var(--color-bg-selected);
+  --sl-color-accent: var(--color-action-primary);
+  --sl-color-accent-high: var(--color-action-primary-hover);
+  --sl-color-bg-inline-code: var(--color-bg-hover);
+}
+
+body {
+  word-break: keep-all; /* Korean: break between words */
+}
+
+.sl-markdown-content h2 {
+  letter-spacing: -0.02em;
+}
+
+.sl-markdown-content kbd {
+  display: inline-block;
+  min-width: 1.5em;
+  padding: 0.05em 0.4em;
+  border: 1px solid var(--color-border-default);
+  border-bottom-width: 2px;
+  border-radius: var(--radius-control);
+  background: var(--color-bg-hover);
+  font-family: var(--font-family-mono);
+  font-size: 0.85em;
+  text-align: center;
+  color: var(--color-text-primary);
+}
+
+/* Status dots inline in prose: <span class="sdot" data-s="waiting"></span> */
+.sdot {
+  display: inline-block;
+  width: 0.6em;
+  height: 0.6em;
+  border-radius: 50%;
+  vertical-align: 0.05em;
+  background: var(--color-status-idle);
+}
+.sdot[data-s='working'] {
+  background: var(--color-status-working);
+}
+.sdot[data-s='waiting'] {
+  background: var(--color-status-waiting);
+}
+.sdot[data-s='error'] {
+  background: var(--color-status-error);
+}
+.sdot[data-s='done'] {
+  background: var(--color-status-done);
+}
+.sdot[data-s='estimated'] {
+  background: var(--color-status-done-estimated);
+}
+.sdot[data-s='stopped'] {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--color-status-stopped);
+}

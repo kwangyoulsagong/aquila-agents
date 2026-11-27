@@ -1,0 +1,92 @@
+---
+title: What is this?
+description: Drop in a spec, email, HTML page, PDF or Figma link and get a short brief of what it's about, plus your related notes.
+sidebar:
+  order: 6
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+import Shot from '~/components/docs/Shot.astro';
+
+Someone sent you a spec, a long email or a Figma link and you need to know what it's about before you start. **What
+is this?** reads it and gives you a short brief — product, feature, intent, key points and open questions — and finds
+the notes you already have on the subject.
+
+<Shot id="whatIsThis" caption="Drop a document, check what will be sent, and get a brief with related notes." />
+
+## Open it
+
+- <kbd>⌘K</kbd> → **What is this?**
+- The **What is this?** button in the graph or note editor head.
+- Drop a file on it.
+
+## What you can give it
+
+| Input | How | Notes |
+|---|---|---|
+| Text or Markdown | Paste, or drop a `.md` / `.txt` file | Up to 5 MB |
+| Email | Paste, or drop an `.eml` file | Headers are removed except Subject, From and Date |
+| HTML page | Drop an `.html` file | Read as text |
+| PDF | Drop a `.pdf` file | Up to 20 MB, read on your Mac |
+| Figma link | Paste a `figma.com` link | See [Figma links](#figma-links) |
+
+You can also use **Choose file…** instead of dropping.
+
+### PDFs and OCR
+
+PDFs are read on your Mac. A scanned PDF with no text layer is read with macOS's built-in text recognition (OCR),
+Korean and English, up to the first 30 pages — no extra software and nothing uploaded for it. The preview says **Read
+with OCR**, and tells you when pages were cut. A password-locked PDF can't be read; open it, copy the text and paste
+it instead.
+
+### Figma links
+
+If [Figma is connected](/en/docs/agents/figma-designer/), Claude reads the file from Figma, read-only. If not, only
+the link and any text you pasted with it are sent.
+
+## Check what will be sent
+
+<Steps>
+
+1. After you drop or paste, open **Show what will be sent**. It shows exactly the text that goes to Claude — at most
+   20,000 characters. Longer input is cut, and the preview says so ("Only the first N chars are sent").
+
+2. Read the warning line: it names the Claude account the request goes to. Make sure the text has no passwords or
+   private details.
+
+3. Pick a **Model**: **Haiku (fast)** by default, or **Sonnet (thorough)**.
+
+4. Click **Ask Claude**.
+
+</Steps>
+
+<Aside type="caution">
+  Claude runs **once, only when you click Ask Claude**, using your Claude account and its usage. Nothing is sent when
+  you drop or paste. It runs in an empty temporary folder with no tools, so it can't read your repos.
+</Aside>
+
+The result is kept for the session: asking again about the same input shows **Already read this session** instead
+of calling Claude again. Changing the input cancels a request that's still running.
+
+## The brief
+
+The **Brief** card has fixed sections:
+
+- **Product** and **Feature**
+- **Intent** — what the author wants
+- **Key points**
+- **Open questions** — what the document leaves unanswered
+- **Terms & IDs** — names and IDs it uses
+
+If Claude's answer doesn't come back in that shape, it's shown as is under **Claude's reply**.
+
+### Related notes
+
+**Related notes** lists notes from your note sources that share an ID or telling words with the input. They're found
+on your Mac, without Claude. Turn on a [note source](/en/docs/notes/graph/) if the list says there are none.
+
+## Save as note
+
+Click **Save as note**, pick where to save it (**Save to**) and a **Title**. Aquila writes a Markdown note with
+`type: brief` in its frontmatter, so briefs are easy to find and filter in [Table view](/en/docs/notes/properties-table/).
+Click **Open** to go to it.

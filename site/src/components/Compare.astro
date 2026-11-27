@@ -1,0 +1,112 @@
+---
+import { ui, type Lang } from '../i18n/ui';
+import Logo from './Logo.astro';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = ui[lang].compare;
+---
+
+<section class="section compare" id="compare" aria-labelledby="compare-title">
+  <div class="container compare__wrap">
+    <div class="head-center" data-reveal>
+      <span class="eyebrow">{t.eyebrow}</span>
+      <h2 id="compare-title" class="h2 grad">{t.title}</h2>
+    </div>
+    <div class="card compare__card" data-reveal style="--i:1">
+      <table class="compare__table">
+        <thead>
+          <tr>
+            <th scope="col"><span class="sr-only">—</span></th>
+            <th scope="col" class="compare__us">
+              <span><Logo size={22} />{t.colUs}</span>
+            </th>
+            <th scope="col" class="compare__them">{t.colThem}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {
+            t.rows.map((r) => (
+              <tr>
+                <th scope="row">{r.label}</th>
+                <td class="compare__us">{r.us ? <span class="yes">✓</span> : <span class="no">—</span>}</td>
+                <td class="compare__them">{r.them ? <span class="yes yes--dim">✓</span> : <span class="no">—</span>}</td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<style>
+  .compare__wrap {
+    max-width: 56rem;
+  }
+  .compare__card {
+    margin-top: clamp(2.5rem, 2rem + 2vw, 3.5rem);
+  }
+  .compare__table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .compare__table th,
+  .compare__table td {
+    padding: 1rem clamp(0.75rem, 2vw, 1.5rem);
+    border-bottom: 1px solid var(--site-line);
+    text-align: left;
+    font-weight: 400;
+  }
+  .compare__table tbody tr:last-child > * {
+    border-bottom: 0;
+  }
+  .compare__table thead th {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+  }
+  .compare__table tbody th {
+    color: var(--color-text-primary);
+  }
+  .compare__us,
+  .compare__them {
+    width: 9rem;
+    text-align: center !important;
+  }
+  .compare__us {
+    background: color-mix(in oklab, var(--color-action-primary) 6%, transparent);
+  }
+  thead .compare__us span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--color-text-primary);
+  }
+  .yes {
+    color: var(--color-status-done);
+    font-weight: 700;
+    font-size: 1.0625rem;
+  }
+  .yes--dim {
+    color: var(--color-text-secondary);
+  }
+  .no {
+    color: var(--color-text-tertiary);
+  }
+  @media (max-width: 36rem) {
+    .compare__us,
+    .compare__them {
+      width: 5rem;
+    }
+    .compare__table th,
+    .compare__table td {
+      font-size: 0.875rem;
+    }
+    thead .compare__us :global(img) {
+      display: none;
+    }
+  }
+</style>

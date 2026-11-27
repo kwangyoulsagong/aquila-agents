@@ -1,0 +1,99 @@
+---
+title: Sessions
+description: Open Claude, Codex or a shell as tabs, rename and rearrange them, and close them.
+sidebar:
+  order: 2
+---
+
+import { Aside } from '@astrojs/starlight/components';
+import Shot from '~/components/docs/Shot.astro';
+
+A **session** is one real terminal running in a project's folder: Claude Code, Codex or a plain shell. Each one is a
+tab in the tab bar above the terminal.
+
+<Shot id="sessions" caption="Sessions as tabs. Each tab has a status dot; the + opens the project's default agent." />
+
+## Open a session
+
+Select a project first, then:
+
+| Keys | Opens |
+|---|---|
+| <kbd>⌘T</kbd> | Claude |
+| <kbd>⇧⌘T</kbd> | Codex |
+| <kbd>⌥⌘T</kbd> | Shell |
+
+The session opens in the focused pane and takes the keyboard. You can also:
+
+- Click **+** at the end of the tab bar. It opens the project's **Default agent** (Claude unless you changed it in
+  [project settings](/en/docs/workspace/projects/#change-a-projects-settings)).
+- **Right-click +** for a menu: **Open Claude**, **Open Codex**, **Open shell**, and **Open in worktree…** (see
+  [Worktrees](/en/docs/agents/worktrees/)).
+- In an empty pane (for example a project with no sessions yet), click **Open Claude**, **Open Codex** or
+  **Open shell** in the middle of it.
+- Press <kbd>⌘K</kbd> and run one of the same actions.
+
+## What actually runs
+
+Aquila doesn't imitate the CLIs. It starts **your installed `claude` or `codex`** in a real terminal, through your
+login shell, in the project's folder. So:
+
+- Your login, plan and token usage are the CLI's own.
+- `CLAUDE.md`, `AGENTS.md`, MCP servers, slash commands, permission prompts and your shell aliases work exactly as
+  in Terminal.
+- When the agent exits, the tab stays open as a normal shell in the same folder.
+
+For Claude sessions Aquila adds one thing: a small settings file passed with `--settings`
+(`~/.aquila/claude-hooks.<port>.json`). It holds hooks that tell Aquila when Claude is working, waiting or done, so it
+can show the [status dot](/en/docs/workspace/status/). It's only used by sessions Aquila starts. Your own
+`~/.claude` settings are never changed, and `claude` in Terminal is unaffected.
+
+Each session also gets a few environment variables, such as `AQUILA_TAB_ID`, and `PORT` when the project has a port
+base.
+
+## Tabs
+
+Each tab shows, from left to right:
+
+- the [status dot](/en/docs/workspace/status/);
+- the title: the first line of your first prompt for Claude, the branch for a worktree session, otherwise the kind
+  (Claude, Codex, Shell), with a small badge for the kind;
+- how long it has been waiting (`12m`), when it's waiting;
+- for Claude, a context gauge and the account badge.
+
+Hover a waiting tab to see what it's asking for.
+
+### Rename a tab
+
+Double-click the title, type a name, and press Enter. <kbd>Esc</kbd> cancels; an empty name goes back to the automatic
+title. <kbd>⌘K</kbd> → **Rename session** does the same. Names are kept when you relaunch.
+
+### Move a tab
+
+Drag a tab along the tab bar to reorder it. Drag it onto the terminal area to place it in a pane: drop it on a pane's
+**edge** to split that pane, or in the **middle** to show it there. See [Split panes](/en/docs/workspace/split-panes/).
+
+## Switch between sessions
+
+- Click a tab.
+- Press <kbd>⌘J</kbd> to go to the session that's waiting for you, in any project.
+- Press <kbd>⌘K</kbd> and type part of the session's title.
+
+Sessions you aren't looking at keep running, and keep their scrollback (10,000 lines for a shell, 5,000 for Claude and
+Codex).
+
+## Close a session
+
+Any of these ends the session and closes its tab:
+
+- <kbd>⌘W</kbd> closes the focused session. In an empty split pane, <kbd>⌘W</kbd> closes the pane.
+- Click **×** on the tab, or middle-click the tab.
+- <kbd>⌘K</kbd> → **Close session**.
+
+<Aside type="caution">
+  Closing a tab stops the process running in it, without asking. An agent in the middle of a task stops right there.
+  Inside a text field or the note editor, <kbd>⌘W</kbd> never closes a session.
+</Aside>
+
+To get a closed Claude or Codex conversation back, open [Session history](/en/docs/agents/session-history/)
+(<kbd>⌘Y</kbd>) and resume it in a new tab.

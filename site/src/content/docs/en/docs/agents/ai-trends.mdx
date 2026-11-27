@@ -1,0 +1,73 @@
+---
+title: AI trends
+description: See what's new in your CLIs and technical AI news you can use, fetched only when you open the panel.
+sidebar:
+  order: 10
+---
+
+import { Aside } from '@astrojs/starlight/components';
+import Shot from '~/components/docs/Shot.astro';
+
+The AI trends panel answers two questions without leaving the app: is there a newer `claude` or `codex` than the one
+I have, and what changed in it? And what's new in AI tooling that a developer could actually use?
+
+<Shot id="trends" caption="My CLIs: your installed version against the latest releases." />
+
+## Open the panel
+
+Click **AI trends** (the newspaper icon) at the bottom of the sidebar. A dot on the icon means a CLI version newer
+than yours is out.
+
+The panel has two views: **My CLIs** and **Tech**. Use **Search titles** to filter either list.
+
+## My CLIs
+
+For Claude Code and Codex, the panel shows your installed version (**Installed …**, or **Not installed**) next to
+recent releases:
+
+- If you're behind, it lists the newer releases with a few lines on what each one **added**.
+- If you're up to date, it shows what your version added.
+
+**Open release notes** opens the full notes in your browser.
+
+## Tech news
+
+**Tech** collects releases, libraries, APIs, techniques, papers with code and notable new repositories. Switch
+**Region** between:
+
+- **Global** — sources such as the OpenAI News, Cursor and GitHub changelogs, the Hugging Face blog and daily papers,
+  new GitHub repos, Hacker News, Simon Willison and Latent Space.
+- **Korea** — GeekNews, Naver D2, and the Kakao, Toss, Woowahan, Daangn and LY tech blogs (AI posts only).
+
+Items are grouped by topic — **Subagents**, **Hooks**, **Agent view**, **ADE**, **Harness**, **MCP & skills**,
+**Context engineering**, **Vibe & agentic coding** — and everything else goes under **Latest**. A dot marks items
+that are new since your last visit. Select an item to see a short excerpt, then **Open** it (or **HN discussion**
+for Hacker News items).
+
+<Aside type="note" title="Filtered for developers">
+  Business news — stock prices, funding, earnings, executive moves, lawsuits, policy — is filtered out of every
+  source. The filter is a fixed set of rules, not an AI model, so it's predictable; it does mean few items land in
+  the topic groups.
+</Aside>
+
+## When it fetches
+
+Nothing is fetched in the background. The panel fetches when you open it, if its cache is older than 30 minutes;
+↻ **Refresh** fetches right away. A source that fails keeps its last items and is named at the bottom of the panel.
+Items you've already seen drop off after a week.
+
+## Claude summary
+
+Select **✦ Claude summary** and click **Summarize with Claude** for a few lines on the recent news.
+
+<Aside type="caution" title="Uses your Claude quota">
+  The summary runs only when you click. It sends titles and short excerpts only, and uses the current project's
+  Claude account (Haiku model).
+</Aside>
+
+## Apply a trend to a project
+
+On a release or news item, **Apply to project** asks Claude to analyse what that change would mean for the current
+project and shows it as a graph. The analysis changes no files and uses your Claude quota (Sonnet). If you then
+apply it, only the steps you tick are pasted into a session in a new [worktree](/en/docs/agents/worktrees/).
+Local projects only.

@@ -1,0 +1,111 @@
+---
+title: Figma and Designer
+description: Connect the Figma MCP, turn Figma links into ready-made prompts, and compare the app with the design.
+sidebar:
+  order: 6
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+import Shot from '~/components/docs/Shot.astro';
+
+With Figma connected, your agents can read designs through Figma's official MCP server. Aquila adds two things on
+top: **prompt chips** that appear when you paste a Figma link, and **Designer**, which shows the running app and
+the Figma frame together so you can see what doesn't match.
+
+## Connect Figma
+
+Figma is turned on **per project**.
+
+<Steps>
+
+1. Press <kbd>⌘K</kbd> → **Connect Figma…** (also in the **Help** menu). It opens the project's settings at the
+   **Figma MCP** block.
+
+2. Switch it **On**.
+
+3. Click **Log in from Claude** (or **Save and log in**). A new Claude tab opens with `/mcp` typed in. Press
+   <kbd>Enter</kbd>, pick **figma**, then **Authenticate**, and finish the login in your browser.
+
+4. Optional: click **Check connection**. It shows your Figma account and plan.
+
+</Steps>
+
+For Codex, log in once in a terminal:
+
+```sh
+codex mcp login figma
+```
+
+<Shot id="figma" caption="Figma MCP in project settings, and the chips a pasted link brings up." />
+
+### What it changes
+
+- New Claude and Codex tabs in the project get the Figma MCP server. Your own MCP servers stay as they are, and
+  nothing is written to the repo or `~/.codex`.
+- Tabs that are already open keep what they started with. Settings offers **Save and reopen** for them; the
+  conversation carries on.
+- The login lives in the CLIs (per Claude account), not in Aquila.
+
+<Aside type="note" title="Figma plans">
+  Some Figma features depend on your seat and plan: **Design to code** needs a Dev or Full seat, and **Code
+  Connect** may need an Organization plan. Aquila shows these as hints next to your plan; it doesn't enforce limits.
+  If the plan is unknown, see **Figma docs**.
+</Aside>
+
+## Turn a Figma link into a prompt
+
+Paste, type or drop a Figma link into a Claude or Codex tab. A row of chips appears over the terminal:
+
+| Group | Chip | Asks the agent to… |
+|---|---|---|
+| **Design** | **Compare with app** | compare the frame with the running app and fix spacing, color, type and size |
+| **Design** | **Comments → TODOs** | turn the file's comments into a TODO list, marking backend work |
+| **Build** | **Build with our components** | build the frame with your design system's components and tokens |
+| **Build** | **Get assets** | download the frame's assets |
+
+For a FigJam board you get **Flow → screens** (screens, states and backend TODOs) and **Comments → TODOs**.
+
+A chip adds its prompt after the link in your input — it doesn't press Enter. Press <kbd>Enter</kbd> to send, or
+dismiss the chips with **×**.
+
+<Aside type="tip">
+  In Claude tabs, **Compare with app** and **Build with our components** also ask Claude to check its work with
+  Claude in Chrome: open the Figma frame and the running app, compare them layer by layer, and fix what the MCP data
+  missed. Codex gets the MCP-only prompt.
+</Aside>
+
+## Compare the app with the design (Designer)
+
+Designer lives in the [preview](/en/docs/agents/preview/) of a project with Figma on.
+
+<Steps>
+
+1. Open the preview (<kbd>⇧⌘P</kbd>) and click **Designer**.
+
+2. Paste a Figma frame link into the **Figma link** field. The first time, log in to Figma inside the view; it
+   stays logged in.
+
+3. Pick a **Layout**: **Stacked**, **Side by side** or **Overlay**.
+
+</Steps>
+
+<Shot id="designer" caption="Overlay with Difference: only the pixels that differ stay bright." />
+
+**Overlay** captures both views and lays the Figma frame over the app:
+
+- Drag **Figma opacity** to fade between them.
+- Turn on **Difference**: identical pixels turn black and only what differs stays bright.
+- After the app changes, click ↻ (**Capture again**).
+
+**Send to agent** pastes both screenshots and a request to fix the differences into the focused Claude or Codex
+tab. As always, you press Enter.
+
+<Aside type="tip">
+  Use a Figma **prototype** link: it shows just the frame, without Figma's UI around it, so it lines up with the app
+  best.
+</Aside>
+
+With a Figma link open in Designer, [Select element](/en/docs/agents/preview/#point-the-agent-at-an-element) also
+adds the frame link and asks the agent to compare the picked element with the design.
+
+Figma is available for local projects only.

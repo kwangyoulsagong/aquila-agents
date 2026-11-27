@@ -1,0 +1,112 @@
+---
+title: Architecture
+description: How Aquila Agents fits together — main process and renderer, ptys, IPC, status, config and the notes index.
+sidebar:
+  order: 2
+---
+
+import { Aside, LinkCard } from '@astrojs/starlight/components';
+
+Aquila is one Electron window that hosts many real terminal sessions. The core idea: **embed the real CLIs in a pty,
+never reimplement them.** Chat, permission prompts and slash commands are the CLI's own; Aquila adds what a single
+terminal can't — many sessions across projects, status, attention, and panels around them.
+
+This page is the short tour. The full, detailed version lives in the repo:
+
+<LinkCard
+  title="docs/en/ARCHITECTURE.md"
+  description="Every subsystem in detail: sessions, status, restore, worktrees, graph, editor, extensions, build."
+  href="https://github.com/kwangyoulsagong/aquila-agents/blob/main/docs/en/ARCHITECTURE.md"
+/>
+
+## Two processes
+
+```
+┌──── Renderer (src/, React) ────┐   IPC    ┌──── Main (electron/, Node) ─────────┐
+│ sidebar, tabs, split view,     │◀────────▶│ window, IPC handlers                │
+│ panels, xterm terminals,       │ preload  │ one node-pty per session            │
+│ graph, note editor             │          │ config, state, hook receiver,       │
+│                                │          │ status engine, git, notes index     │
+└────────────────────────────────┘          └─────────────────────────────────────┘
+                                                   │ spawns (login + interactive shell)
+                                                   ▼
+                       claude --settings ~/.aquila/claude-hooks….json  |  codex  |  $SHELL
+```
+
+- **Main process** (`electron/`, Node, compiled to CommonJS) owns everything with side effects: the ptys, files in
+  `~/.aquila`, git, the local hook receiver, notifications, the menu bar, and the notes index.
+- **Renderer** (`src/`, React) draws the UI. It never touches Node or the file system directly.
+- **Preload** (`electron/preload.ts`) is the only bridge between them.
+
+## Sessions and ptys
+
+When you open a session, main spawns your login shell in the project folder and runs the CLI inside it:
+`$SHELL -l -i -c "<cmd>; exec $SHELL -l -i"`. So your `PATH`, version managers and aliases apply, and the tab drops
+back to a shell when the agent exits.
+
+Each session gets `AQUILA_TAB_ID` and a few other variables; Claude sessions on the personal account also get
+`CLAUDE_CONFIG_DIR`. pty output is batched (one message per frame, slower for sessions off screen) and flow-controlled:
+the renderer acknowledges what xterm has drawn, and main pauses a pty that gets too far ahead, so a flood never queues
+megabytes and <kbd>⌃C</kbd> stays instant.
+
+## IPC through one file
+
+Every channel is declared in `src/shared/api/types.ts`: the `IPC` names and the `AquilaApi` interface. Main implements
+the handlers, preload exposes them, and the renderer calls them through `api` from `@/shared/api` — never
+`window.aquila` or `ipcRenderer` directly. `types.ts` and `src/shared/i18n/dictionary.ts` are compiled into both
+processes, so they stay dependency-free.
+
+## Status: who needs you
+
+Main decides every session's status and pushes it to the renderer. Sources, most trusted first:
+
+| Source | For |
+|---|---|
+| OSC 7501 status reports in the pty output | Claude Code 2.1.295+, Codex 0.170+, anything in a shell tab that reports |
+| Claude hooks, posted to a receiver on `127.0.0.1` | Local Claude sessions |
+| Keys typed into the session | All sessions (e.g. typing while waiting → working) |
+| Output activity | CLIs that don't report: busy → working, quiet → done, marked as estimated |
+| Exit code | All sessions |
+
+Hooks are injected only into sessions Aquila starts, through `claude --settings ~/.aquila/claude-hooks….json` —
+the user's own Claude settings are never written. Each running app instance writes its own settings files with its
+port baked in and removes them on quit. Older Claude versions get a legacy, `curl`-based set.
+
+From statuses, `electron/notify.ts` drives notifications, the Dock badge and the "next waiting session" queue.
+
+## Config and state
+
+| File | Holds |
+|---|---|
+| `~/.aquila/config.json` | Projects, groups, accounts, language, appearance. Edited through pure, tested functions in `electron/config.ts`; a file that can't be read is never overwritten by project edits |
+| `~/.aquila/state.json` | Open tabs and split layout, rewritten on every change so a crash keeps them |
+| `~/.aquila/scrollback/` | Plain-text snapshots of each tab's output, for restore |
+
+Everything Aquila stores is under `~/.aquila`. See [Config](/en/docs/reference/config/) for the full list.
+
+## Notes graph and editor
+
+- **Index** (`electron/graph/`): runs in a `worker_thread`, only while a note source is enabled. It parses changed
+  `.md` files (titles, headings, links, tags, frontmatter, IDs), builds nodes and edges, caches them in
+  `~/.aquila/graph/`, and watches each source with one recursive `fs.watch`. It never writes to your notes.
+- **Graph view** (`src/widgets/knowledge-graph`): loaded lazily. Around is DOM + SVG; the Map's dots use sigma.js with
+  layout in a short-lived worker.
+- **Editor** (`src/features/edit-note`): CodeMirror 6, loaded lazily. It keeps the original text plus every change, and
+  a save applies only those changes, so untouched bytes and line endings stay identical. Writes are refused if the
+  file changed since it was read.
+
+## Renderer structure
+
+`src/` follows Feature-Sliced Design: `app → pages → widgets → features → entities → shared`. A layer imports only
+from layers below; other slices only through their public `index.ts`. ESLint enforces it, so `npm run lint` fails on
+a violation.
+
+UI is built from the design system in `design-system/` — semantic tokens in `tokens.css`, component styles in
+`components.css`, React components in `design-system/react/` — and every string comes from
+`src/shared/i18n/dictionary.ts` in Korean and English.
+
+<Aside type="tip">
+  The repo also has the [design system doc](https://github.com/kwangyoulsagong/aquila-agents/blob/main/docs/en/DESIGN-SYSTEM.md)
+  and the [task list](https://github.com/kwangyoulsagong/aquila-agents/blob/main/docs/en/TASKS.md), which records what
+  was built, why, and what's left over.
+</Aside>

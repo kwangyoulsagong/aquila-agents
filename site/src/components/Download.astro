@@ -1,0 +1,196 @@
+---
+import { ui, type Lang } from '../i18n/ui';
+import { RELEASES, DOWNLOAD_DMG, VERSION } from '../lib/links';
+import Logo from './Logo.astro';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = ui[lang].download;
+---
+
+<section class="section dl" id="download" aria-labelledby="dl-title">
+  <div class="dl__beam" aria-hidden="true"></div>
+  <div class="container dl__inner">
+    <div class="dl__logo" data-reveal>
+      <Logo size={96} />
+    </div>
+    <span class="eyebrow" data-reveal>{t.eyebrow}</span>
+    <h2 id="dl-title" class="h2 grad dl__title" data-reveal style="--i:1">{t.title}</h2>
+    <p class="lead" data-reveal style="--i:2">{t.sub}</p>
+
+    <div class="card dl__card" data-reveal style="--i:3">
+      <div class="dl__platform">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
+          ><path
+            d="M16.37 12.6c-.02-2.3 1.88-3.4 1.97-3.46-1.07-1.57-2.74-1.78-3.33-1.8-1.42-.15-2.77.83-3.49.83-.72 0-1.83-.81-3.01-.79-1.55.02-2.98.9-3.78 2.29-1.61 2.8-.41 6.94 1.16 9.21.77 1.11 1.68 2.36 2.88 2.31 1.16-.05 1.6-.75 3-.75s1.79.75 3.01.72c1.25-.02 2.04-1.13 2.8-2.25.88-1.29 1.24-2.54 1.26-2.6-.03-.01-2.42-.93-2.47-3.71ZM14.07 5.85c.64-.78 1.07-1.85.95-2.93-.92.04-2.03.61-2.69 1.38-.59.68-1.11 1.78-.97 2.83 1.02.08 2.07-.52 2.71-1.28Z"
+          ></path></svg
+        >
+        <div>
+          <strong>{t.mac.title}</strong>
+          <span>v{VERSION} · {t.mac.detail}</span>
+        </div>
+        <a class="btn btn--primary btn--lg" href={DOWNLOAD_DMG} download>{t.mac.cta}</a>
+      </div>
+      <div class="dl__steps">
+        <p class="dl__steps-title">{t.stepsTitle}</p>
+        <ol>
+          {t.steps.map((s) => <li>{s}</li>)}
+        </ol>
+        <pre
+          class="dl__cmd"><code>xattr -dr com.apple.quarantine "/Applications/Aquila Agents.app"</code><button type="button" class="dl__copy" data-copy aria-label="Copy">⧉</button></pre>
+      </div>
+    </div>
+    <a class="dl__all" href={RELEASES} rel="noopener">{t.releases} →</a>
+  </div>
+</section>
+
+<style>
+  .dl {
+    overflow: clip;
+    text-align: center;
+  }
+  .dl__beam {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    width: min(60rem, 140vw);
+    height: 100%;
+    transform: translateX(-50%);
+    background:
+      radial-gradient(40% 35% at 50% 20%, color-mix(in oklab, var(--color-action-primary) 22%, transparent), transparent 70%),
+      conic-gradient(from 180deg at 50% 0%, transparent 160deg, color-mix(in oklab, var(--color-action-primary) 12%, transparent) 180deg, transparent 200deg);
+    pointer-events: none;
+    z-index: -1;
+  }
+  .dl__inner {
+    display: grid;
+    justify-items: center;
+  }
+  .dl__logo {
+    margin-bottom: 2rem;
+    filter: drop-shadow(0 0 2.5rem var(--site-glow));
+    animation: float 6s ease-in-out infinite;
+  }
+  @keyframes float {
+    50% {
+      transform: translateY(-0.5rem);
+    }
+  }
+  .dl__title {
+    max-width: 44rem;
+  }
+  .dl__card {
+    width: min(44rem, 100%);
+    margin-top: 2.5rem;
+    text-align: left;
+  }
+  .dl__platform {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--site-line);
+  }
+  .dl__platform > svg {
+    width: 2.25rem;
+    height: 2.25rem;
+    flex: none;
+  }
+  .dl__platform div {
+    display: grid;
+    margin-right: auto;
+  }
+  .dl__platform strong {
+    font-size: 1.125rem;
+  }
+  .dl__platform span {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+  }
+  .dl__steps {
+    padding: 1.5rem;
+  }
+  .dl__steps-title {
+    margin: 0;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--color-text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .dl__steps ol {
+    margin: 0.875rem 0 0;
+    padding-left: 1.25rem;
+    display: grid;
+    gap: 0.5rem;
+    color: var(--color-text-secondary);
+  }
+  .dl__steps li::marker {
+    color: var(--color-action-primary);
+    font-family: var(--font-family-mono);
+  }
+  .dl__cmd {
+    position: relative;
+    margin: 1.25rem 0 0;
+    padding: 0.875rem 3rem 0.875rem 1rem;
+    border-radius: var(--radius-container);
+    border: 1px solid var(--site-line);
+    background: var(--color-bg-canvas);
+    font-family: var(--font-family-mono);
+    font-size: 0.8125rem;
+    overflow-x: auto;
+    color: var(--color-text-primary);
+  }
+  .dl__copy {
+    position: absolute;
+    top: 50%;
+    right: 0.5rem;
+    transform: translateY(-50%);
+    width: 2rem;
+    height: 2rem;
+    border-radius: var(--radius-control);
+    border: 0;
+    background: var(--color-bg-hover);
+    cursor: pointer;
+  }
+  .dl__copy[data-done] {
+    color: var(--color-status-done);
+  }
+  .dl__all {
+    margin-top: 1.5rem;
+    color: var(--color-text-secondary);
+    font-size: 0.9375rem;
+  }
+  .dl__all:hover {
+    color: var(--color-text-primary);
+  }
+  @media (max-width: 36rem) {
+    .dl__platform {
+      flex-wrap: wrap;
+    }
+    .dl__platform .btn {
+      flex: 1 1 100%;
+    }
+  }
+</style>
+
+<script>
+  document.querySelectorAll<HTMLButtonElement>('[data-copy]').forEach((b) => {
+    b.addEventListener('click', async () => {
+      const code = b.parentElement?.querySelector('code')?.textContent ?? '';
+      try {
+        await navigator.clipboard.writeText(code);
+        b.textContent = '✓';
+        b.dataset.done = '';
+        setTimeout(() => {
+          b.textContent = '⧉';
+          delete b.dataset.done;
+        }, 1500);
+      } catch {
+        /* clipboard blocked: the text is still selectable */
+      }
+    });
+  });
+</script>

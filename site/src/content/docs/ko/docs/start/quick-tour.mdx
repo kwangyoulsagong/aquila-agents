@@ -1,0 +1,112 @@
+---
+title: 빠른 둘러보기
+description: 빈 창에서 에이전트 두 개를 나란히 띄우고, 나를 기다리는 세션에 답하기까지 10분.
+sidebar:
+  order: 3
+---
+
+import { Aside, LinkCard, CardGrid } from '@astrojs/starlight/components';
+import Shot from '~/components/docs/Shot.astro';
+
+매일 누르게 될 단축키로 한 바퀴 돌아봐요. 프로젝트 하나와 `claude` CLI가 있어야 해요. 아직이라면
+[첫 실행](/ko/docs/start/first-run/)부터 하세요. Codex는 선택이라, 없으면 Codex 단계는 건너뛰어도 돼요.
+
+## 1. 프로젝트 추가
+
+사이드바 프로젝트 목록 아래의 **+ 프로젝트 추가**를 누르고 **내 Mac의 폴더…**를 골라 저장소를 선택해요. 이름과
+그룹을 확인하고 **추가**를 눌러요. Finder에서 폴더를 사이드바로 끌어다 놓아도 돼요.
+
+새 프로젝트가 선택돼요. 이 프로젝트에서 여는 세션마다 줄에 점이 하나씩 생겨요.
+
+→ 자세히: [프로젝트](/ko/docs/workspace/projects/)
+
+## 2. Claude 열기
+
+<kbd>⌘T</kbd>를 눌러요. 탭이 열리고 프로젝트 폴더에서 내 `claude`가 시작돼요. 터미널에서 실행할 때와 똑같이
+로그인, `CLAUDE.md`, MCP 서버, 슬래시 명령이 그대로예요.
+
+파일을 바꾸는 작은 일을 맡겨 봐요. 예: *"README에 짧은 사용법 섹션을 추가해 줘."*
+
+## 3. 옆에 Codex 열기
+
+<kbd>⌘D</kbd>로 오른쪽으로 분할해요. 새 빈 화면에 포커스가 가요. 이제 <kbd>⇧⌘T</kbd>를 누르면 같은 프로젝트의
+Codex가 그 화면에 열려요. (Codex가 없으면 <kbd>⌥⌘T</kbd>로 셸을 열어요.)
+
+<Shot id="split" caption="나란히 놓인 세션 두 개. 화면마다 머리줄과 상태 점이 있어요." />
+
+화면을 클릭하거나 <kbd>⌥⌘←</kbd> / <kbd>⌥⌘→</kbd>로 오가요.
+
+→ 자세히: [세션](/ko/docs/workspace/sessions/), [화면 분할](/ko/docs/workspace/split-panes/)
+
+## 4. 점 지켜보기
+
+탭, 화면 머리줄, 프로젝트 줄마다 상태 점이 있어요.
+
+- <span class="sdot" data-s="working"></span> **파랑**: 작업 중
+- <span class="sdot" data-s="waiting"></span> **주황**: 입력을 기다리는 중
+- <span class="sdot" data-s="done"></span> **초록**: 완료
+- <span class="sdot" data-s="error"></span> **빨강**: 오류
+
+이제 다른 일을 해 봐요. 다른 앱으로 가거나 다른 프로젝트를 골라요. Claude가 파일 수정이나 명령 실행 허락을
+구하며 멈추면 점이 **주황**으로 바뀌고 macOS **입력 필요** 알림이 떠요. Dock 아이콘에는 기다리는 세션 수가
+보여요.
+
+→ 자세히: [상태와 알림](/ko/docs/workspace/status/)
+
+## 5. 기다리는 세션으로 바로 가기
+
+<kbd>⌘J</kbd>를 눌러요. 다른 프로젝트에 있어도 기다리는 세션으로 데려다줘요. 터미널에서 평소처럼 답하면 돼요.
+여러 개가 기다리면 <kbd>⌘J</kbd>를 다시 눌러 오래 기다린 순서로 돌아요.
+
+알림을 눌러도 똑같이 가요.
+
+<Aside type="tip">
+  다른 앱에서도 이렇게 하고 싶다면 **⚙ 설정 → 전역 단축키…**에서
+  [전역 단축키](/ko/docs/workspace/status/#다른-앱에서-aquila-불러오기)를 정해요.
+</Aside>
+
+## 6. 바뀐 내용 리뷰
+
+Claude가 끝나면 점이 초록이 돼요. 보지 않던 세션이었다면 사이드바 **리뷰할 것**에도 바뀐 파일 수와 함께 올라와요.
+
+<kbd>⇧⌘G</kbd>로 변경 패널을 열어요. 프로젝트 작업 트리의 diff가 보이고, 파일이 저장될 때마다 갱신돼요. 줄을
+눌러 코멘트를 남기고 **코멘트 붙여넣기**를 누르면 세션 입력창에 들어가요. Enter는 직접 눌러요.
+
+<Shot id="changes" caption="변경 패널: 오른쪽에 바뀐 파일과 실시간 diff." />
+
+→ 자세히: [변경 패널](/ko/docs/agents/changes-panel/)
+
+## 7. ⌘K로 무엇이든 찾기
+
+<kbd>⌘K</kbd>를 누르고 이름 일부를 입력해요. 프로젝트, 열린 세션, *아래로 분할*이나 *변경사항* 같은 명령까지
+찾아요. 기다리는 세션이 맨 위에 와요. Enter로 이동하거나 실행해요.
+
+→ 자세히: [명령 팔레트](/ko/docs/workspace/command-palette/)
+
+## 8. 껐다 켜기
+
+앱을 종료(<kbd>⌘Q</kbd>)하고 다시 열어요. 탭과 분할이 돌아오고, Claude와 Codex는 대화를 이어서 열어요.
+
+→ 자세히: [복원과 전력](/ko/docs/workspace/restore-and-power/)
+
+## 방금 쓴 단축키
+
+| 키 | 동작 |
+|---|---|
+| <kbd>⌘T</kbd> | Claude 열기 |
+| <kbd>⇧⌘T</kbd> | Codex 열기 |
+| <kbd>⌥⌘T</kbd> | 셸 열기 |
+| <kbd>⌘D</kbd> | 오른쪽으로 분할 |
+| <kbd>⌥⌘←</kbd> <kbd>⌥⌘→</kbd> | 옆 분할로 이동 |
+| <kbd>⌘J</kbd> | 다음 대기 세션으로 |
+| <kbd>⇧⌘G</kbd> | 변경사항 보기 |
+| <kbd>⌘K</kbd> | 명령 팔레트 |
+
+모든 단축키는 [단축키](/ko/docs/reference/shortcuts/) 페이지와 앱의 <kbd>⌘/</kbd>에 있어요.
+
+## 다음으로
+
+<CardGrid>
+  <LinkCard title="워크트리" description="저장소 하나에서 에이전트 여러 개를 서로 부딪치지 않게 돌려요." href="/ko/docs/agents/worktrees/" />
+  <LinkCard title="Claude 계정" description="프로젝트마다 두 번째 Claude 로그인을 써요." href="/ko/docs/agents/claude-accounts/" />
+</CardGrid>
