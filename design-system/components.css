@@ -1255,7 +1255,12 @@ body {
 .c-suggest__proposal-text { flex: 1; min-width: 0; }
 
 /* ── Note editor (T67): CodeMirror live preview + outline / links column ─── */
-.c-editor { flex: 1; min-height: 0; display: flex; background: var(--color-bg-canvas); }
+.c-editor { flex: 1; min-height: 0; display: flex; background: var(--color-bg-canvas); container: editor / inline-size; }
+/* The writing column keeps ~480px: on a narrow panel the outline / links column gives way first (explorer 256 +
+ * side 240 + 480; raw lengths: custom properties can't be used in a container query). ☰ shows it again in full
+ * window or a wider panel. */
+@container editor (width < 720px) { .c-editor__side { display: none; } }
+@container editor (width < 976px) { .c-editor:has(.c-editor__explorer) .c-editor__side { display: none; } }
 .c-editor[hidden] { display: none; }
 .c-editor__main[hidden] { display: none; }
 .c-editor__main { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
@@ -1598,6 +1603,8 @@ body {
 /* The frontmatter as rows: key · value control · remove. The head folds them; edits splice only that key's lines. */
 .c-props { flex: none; border-bottom: 1px solid var(--color-border-subtle); background: var(--color-bg-surface); }
 .c-props__head { display: flex; align-items: center; gap: var(--space-inline-xs); min-height: var(--size-row); padding: 0 var(--space-inset-sm); }
+/* One line whatever the width: labels never break letter by letter. */
+.c-props__head > * { flex-shrink: 0; white-space: nowrap; }
 .c-props__toggle {
   display: flex; align-items: center; gap: var(--space-inline-xs); height: var(--size-control); padding: 0 var(--space-inline-xs);
   border: 0; border-radius: var(--radius-control); background: none; color: var(--color-text-secondary);

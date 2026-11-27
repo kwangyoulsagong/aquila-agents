@@ -1052,3 +1052,6 @@ save byte-exact, add the conveniences on top. Built in parallel worktrees, merge
   parent rows, compact single-child chains; "always / never" for the links question; no auto-scroll while dragging
   near the tree's edge; the Trash can't be undone from the app; the native context menu isn't driven by smoke (its
   actions are, through keys and hover buttons). Guide text / media not updated._
+  Follow-up: with the explorer, editor and side column in a ~990px panel the writing column was squeezed and the
+  properties head broke letter by letter: the side column now gives way below 720px (976px with the explorer), the
+  properties head stays on one line; the inline name field takes focus back if a click moved it.

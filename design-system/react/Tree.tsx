@@ -226,6 +226,14 @@ export function TreeInput({
         if (el && !el.dataset.ready) {
           el.dataset.ready = '1';
           el.setSelectionRange(0, selectUntil ?? el.value.length);
+          // A click that opened the field may still move focus (row / tree handlers, a folder's children loading):
+          // take it back once the frame settles, so the first key typed lands in the name.
+          requestAnimationFrame(() => {
+            if (el.isConnected && document.activeElement !== el) {
+              el.focus();
+              el.setSelectionRange(0, selectUntil ?? el.value.length);
+            }
+          });
         }
       }}
       onPointerDown={(e) => e.stopPropagation()}

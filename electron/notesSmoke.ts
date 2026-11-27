@@ -922,7 +922,7 @@ async function checkExplorer(c: Ctx): Promise<string | null> {
     c.win.webContents.insertText('archive');
     c.h.press(c.win, 'Enter', []);
     if (!(await poll(() => !!fs.statSync(at('specs/archive'), { throwIfNoEntry: false })?.isDirectory())))
-      return 'explorer: New folder did not make specs/archive';
+      return `explorer: New folder did not make specs/archive ${await c.js<string>(`JSON.stringify({ active: document.activeElement?.className, input: document.querySelector('.c-tree__input')?.value ?? null, note: document.querySelector('.c-explorer [role=status], .c-explorer__note')?.textContent ?? null })`)}`;
     if (!(await c.until(`!!${ROW('specs/archive')}`, 3000)))
       return 'explorer: the new empty folder is not listed';
 
