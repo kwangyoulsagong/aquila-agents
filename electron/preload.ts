@@ -138,6 +138,7 @@ const api: AquilaApi = {
   graphExtractNow: (id) => ipcRenderer.invoke(IPC.graphExtractNow, id),
   noteOpen: (path) => ipcRenderer.invoke(IPC.noteOpen, path),
   noteClose: (path) => ipcRenderer.send(IPC.noteClose, path),
+  noteRead: (path) => ipcRenderer.invoke(IPC.noteRead, path),
   noteWrite: (path, text, bom, baseMtime) =>
     ipcRenderer.invoke(IPC.noteWrite, { path, text, bom, baseMtime }),
   onNoteChanged: on(IPC.noteChanged),

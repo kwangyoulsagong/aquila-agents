@@ -1500,6 +1500,8 @@ export interface AquilaApi {
   /** Note editor (T67): reads a note of an enabled source and watches it until `noteClose`. Other paths → null. */
   noteOpen(path: string): Promise<NoteFile | null>;
   noteClose(path: string): void;
+  /** A plain read of a note (a table cell, a link mention, a conflict re-read): no watch, no "seen" baseline. */
+  noteRead(path: string): Promise<NoteFile | null>;
   /** Saves in place; refused (`changed`) when the file on disk isn't the one read at `baseMtime`. */
   noteWrite(path: string, text: string, bom: boolean, baseMtime: number): Promise<NoteWriteResult>;
   /** A note open in the editor changed on disk. */
@@ -2036,6 +2038,7 @@ export const IPC = {
   graphExtractNow: 'graph:extract-now',
   noteOpen: 'note:open',
   noteClose: 'note:close',
+  noteRead: 'note:read',
   noteWrite: 'note:write',
   noteChanged: 'note:changed',
   noteAttach: 'note:attach',

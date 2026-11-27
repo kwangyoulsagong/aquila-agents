@@ -9,15 +9,11 @@ export type WriteResult = 'ok' | 'refused' | 'changed' | 'failed';
  * plain UTF-8. An open editor sees the change like any other write on disk.
  */
 export async function writeProp(path: string, key: string, value: PropValue | null): Promise<WriteResult> {
-  const f = await api.noteOpen(path);
+  const f = await api.noteRead(path);
   if (!f) return 'refused';
-  try {
-    if (f.readOnly || f.truncated) return 'refused';
-    const next = value === null ? removeProp(f.text, key) : setProp(f.text, key, value);
-    if (next === f.text) return 'ok';
-    const r = await api.noteWrite(path, next, f.bom, f.mtime);
-    return r.ok ? 'ok' : r.reason;
-  } finally {
-    api.noteClose(path);
-  }
+  if (f.readOnly || f.truncated) return 'refused';
+  const next = value === null ? removeProp(f.text, key) : setProp(f.text, key, value);
+  if (next === f.text) return 'ok';
+  const r = await api.noteWrite(path, next, f.bom, f.mtime);
+  return r.ok ? 'ok' : r.reason;
 }

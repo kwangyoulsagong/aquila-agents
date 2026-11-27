@@ -126,6 +126,7 @@ import {
   saveAttachment,
   writeNote,
 } from './graph/note-file';
+import { noteReaders } from './graph/note-open';
 import { NoteSeen, NoteSeenStore } from './graph/note-seen';
 import { DevUrlTracker, orderTargets, PreviewViews, readLaunchJson } from './preview';
 import { EXT_SCHEME, ExtensionHost } from './extensions';
@@ -1172,15 +1173,14 @@ app.whenReady().then(async () => {
     const file = graph.notePath(String(p));
     return !!file && (await shell.openPath(file)) === '';
   });
-  ipcMain.handle(IPC.noteOpen, (_e, p: string) => {
-    const file = graph.notePath(String(p));
-    const note = file ? readNote(file) : null;
-    if (file && note) {
-      noteWatcher.watch(file);
-      void noteSeen.opened(file, note).catch(() => undefined);
-    }
-    return note;
+  const notes = noteReaders({
+    notePath: (p) => graph.notePath(p),
+    read: (f) => readNote(f),
+    watch: (f) => noteWatcher.watch(f),
+    opened: (f, n) => noteSeen.opened(f, n),
   });
+  ipcMain.handle(IPC.noteOpen, (_e, p: string) => notes.open(p));
+  ipcMain.handle(IPC.noteRead, (_e, p: string) => notes.read(p));
   ipcMain.on(IPC.noteClose, (_e, p: string) => noteWatcher.unwatch(path.resolve(String(p))));
   ipcMain.handle(
     IPC.noteWrite,

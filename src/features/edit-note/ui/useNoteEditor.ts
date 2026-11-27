@@ -104,8 +104,7 @@ export function useNoteEditor(host: HTMLElement | null, path: string, cb: Callba
           ui({ file: ss.file, saveState: ss.edits === edits || isClean(ss) ? 'saved' : 'unsaved' });
         } else if (res.reason === 'changed') {
           // Someone wrote first: show what's there now.
-          const disk = await api.noteOpen(path);
-          api.noteClose(path);
+          const disk = await api.noteRead(path);
           ss.conflict = disk ? { kind: 'changed', disk } : { kind: 'deleted' };
           ui({ conflict: ss.conflict, saveState: 'unsaved' });
         } else ui({ saveState: 'failed' });
