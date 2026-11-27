@@ -3,12 +3,17 @@ import type { NoteFsEntry } from '@/shared/api';
 import {
   ancestors,
   buildTree,
+  compareStatus,
+  edgeScroll,
   filterFiles,
   flatten,
+  groupByStatus,
   movedPath,
   naturalCompare,
   nextId,
   projectSourceIds,
+  stickyRows,
+  STATUS_PREFIX,
 } from './tree';
 
 const e = (rel: string, mtime = 0, extra: Partial<NoteFsEntry> = {}): NoteFsEntry => ({
@@ -140,5 +145,165 @@ describe('paths', () => {
     expect(projectSourceIds(sources, projects, 'p')).toEqual(['repo']);
     expect(projectSourceIds(sources, projects, 'q')).toEqual(['inner']);
     expect(projectSourceIds(sources, projects, null)).toEqual([]);
+  });
+});
+
+describe('group by status', () => {
+  const files = [
+    e('a/one.md', 1, { status: 'done' }),
+    e('b/two.md', 5, { status: 'In-Progress' }),
+    e('three.md', 2),
+    e('c/four.md', 3, { status: 'review' }),
+    e('d/five.md', 4, { status: 'todo' }),
+    e('six.md', 6, { status: 'blocked' }),
+    e('seven.md', 7, { status: 'in-progress' }),
+    e('eight.md', 8, { status: 'draft' }),
+  ];
+
+  it('orders values todo / draft → in progress → review → done → others → no status', () => {
+    expect(['done', '', 'zzz', 'review', 'draft', 'todo', 'doing', 'abc'].sort(compareStatus)).toEqual([
+      'todo',
+      'draft',
+      'doing',
+      'review',
+      'done',
+      'abc',
+      'zzz',
+      '',
+    ]);
+    expect(compareStatus('진행', '완료')).toBeLessThan(0);
+  });
+
+  it('makes one virtual folder per value (case ignored), notes inside by the sort, real paths kept', () => {
+    const tree = groupByStatus(files, 'modified');
+    expect(tree.folders.map((f) => [f.rel, f.name, f.count])).toEqual([
+      [`${STATUS_PREFIX}todo`, 'todo', 1],
+      [`${STATUS_PREFIX}draft`, 'draft', 1],
+      [`${STATUS_PREFIX}in-progress`, 'In-Progress', 2],
+      [`${STATUS_PREFIX}review`, 'review', 1],
+      [`${STATUS_PREFIX}done`, 'done', 1],
+      [`${STATUS_PREFIX}blocked`, 'blocked', 1],
+      [STATUS_PREFIX, '', 1],
+    ]);
+    expect(tree.folders[2]!.files.map((f) => f.rel)).toEqual(['seven.md', 'b/two.md']);
+    // Groups are open until closed (the set holds closed groups).
+    const rows = flatten(tree, new Set([`${STATUS_PREFIX}done`]));
+    expect(rows.find((r) => r.rel === `${STATUS_PREFIX}done`)).toMatchObject({ open: false, virtual: true });
+    expect(rows.some((r) => r.rel === 'a/one.md')).toBe(false);
+    expect(rows.find((r) => r.rel === 'b/two.md')).toMatchObject({
+      depth: 1,
+      parent: `${STATUS_PREFIX}in-progress`,
+    });
+  });
+});
+
+describe('folder notes', () => {
+  const files = [
+    e('specs/index.md'),
+    e('specs/README.md'),
+    e('specs/a.md'),
+    e('docs/README.md'),
+    e('docs/b.md'),
+    e('in-progress/In-Progress.md'),
+    e('in-progress/FE-REQ-1.md'),
+    e('plain/c.md'),
+    e('README.md'),
+  ];
+
+  it('index.md, then README.md, then a note named like the folder opens from the folder; hidden from its notes', () => {
+    const tree = buildTree(files, new Map(), 'name', { folderNotes: true });
+    const by = (n: string) => tree.folders.find((f) => f.name === n)!;
+    expect(by('specs').note?.rel).toBe('specs/index.md');
+    expect(by('specs').files.map((f) => f.name)).toEqual(['a', 'README']);
+    expect(by('docs').note?.rel).toBe('docs/README.md');
+    expect(by('in-progress').note?.rel).toBe('in-progress/In-Progress.md');
+    expect(by('in-progress').files.map((f) => f.name)).toEqual(['FE-REQ-1']);
+    expect(by('plain').note).toBeUndefined();
+    // The source root has no row: its README stays a note; counts include folder notes.
+    expect(tree.files.map((f) => f.name)).toEqual(['README']);
+    expect(by('specs').count).toBe(3);
+    const rows = flatten(tree, new Set(['docs']));
+    expect(rows.find((r) => r.rel === 'docs')).toMatchObject({ note: 'docs/README.md' });
+    expect(rows.filter((r) => r.parent === 'docs').map((r) => r.rel)).toEqual(['docs/b.md']);
+  });
+
+  it('off: folder notes are ordinary notes; a filter still finds a folder note', () => {
+    expect(buildTree(files).folders.every((f) => !f.note)).toBe(true);
+    const tree = buildTree(files, new Map(), 'name', { folderNotes: true });
+    const rows = flatten(tree, new Set(), filterFiles(files, 'docs/READ'));
+    expect(rows.map((r) => r.rel)).toEqual(['docs', 'docs/README.md']);
+  });
+});
+
+describe('compact folder chains', () => {
+  const files = [e('a/b/c/x.md'), e('a/b/c/y.md'), e('top/one/n.md'), e('top/two/m.md'), e('z.md')];
+
+  it('a folder holding only one folder is one row named by every segment; the row is the last folder', () => {
+    const tree = buildTree(files);
+    const rows = flatten(tree, new Set(['a/b/c']), null, { compact: true });
+    expect(rows.map((r) => [r.depth, r.rel, r.name, r.parent])).toEqual([
+      [0, 'a/b/c', 'a / b / c', ''],
+      [1, 'a/b/c/x.md', 'x', 'a/b/c'],
+      [1, 'a/b/c/y.md', 'y', 'a/b/c'],
+      [0, 'top', 'top', ''],
+      [0, 'z.md', 'z', ''],
+    ]);
+    expect(rows[0]!.chain).toEqual(['a', 'a/b', 'a/b/c']);
+    expect(rows[0]!.open).toBe(true);
+    // Closed by its last segment; an empty folder found later ends the chain there.
+    expect(flatten(tree, new Set(), null, { compact: true })[0]).toMatchObject({ rel: 'a/b/c', open: false });
+    const withEmpty = buildTree(files, new Map([['a/b', ['empty']]]));
+    expect(flatten(withEmpty, new Set(), null, { compact: true })[0]).toMatchObject({
+      rel: 'a/b',
+      name: 'a / b',
+    });
+  });
+
+  it('a folder with a folder note stops the chain; off or filtering shows every folder', () => {
+    const tree = buildTree([...files, e('a/b/index.md')], new Map(), 'name', { folderNotes: true });
+    expect(flatten(tree, new Set(), null, { compact: true })[0]).toMatchObject({
+      rel: 'a/b',
+      name: 'a / b',
+      note: 'a/b/index.md',
+    });
+    expect(flatten(buildTree(files), new Set())[0]).toMatchObject({ rel: 'a', name: 'a' });
+    const only = filterFiles(files, 'x');
+    expect(flatten(buildTree(files), new Set(), only, { compact: true }).map((r) => r.rel)).toEqual([
+      'a',
+      'a/b',
+      'a/b/c',
+      'a/b/c/x.md',
+    ]);
+  });
+});
+
+describe('sticky parent rows', () => {
+  // 0 specs ▸ 1 in-progress ▸ 2..11 notes, 12 done ▸ 13 note, 14 z.md
+  const parents = [-1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 12, -1];
+
+  it('pins the folders the first row in view sits in, outermost first', () => {
+    expect(stickyRows(parents, 0)).toEqual([]);
+    expect(stickyRows(parents, 1)).toEqual([0, 1]);
+    expect(stickyRows(parents, 5)).toEqual([0, 1]);
+    expect(stickyRows(parents, 11)).toEqual([0]);
+    expect(stickyRows(parents, 9)).toEqual([0, 1]);
+    // "done" holds one note: its pinned row would cover a row outside it, so nothing is pinned.
+    expect(stickyRows(parents, 12)).toEqual([]);
+    expect(stickyRows(parents, 13)).toEqual([]);
+    expect(stickyRows(parents, 14)).toEqual([]);
+    expect(stickyRows(parents, 5, 1)).toEqual([0]);
+  });
+});
+
+describe('auto-scroll while dragging', () => {
+  it('scrolls up near the top, down near the bottom, faster closer to the edge, not in the middle', () => {
+    expect(edgeScroll(150, 100, 500, 36)).toBe(0);
+    expect(edgeScroll(300, 100, 500, 36)).toBe(0);
+    expect(edgeScroll(102, 100, 500, 36)).toBeLessThan(edgeScroll(130, 100, 500, 36));
+    expect(edgeScroll(130, 100, 500, 36)).toBeLessThan(0);
+    expect(edgeScroll(495, 100, 500, 36)).toBeGreaterThan(edgeScroll(470, 100, 500, 36));
+    expect(edgeScroll(470, 100, 500, 36)).toBeGreaterThan(0);
+    expect(edgeScroll(90, 100, 500, 36, 16)).toBe(-16);
+    expect(edgeScroll(1000, 100, 500, 36)).toBe(0);
   });
 });

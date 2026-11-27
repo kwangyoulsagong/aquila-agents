@@ -235,4 +235,18 @@ describe('prefs', () => {
     expect(nfs.prefs('s')).toEqual({ pins: ['x.md'], recent: [], sort: 'modified' });
     expect(nfs.prefs('other')).toEqual({ pins: [], recent: [], sort: 'name' });
   });
+
+  it('keep the view toggles and the links answer only when they differ from the defaults', () => {
+    const base = { pins: [], recent: [], sort: 'name' };
+    expect(
+      cleanPrefs({ ...base, group: 'status', folderNotes: false, compact: false, links: 'always' }),
+    ).toEqual({ ...base, group: 'status', folderNotes: false, compact: false, links: 'always' });
+    expect(cleanPrefs({ ...base, group: 'folder', folderNotes: true, compact: 1, links: 'ask' })).toEqual(
+      base,
+    );
+    expect(cleanPrefs({ ...base, links: 'never', group: 'weird' })).toEqual({ ...base, links: 'never' });
+    const { nfs } = setup({});
+    nfs.setPrefs('s', { ...base, links: 'never' });
+    expect(nfs.prefs('s').links).toBe('never');
+  });
 });

@@ -19,7 +19,15 @@ export interface TreeFolder {
   files: TreeFile[];
   /** Notes inside, all levels. */
   count: number;
+  /** Its folder note (`index.md`, `README.md` or `<folder>/<folder>.md`), kept out of `files`; opened by its name. */
+  note?: TreeFile;
+  /** A group of the "by status" view, not a folder on disk. */
+  virtual?: boolean;
 }
+
+/** Virtual folders of the "by status" view: `:status:<value>` (`:` can't be in a name the app makes). */
+export const STATUS_PREFIX = ':status:';
+export const isVirtual = (rel: string) => rel.startsWith(STATUS_PREFIX);
 
 const collator = new Intl.Collator(['ko', 'en'], { numeric: true, sensitivity: 'base' });
 /** Natural order: numbers by value, case and accents ignored, Korean in 가나다 order. */
@@ -57,6 +65,7 @@ export function buildTree(
   files: readonly NoteFsEntry[],
   dirs: ReadonlyMap<string, readonly string[]> = new Map(),
   sort: NoteFsSort = 'name',
+  opts: { folderNotes?: boolean } = {},
 ): TreeFolder {
   const root: TreeFolder = { kind: 'folder', rel: '', name: '', folders: [], files: [], count: 0 };
   const byRel = new Map<string, TreeFolder>([['', root]]);
@@ -84,10 +93,78 @@ export function buildTree(
   }
   const walk = (f: TreeFolder) => {
     f.folders.sort((a, b) => naturalCompare(a.name, b.name));
+    if (opts.folderNotes && f.rel) {
+      const note = folderNoteOf(f);
+      if (note) {
+        f.note = note;
+        f.files = f.files.filter((x) => x !== note);
+      }
+    }
     sortFiles(f.files, sort);
     f.folders.forEach(walk);
   };
   walk(root);
+  return root;
+}
+
+/** A folder's own note: `index.md`, then `README.md`, then one named like the folder (case ignored). */
+export function folderNoteOf(f: Pick<TreeFolder, 'name' | 'files'>): TreeFile | undefined {
+  const by = (n: string) => f.files.find((x) => x.name.toLowerCase() === n.toLowerCase());
+  return by('index') ?? by('readme') ?? by(f.name);
+}
+
+/** Known `status:` values in workflow order; anything else after them (by name), no status last. */
+const STATUS_ORDER = [
+  ['todo', 'to do', 'to-do', 'draft', 'backlog', 'open', 'new', 'planned', '할 일', '초안', '예정'],
+  ['in-progress', 'in progress', 'doing', 'active', 'wip', 'started', '진행', '진행 중', '진행중'],
+  ['review', 'in-review', 'in review', 'reviewing', '검토', '리뷰'],
+  ['done', 'complete', 'completed', 'closed', 'resolved', 'merged', '완료', '끝'],
+];
+const statusPlace = (value: string): [number, number] => {
+  const v = value.trim().toLowerCase();
+  for (let g = 0; g < STATUS_ORDER.length; g++) {
+    const i = STATUS_ORDER[g]!.indexOf(v);
+    if (i >= 0) return [g, i];
+  }
+  return [STATUS_ORDER.length, 0];
+};
+/** Orders status values: todo / draft → in progress → review → done → others (natural) → '' (no status). */
+export function compareStatus(a: string, b: string): number {
+  if (!a || !b) return Number(!a) - Number(!b);
+  const [ga, ia] = statusPlace(a);
+  const [gb, ib] = statusPlace(b);
+  return ga - gb || ia - ib || naturalCompare(a, b);
+}
+
+/**
+ * The "by status" view: one virtual folder per `status:` value (case ignored; shown as first seen), in workflow order
+ * (see `compareStatus`), "no status" last (`name` ''). Notes inside by `sort`; their `rel` stays the real path.
+ */
+export function groupByStatus(files: readonly NoteFsEntry[], sort: NoteFsSort = 'name'): TreeFolder {
+  const root: TreeFolder = { kind: 'folder', rel: '', name: '', folders: [], files: [], count: 0 };
+  const groups = new Map<string, TreeFolder>();
+  for (const e of files) {
+    const value = e.status?.trim() ?? '';
+    const key = value.toLowerCase();
+    let g = groups.get(key);
+    if (!g) {
+      g = {
+        kind: 'folder',
+        rel: STATUS_PREFIX + key,
+        name: value,
+        folders: [],
+        files: [],
+        count: 0,
+        virtual: true,
+      };
+      groups.set(key, g);
+    }
+    g.files.push({ kind: 'file', rel: e.rel, name: stripMd(baseName(e.rel)), entry: e });
+    g.count++;
+    root.count++;
+  }
+  root.folders = [...groups.values()].sort((a, b) => compareStatus(a.name, b.name));
+  for (const g of root.folders) sortFiles(g.files, sort);
   return root;
 }
 
@@ -101,7 +178,24 @@ export interface Row {
   entry?: NoteFsEntry;
   /** Matched character indices in `name` (filter). */
   matches?: number[];
+  /** The row it sits under (`''` at the top): the parent folder's `rel`, or the group's. */
+  parent: string;
+  /** Folders: the folder note opened by a click on the name. */
+  note?: string;
+  /** Compact chain (`a / b / c`): every folder on it, outermost first; `rel` is the last one. */
+  chain?: string[];
+  /** A group of the "by status" view. */
+  virtual?: boolean;
 }
+
+export interface FlattenOptions {
+  /** A folder whose only child is one folder shows as one row `a / b / c` (not while filtering). */
+  compact?: boolean;
+}
+
+/** A virtual group is open unless it was closed (`expanded` holds the closed ones); real folders the other way. */
+export const isOpen = (rel: string, expanded: ReadonlySet<string>) =>
+  isVirtual(rel) ? !expanded.has(rel) : expanded.has(rel);
 
 /**
  * The rows on screen: open folders' contents, in order. With a filter (`only`: the matching notes), only those
@@ -111,32 +205,93 @@ export function flatten(
   root: TreeFolder,
   expanded: ReadonlySet<string>,
   only: ReadonlyMap<string, number[]> | null = null,
+  opts: FlattenOptions = {},
 ): Row[] {
   const out: Row[] = [];
   const keep = (f: TreeFolder): boolean =>
-    !only || f.files.some((x) => only.has(x.rel)) || f.folders.some(keep);
+    !only ||
+    f.files.some((x) => only.has(x.rel)) ||
+    (!!f.note && only.has(f.note.rel)) ||
+    f.folders.some(keep);
+  const fileRow = (x: TreeFile, depth: number, parent: string) => {
+    if (only && !only.has(x.rel)) return;
+    const m = only?.get(x.rel);
+    out.push({
+      kind: 'file',
+      rel: x.rel,
+      name: x.name,
+      depth,
+      parent,
+      entry: x.entry,
+      ...(m?.length ? { matches: m } : {}),
+    });
+  };
   const walk = (f: TreeFolder, depth: number) => {
-    for (const d of f.folders) {
-      if (!keep(d)) continue;
-      const open = only ? true : expanded.has(d.rel);
-      out.push({ kind: 'folder', rel: d.rel, name: d.name, depth, count: d.count, open });
+    for (const first of f.folders) {
+      if (!keep(first)) continue;
+      // A chain of folders each holding only the next one: one row, named by every segment.
+      let d = first;
+      const chain = [first.rel];
+      if (opts.compact && !only)
+        while (!d.virtual && !d.files.length && !d.note && d.folders.length === 1) {
+          d = d.folders[0]!;
+          chain.push(d.rel);
+        }
+      const open = only ? true : isOpen(d.rel, expanded);
+      out.push({
+        kind: 'folder',
+        rel: d.rel,
+        name: chain.length > 1 ? chain.map(baseName).join(' / ') : d.name,
+        depth,
+        count: d.count,
+        open,
+        parent: f.rel,
+        ...(d.note ? { note: d.note.rel } : {}),
+        ...(chain.length > 1 ? { chain } : {}),
+        ...(d.virtual ? { virtual: true } : {}),
+      });
       if (open) walk(d, depth + 1);
     }
-    for (const x of f.files) {
-      if (only && !only.has(x.rel)) continue;
-      const m = only?.get(x.rel);
-      out.push({
-        kind: 'file',
-        rel: x.rel,
-        name: x.name,
-        depth,
-        entry: x.entry,
-        ...(m?.length ? { matches: m } : {}),
-      });
-    }
+    // While filtering, a matching folder note shows as a note of its folder.
+    if (only && f.note) fileRow(f.note, depth, f.rel);
+    for (const x of f.files) fileRow(x, depth, f.rel);
   };
   walk(root, 0);
   return out;
+}
+
+/**
+ * The rows pinned at the top while scrolling (VS Code "sticky scroll"): the folders the first row under them sits
+ * in, outermost first, at most `max`. `parents[i]`: the index of row i's parent row, or -1; `top`: the index of the
+ * first row in view.
+ */
+export function stickyRows(parents: readonly number[], top: number, max = 5): number[] {
+  const chain = (i: number) => {
+    const up: number[] = [];
+    for (let p = parents[i] ?? -1; p >= 0; p = parents[p] ?? -1) up.unshift(p);
+    return up;
+  };
+  if (top <= 0 || top >= parents.length) return [];
+  // The pinned rows cover as many rows as they are: settle on S rows whose first row below them sits in at most S
+  // folders (a folder's last rows let its pinned row go rather than cover a row outside it).
+  for (let n = 0; n <= max; n++) {
+    const below = top + n;
+    if (below >= parents.length) return [];
+    const up = chain(below);
+    if (up.length <= n) return up;
+  }
+  return chain(Math.min(parents.length - 1, top + max)).slice(0, max);
+}
+
+/**
+ * Pixels to scroll per frame while dragging at `y` in a list from `top` to `bottom`: up (negative) or down within
+ * `zone` of an edge, faster closer to it, 0 elsewhere (and outside the list).
+ */
+export function edgeScroll(y: number, top: number, bottom: number, zone: number, max = 16): number {
+  if (y < top - zone || y > bottom + zone || bottom - top < zone * 2) return 0;
+  if (y < top + zone) return -Math.ceil(max * Math.min(1, (top + zone - y) / zone));
+  if (y > bottom - zone) return Math.ceil(max * Math.min(1, (y - (bottom - zone)) / zone));
+  return 0;
 }
 
 /**

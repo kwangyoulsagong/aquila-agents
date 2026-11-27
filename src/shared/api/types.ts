@@ -1148,7 +1148,17 @@ export interface NoteFsPrefs {
   pins: string[];
   recent: string[];
   sort: NoteFsSort;
+  /** Folders as on disk (default) or virtual folders by frontmatter `status:`. */
+  group?: 'folder' | 'status';
+  /** A folder's `index.md` / `README.md` / `<folder>.md` opens from its name (default on). */
+  folderNotes?: boolean;
+  /** A chain of single-child folders shows as one row `a / b / c` (default on). */
+  compact?: boolean;
+  /** After a rename / move: ask to fix links (default), always fix them, or never. */
+  links?: NoteFsLinks;
 }
+
+export type NoteFsLinks = 'ask' | 'always' | 'never';
 
 export type VaultMoveResult =
   { ok: true; path: string } | { ok: false; reason: 'exists' | 'refused' | 'failed' };

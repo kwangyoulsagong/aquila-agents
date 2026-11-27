@@ -116,6 +116,11 @@ export function cleanPrefs(raw: unknown): NoteFsPrefs {
     pins: strings(o.pins, 50),
     recent: strings(o.recent, 20),
     sort: SORTS.includes(o.sort as NoteFsSort) ? (o.sort as NoteFsSort) : 'name',
+    // Only what differs from the defaults is kept.
+    ...(o.group === 'status' ? { group: 'status' as const } : {}),
+    ...(o.folderNotes === false ? { folderNotes: false } : {}),
+    ...(o.compact === false ? { compact: false } : {}),
+    ...(o.links === 'always' || o.links === 'never' ? { links: o.links } : {}),
   };
 }
 

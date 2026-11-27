@@ -31,7 +31,8 @@ export function Explorer({
 
 /**
  * `.c-tree` — a scrolling, focusable tree whose rows are placed absolutely (`TreeRow` `top`), so only the rows in
- * view need to be rendered. `height` is the whole list's height.
+ * view need to be rendered. `height` is the whole list's height. `sticky`: rows pinned at the top while scrolling
+ * (`.c-tree__sticky`, the folders the first row in view sits in; `TreeRow` `top` from 0 there).
  */
 export function Tree({
   label,
@@ -39,6 +40,8 @@ export function Tree({
   scrollRef,
   onScroll,
   onKeyDown,
+  onContextMenu,
+  sticky,
   children,
 }: {
   label: string;
@@ -46,6 +49,9 @@ export function Tree({
   scrollRef?: Ref<HTMLDivElement>;
   onScroll?: (e: UIEvent<HTMLDivElement>) => void;
   onKeyDown?: (e: KeyboardEvent<HTMLDivElement>) => void;
+  /** Right-click on the tree's empty space (rows handle their own). */
+  onContextMenu?: (e: MouseEvent<HTMLDivElement>) => void;
+  sticky?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -58,7 +64,9 @@ export function Tree({
       ref={scrollRef}
       onScroll={onScroll}
       onKeyDown={onKeyDown}
+      onContextMenu={onContextMenu}
     >
+      {sticky ? <div className="c-tree__sticky">{sticky}</div> : null}
       <div className="c-tree__spacer" style={{ height }}>
         {children}
       </div>
@@ -103,6 +111,14 @@ export interface TreeRowProps {
   editor?: ReactNode;
   /** `data-rel`: what the row is (drag and drop looks rows up by it). */
   rel: string;
+  /** Folders: a click on the chevron (the rest of the row is `onClick`). Without it the whole row is one target. */
+  onToggle?: (e: MouseEvent<HTMLSpanElement>) => void;
+  /** Folders with a folder note: the marker's label (a click on the name opens that note). */
+  folderNote?: string;
+  /** A group, not a folder on disk ("by status"). */
+  virtual?: boolean;
+  /** A copy pinned in `.c-tree__sticky`. */
+  sticky?: boolean;
   onClick?: (e: MouseEvent<HTMLDivElement>) => void;
   onContextMenu?: (e: MouseEvent<HTMLDivElement>) => void;
   onPointerDown?: (e: PointerEvent<HTMLDivElement>) => void;
@@ -145,6 +161,9 @@ export function TreeRow(p: TreeRowProps) {
       data-cursor={p.cursor || undefined}
       data-drop={p.drop || undefined}
       data-dragging={p.dragging || undefined}
+      data-folder-note={p.folderNote ? '' : undefined}
+      data-virtual={p.virtual || undefined}
+      data-sticky={p.sticky || undefined}
       title={p.title}
       style={{ top: p.top, '--level': p.level } as CSSProperties}
       onClick={p.onClick}
@@ -152,13 +171,27 @@ export function TreeRow(p: TreeRowProps) {
       onPointerDown={p.onPointerDown}
     >
       {p.kind === 'folder' ? (
-        <span className="c-tree__twisty" aria-hidden>
+        <span
+          className="c-tree__twisty"
+          aria-hidden
+          onClick={
+            p.onToggle
+              ? (e) => {
+                  e.stopPropagation();
+                  p.onToggle!(e);
+                }
+              : undefined
+          }
+        >
           ›
         </span>
       ) : (
         <span className="c-tree__icon" aria-hidden />
       )}
       {p.editor ?? <span className="c-tree__name">{highlight(p.name, p.matches)}</span>}
+      {p.folderNote && !p.editor && (
+        <i className="c-tree__mark" title={p.folderNote} aria-label={p.folderNote} />
+      )}
       {p.dot && (
         <i className="c-tree__dot" data-tone={p.dot.tone} title={p.dot.label} aria-label={p.dot.label} />
       )}
