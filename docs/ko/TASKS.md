@@ -956,3 +956,12 @@ T66–T70은 그 타입에 맞춰 각자 워크트리에서 병렬로 진행한�
 - [x] **백그라운드 검증**: `npm run smoke:hidden` / `perf:hidden` (`AQUILA_HIDDEN=1`): 창 불투명도 1%, 클릭 통과,
   포커스 안 가져감, Dock 아이콘 없음 — 화면에 아무것도 안 뜸. smoke는 릴리스 노트와 일일 노트의 세션을 기다리며 확인;
   공유 스냅샷이 오래된 채 열린 화면은 바로 받음; 결과가 오기 전 그래프 검색 Enter는 첫 결과를 고름.
+- [x] **T77–T82 smoke** (`electron/notesSmoke.ts`, `task/notes-smoke`): smoke가 확인 — T77 ⌥⇧↓(글머리 목록, 번호
+  다시 매기는 번호 목록), ⋮⋮ 핸들 드래그, IME로 `/할`(조합 중 Enter 무시)과 `/todo`; T78 속성 패널 수정, 표 보기
+  정렬 / 상태 칩 / 셀 수정; T79 defined / duplicate / unknown 표시, 호버 카드, ⌘-클릭, 링크(확인 후),
+  "참조된 곳 · FE-REQ-901"; T80 바 줄 수, diff, 덩어리 되돌리기, 확인함; T81 메일 헤더, 준비된 답, 관련 노트, 노트로
+  저장(`type: brief`), 편집기 머리 버튼; T82 머리글, 카드, ⌘E 읽기 모드 — 모두 디스크 바이트 그대로, 스크린샷
+  `dist/smoke-{blocks,properties,table,ids,review,brief,look,look-reading}.png`.
+  고친 것: 읽기 모드에서 `readOnly`가 false로 남아 Backspace / ⌥⇧↓가 글을 바꿨음; 그래프 기본 중심이 효과가 돌기 전
+  고른 검색 결과 위에 얹힐 수 있었음("search + Enter" 플레이크).
+  _남은 것: PDF 입력(PDFKit)과 참조된 곳의 세션 / 파일 줄은 smoke가 누르지 않음._

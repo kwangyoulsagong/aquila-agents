@@ -997,3 +997,12 @@ save byte-exact, add the conveniences on top. Built in parallel worktrees, merge
   opaque, click-through, never focused, no Dock icon — nothing on screen. Smoke polls the release notes and the daily
   note's sessions; a view that opens while the shared snapshot is stale fetches at once; Enter in graph search before
   results arrive takes the first match.
+- [x] **Smoke for T77–T82** (`electron/notesSmoke.ts`, `task/notes-smoke`): smoke covers T77 ⌥⇧↓ (bullet and
+  renumbered numbered list), the ⋮⋮ handle drag, `/할` through the IME (Enter while composing ignored) and `/todo`;
+  T78 panel edit, Table view sort / status chip / cell edit; T79 defined / duplicate / unknown marks, hover card,
+  ⌘-click, Link (confirmed), "Referenced in · FE-REQ-901"; T80 bar counts, diff, Revert hunk, Mark as seen; T81
+  email headers, canned reply, related note, Save as note (`type: brief`), editor head button; T82 header, cards,
+  ⌘E reading mode — each byte-exact on disk, screenshots `dist/smoke-{blocks,properties,table,ids,review,brief,look,look-reading}.png`.
+  Fixed on the way: reading mode left `readOnly` false (Backspace / ⌥⇧↓ still edited); the graph's default centre
+  could land on top of a search pick made before its effect ran (the "search + Enter" flake).
+  _Left over: PDF input (PDFKit) and the Referenced-in session / file rows aren't driven by smoke._
