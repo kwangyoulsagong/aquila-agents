@@ -206,3 +206,76 @@ describe('slashInsert', () => {
     expect(run('text\n\n/d|', 'divider')).toBe('text\n\n---\n|');
   });
 });
+describe('ordered lists are renumbered', () => {
+  const del = (src: string, line: number) => {
+    const { p, b } = at(src, line);
+    return applyEdits(src, deleteBlock(p, b));
+  };
+
+  it('after a move, keeping the start number and the delimiter', () => {
+    expect(move('1. a\n2. b\n3. c\n', 2, 0, 'before')).toBe('1. c\n2. a\n3. b\n');
+    expect(move('1. a\n2. b\n3. c\n', 0, 2, 'after')).toBe('1. b\n2. c\n3. a\n');
+    expect(step('5) a\n6) b\n7) c', 1, 1)).toBe('5) a\n6) c\n7) b');
+  });
+
+  it('touches only the number tokens', () => {
+    expect(move('1.  a\r\n2.  b\r\n\r\ntail 9. x\r\n', 1, 0, 'before')).toBe(
+      '1.  b\r\n2.  a\r\n\r\ntail 9. x\r\n',
+    );
+  });
+
+  it('keeps a list numbered 1. 1. 1. as it is', () => {
+    expect(move('1. a\n1. b\n1. c', 2, 0, 'before')).toBe('1. c\n1. a\n1. b');
+  });
+
+  it('after a delete and a duplicate', () => {
+    expect(del('1. a\n2. b\n3. c', 0)).toBe('1. b\n2. c');
+    expect(del('3. a\n4. b\n5. c', 1)).toBe('3. a\n4. c');
+    const d = at('1. a\n2. b', 0);
+    expect(applyEdits(d.p.src, duplicateBlock(d.p, d.b))).toBe('1. a\n2. a\n3. b');
+  });
+
+  it('after turning an item into another kind, or a paragraph into an item', () => {
+    expect(turn('1. a\n2. b\n3. c', 0, 'bullet')).toBe('- a\n1. b\n2. c');
+    expect(turn('1. a\n2. b\n\npara', 3, 'ordered')).toBe('1. a\n2. b\n\n3. para');
+  });
+
+  it('renumbers both lists when an item moves from one to another, nested lists too', () => {
+    expect(move('1. a\n2. b\n\npara\n\n1. x\n2. y', 0, 6, 'before')).toBe('1. b\n\npara\n\n1. x\n2. a\n3. y');
+    expect(move('- p\n  1. a\n  2. b\n  3. c', 3, 1, 'before')).toBe('- p\n  1. c\n  2. a\n  3. b');
+  });
+
+  it('leaves other lists alone', () => {
+    expect(move('1. a\n2. b\n\npara\n\n4. x\n9. y', 1, 0, 'before')).toBe('1. b\n2. a\n\npara\n\n4. x\n9. y');
+  });
+
+  it('maps the cursor past a number that got longer', () => {
+    const src = '8. a\n9. b\n10. c\n\nZ';
+    const p = parseBlocks(src);
+    const r = moveBlock(p, blockAtLine(p.blocks, 4)!.block, blockAtLine(p.blocks, 0)!.block, 'before')!;
+    const out = applyEdits(src, r.changes);
+    expect(out).toBe('Z\n\n8. a\n9. b\n10. c');
+    expect(r.map(src.indexOf('Z'))).toBe(0);
+  });
+});
+
+describe('moving into another container', () => {
+  it('a paragraph moved in as a list item first child gets a blank line, so it is not the item text', () => {
+    expect(move('- a\n  - c\n\nP', 3, 1, 'before')).toBe('- a\n\n  P\n  - c');
+  });
+
+  it('a paragraph between ordered items is kept apart by blank lines', () => {
+    expect(move('1. a\n2. b\n\nP', 3, 0, 'after')).toBe('1. a\n\nP\n\n2. b');
+  });
+});
+
+describe('mixed line endings', () => {
+  it('moved lines keep their own endings through the byte-exact save', () => {
+    const original = 'top\n\n> one\r\n> two\n\nend\r\n';
+    const doc = docOf(original);
+    const p = parseBlocks(doc.toString());
+    const r = moveBlock(p, blockAtLine(p.blocks, 2)!.block, blockAtLine(p.blocks, 0)!.block, 'before')!;
+    const saved = applyChanges(original, ChangeSet.of(r.changes, doc.length));
+    expect(saved).toBe('> one\r\n> two\n\ntop\n\nend\r\n');
+  });
+});

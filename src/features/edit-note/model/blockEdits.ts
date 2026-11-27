@@ -1,4 +1,4 @@
-import { LIST_MARK, locate, type Block, type BlockKind, type Line, type Parsed } from './blocks';
+import { LIST_MARK, locate, parseBlocks, type Block, type BlockKind, type Line, type Parsed } from './blocks';
 import { lineSeparator } from './serialize';
 
 // Block operations as text splices (T77). Each returns the changes against the source (offsets into it, sorted,
@@ -51,8 +51,12 @@ function tightOk(a: Block, b: Block): boolean {
       listy(b.kind) ||
       (b.kind !== 'paragraph' && b.kind !== 'image' && b.kind !== 'raw' && interrupting(b.kind))
     );
-  return a.kind === 'paragraph' && interrupting(b.kind);
+  return a.kind === 'paragraph' && interruptsText(b.kind);
 }
+
+/** Kinds that can start right under a line of paragraph text. An ordered item can't (only `1.` may, and the
+ * numbers change), so it gets a blank line. */
+const interruptsText = (k: BlockKind) => interrupting(k) && k !== 'ordered';
 
 const breaks = (gap: string) => (gap.match(/\r\n?|\n/g) ?? []).length;
 /** A gap (the text between two blocks, starting with the first one's line break) is enough to keep them apart. */
@@ -111,7 +115,16 @@ function placement(
   const text = reindent(body, moved.indent, target.indent);
   if (y) {
     const gap = x ? between(p.src, x, y) : null;
-    const pre = x && !enough(gap, x, moved) ? sep : '';
+    // The first child of a list item sits right under the item's own text: a block that can't interrupt a
+    // paragraph there would read as more of that text, so it gets a blank line above.
+    const underText =
+      !x &&
+      !!loc?.parent &&
+      y.line > 0 &&
+      !!p.lines[y.line - 1]!.text.trim() &&
+      !interruptsText(moved.kind) &&
+      !(listy(moved.kind) && listy(y.kind)); // an item joining the list already there
+    const pre = (x && !enough(gap, x, moved)) || underText ? sep : '';
     const post =
       own !== null && listy(moved.kind) && listy(y.kind)
         ? own
@@ -159,14 +172,18 @@ export function moveBlock(p: Parsed, b: Block, target: Block, side: Side): MoveR
   const body = p.src.slice(b.from, b.to);
   const remove = cut(p, b);
   const { change: insert, lead } = placement(p, body, b, target, side, remove.gap);
-  const changes = remove.from < insert.from ? [remove, insert] : [insert, remove];
-  if (applyEdits(p.src, changes) === p.src) return null;
-  const start = mapPos(changes, insert.from) + lead;
+  const moved = remove.from < insert.from ? [remove, insert] : [insert, remove];
+  if (applyEdits(p.src, moved) === p.src) return null;
+  const start = mapPos(moved, insert.from) + lead;
+  const { changes, edits } = renumber(p.src, moved);
   return {
     changes,
     map: (pos) =>
-      start +
-      reindent(body.slice(0, Math.max(0, Math.min(pos, b.to) - b.from)), b.indent, target.indent).length,
+      shift(
+        edits,
+        start +
+          reindent(body.slice(0, Math.max(0, Math.min(pos, b.to) - b.from)), b.indent, target.indent).length,
+      ),
   };
 }
 
@@ -182,13 +199,132 @@ export function stepTarget(p: Parsed, b: Block, dir: -1 | 1): { target: Block; s
 /** A copy of `b` right under it. */
 export function duplicateBlock(p: Parsed, b: Block): Change[] {
   if (b.kind === 'frontmatter') return [];
-  return [placement(p, p.src.slice(b.from, b.to), b, b, 'after', cut(p, b).gap).change];
+  return renumbered(p.src, [placement(p, p.src.slice(b.from, b.to), b, b, 'after', cut(p, b).gap).change]);
 }
 
 /** Removes `b` (with its nested blocks) and one gap beside it. */
 export function deleteBlock(p: Parsed, b: Block): Change[] {
   const { from, to, insert } = cut(p, b);
-  return [{ from, to, insert }];
+  return renumbered(p.src, [{ from, to, insert }]);
+}
+
+// ---- Ordered lists ----
+
+/** An ordered item's number token (offsets into the source), its value and its delimiter (`.` or `)`). */
+function numberOf(lines: Line[], b: Block): { from: number; to: number; n: number; delim: string } | null {
+  if (!listy(b.kind)) return null;
+  const l = lines[b.line]!;
+  const ind = l.text.length - l.text.trimStart().length;
+  const m = /^(\d{1,9})([.)])/.exec(l.text.slice(ind));
+  if (!m) return null;
+  return { from: l.from + ind, to: l.from + ind + m[1]!.length, n: Number(m[1]), delim: m[2]! };
+}
+
+/** Lists: runs of sibling ordered items with the same delimiter, at every depth. */
+function orderedRuns(blocks: Block[], lines: Line[], out: Block[][] = []): Block[][] {
+  let run: Block[] | null = null;
+  let delim = '';
+  for (const b of blocks) {
+    const m = numberOf(lines, b);
+    if (m && run && m.delim === delim) run.push(b);
+    else if (m) {
+      run = [b];
+      delim = m.delim;
+      out.push(run);
+    } else run = null;
+    orderedRuns(b.children, lines, out);
+  }
+  return out;
+}
+
+/** Where `pos` ends up after `changes`, past anything inserted right at it. */
+function mapAfter(changes: readonly Change[], pos: number): number {
+  let delta = 0;
+  for (const c of changes) if (c.to <= pos) delta += c.insert.length - (c.to - c.from);
+  return pos + delta;
+}
+
+/** `pos` (in the text after `changes`) moved by the renumbering `edits` (offsets into that same text). */
+function shift(edits: readonly Change[], pos: number): number {
+  let delta = 0;
+  for (const e of edits) if (e.to <= pos) delta += e.insert.length - (e.to - e.from);
+  return pos + delta;
+}
+
+/**
+ * `changes` plus the renumbering of every ordered list they touch: only the number tokens change, each list keeps
+ * its start number (the one it had before) and its delimiter, and a list numbered `1.` `1.` `1.` stays that way.
+ * `edits` are the renumberings in the text after `changes`, to map positions.
+ */
+function renumber(src: string, changes: Change[]): { changes: Change[]; edits: Change[] } {
+  const none = { changes, edits: [] };
+  if (!changes.length) return none;
+  const before = parseBlocks(src);
+  const touched = (b: Block) =>
+    changes.some(
+      (c) => (c.from < b.to && c.to > b.from) || (c.from === c.to && c.from > b.from && c.from < b.to),
+    );
+  // Each list before the edit, keyed by where its first untouched item lands afterwards.
+  const starts = new Map<number, { start: number; lazy: boolean; dirty: boolean }>();
+  for (const run of orderedRuns(before.blocks, before.lines)) {
+    const nums = run.map((b) => numberOf(before.lines, b)!.n);
+    const first = run.find((b) => !touched(b));
+    if (first)
+      starts.set(mapAfter(changes, first.from), {
+        start: nums[0]!,
+        lazy: nums.length > 1 && nums.every((n) => n === nums[0]),
+        dirty: run.some(touched),
+      });
+  }
+  const text = applyEdits(src, changes);
+  const after = parseBlocks(text);
+  const spans: { from: number; to: number }[] = [];
+  let delta = 0;
+  for (const c of changes) {
+    spans.push({ from: c.from + delta, to: c.from + delta + c.insert.length });
+    delta += c.insert.length - (c.to - c.from);
+  }
+  const inserted = (b: Block) => spans.some((s) => s.to > s.from && s.from <= b.from && b.to <= s.to);
+  const edits: Change[] = [];
+  for (const run of orderedRuns(after.blocks, after.lines)) {
+    const a = run[0]!.from;
+    const z = run[run.length - 1]!.to;
+    const known = run.map((b) => starts.get(b.from)).find((x) => x);
+    // A list the changes reach, or what's left of one they took an item from.
+    if (!spans.some((s) => s.from <= z && s.to >= a) && !known?.dirty) continue;
+    const marks = run.map((b) => numberOf(after.lines, b)!);
+    const kept = marks.filter((_, k) => !inserted(run[k]!)).map((m) => m.n);
+    const start = known?.start ?? marks[0]!.n;
+    const lazy = known ? known.lazy : kept.length > 1 && kept.every((n) => n === kept[0]);
+    marks.forEach((m, k) => {
+      const want = lazy ? start : start + k;
+      if (m.n !== want) edits.push({ from: m.from, to: m.to, insert: String(want) });
+    });
+  }
+  if (!edits.length) return none;
+  // Back into offsets of `src`: an edit inside inserted text changes that insertion, any other is a change of its own.
+  const out = changes.map((c) => ({ ...c }));
+  const extra: Change[] = [];
+  for (const e of [...edits].reverse()) {
+    const k = spans.findIndex((s) => s.to > s.from && s.from <= e.from && e.to <= s.to);
+    if (k >= 0) {
+      const c = out[k]!;
+      const at = e.from - spans[k]!.from;
+      c.insert = c.insert.slice(0, at) + e.insert + c.insert.slice(at + (e.to - e.from));
+    } else {
+      let d = 0;
+      for (let i = 0; i < spans.length; i++)
+        if (spans[i]!.to <= e.from) d += changes[i]!.insert.length - (changes[i]!.to - changes[i]!.from);
+      extra.push({ from: e.from - d, to: e.to - d, insert: e.insert });
+    }
+  }
+  const all = [...out, ...extra].sort((x, y) => x.from - y.from || x.to - x.from - (y.to - y.from));
+  return { changes: all, edits };
+}
+
+/** `changes` with the ordered lists they touch renumbered. */
+export function renumbered(src: string, changes: Change[]): Change[] {
+  return renumber(src, changes).changes;
 }
 
 // ---- Turn into ----
@@ -253,6 +389,10 @@ const CALLOUT_TAG = /^\[![A-Za-z-]+\][+-]?[ \t]*/;
 
 /** Turns `b` into another kind by editing only its markers (`#`, `-`, `1.`, `[ ]`, `>`). */
 export function turnInto(p: Parsed, b: Block, kind: TurnKind): Change[] {
+  return renumbered(p.src, markerChanges(p, b, kind));
+}
+
+function markerChanges(p: Parsed, b: Block, kind: TurnKind): Change[] {
   if (!canTurn(b.kind)) return [];
   const { lines } = p;
   const out: Change[] = [];
