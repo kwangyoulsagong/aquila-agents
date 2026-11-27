@@ -233,8 +233,8 @@ export function GridChip({
   onClick: () => void;
 }) {
   return (
-    <button type="button" className="c-ntable__chip" aria-pressed={pressed} onClick={onClick}>
-      {label}
+    <button type="button" className="c-ntable__chip" aria-pressed={pressed} onClick={onClick} title={label}>
+      <span className="c-ntable__label">{label}</span>
       {count !== undefined && <span className="c-ntable__count">{count}</span>}
     </button>
   );

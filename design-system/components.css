@@ -1261,6 +1261,14 @@ body {
  * window or a wider panel. */
 @container editor (width < 720px) { .c-editor__side { display: none; } }
 @container editor (width < 976px) { .c-editor:has(.c-editor__explorer) .c-editor__side { display: none; } }
+/* Narrower still (explorer 256 + 480: a 1440px window with the graph open leaves the panel ~350px), the explorer gives
+ * way too: it takes 45 %, not a fixed 256px that left the text ~100px wide (one character per line); its source picker
+ * gets a row of its own instead of shrinking to nothing. */
+@container editor (width < 736px) {
+  .c-editor > .c-editor__explorer { width: 45%; }
+  .c-explorer__head { flex-wrap: wrap; }
+  .c-explorer > .c-explorer__head > .c-select:first-child { flex-basis: 100%; }
+}
 .c-editor[hidden] { display: none; }
 .c-editor__main[hidden] { display: none; }
 .c-editor__main { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
@@ -1664,9 +1672,16 @@ body {
 .c-ntable__bar { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-inline-sm); }
 .c-ntable__bar > .c-input { flex: 1 1 var(--size-bar-field); width: auto; min-width: 0; }
 .c-ntable__bar > .c-select { flex: 0 1 var(--size-ntable-col); min-width: 0; }
-.c-ntable__chips { flex: none; display: flex; flex-wrap: wrap; gap: var(--space-inline-xs); }
+.c-ntable__chips {
+  /* Real folders keep free-text values ("in-progress (1a–1f done …)"): at most two rows of chips, the rest scrolls,
+     so the grid keeps the dialog's height; a long chip ends in "…" (its title has the whole value). */
+  flex: none; display: flex; flex-wrap: wrap; gap: var(--space-inline-xs);
+  max-height: calc(var(--size-control) * 2 + var(--space-inline-xs)); overflow-y: auto;
+}
+.c-ntable__label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .c-ntable__chip {
   display: inline-flex; align-items: center; gap: var(--space-inline-xs); height: var(--size-control); padding: 0 var(--space-inset-sm);
+  flex: none; max-width: var(--size-ntable-title);
   border: 1px solid var(--color-border-subtle); border-radius: var(--radius-control); background: none;
   color: var(--color-text-secondary); font: inherit; font-size: var(--font-size-label); cursor: pointer;
   transition: background var(--motion-fast) var(--motion-ease), border-color var(--motion-fast) var(--motion-ease);
