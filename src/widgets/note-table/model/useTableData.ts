@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, type GraphSourceStatus, type NoteTableData, type VaultCard } from '@/shared/api';
+import { createLatest } from './latest';
 import { readLastSource } from './prefs';
 
 /** The index moves often while indexing: ask again at most this often. */
@@ -38,10 +39,14 @@ export function useSources(initialSource: string | undefined, initialPath: strin
 /** A source's notes from the index, loaded again when the index moves or its settings change. */
 export function useTableData(sourceId: string | null) {
   const [data, setData] = useState<NoteTableData | null | undefined>(undefined);
+  const latest = useRef(createLatest(sourceId)).current;
   const load = useCallback(() => {
-    if (sourceId) void api.noteTable(sourceId).then(setData);
-  }, [sourceId]);
+    if (!sourceId) return;
+    const current = latest.start(sourceId);
+    void api.noteTable(sourceId).then((d) => current() && setData(d));
+  }, [sourceId, latest]);
   useEffect(() => {
+    latest.select(sourceId);
     setData(undefined);
     if (!sourceId) return;
     let timer: ReturnType<typeof setTimeout> | null = null;
@@ -63,7 +68,7 @@ export function useTableData(sourceId: string | null) {
       offGraph();
       if (timer) clearTimeout(timer);
     };
-  }, [sourceId, load]);
+  }, [sourceId, load, latest]);
 
   /** A cell edited: shown at once, the next load (after the index re-reads the file) replaces it. */
   const patch = useCallback((path: string, props: VaultCard['props']) => {
