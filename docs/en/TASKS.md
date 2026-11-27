@@ -956,19 +956,26 @@ save byte-exact, add the conveniences on top. Built in parallel worktrees, merge
   `slashMenu.ts`): blocks are ranges of the text; ⋮⋮ handle to drag (drop line, auto-scroll), click for a menu
   (turn into, duplicate, delete, copy as Markdown), ⌥⇧↑/↓ moves a block, `/` menu (Korean / English / Markdown
   aliases, never while the IME composes). Every operation is one splice; untouched bytes and CRLF stay.
-  _Left over: ordered lists aren't renumbered after a move; a paragraph moved into a list can read as list text in
-  edge cases; moved lines in a mixed-ending file take the first line ending._
+  _Leftovers done (`task/notes-leftovers`): move / turn into / delete / duplicate renumber the ordered lists they
+  touch (number tokens only; start number, `.` / `)` and `1.` `1.` `1.` lists kept); a paragraph moved under a list
+  item's text or next to an ordered item gets a blank line; the save gives moved lines in a mixed-ending file their
+  own endings back. Left over: a number that gains a digit (`9.` → `10.`) doesn't re-indent its continuation lines._
 - [x] **T78 Properties + table** (`src/features/note-properties/`, `src/widgets/note-table/`, `note:table` IPC):
   frontmatter as editable rows above every note (text / date / list chips / select, add / remove, minimal splice);
   ⌘K **Table view**: rows from the index, pick columns, sort, filter (text, folder, property, status chips), group,
   virtualized, inline cell edit (refused if the file changed).
-  _Left over: the T69 vault table view doesn't use the new grid yet; typed properties also show in the vault side._
+  _Leftovers done: the T69 table / list views use the design-system `DataGrid` too (sortable headers, group rows;
+  the old `DataTable` / `.c-table` are gone); the vault side lists only declared properties the note doesn't have
+  yet ("Properties to fill")._
 - [x] **T79 Requirement IDs** (`src/features/note-ids/`, `src/features/link-mentions/`): IDs the index learned get
   an underline (defined / duplicate / unknown / loose), hover card (defining note, status, referenced in N notes ·
   M sessions · K files), ⌘-click opens; "Referenced in" + checklist meter in the side column; lenses "IDs with no
   work", "Unknown · duplicate IDs"; **Link** on a mention turns its first plain mention into `[[name]]`.
-  _Left over: the index reads `FE-REQ-030` as `REQ-030` (kept for link rules; `refIds` keeps the full ID);
-  sessions / files in "Referenced in" aren't clickable._
+  _Leftovers done: the index reads IDs whole (`FE-REQ-030`; shared-ID links, ID groups, `{{id}}` in templates);
+  rule prefixes may have several segments and a rule learned as `REQ` keeps covering `FE-REQ-<n>`; index cache v2
+  re-parses; the parser's separate `refIds` is gone (nodes take `ids`). "Referenced in": a session brings its tab
+  to the front or resumes, a file shows in Finder (`file:reveal`). Left over: old accepts counted under `id:REQ`
+  don't add up with new `id:FE-REQ` ones toward a proposal._
 - [x] **T80 Agent change review** (`electron/graph/note-seen.ts`, `src/features/note-review/`): the text you last
   saw per note (`~/.aquila/notes-seen/`, 2,000 notes / 50 MB LRU); "Claude changed this note · +12 −3" bar with
   Review (diff), Revert hunk (confirm), Mark as seen; "Changed outside" list. No polling.
@@ -978,7 +985,9 @@ save byte-exact, add the conveniences on top. Built in parallel worktrees, merge
   (≤ 20k chars) and to which account; one hidden `claude -p` per click (haiku, sonnet optional) → product, feature,
   intent, key points, open questions; related notes found locally (same ID / shared words); Save as note
   (frontmatter `type: brief`). ⌘K, a button in the graph head, or drop.
-  _Left over: PDFs refused (paste the text); Figma read tools untested with a real account; no editor button._
+  _Leftovers done: PDFs (≤ 20 MB) are read on the Mac with PDFKit through `osascript` (no model, no new
+  dependency; scanned / locked PDFs say so); a **What is this?** button in the note editor head (page slot).
+  Left over: Figma read tools untested with a real account; scanned PDFs need OCR (not done)._
 - [x] **T82 Document look** (`model/document.ts`, `readingMode.ts`, T82 block in `components.css`, doc tokens):
   centred 720px column, type scale, title, folder · edited header, bullets by depth, drawn checkboxes, callout
   cards, code cards (language + copy), table cards, wikilink pills; **Read** mode (⌘E) hides all syntax, links and
