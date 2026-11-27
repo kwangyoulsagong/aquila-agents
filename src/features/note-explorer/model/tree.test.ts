@@ -109,6 +109,21 @@ describe('filter', () => {
     expect(rows.map((r) => r.rel)).toEqual(['meetings', 'meetings/2026-11-20 회의.md']);
     expect(rows[1]!.matches).toEqual([11, 12]);
   });
+  it('keeps only the notes that have a whole typed ID, not a subsequence of it', () => {
+    const real = [
+      ...files,
+      // "FE-REQ-03" in the name and a 0 in the title ("F004"): a subsequence of FE-REQ-030, not the note.
+      e('reports/checklists/FE-REQ-035.md', 0, { title: 'FE-REQ-035 (F004 CLEANUP)' }),
+    ];
+    expect([...filterFiles(real, 'FE-REQ-030').keys()].sort()).toEqual([
+      'requirements/checklists/FE-REQ-030.md',
+      'requirements/specs/FE-REQ-030.md',
+    ]);
+    expect(filterFiles(real, 'fe-req-035').has('reports/checklists/FE-REQ-035.md')).toBe(true);
+    // Nothing has it whole: still fuzzy (the subsequence counts again).
+    expect(filterFiles(real, 'req030').has('requirements/specs/FE-REQ-030.md')).toBe(true);
+    expect(filterFiles(real, 'req030').has('reports/checklists/FE-REQ-035.md')).toBe(true);
+  });
   it('matches nothing for an empty query', () => {
     expect(filterFiles(files, '  ').size).toBe(0);
   });

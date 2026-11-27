@@ -20,6 +20,7 @@ import type { SessionManager } from './sessions';
 import { checkRemoteSession } from './remote/smoke';
 import { checkRealHost } from './remote/realHostSmoke';
 import { checkNoteFeatures } from './notesSmoke';
+import { runRealCheck } from './realSmoke';
 import { readHookBody } from './hooks';
 import { applyAction, isoDate } from './graph/vault';
 import { IPC, type Config, type ConnectionUpdate, type ContextMenuItem } from '../src/shared/api/types';
@@ -114,6 +115,9 @@ export async function runSmoke(
 ) {
   if (process.env.AQUILA_PERF === '1') return runPerf(win, sessions);
   if (process.env.AQUILA_CAPTURE) return runCapture(win, sessions, config, previews);
+  // Local-only: a real note folder (a copy), see realSmoke.ts.
+  if (process.env.AQUILA_SMOKE_REAL)
+    return runRealCheck(win, config, { press, paletteRun }, process.env.AQUILA_SMOKE_REAL);
   let failed = false;
   const fail = (why: string) => {
     if (failed) return;
