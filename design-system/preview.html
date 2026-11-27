@@ -359,8 +359,8 @@
   </section>
 
   <section>
-    <h2>Note editor · live preview, banner, outline / links (T67)</h2>
-    <div class="mock" style="display:flex; flex-direction:column; height:360px;">
+    <h2>Note editor · live preview as a document (T82), banner, outline / links (T67)</h2>
+    <div class="mock" style="display:flex; flex-direction:column; height:720px;">
       <div class="c-editor">
         <div class="c-editor__main">
           <div class="c-editor__banner" role="status" data-tone="warn">
@@ -370,14 +370,41 @@
             <button class="c-btn">다시 불러오기</button>
           </div>
           <div class="c-editor__host">
-            <div class="cm-editor"><div class="cm-scroller"><div class="cm-content">
-              <div class="cm-line cm-md-h cm-md-h1">릴리스 체크리스트</div>
-              <div class="cm-line cm-md-callout cm-md-callout-title"><span class="cm-md-callout-kind">note</span>이번 주</div>
-              <div class="cm-line cm-md-callout">표와 체크박스는 라이브 프리뷰로 보여요.</div>
-              <div class="cm-line"><span class="cm-md-listmark">-</span> <input type="checkbox" class="cm-md-checkbox"> 빌드 확인</div>
-              <div class="cm-line"><span class="cm-md-listmark">-</span> <input type="checkbox" class="cm-md-checkbox" checked> <span class="cm-md-done">노트 그래프 머지</span></div>
-              <div class="cm-md-table"><table><thead><tr><th>항목</th><th style="text-align:center">담당</th></tr></thead><tbody><tr><td>editor</td><td style="text-align:center">서연</td></tr></tbody></table></div>
-              <div class="cm-line">See <span class="cm-md-wikilink">session-restore</span>, <span class="cm-md-code">planRestore</span> and <span class="cm-md-strong">DB-12</span>.</div>
+            <!-- T82: the live preview as a document. Static copy of what CodeMirror renders (the cursor is on the last line). -->
+            <div class="cm-editor"><div class="cm-scroller" style="overflow:auto; height:100%"><div class="cm-content" style="white-space:pre-wrap">
+              <div class="cm-md-dochead"><div class="cm-md-docmeta">Plan · 11월 27일 14:02 수정</div></div>
+              <div class="cm-line cm-md-h cm-md-h1 cm-md-title">릴리스 체크리스트</div>
+              <div class="cm-line"><br></div>
+              <div class="cm-line">배포 전에 확인할 것들. 파일은 <span class="cm-md-strong">그냥 마크다운</span>이고 보기만 <span class="cm-md-em">문서처럼</span> 바뀌어요. See <span class="cm-md-wikilink">session-restore</span>, <span class="cm-md-link" data-url="#">docs</span> and <span class="cm-md-code">planRestore()</span>.</div>
+              <div class="cm-line cm-md-h cm-md-h2">할 일</div>
+              <div class="cm-line"><input type="checkbox" class="cm-md-checkbox">빌드 확인</div>
+              <div class="cm-line"><input type="checkbox" class="cm-md-checkbox" checked><span class="cm-md-done">노트 그래프 머지</span></div>
+              <div class="cm-line"><span class="cm-md-bullet" data-depth="0"></span> 일반 항목</div>
+              <div class="cm-line">&nbsp;&nbsp;<span class="cm-md-bullet" data-depth="1"></span> 중첩 항목</div>
+              <div class="cm-line"><span class="cm-md-listmark cm-md-ordered">1.</span> 첫째</div>
+              <div class="cm-line"><br></div>
+              <div class="cm-line cm-md-callout cm-md-callout-start cm-md-callout-title" data-callout="note"><span class="cm-md-callout-kind" data-callout="note"><span class="cm-md-callout-icon">i</span>note</span>이번 주</div>
+              <div class="cm-line cm-md-callout cm-md-callout-end" data-callout="note">표와 체크박스는 라이브 프리뷰로 보여요.</div>
+              <div class="cm-line"><br></div>
+              <div class="cm-line cm-md-callout cm-md-callout-start cm-md-callout-title" data-callout="warning"><span class="cm-md-callout-kind" data-callout="warning"><span class="cm-md-callout-icon">!</span>warning</span>주의</div>
+              <div class="cm-line cm-md-callout cm-md-callout-end" data-callout="warning">2MB 넘는 노트는 일부만 열려요.</div>
+              <div class="cm-line"><br></div>
+              <div class="cm-line cm-md-callout cm-md-callout-start cm-md-callout-title cm-md-callout-end" data-callout="tip"><span class="cm-md-callout-kind" data-callout="tip"><span class="cm-md-callout-icon">✓</span>tip</span>읽기 모드는 ⌘E</div>
+              <div class="cm-line"><br></div>
+              <div class="cm-line cm-md-callout cm-md-callout-start cm-md-callout-title cm-md-callout-end" data-callout="important"><span class="cm-md-callout-kind" data-callout="important"><span class="cm-md-callout-icon">!</span>important</span>머지 전에 리뷰</div>
+              <div class="cm-line"><br></div>
+              <div class="cm-line cm-md-callout cm-md-callout-start cm-md-callout-title cm-md-callout-end" data-callout="caution"><span class="cm-md-callout-kind" data-callout="caution"><span class="cm-md-callout-icon">×</span>caution</span>main에 직접 푸시 금지</div>
+              <div class="cm-line"><br></div>
+              <div class="cm-line cm-md-quote cm-md-quote-start cm-md-quote-end">인용문은 조용한 테두리.</div>
+              <div class="cm-line cm-md-h cm-md-h3">코드</div>
+              <div class="cm-line cm-md-codeblock cm-md-codeblock-start"><span class="cm-md-codehead"><span class="cm-md-codelang">TypeScript</span><button type="button" class="cm-md-codecopy">복사</button></span></div>
+              <div class="cm-line cm-md-codeblock">export function hello(name: string) {</div>
+              <div class="cm-line cm-md-codeblock">  return `hi ${name}`;</div>
+              <div class="cm-line cm-md-codeblock">}</div>
+              <div class="cm-line cm-md-codeblock cm-md-codeblock-end cm-md-codeblock-close"><br></div>
+              <div class="cm-md-table"><table><thead><tr><th>항목</th><th style="text-align:center">담당</th><th style="text-align:right">상태</th></tr></thead><tbody><tr><td>editor</td><td style="text-align:center">서연</td><td style="text-align:right">완료</td></tr><tr><td>graph</td><td style="text-align:center">민준</td><td style="text-align:right">진행</td></tr><tr><td>docs</td><td style="text-align:center">지우</td><td style="text-align:right">대기</td></tr></tbody></table></div>
+              <div class="cm-line cm-md-hr"><br></div>
+              <div class="cm-line cm-md-h cm-md-h4">마무리</div>
               <div class="cm-line">| raw | row | on the cursor line |</div>
             </div></div></div>
           </div>

@@ -6,6 +6,8 @@ import { Compartment, EditorState, Prec, type Extension } from '@codemirror/stat
 import { EditorView, keymap, type Command } from '@codemirror/view';
 import type { LinkOption } from './links';
 import { livePreview } from './livePreview';
+import { documentHeader } from './document';
+import { reading, readingCompartment } from './readingMode';
 import { continueMarkup, newRow, nextCell, prevCell } from './tables';
 
 // The editor's extensions in one place. No closing brackets, no reindent on Enter beyond Markdown's list
@@ -71,6 +73,9 @@ export function editorExtensions(opts: EditorOptions): Extension {
     autocompletion({ override: [linkCompletion(opts.links)], icons: false, activateOnTyping: true }),
     livePreview({ onOpenLink: opts.onOpenLink, onOpenUrl: opts.onOpenUrl, imageSrc: opts.imageSrc }),
     readOnlyCompartment.of(readOnly(false)),
+    // T82: reading mode (off until the panel turns it on) and the document header above the text.
+    readingCompartment.of(reading(false)),
+    documentHeader(),
     Prec.high(
       keymap.of([
         { key: 'Tab', run: tableKey(nextCell) },

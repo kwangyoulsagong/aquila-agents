@@ -47,6 +47,7 @@
 | `--color-account-shared` / `-personal` | Claude 계정 배지 (`claude` / `claude-personal`) |
 | `--color-graph-note` / `-tag` / `-code` / `-missing` / `-other` / `-edge` / `-focus` | 지식 그래프 캔버스 (T66): 노드 종류, 연결선, 선택한 노트. WebGL은 CSS를 못 읽어서 패널이 `getComputedStyle`로 값을 읽고, 테마가 바뀌면 다시 읽음 |
 | `--color-graph-group-1` … `-8` | 묶음으로 칠한 전체 지도 (T72): 가장 큰 묶음 8개, 큰 순서(파랑, 피치, 청록, 보라, 초록, 분홍, 노랑, 빨강. 어두운 테마 `-300` / 밝은 테마 `-600`·`-700`). 나머지 묶음은 `--color-graph-missing` |
+| `--color-callout-note` / `-tip` / `-important` / `-warning` / `-caution` (+ `-bg`) | 노트 콜아웃 카드 (T82, `> [!KIND]`): 테두리·아이콘·라벨 색, `-bg`는 카드 바탕 (파랑, 초록, 보라, 주황, 빨강. 어두운 테마 `-400`/`-300`, 밝은 테마 `-600`) |
 | `--color-diff-*` | diff 추가 / 삭제 / 헝크 |
 | `--color-terminal-*` | xterm 테마 (실행 중에 읽고, 테마가 바뀌면 다시 읽음): 배경, 글자, 커서, 선택, 스크롤바(+ `-hover`), 찾기 일치 `-match` / `-match-active`(불투명 `#RRGGBB` — xterm 데코레이션이 요구; 호박색). 라이트에선 xterm `minimumContrastRatio`를 4.5로 둬서 다크 배경용으로 고른 CLI 색도 읽혀요 |
 
@@ -71,11 +72,12 @@
 
 - UI: 시스템 폰트 (SF Pro + Apple SD Gothic Neo). 고정폭: JetBrains Mono (번들), 한글은 D2Coding 대체.
 - `--font-size-caption` 11 (메타, 라벨) · `-label` 12 (탭, 버튼) · `-body` 13 (본문, 터미널) · `-title` 15 · `-heading-1/2/3` 20 / 17 / 15 (노트 에디터 제목, T67).
+- 노트 문서 (T82, 라이브 프리뷰를 문서처럼): `--font-size-doc-body` 15 (`--line-height-doc` 1.6 → 24) · `-doc-code` 13 (`--line-height-code` 1.55) · `-doc-title` 28 (첫 H1, 없으면 이름) · `-doc-h1/h2/h3/h4` 24 / 20 / 17 / 15 (`--line-height-heading` 1.3, 자간 -0.01em, 제목 -0.02em).
 - 섹션 라벨: 11 / 600 / 대문자 / 0.06em / `--color-text-tertiary`.
 
 ## 간격·모서리 (역할별)
 
-`--space-inline-xs|sm` 4|8 (한 줄 안 요소 사이) · `--space-inset-sm|md` 8|12 (안쪽 여백) · `--space-stack-md|lg` 16|24 (그룹/섹션 사이).
+`--space-inline-xs|sm` 4|8 (한 줄 안 요소 사이) · `--space-inset-sm|md` 8|12 (안쪽 여백) · `--space-stack-md|lg` 16|24 (그룹/섹션 사이) · `--space-stack-xl` 32 (문서 둘레: 노트 에디터 본문, T82).
 `--radius-badge` 4 · `--radius-control` 6 · `--radius-container` 10.
 
 ## 레이아웃 — 하나의 그리드, 맞춘 가장자리
@@ -121,6 +123,7 @@
 | `--size-modal` / `--size-modal-height` / `--size-modal-aside` | 760 / 520 / 240 | 목록 + 상세 모달(가이드, 릴리즈 노트) / 목록 열 너비 |
 | `--size-modal-wide` / `--size-modal-wide-height` / `--size-modal-wide-aside` | 960 / 640 / 320 | `.c-modal--wide` (세션 기록: 긴 행, 대화 미리보기) / 목록 열 너비 |
 | `--size-editor-measure` / `--size-editor-side` | 720 / 240 | 노트 에디터 (T67): 전체 창에서 본문 한 줄 최대 너비 / 목차·링크 열 너비 |
+| `--size-doc-check` | 16 | 노트 문서 (T82): 할 일 체크박스, 콜아웃 아이콘 |
 | `--size-card-list` | 224 | 그래프 카드: 제안된 연결 목록이 스크롤되기 전 높이 (T68) |
 | `--size-board-column` / `--size-code-input` | 256 / 224 | 보드 보기의 열 너비 / 텍스트로 고치는 설정의 높이 (T69) |
 | `--size-focus-row` / `--size-focus-center` / `--size-focus-gap` | 40 / 208 / 48 | 그래프 주변 보기 (T72): 항목 하나(라벨 + 메타 줄) / 가운데 카드 / 두 열 사이 선이 지나갈 자리 |
@@ -141,7 +144,7 @@
 | `.c-queue`, `__lead` `__text` `__title` `__meta` | 사이드바 대기열 항목(리뷰 대기열, T58): 점, 제목, 고정폭 캡션 메타 줄(둘 다 말줄임). `.c-row`와 같은 가장자리. 버튼 |
 | `.c-risk` | 파괴적일 수 있는 명령의 경고 기호(⚠, 오류 색) — 대기 이유 줄과 탭 |
 | `.c-graph`, `__node[data-mark]` `__box` `__label` `__detail` `__mark` `__edge` `__column` | 정적 SVG 노드 그래프(레포 뼈대, T64; 지식 그래프도 같은 모양): 호출자가 배치한 상자, 곡선 간선. 테두리 없이 면 색으로 채운 상자, 색은 바뀌는 곳에만: add = 초록 면 + 채운 점, change = 파란 면 + 고리 점, unfit = 점선 테두리 + 취소선. 표시된 상자가 있으면(`.c-graph[data-marked]`) 표시 없는 라벨은 secondary로 물러남. 호버한 단계용 `data-dim` / `data-highlight`. 애니메이션 루프 없음 |
-| `.c-editor`, `__main` `__host` `__side` `__section` `__section-title` `__item` (`--level`) `__empty` `__banner[data-tone]` `__compare` | 노트 에디터 (T67): CodeMirror 자리 + 목차·링크 열, 위쪽 배너(warn = 대기 색 테두리). CodeMirror의 `.cm-*`와 라이브 프리뷰 표시 `.cm-md-*`(제목, 강조, 코드, 링크, `[[링크]]`, 체크박스, 인용·콜아웃, 구분선, 프런트매터, 렌더된 표)는 `.c-editor` 아래에서 토큰만으로 꾸밈 |
+| `.c-editor`, `__main` `__host` `__side` `__section` `__section-title` `__item` (`--level`) `__empty` `__banner[data-tone]` `__compare` | 노트 에디터 (T67): CodeMirror 자리 + 목차·링크 열, 위쪽 배너(warn = 대기 색 테두리). CodeMirror의 `.cm-*`와 라이브 프리뷰 표시 `.cm-md-*`(제목, 강조, 코드, 링크, `[[링크]]`, 체크박스, 인용·콜아웃, 구분선, 프런트매터, 렌더된 표)는 `.c-editor` 아래에서 토큰만으로 꾸밈. **문서 모양 (T82)**, 섹션 끝의 별도 블록: 가운데 본문 열(`--space-stack-xl` 여백, `note` 컨테이너가 560px 미만이면 `--space-stack-md`), 머리 `.cm-md-dochead`(H1이 없으면 `__doctitle`, `__docmeta` 폴더 · 수정 시각), `.cm-md-title`(첫 H1), 글머리 `.cm-md-bullet[data-depth]`, 그린 체크박스, 콜아웃 카드 `.cm-md-callout[data-callout]` `-start`/`-end` + `.cm-md-callout-kind`/`-icon`, 인용 `-start`/`-end`, 코드 카드 `.cm-md-codeblock` `-start`/`-end`/`-close`와 `.cm-md-codehead`(언어 + 복사), 표 카드(머리 행, 줄무늬, 가로 스크롤), 위키링크 알약. 읽기 모드는 `.cm-reading`(과 `.cm-md-blank`: 빈 줄을 반 높이로) |
 | `.c-suggest`, `__item` `__line[data-line=dotted|dashed]` `__text` `__label` `__why` `__actions` `__proposal[data-tone=warn]` | 링크 제안 (T68): 줄마다 제안된 연결 하나(선 견본, 상대 노드, 이유, ✓ / [[ / ×), 위에 제안·경고 줄(강조 / 대기 색 테두리). `GraphCard`는 `children`을 스크롤되는 `__card-body`로, `close`를 오른쪽 위에 고정된 `__card-close`로 받음(액션은 줄바꿈되고 닫기는 잘리지 않음). `GraphHint`(`.c-kgraph__hint`)는 같은 자리에 뜨는 닫을 수 있는 사용법 안내 |
 | `.c-kfocus`, `__plane` `__links` `__link[data-line][data-state=hot|dim]` `__node[data-align=start|end|center][data-depth][data-state]` `__text` `__label` `__meta` `__head` `__more` | 그래프 주변 보기 (T72): `FocusStage`(스크롤되는 판, 아래에 SVG 선), `FocusNode`(열 가장자리의 점 + 한 줄 라벨과 메타. `end` = 점이 오른쪽, 왼쪽 열용 오른쪽 정렬. `center` = 테두리 있는 가운데 카드), `FocusHead`, `FocusMore`. 모든 상자 위치(`x`, `y`, `width`)는 호출하는 쪽이 정하고, 이동은 `--motion-medium`으로 움직인다. roving tabindex: `current`만 탭으로 간다. `data-live=<상태>`: 탭에 열린 세션, 점에 `--color-status-*` 테두리(작업 중은 깜빡임) |
 | `.c-kgroups`, `__svg` `__link[data-lit|data-dim]` `__link-count` `__bubble[data-group=1–8][data-dim][data-selected]` `__disc` `__count` `__label` `__detail` `__hits` `__hint` | 그래프 지도 묶음 (T73): `GraphGroups` — 묶음마다 원 하나(위치·크기는 호출자, `--size-bubble-min/max`), 선 굵기는 묶음 사이 링크 수, 밝힌 선은 숫자 표시. 원은 버튼: 클릭 / Enter로 열고 ⌘ / Shift로 고름(`data-selected`). `hint`: 왼쪽 아래 조용한 한 줄 |

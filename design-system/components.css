@@ -1286,6 +1286,130 @@ body {
 /* Typed properties in the side column (T69). */
 .c-editor__fields { display: flex; flex-direction: column; gap: var(--space-inset-sm); padding: var(--space-inline-xs) var(--space-inset-md); }
 
+/* ── Note document look (T82) ─────────────────────────────────
+ * The live preview reads like a finished page: a centred column, a type scale, cards for callouts, code and
+ * tables. Presentation only (the file stays plain Markdown). Reading mode (`.cm-reading`) hides every mark.
+ * Overrides the T67 rules above where they meet. Spacing is padding only: CodeMirror measures lines, not margins. */
+.c-editor__host { container: note / inline-size; }
+.c-editor .cm-content { padding: var(--space-stack-xl); font-size: var(--font-size-doc-body); line-height: var(--line-height-doc); }
+@container note (width < 560px) { .c-editor .cm-content { padding: var(--space-stack-md); } }
+.c-editor .cm-reading .cm-content { caret-color: transparent; }
+
+/* Header above the text: the name when the note has no H1, then folder · edited. */
+.c-editor .cm-md-dochead { padding-bottom: var(--space-stack-md); }
+.c-editor .cm-md-doctitle { font-size: var(--font-size-doc-title); font-weight: 700; line-height: var(--line-height-heading); letter-spacing: -0.02em; overflow-wrap: anywhere; }
+.c-editor .cm-md-docmeta { padding-top: var(--space-inline-xs); font-size: var(--font-size-label); color: var(--color-text-tertiary); }
+
+/* Headings: size and weight step down, the space above grows with rank. The first H1 is the title. */
+.c-editor .cm-md-h { font-weight: 600; line-height: var(--line-height-heading); letter-spacing: -0.01em; color: var(--color-text-primary); padding-bottom: var(--space-inline-xs); }
+.c-editor .cm-md-h1 { font-size: var(--font-size-doc-h1); font-weight: 700; padding-top: var(--space-stack-lg); }
+.c-editor .cm-md-h2 { font-size: var(--font-size-doc-h2); padding-top: var(--space-stack-lg); }
+.c-editor .cm-md-h3 { font-size: var(--font-size-doc-h3); padding-top: var(--space-stack-md); }
+.c-editor .cm-md-h4, .c-editor .cm-md-h5, .c-editor .cm-md-h6 { font-size: var(--font-size-doc-h4); padding-top: var(--space-inset-md); letter-spacing: 0; }
+.c-editor .cm-md-h5, .c-editor .cm-md-h6 { color: var(--color-text-secondary); }
+.c-editor .cm-md-title { font-size: var(--font-size-doc-title); letter-spacing: -0.02em; padding-top: 0; padding-bottom: var(--space-inset-sm); }
+
+/* Lists: bullets by depth (• ◦ ▪), ordered numbers line up. */
+.c-editor .cm-md-bullet { display: inline-block; min-width: var(--space-stack-md); text-align: center; color: var(--color-text-secondary); }
+.c-editor .cm-md-bullet::before { content: '•'; }
+.c-editor .cm-md-bullet[data-depth='1']::before { content: '◦'; }
+.c-editor .cm-md-bullet[data-depth='2']::before { content: '▪'; }
+.c-editor .cm-md-ordered { font-variant-numeric: tabular-nums; }
+
+/* To-dos: a drawn box; checked fills with the accent and pops its tick. */
+.c-editor .cm-md-checkbox {
+  appearance: none; display: inline-grid; place-content: center; width: var(--size-doc-check); height: var(--size-doc-check);
+  margin: 0 var(--space-inline-sm) 0 0; vertical-align: -0.2em; border: 1px solid var(--color-border-default); border-radius: var(--radius-badge);
+  background: var(--color-bg-canvas); transition: background var(--motion-fast) var(--motion-ease), border-color var(--motion-fast) var(--motion-ease);
+}
+.c-editor .cm-md-checkbox:hover { border-color: var(--color-action-primary); }
+.c-editor .cm-md-checkbox:checked { background: var(--color-action-primary); border-color: var(--color-action-primary); }
+.c-editor .cm-md-checkbox:checked::before {
+  content: ''; width: var(--space-inset-md); height: var(--space-inset-md); background: var(--color-text-on-accent);
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 6.2 5 8.6 9.5 3.6' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+  animation: c-pop var(--motion-slow) var(--motion-ease-spring);
+}
+.c-editor .cm-md-done { color: var(--color-text-tertiary); text-decoration-color: var(--color-text-tertiary); }
+
+/* Inline: code pills, links underlined softly, [[links]] as accent pills. */
+.c-editor .cm-md-code { padding: 0 var(--space-inline-xs); font-size: var(--font-size-doc-code); border: 1px solid var(--color-border-subtle); background: var(--color-bg-surface); }
+.c-editor .cm-md-link { text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 35%, transparent); text-underline-offset: 0.2em; transition: text-decoration-color var(--motion-fast) var(--motion-ease); }
+.c-editor .cm-md-link:hover { text-decoration-color: currentColor; }
+.c-editor .cm-md-wikilink { padding: 0 var(--space-inline-xs); border-radius: var(--radius-badge); background: var(--color-bg-selected); transition: color var(--motion-fast) var(--motion-ease); }
+.c-editor .cm-md-wikilink:hover { color: var(--color-action-primary-hover); }
+.c-editor .cm-md-img { margin: var(--space-inset-sm) 0; border: 1px solid var(--color-border-subtle); border-radius: var(--radius-container); }
+.c-editor .cm-md-hr { padding: var(--space-inset-md) 0; }
+
+/* Quotes: a quiet edge. Callouts: a tinted card per kind, icon + label on the first line. */
+.c-editor .cm-md-quote { padding-left: calc(var(--space-inset-md) + var(--size-focus-line)); color: var(--color-text-secondary); }
+.c-editor .cm-md-quote-start { padding-top: var(--space-inline-xs); }
+.c-editor .cm-md-quote-end { padding-bottom: var(--space-inline-xs); }
+.c-editor .cm-md-callout, .c-editor .cm-md-callout-kind { --c-callout: var(--color-callout-note); --c-callout-bg: var(--color-callout-note-bg); }
+.c-editor [data-callout='tip'] { --c-callout: var(--color-callout-tip); --c-callout-bg: var(--color-callout-tip-bg); }
+.c-editor [data-callout='important'] { --c-callout: var(--color-callout-important); --c-callout-bg: var(--color-callout-important-bg); }
+.c-editor [data-callout='warning'] { --c-callout: var(--color-callout-warning); --c-callout-bg: var(--color-callout-warning-bg); }
+.c-editor [data-callout='caution'] { --c-callout: var(--color-callout-caution); --c-callout-bg: var(--color-callout-caution-bg); }
+.c-editor .cm-md-callout {
+  padding: 0 var(--space-stack-md) 0 calc(var(--space-stack-md) + var(--size-focus-line));
+  background: var(--c-callout-bg); box-shadow: inset var(--size-focus-line) 0 0 var(--c-callout); color: var(--color-text-primary);
+}
+.c-editor .cm-md-callout-start { padding-top: var(--space-inset-md); border-top-right-radius: var(--radius-control); }
+.c-editor .cm-md-callout-end { padding-bottom: var(--space-inset-md); border-bottom-right-radius: var(--radius-control); }
+.c-editor .cm-md-callout-title { font-weight: 600; }
+.c-editor .cm-md-callout-kind {
+  display: inline-flex; align-items: center; gap: var(--space-inline-sm); margin-right: var(--space-inline-sm);
+  font-size: var(--font-size-body); font-weight: 600; color: var(--c-callout); text-transform: capitalize;
+}
+.c-editor .cm-md-callout-icon {
+  display: inline-grid; place-content: center; width: var(--size-doc-check); height: var(--size-doc-check); border-radius: 50%;
+  background: var(--c-callout); color: var(--color-bg-canvas); font-size: var(--font-size-caption); font-weight: 700; line-height: 1;
+}
+
+/* Code blocks: a card; the fence line becomes its header (language · copy), the closing fence its bottom edge. */
+.c-editor .cm-md-codeblock {
+  --c-code-edge: var(--color-border-subtle);
+  padding: 0 var(--space-stack-md); font-size: var(--font-size-doc-code); line-height: var(--line-height-code);
+  background: var(--color-bg-surface); box-shadow: inset 1px 0 0 var(--c-code-edge), inset -1px 0 0 var(--c-code-edge);
+}
+.c-editor .cm-md-codeblock-start {
+  padding-top: var(--space-inset-sm); border-radius: var(--radius-control) var(--radius-control) 0 0;
+  box-shadow: inset 1px 0 0 var(--c-code-edge), inset -1px 0 0 var(--c-code-edge), inset 0 1px 0 var(--c-code-edge);
+}
+.c-editor .cm-md-codeblock-end {
+  padding-bottom: var(--space-inset-sm); border-radius: 0 0 var(--radius-control) var(--radius-control);
+  box-shadow: inset 1px 0 0 var(--c-code-edge), inset -1px 0 0 var(--c-code-edge), inset 0 -1px 0 var(--c-code-edge);
+}
+.c-editor .cm-md-codeblock-start.cm-md-codeblock-end { border-radius: var(--radius-control); box-shadow: inset 0 0 0 1px var(--c-code-edge); }
+.c-editor .cm-md-codeblock-close { padding-bottom: 0; line-height: var(--space-inset-sm); }
+.c-editor .cm-md-codeblock-start:has(.cm-md-codehead) {
+  padding-bottom: var(--space-inline-xs); background: var(--color-bg-hover);
+  box-shadow: inset 1px 0 0 var(--c-code-edge), inset -1px 0 0 var(--c-code-edge), inset 0 1px 0 var(--c-code-edge), inset 0 -1px 0 var(--c-code-edge);
+}
+.c-editor .cm-md-codeblock-start:has(.cm-md-codehead) + .cm-md-codeblock { padding-top: var(--space-inset-sm); }
+.c-editor .cm-md-codehead { display: inline-flex; align-items: center; width: 100%; gap: var(--space-inline-sm); font-family: var(--font-family-ui); font-size: var(--font-size-caption); color: var(--color-text-tertiary); }
+.c-editor .cm-md-codelang { flex: 1; min-width: 0; }
+.c-editor .cm-md-codecopy {
+  height: var(--size-badge); padding: 0 var(--space-inline-sm); border: 0; border-radius: var(--radius-badge); background: none;
+  font: inherit; color: var(--color-text-secondary); cursor: pointer; transition: background var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease);
+}
+.c-editor .cm-md-codecopy:hover { background: var(--color-bg-pressed); color: var(--color-text-primary); }
+.c-editor .cm-md-codecopy[data-copied] { color: var(--color-status-done); }
+
+/* Tables: a bordered card, header row, soft zebra; wide ones scroll sideways. */
+.c-editor .cm-md-table { padding: var(--space-inset-sm) 0; overflow-x: auto; }
+.c-editor .cm-md-table table { min-width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid var(--color-border-subtle); border-radius: var(--radius-control); font-size: var(--font-size-body); line-height: var(--line-height-body); }
+.c-editor .cm-md-table th, .c-editor .cm-md-table td { padding: var(--space-inset-sm) var(--space-inset-md); border: 0; border-bottom: 1px solid var(--color-border-subtle); text-align: left; vertical-align: top; }
+.c-editor .cm-md-table th { background: var(--color-bg-hover); color: var(--color-text-primary); }
+.c-editor .cm-md-table tbody tr:nth-child(even) td { background: var(--color-bg-surface); }
+.c-editor .cm-md-table tbody tr:last-child td { border-bottom: 0; }
+.c-editor .cm-md-table thead th:first-child { border-top-left-radius: var(--radius-control); }
+.c-editor .cm-md-table thead th:last-child { border-top-right-radius: var(--radius-control); }
+.c-editor .cm-md-table tbody tr:last-child td:first-child { border-bottom-left-radius: var(--radius-control); }
+.c-editor .cm-md-table tbody tr:last-child td:last-child { border-bottom-right-radius: var(--radius-control); }
+
+/* Reading mode: a blank line between blocks is paragraph spacing, not a whole line. */
+.c-editor .cm-md-blank { line-height: var(--space-inset-md); }
+
 /* ── Board / table / list views of a source (T69) ──────────── */
 /* Columns of cards; a card is a button (opens the note), draggable to another column. */
 .c-board { flex: 1; min-height: 0; display: flex; gap: var(--space-inset-md); overflow-x: auto; align-items: stretch; }
