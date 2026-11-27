@@ -3,6 +3,8 @@ import type { BriefSaveRequest } from '../src/shared/api/types';
 import {
   BRIEF_SCHEMA,
   BriefService,
+  FIGMA_READ_TOOLS,
+  briefArgs,
   briefNote,
   briefPrompt,
   capText,
@@ -243,6 +245,17 @@ describe('BriefService', () => {
     expect(run).toHaveBeenCalledTimes(2);
   });
 
+  it('the cache key includes the language and the account', async () => {
+    const run = canned();
+    const svc = new BriefService({ run });
+    const p = prepareBrief({ text: 'hello spec' });
+    await svc.run('r1', p, { model: 'haiku', language: 'en' });
+    expect((await svc.run('r2', p, { model: 'haiku', language: 'ko' })).cached).toBe(false);
+    expect((await svc.run('r3', p, { model: 'haiku', language: 'en', configDir: '/a' })).cached).toBe(false);
+    expect((await svc.run('r4', p, { model: 'haiku', language: 'en', configDir: '/a' })).cached).toBe(true);
+    expect(run).toHaveBeenCalledTimes(3);
+  });
+
   it('refuses an empty input or a bad id', async () => {
     const svc = new BriefService({ run: canned() });
     await expect(
@@ -251,5 +264,37 @@ describe('BriefService', () => {
     await expect(
       svc.run('../x', prepareBrief({ text: 'a' }), { model: 'haiku', language: 'en' }),
     ).rejects.toThrow();
+  });
+});
+
+describe('briefArgs', () => {
+  /** The value(s) after `flag` up to the next `--option`. */
+  const after = (args: string[], flag: string) => {
+    const i = args.indexOf(flag);
+    if (i < 0) return undefined;
+    const rest = args.slice(i + 1);
+    const end = rest.findIndex((a) => a.startsWith('--'));
+    return rest.slice(0, end < 0 ? undefined : end);
+  };
+
+  it('no Figma: no built-in tools, no MCP server at all, one turn', () => {
+    const args = briefArgs({ model: 'haiku' });
+    expect(after(args, '--tools')).toEqual(['']);
+    expect(args).toContain('--strict-mcp-config');
+    expect(args).not.toContain('--mcp-config');
+    expect(args).not.toContain('--allowedTools');
+    expect(after(args, '--max-turns')).toEqual(['1']);
+    expect(args.join(' ')).not.toMatch(/Bash|Edit|Write|WebFetch|bypass/);
+  });
+
+  it('Figma: only the Figma-only config and its read tools; no built-in tools', () => {
+    const args = briefArgs({ model: 'sonnet', figmaMcp: '/home/.aquila/mcp/figma.json' });
+    expect(after(args, '--tools')).toEqual(['']);
+    expect(args).toContain('--strict-mcp-config');
+    expect(after(args, '--mcp-config')).toEqual(['/home/.aquila/mcp/figma.json']);
+    expect(after(args, '--allowedTools')).toEqual([FIGMA_READ_TOOLS]);
+    expect(FIGMA_READ_TOOLS.split(',').every((t) => t.startsWith('mcp__figma__get_'))).toBe(true);
+    expect(after(args, '--permission-mode')).toEqual(['dontAsk']);
+    expect(args.join(' ')).not.toMatch(/Bash|Edit|Write|WebFetch|bypass/);
   });
 });

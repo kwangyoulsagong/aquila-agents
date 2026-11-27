@@ -18,6 +18,7 @@ import type {
   Language,
 } from '../src/shared/api/types';
 import type { ClaudeRun } from './apply';
+import { NO_TOOLS } from './claude-args';
 import { extractJson } from './figma';
 import { hashText } from './graph/extract';
 import { plainText } from './news';
@@ -394,6 +395,32 @@ export interface BriefRunOptions {
 
 export type RunBrief = (prompt: string, opts: BriefRunOptions) => ClaudeRun;
 
+/** Figma's read-only tools: the only tools a brief may ever call. */
+export const FIGMA_READ_TOOLS = 'mcp__figma__get_metadata,mcp__figma__get_figjam';
+
+/**
+ * The argv of the hidden brief run. The source is untrusted (a pasted mail or PDF may carry a prompt injection), so
+ * no built-in tool exists (`--tools ""`: no Bash, Edit, WebFetch…) and no MCP server loads but the ones passed here
+ * (`--strict-mcp-config`). With Figma connected, `figmaMcp` is Aquila's own Figma-only config (`~/.aquila/mcp/figma.json`)
+ * and only Figma's read tools are pre-approved; `dontAsk` denies anything else instead of waiting for a prompt.
+ */
+export function briefArgs(opts: Pick<BriefRunOptions, 'model' | 'figmaMcp'>): string[] {
+  const args = ['-p', '--no-session-persistence', '--model', opts.model, '--output-format', 'text', ...NO_TOOLS];
+  if (opts.figmaMcp)
+    args.push(
+      '--mcp-config',
+      opts.figmaMcp,
+      '--allowedTools',
+      FIGMA_READ_TOOLS,
+      '--permission-mode',
+      'dontAsk',
+      '--max-turns',
+      '4',
+    );
+  else args.push('--max-turns', '1');
+  return args;
+}
+
 /**
  * The hidden `claude -p`: one turn, no session file, no tools (with Figma connected: only Figma's read tools and a
  * few turns for them), in an empty temp folder so it can't read any repo; killed on timeout or cancel.
@@ -406,18 +433,7 @@ export const runClaudeBrief =
     delete env.CLAUDECODE;
     delete env.CLAUDE_CODE_CHILD_SESSION;
     if (opts.configDir) env.CLAUDE_CONFIG_DIR = opts.configDir;
-    const args = ['-p', '--no-session-persistence', '--model', opts.model, '--output-format', 'text'];
-    if (opts.figmaMcp)
-      args.push(
-        '--mcp-config',
-        opts.figmaMcp,
-        '--strict-mcp-config',
-        '--allowedTools',
-        'mcp__figma__get_metadata,mcp__figma__get_figjam',
-        '--max-turns',
-        '4',
-      );
-    else args.push('--max-turns', '1');
+    const args = briefArgs(opts);
     let child: ChildProcess | null = null;
     let cancelled = false;
     let timedOut = false;
@@ -504,7 +520,8 @@ export class BriefService {
   ): Promise<BriefResult> {
     if (!ID_RE.test(id)) throw new Error('bad id');
     if (!prepared.text.trim()) throw new Error('empty');
-    const key = `${prepared.hash}:${opts.model}`;
+    // The reply's language and the account (its config dir) are part of the answer, not just the input and model.
+    const key = [prepared.hash, opts.model, opts.language, opts.configDir ?? ''].join('\u0000');
     const hit = this.cache.get(key);
     if (hit) return { ...hit, cached: true };
     if (this.runs.has(id)) throw new Error('already running');
