@@ -613,7 +613,7 @@ async function checkReview(c: Ctx): Promise<string | null> {
     ))
   )
     return 'review: Review shows no diff with two hunks';
-  const out = await c.shot('review');
+  const out = await c.shot('note-review');
   // The first hunk's Revert, then the confirmation's Revert.
   await c.js(`document.querySelector('${c.noteAside} .c-editor__compare .c-diff__actions button').click()`);
   if (!(await c.until(`!!document.querySelector('${c.noteAside} .c-review__confirm')`, 3000)))

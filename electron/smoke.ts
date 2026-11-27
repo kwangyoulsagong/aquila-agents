@@ -62,8 +62,19 @@ export const isSmoke = process.env.AQUILA_SMOKE === '1';
  */
 export const isHidden = isSmoke && process.env.AQUILA_HIDDEN === '1';
 if (isHidden) {
+  // The app may never become the active one (an app started from a terminal activates itself at launch, and app code
+  // focuses web contents: the preview, terminals). "prohibited" also hides the Dock icon; windows still draw.
+  const prohibit = () => {
+    if (process.platform === 'darwin') app.setActivationPolicy('prohibited');
+    app.dock?.hide();
+  };
+  app.on('will-finish-launching', prohibit);
+  void app.whenReady().then(prohibit);
   app.on('browser-window-created', (_e, w) => hideWindow(w));
-  void app.whenReady().then(() => app.dock?.hide());
+  // Every web contents (window, preview, extensions): focus is emulated, never taken from the OS.
+  app.on('web-contents-created', (_e, wc) => {
+    wc.focus = () => emulateFocusOf(wc);
+  });
 }
 /** Makes `w` invisible and keeps it from taking focus: `show` / `focus` only reach the page. */
 function hideWindow(w: BrowserWindow): void {
@@ -71,10 +82,27 @@ function hideWindow(w: BrowserWindow): void {
   w.setOpacity(0.01);
   w.setIgnoreMouseEvents(true);
   w.show = () => w.showInactive();
+  // Never `webContents.focus()`: on macOS it makes the window key and activates the app for a moment, and a key the
+  // user typed in another app then lands here (a stray "ㅅ" in a saved note). The page is told it has focus instead
+  // (DevTools focus emulation); input reaches it through sendInputEvent / insertText, which don't need OS focus.
   w.focus = () => {
     if (!w.isVisible()) w.showInactive();
-    w.webContents.focus();
+    emulateFocus(w);
   };
+  w.webContents.on('did-finish-load', () => emulateFocus(w));
+}
+/** `document.hasFocus()`, focus events and `:focus` behave as if the window were focused, with no OS focus. */
+function emulateFocus(w: BrowserWindow): void {
+  emulateFocusOf(w.webContents);
+}
+function emulateFocusOf(wc: Electron.WebContents): void {
+  const d = wc.debugger;
+  try {
+    if (!d.isAttached()) d.attach('1.3');
+    void d.sendCommand('Emulation.setFocusEmulationEnabled', { enabled: true }).catch(() => undefined);
+  } catch {
+    // another client holds the debugger: the page just reports no focus
+  }
 }
 // Keep painting behind other windows (set before app ready, at import): macOS occlusion stops requestAnimationFrame,
 // which the palette and pointer-driven UI rely on — a covered smoke window failed at random steps. Same as perf.

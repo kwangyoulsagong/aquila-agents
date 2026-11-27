@@ -996,7 +996,9 @@ save byte-exact, add the conveniences on top. Built in parallel worktrees, merge
 - [x] **Background verification**: `npm run smoke:hidden` / `perf:hidden` (`AQUILA_HIDDEN=1`): windows 1 %
   opaque, click-through, never focused, no Dock icon — nothing on screen. Smoke polls the release notes and the daily
   note's sessions; a view that opens while the shared snapshot is stale fetches at once; Enter in graph search before
-  results arrive takes the first match.
+  results arrive takes the first match. Hidden runs never take focus: the app's activation policy is "prohibited"
+  and every web contents' `focus()` is DevTools focus emulation (a stray key typed in another app once landed in a
+  table cell); checked by sampling the front app every 0.25 s for a whole run (0 of 472 samples).
 - [x] **Smoke for T77–T82** (`electron/notesSmoke.ts`, `task/notes-smoke`): smoke covers T77 ⌥⇧↓ (bullet and
   renumbered numbered list), the ⋮⋮ handle drag, `/할` through the IME (Enter while composing ignored) and `/todo`;
   T78 panel edit, Table view sort / status chip / cell edit; T79 defined / duplicate / unknown marks, hover card,
