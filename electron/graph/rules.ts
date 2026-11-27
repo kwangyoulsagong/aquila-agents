@@ -108,13 +108,17 @@ export function covers(rule: GraphRulePattern, p: GraphRulePattern): boolean {
   return p.prefix === rule.prefix || p.prefix.endsWith(`-${rule.prefix}`);
 }
 
-/** The enabled rule a reason falls under, if any (its own pattern first, then one that covers it). */
+/**
+ * The enabled rule a reason falls under, if any: its own pattern first — a rule for exactly that pattern decides,
+ * so a disabled `FE-REQ` isn't overridden by a covering legacy `REQ` — then, only when none exists, one that covers it.
+ */
 export function ruleFor(r: GraphEdgeReason, rules: readonly GraphRule[]): GraphRule | undefined {
   const p = reasonPattern(r);
   if (!p) return undefined;
   const key = patternKey(p);
-  const on = rules.filter((x) => x.enabled);
-  return on.find((x) => patternKey(x.pattern) === key) ?? on.find((x) => covers(x.pattern, p));
+  const exact = rules.filter((x) => patternKey(x.pattern) === key);
+  if (exact.length) return exact.find((x) => x.enabled);
+  return rules.find((x) => x.enabled && covers(x.pattern, p));
 }
 
 /**

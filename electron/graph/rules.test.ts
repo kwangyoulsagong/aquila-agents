@@ -136,6 +136,9 @@ describe('T79: whole ID prefixes', () => {
     expect(ruleFor(r, [rule('REQ'), rule('FE-REQ')])?.id).toBe('FE-REQ');
     expect(ruleFor(r, [rule('REQ', false)])).toBeUndefined();
     expect(ruleFor({ via: 'id', label: 'FREQ-1' }, [rule('REQ')])).toBeUndefined();
+    // A disabled exact rule decides: the covering legacy REQ doesn't turn FE-REQ back on.
+    expect(ruleFor(r, [rule('REQ'), rule('FE-REQ', false)])).toBeUndefined();
+    expect(ruleFor({ via: 'id', label: 'SRV-REQ-1' }, [rule('REQ'), rule('FE-REQ', false)])?.id).toBe('REQ');
   });
 
   it('no proposal for a prefix an older rule already covers', () => {
