@@ -110,6 +110,7 @@
 | `--size-badge` / `--size-dot` | 16 / 8 | |
 | `--size-ext-icon` | 16 | 확장 자체 그림(매니페스트 `icon`) — 칩과 패널 이름 |
 | `--size-meter` | 4 | 미터 막대 (사용량 게이지) |
+| `--size-underline-offset` | 4 | 글자와 장식용 밑줄 사이 간격 (탐색기 트리의 폴더 노트 이름) |
 | `--size-ring` | 12 | 탭 안의 링 미터 (컨텍스트 게이지) |
 | `--size-sidebar` / `--size-panel` | 248 / 416 | |
 | `--size-panel-wide` | 720 | 나란히 보기 때 변경사항 패널(창의 절반까지) |

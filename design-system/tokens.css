@@ -260,6 +260,7 @@
   --size-dot-sm: 6px; /* per-session dots in a project row */
   --size-ext-icon: var(--p-size-16); /* an extension's own picture on its chip and panel name */
   --size-meter: var(--p-size-4); /* bar of a meter (usage gauge) */
+  --size-underline-offset: var(--p-size-4); /* gap between text and a decorative underline (folder note in the tree) */
   --size-ring: var(--p-size-12); /* ring meter in a tab (context gauge) */
   --size-sidebar: 248px;
   --size-panel: 416px;

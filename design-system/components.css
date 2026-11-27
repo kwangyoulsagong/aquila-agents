@@ -1453,7 +1453,7 @@ body {
 .c-tree__input[aria-invalid='true'] { border-color: var(--color-status-error); }
 .c-tree__twisty:hover { color: var(--color-text-primary); }
 .c-tree__mark { flex: none; width: var(--size-dot-sm); height: var(--size-dot-sm); border-radius: var(--radius-badge); border: 1px solid var(--color-text-tertiary); }
-.c-tree__row[data-folder-note] .c-tree__name { text-decoration: underline dotted var(--color-text-tertiary); text-underline-offset: 3px; }
+.c-tree__row[data-folder-note] .c-tree__name { text-decoration: underline dotted var(--color-text-tertiary); text-underline-offset: var(--size-underline-offset); }
 .c-tree__row[data-virtual] { color: var(--color-text-tertiary); font-size: var(--font-size-caption); }
 .c-tree__sticky { position: sticky; top: 0; z-index: 2; height: 0; }
 .c-tree__sticky .c-tree__row { background: var(--color-bg-surface); }

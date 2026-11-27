@@ -111,6 +111,7 @@ A project row shows its most urgent session: `waiting > error > working > done >
 | `--size-badge` / `--size-dot` | 16 / 8 | |
 | `--size-ext-icon` | 16 | An extension's own picture (`icon` in its manifest) on its chip and panel name |
 | `--size-meter` | 4 | Bar of a meter (usage gauge) |
+| `--size-underline-offset` | 4 | Gap between text and a decorative underline (a folder note's name in the explorer tree) |
 | `--size-ring` | 12 | Ring meter in a tab (context gauge) |
 | `--size-sidebar` / `--size-panel` | 248 / 416 | |
 | `--size-panel-wide` | 720 | Changes panel in side-by-side mode (capped at half the window) |
